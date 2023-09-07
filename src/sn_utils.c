@@ -1108,15 +1108,13 @@ static int update_edge (n2n_sn_t *sss,
     /* Not known */
         if(handle_remote_auth(sss, &(reg->auth), answer_auth, comm) == 0) {
             if(skip_add == SN_ADD) {
-                scan = peer_info_malloc(); /* deallocated in purge_expired_nodes */
-                memcpy(&(scan->mac_addr), reg->edgeMac, sizeof(n2n_mac_t));
+                scan = peer_info_malloc(reg->edgeMac); /* deallocated in purge_expired_nodes */
                 scan->dev_addr.net_addr = reg->dev_addr.net_addr;
                 scan->dev_addr.net_bitlen = reg->dev_addr.net_bitlen;
                 memcpy((char*)scan->dev_desc, reg->dev_desc, N2N_DESC_SIZE);
                 memcpy(&(scan->sock), sender_sock, sizeof(n2n_sock_t));
                 scan->socket_fd = socket_fd;
                 scan->last_cookie = reg->cookie;
-                scan->last_valid_time_stamp = initial_time_stamp();
                 // eventually, store edge's preferred local socket from REGISTER_SUPER
                 if(cmn->flags & N2N_FLAGS_SOCKET)
                     memcpy(&scan->preferred_sock, &reg->sock, sizeof(n2n_sock_t));

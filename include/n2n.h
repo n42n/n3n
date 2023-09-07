@@ -1,5 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -162,7 +163,6 @@ int sock_equal (const n2n_sock_t * a,
 
 /* Header encryption */
 uint64_t time_stamp (void);
-uint64_t initial_time_stamp (void);
 int time_stamp_verify_and_update (uint64_t stamp, uint64_t * previous_stamp, int allow_jitter);
 
 /* Operations on peer_info lists. */

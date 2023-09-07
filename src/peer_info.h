@@ -36,6 +36,7 @@ struct peer_info {
 
 typedef struct peer_info peer_info_t;
 
-struct peer_info* peer_info_malloc();
+void peer_info_init (struct peer_info *, const n2n_mac_t mac);
+struct peer_info* peer_info_malloc (const n2n_mac_t mac);
 
 #endif

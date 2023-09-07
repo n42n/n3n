@@ -1,5 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +32,7 @@
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
 #include "n2n.h"               // for n2n_sn_t, sn_community, traceEvent
 #include "pearson.h"           // for pearson_hash_64
-#include "peer_info.h"         // for peer_info, peer_info_t
+#include "peer_info.h"         // for peer_info, peer_info_init
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
 #ifdef _WIN32
@@ -268,11 +269,13 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
                 if(anchor_sn != NULL) {
                     anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
                     if(anchor_sn->ip_addr) {
+                        peer_info_init(anchor_sn, null_mac);
+                        // This is the only place where the default purgeable
+                        // is overwritten after an _alloc or _init
+                        anchor_sn->purgeable = false;
+
                         strncpy(anchor_sn->ip_addr, _optarg, N2N_EDGE_SN_HOST_SIZE - 1);
 	                memcpy(&(anchor_sn->sock), socket, sizeof(n2n_sock_t));
-                        memcpy(anchor_sn->mac_addr, null_mac, sizeof(n2n_mac_t));
-                        anchor_sn->purgeable = false;
-                        anchor_sn->last_valid_time_stamp = initial_time_stamp();
                     }
                 }
             }
