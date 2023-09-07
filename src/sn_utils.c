@@ -1,5 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1107,8 +1108,7 @@ static int update_edge (n2n_sn_t *sss,
     /* Not known */
         if(handle_remote_auth(sss, &(reg->auth), answer_auth, comm) == 0) {
             if(skip_add == SN_ADD) {
-                scan = (struct peer_info *) calloc(1, sizeof(struct peer_info)); /* deallocated in purge_expired_nodes */
-                scan->purgeable = true;
+                scan = peer_info_malloc(); /* deallocated in purge_expired_nodes */
                 memcpy(&(scan->mac_addr), reg->edgeMac, sizeof(n2n_mac_t));
                 scan->dev_addr.net_addr = reg->dev_addr.net_addr;
                 scan->dev_addr.net_bitlen = reg->dev_addr.net_bitlen;

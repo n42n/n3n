@@ -2,6 +2,7 @@
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
  *
+ * non public structure and function definitions
  */
 
 #ifndef _PEER_INFO_H_
@@ -34,5 +35,7 @@ struct peer_info {
 };
 
 typedef struct peer_info peer_info_t;
+
+struct peer_info* peer_info_malloc();
 
 #endif

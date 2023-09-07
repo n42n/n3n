@@ -78,6 +78,7 @@ N2N_OBJS=\
 	src/n2n_regex.o \
 	src/network_traffic_filter.o \
 	src/pearson.o \
+	src/peer_info.o \
 	src/random_numbers.o \
 	src/sn_management.o \
 	src/sn_selection.o \

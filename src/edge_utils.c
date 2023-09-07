@@ -1,5 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -678,13 +679,12 @@ static void register_with_new_peer (n2n_edge_t *eee,
 
     /* NOTE: pending_peers are purged periodically with purge_expired_nodes */
     if(scan == NULL) {
-        scan = calloc(1, sizeof(struct peer_info));
+        scan = peer_info_malloc();
 
         memcpy(scan->mac_addr, mac, N2N_MAC_SIZE);
         scan->sock = *peer;
         scan->timeout = eee->conf.register_interval; /* TODO: should correspond to the peer supernode registration timeout */
         scan->last_valid_time_stamp = initial_time_stamp();
-        scan->purgeable = true;
         if(via_multicast)
             scan->local = 1;
 
