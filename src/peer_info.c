@@ -110,3 +110,35 @@ size_t purge_expired_nodes (struct peer_info **peer_list,
 
     return num_reg;
 }
+
+/* ************************************** */
+
+int find_and_remove_peer (struct peer_info **head, const n2n_mac_t mac) {
+
+    struct peer_info *peer;
+
+    HASH_FIND_PEER(*head, mac, peer);
+    if(peer) {
+        HASH_DEL(*head, peer);
+        free(peer);
+        return(1);
+    }
+
+    return(0);
+}
+
+/* ************************************** */
+
+struct peer_info* find_peer_by_sock (const n2n_sock_t *sock, struct peer_info *peer_list) {
+
+    struct peer_info *scan, *tmp, *ret = NULL;
+
+    HASH_ITER(hh, peer_list, scan, tmp) {
+        if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) == 0) {
+            ret = scan;
+            break;
+        }
+    }
+
+    return ret;
+}

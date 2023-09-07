@@ -53,4 +53,7 @@ size_t purge_expired_nodes (struct peer_info **peer_list,
                             time_t *p_last_purge,
                             int frequency, int timeout);
 
+int find_and_remove_peer (struct peer_info **, const n2n_mac_t);
+struct peer_info* find_peer_by_sock (const n2n_sock_t *, struct peer_info *);
+
 #endif
