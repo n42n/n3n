@@ -34,6 +34,7 @@
 #include "n2n.h"         // for n2n_sn_t, sn_community, peer_info, N2N_SN_PK...
 #include "n2n_define.h"    // for N2N_SN_PKTBUF_SIZE, UNPURGEABLE
 #include "n2n_typedefs.h"  // for n2n_sn_t, sn_community, peer_info, sn_stats_t
+#include "peer_info.h"   // for peer_info, peer_info_t
 #include "strbuf.h"      // for strbuf_t, STRBUF_INIT
 #include "uthash.h"      // for UT_hash_handle, HASH_ITER, HASH_COUNT
 

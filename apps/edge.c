@@ -36,6 +36,7 @@
 #include "n2n.h"                     // for n2n_edge_conf_t, n2n_edge_t, fil...
 #include "network_traffic_filter.h"  // for process_traffic_filter_rule_str
 #include "pearson.h"                 // for pearson_hash_64
+#include "peer_info.h"               // for peer_info, peer_info_t
 #include "portable_endian.h"         // for htobe32
 #include "random_numbers.h"          // for n2n_seed, n2n_srand
 #include "sn_selection.h"            // for sn_selection_sort, sn_selection_...

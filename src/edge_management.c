@@ -33,6 +33,7 @@
 #include "management.h"    // for mgmt_req_t, send_reply, send_json_1str
 #include "n2n_define.h"    // for N2N_PKT_BUF_SIZE, N2N_EVENT_DEBUG, N2N_EVE...
 #include "n2n_typedefs.h"  // for n2n_edge_t, peer_info, n2n_edge_conf_t
+#include "peer_info.h"     // for peer_info, peer_info_t
 #include "sn_selection.h"  // for sn_selection_criterion_str, selection_crit...
 #include "strbuf.h"        // for strbuf_t, STRBUF_INIT
 #include "uthash.h"        // for UT_hash_handle, HASH_ITER

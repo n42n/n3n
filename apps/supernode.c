@@ -31,6 +31,7 @@
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
 #include "n2n.h"               // for n2n_sn_t, sn_community, traceEvent
 #include "pearson.h"           // for pearson_hash_64
+#include "peer_info.h"         // for peer_info, peer_info_t
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
 #ifdef _WIN32
