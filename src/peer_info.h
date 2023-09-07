@@ -39,4 +39,18 @@ typedef struct peer_info peer_info_t;
 void peer_info_init (struct peer_info *, const n2n_mac_t mac);
 struct peer_info* peer_info_malloc (const n2n_mac_t mac);
 
+/* Operations on peer_info lists. */
+size_t purge_peer_list (struct peer_info ** peer_list,
+                        SOCKET socket_not_to_close,
+                        n2n_tcp_connection_t **tcp_connections,
+                        time_t purge_before);
+
+size_t clear_peer_list (struct peer_info ** peer_list);
+
+size_t purge_expired_nodes (struct peer_info **peer_list,
+                            SOCKET socket_not_to_close,
+                            n2n_tcp_connection_t **tcp_connections,
+                            time_t *p_last_purge,
+                            int frequency, int timeout);
+
 #endif

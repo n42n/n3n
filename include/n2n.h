@@ -165,20 +165,6 @@ int sock_equal (const n2n_sock_t * a,
 uint64_t time_stamp (void);
 int time_stamp_verify_and_update (uint64_t stamp, uint64_t * previous_stamp, int allow_jitter);
 
-/* Operations on peer_info lists. */
-size_t purge_peer_list (struct peer_info ** peer_list,
-                        SOCKET socket_not_to_close,
-                        n2n_tcp_connection_t **tcp_connections,
-                        time_t purge_before);
-
-size_t clear_peer_list (struct peer_info ** peer_list);
-
-size_t purge_expired_nodes (struct peer_info **peer_list,
-                            SOCKET socket_not_to_close,
-                            n2n_tcp_connection_t **tcp_connections,
-                            time_t *p_last_purge,
-                            int frequency, int timeout);
-
 /* Edge conf */
 void edge_init_conf_defaults (n2n_edge_conf_t *conf);
 int edge_verify_conf (const n2n_edge_conf_t *conf);

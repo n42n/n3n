@@ -35,6 +35,7 @@
 #include "n2n_regex.h"          // for re_matchp, re_compile
 #include "n2n_wire.h"           // for encode_buf, encode_PEER_INFO, encode_...
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
+#include "peer_info.h"          // for purge_peer_list, clear_peer_list
 #include "portable_endian.h"    // for be16toh, htobe16
 #include "random_numbers.h"     // for n2n_rand, n2n_rand_sqr, n2n_seed, n2n...
 #include "sn_selection.h"       // for sn_selection_criterion_gather_data
