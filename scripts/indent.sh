@@ -56,9 +56,20 @@ indentOne() {
     fi
 }
 
+indentDir() {
+    DIR="$1"
+    for i in $(find "$1" -type f -name \*.h -o -name \*.c); do
+        indentOne "$i"
+    done
+}
+
 RESULT=0
 while [ -n "$1" ]; do
-    indentOne "$1"
+    if [ -d "$1" ]; then
+        indentDir "$1"
+    else
+        indentOne "$1"
+    fi
     shift
 done
 exit $RESULT
