@@ -7,3 +7,4 @@ Code contributions courtesy of:
  * Alaric Snell-Pym <alaric@kitten-technologies.co.uk>
  * Babak Farrokhi <babak@farrokhi.net> [FreeBSD port]
  * Logan oos Even
+ * Hamish Coleman <hamish@zot.org>
