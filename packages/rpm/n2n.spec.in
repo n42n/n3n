@@ -24,13 +24,17 @@ n2n peer-to-peer VPN
 mkdir -p $RPM_BUILD_ROOT/usr/sbin $RPM_BUILD_ROOT/usr/share/man/man1 $RPM_BUILD_ROOT/usr/share/man/man7 $RPM_BUILD_ROOT/usr/share/man/man8
 mkdir -p $RPM_BUILD_ROOT/etc/n2n
 mkdir -p $RPM_BUILD_ROOT/usr/lib/systemd/system/
-cp $HOME/n2n/edge $RPM_BUILD_ROOT/usr/sbin
-cp $HOME/n2n/supernode $RPM_BUILD_ROOT/usr/sbin
-cp $HOME/n2n/n2n.7.gz $RPM_BUILD_ROOT/usr/share/man/man7
-cp $HOME/n2n/supernode.1.gz $RPM_BUILD_ROOT/usr/share/man/man1
-cp $HOME/n2n/edge.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
-cp $HOME/n2n/packages/etc/systemd/system/*.service $RPM_BUILD_ROOT/usr/lib/systemd/system/
-cp $HOME/n2n/packages/etc/n2n/*.conf.sample $RPM_BUILD_ROOT/etc/n2n
+
+# TODO: move to %install
+cd ../../n3n # FIXME: dont hardcode sourcecode dir name
+
+cp edge $RPM_BUILD_ROOT/usr/sbin
+cp supernode $RPM_BUILD_ROOT/usr/sbin
+cp n2n.7.gz $RPM_BUILD_ROOT/usr/share/man/man7
+cp supernode.1.gz $RPM_BUILD_ROOT/usr/share/man/man1
+cp edge.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
+cp packages/etc/systemd/system/*.service $RPM_BUILD_ROOT/usr/lib/systemd/system/
+cp packages/etc/n2n/*.conf.sample $RPM_BUILD_ROOT/etc/n2n
 
 find $RPM_BUILD_ROOT -name ".git" | xargs /bin/rm -rf
 find $RPM_BUILD_ROOT -name ".svn" | xargs /bin/rm -rf
