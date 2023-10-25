@@ -1,4 +1,6 @@
 #
+# Copyright (C) 2023 Hamish Coleman
+#
 # These examples are intended to show how to use the libn3n as an embedded
 # service within other software.
 #
