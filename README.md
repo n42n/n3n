@@ -14,6 +14,13 @@ A virtual network shared between multiple edge nodes in n2n is called a _communi
 
 n2n tries to establish a direct peer-to-peer connection via udp between the edge nodes when possible. When this is not possible (usually due to special NAT devices), the supernode is also used to relay the packets.
 
+## License
+
+- Any new self-contained tools or modules are licensed GPL-2.0-only.
+- Existing code is licensed GPL-3-only.
+- There are multiple distinct copyright holders throughout the codebase.
+- There is no Contributor Licence Agreement and thus there is no single body that
+  can take ownership of the code and/or change the licensing.
 
 ## Quick Setup
 

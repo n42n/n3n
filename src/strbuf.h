@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
  * Internal interface definitions for the strbuf abstrction
  *
  * This header is not part of the public library API and is thus not in

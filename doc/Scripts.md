@@ -1,3 +1,6 @@
+Copyright (C) 2023 Hamish Coleman
+SPDX-License-Identifier: GPL-3.0-only
+
 # Scripts
 
 There are a number of useful scripts included with the distribution.

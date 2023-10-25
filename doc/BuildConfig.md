@@ -1,3 +1,6 @@
+Copyright (C) 2023 Hamish Coleman
+SPDX-License-Identifier: GPL-3.0-only
+
 # Configuration at Build time
 
 There are a number of configuration options that are made only at build time.

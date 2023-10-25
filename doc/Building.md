@@ -1,3 +1,6 @@
+Copyright (C) 2023 Hamish Coleman and other contributors
+SPDX-License-Identifier: GPL-3.0-only
+
 This document describes the process for compiling n2n in several different
 scenarios.
 

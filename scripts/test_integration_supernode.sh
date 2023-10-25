@@ -1,5 +1,8 @@
 #!/bin/sh
 #
+# Copyright (C) 2023 Hamish Coleman
+# SPDX-License-Identifier: GPL-3.0-only
+#
 # Do some quick tests via the Json API against the supernode
 #
 

@@ -1,5 +1,8 @@
 #!/bin/sh
 #
+# Copyright (C) 2023 Hamish Coleman
+# SPDX-License-Identifier: GPL-3.0-only
+#
 # Run with the name of a test list file.
 #
 # This expects to find the tests in the tools dir or scripts dir and the

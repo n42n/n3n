@@ -1,3 +1,6 @@
+Copyright (C) 2023 Hamish Coleman
+SPDX-License-Identifier: GPL-3.0-only
+
 # Management API
 
 This document is focused on the machine readable API interfaces.  It is a

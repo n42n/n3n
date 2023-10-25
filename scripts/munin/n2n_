@@ -2,6 +2,9 @@
 use warnings;
 use strict;
 #
+# Copyright (C) 2023 Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
+#
 # Requires
 #   libjson-perl
 #
