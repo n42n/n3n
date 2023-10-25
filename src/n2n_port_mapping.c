@@ -203,7 +203,7 @@ static int n2n_upnp_set_port_mapping (const uint16_t port) {
 
     // TCP port
     ret = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
-                              externalport, lanport, lanaddr, "n2n-vpn",
+                              externalport, lanport, lanaddr, "n3n-vpn",
                               "TCP", NULL, "0");
     if(ret != UPNPCOMMAND_SUCCESS) {
         traceEvent(TRACE_WARNING, "UPnP local TCP port %s mapping failed, code %d (%s)", lanport, ret, strupnperror(ret));
@@ -213,7 +213,7 @@ static int n2n_upnp_set_port_mapping (const uint16_t port) {
 
     // UDP port
     ret = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
-                              externalport, lanport, lanaddr, "n2n-vpn",
+                              externalport, lanport, lanaddr, "n3n-vpn",
                               "UDP", NULL, "0");
     if(ret != UPNPCOMMAND_SUCCESS) {
         traceEvent(TRACE_WARNING, "UPnP local UDP port %s mapping failed, code %d (%s)", lanport, ret, strupnperror(ret));

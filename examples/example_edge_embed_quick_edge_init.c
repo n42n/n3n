@@ -29,7 +29,7 @@
 
 int main (int argc, char* argv[]) {
 
-    char *device_name    = (char*)"n2n0";
+    char *device_name    = (char*)"n3n0";
     char *network_name   = (char*)"mynetwork";
     char *secret_key     = (char*)"mysecret";
     char *my_mac_address = (char*)"DE:AD:BE:EF:01:10";

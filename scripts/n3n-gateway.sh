@@ -1,9 +1,9 @@
 #!/bin/bash
 #
 # This is a sample script to route all the host traffic towards a remote
-# gateway, which is reacheable via the n2n virtual interface.
+# gateway, which is reacheable via the n3n virtual interface.
 #
-# This assumes the n2n connection is already been established and the
+# This assumes the n3n connection is already been established and the
 # VPN gateway can be pinged by this host.
 #
 
@@ -11,14 +11,14 @@
 # CONFIG
 #######################################################
 
-# The IP address of the gateway through the n2n interface
+# The IP address of the gateway through the n3n interface
 N2N_GATEWAY="192.168.100.1"
 
-# The IP address of the supernode as configured in n2n
+# The IP address of the supernode as configured in n3n
 N2N_SUPERNODE="1.2.3.4"
 
-# The n2n interface name
-N2N_INTERFACE="n2n0"
+# The n3n interface name
+N2N_INTERFACE="n3n0"
 
 # The DNS server to use. Must be a public DNS or a DNS located on the
 # N2N virtual network, otherwise DNS query information will be leaked

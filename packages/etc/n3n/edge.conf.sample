@@ -7,10 +7,10 @@
 #       -d|--tun-device
 #        Specifies the name of the TUN interface. 
 #
--d=n2n0
+-d=n3n0
 #
 #       -c|--community
-#        Specifies the n2n community name the edge belongs to.
+#        Specifies the n3n community name the edge belongs to.
 #
 -c=mynetwork
 #

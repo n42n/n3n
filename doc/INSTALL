@@ -24,15 +24,15 @@ To build an RPM the easy way follow these steps.
 
 1. Build SRPM
 
-$ cd n2n
+$ cd n3n
 $ scripts/mk_SRPM.sh
 
 Look for where the src.rpm file was put ( "Wrote:" ).
 
 2. Build binary RPM from SRPM
 
-$ rpm -i path/to/n2n-<ver>.src.rpm
-$ rpmbuild -bb n2n.spec
+$ rpm -i path/to/n3n-<ver>.src.rpm
+$ rpmbuild -bb n3n.spec
 
 
 All this can be done as non-root user if you have a ~/.rpmmacros file with this
@@ -43,8 +43,8 @@ line in it:
 
 To build an RPM the hard way follow these steps.
 
-$ cp -a n2ndir n2n-2.0
-$ tar czf n2n-2.0.tar.gz n2n-2.0
-$ mv n2n-2.0.tar.gz /usr/src/redhat/SOURCES
-$ cp n2ndir/n2n.spec /usr/src/redhat/SPECS
-$ rpmbuild -bb n2n.spec
+$ cp -a n3ndir n3n-2.0
+$ tar czf n3n-2.0.tar.gz n3n-2.0
+$ mv n3n-2.0.tar.gz /usr/src/redhat/SOURCES
+$ cp n3ndir/n3n.spec /usr/src/redhat/SPECS
+$ rpmbuild -bb n3n.spec

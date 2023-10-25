@@ -42,7 +42,7 @@ static pcap_dumper_t *dumper;
 /* *************************************************** */
 
 static void help() {
-  fprintf(stderr, "n2n-decode -i ifname -k key -c community [-B bpf] [-w fname] [-v]"
+  fprintf(stderr, "n3n-decode -i ifname -k key -c community [-B bpf] [-w fname] [-v]"
 #ifdef N2N_HAVE_AES
     " [-A]"
 #endif
@@ -382,7 +382,7 @@ int main(int argc, char* argv[]) {
 #include <stdio.h>
 
 int main() {
-    printf("n2n was compiled without libpcap support");
+    printf("n3n was compiled without libpcap support");
     return -1;
 }
 

@@ -15,11 +15,11 @@ example_edge_embed_quick_edge_init
 example_edge_embed
 example_sn_embed
 supernode
-tools/n2n-benchmark
-tools/n2n-decode
-tools/n2n-keygen
-tools/n2n-portfwd
-tools/n2n-route
+tools/n3n-benchmark
+tools/n3n-decode
+tools/n3n-keygen
+tools/n3n-portfwd
+tools/n3n-route
 build
 .idea
 .vscode

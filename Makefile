@@ -60,7 +60,7 @@ MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
 
-N2N_LIB=libn2n.a
+N2N_LIB=libn3n.a
 N2N_OBJS=\
 	src/aes.o \
 	src/auth.o \
@@ -137,13 +137,13 @@ LINT_CCODE=\
 	tools/tests-transform.c \
 	tools/tests-wire.c \
 
-LDLIBS+=-ln2n
+LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)
 
 APPS=edge$(EXE)
 APPS+=supernode$(EXE)
 
-DOCS=edge.8.gz supernode.1.gz n2n.7.gz
+DOCS=edge.8.gz supernode.1.gz n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
@@ -222,7 +222,7 @@ test.integration: $(APPS)
 lint: lint.python lint.ccode lint.shell lint.yaml
 
 lint.python:
-	flake8 scripts/n2n-ctl scripts/n2n-httpd
+	flake8 scripts/n3n-ctl scripts/n3n-httpd
 
 lint.ccode:
 	scripts/indent.sh $(LINT_CCODE)
@@ -279,22 +279,23 @@ clean:
 distclean:
 	rm -f tests/*.out src/*.gcno src/*.gcda src/*.indent src/*.unc-backup*
 	rm -rf autom4te.cache/
-	rm -f config.log config.status configure include/config.h include/config.h.in
-	rm -f doc/edge.8.gz doc/n2n.7.gz doc/supernode.1.gz
+	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
+	rm -f edge.8.gz n3n.7.gz supernode.1.gz
+	rm -f edge supernode libn3n.a
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
 	rm -f $(addprefix src/,$(APPS))
 
 .PHONY: install
-install: edge$(EXE) supernode$(EXE) edge.8.gz supernode.1.gz n2n.7.gz
+install: edge$(EXE) supernode$(EXE) edge.8.gz supernode.1.gz n3n.7.gz
 	echo "MANDIR=$(MANDIR)"
 	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
 	$(INSTALL_PROG) supernode$(EXE) $(SBINDIR)/
 	$(INSTALL_PROG) edge$(EXE) $(SBINDIR)/
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
-	$(INSTALL_DOC) n2n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
 
 # Docker builder section

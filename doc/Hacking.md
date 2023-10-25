@@ -17,7 +17,7 @@ along with this program; if not see see [<http://www.gnu.org/licenses/>](http://
 
 --------
 
-This file describes the internals of n2n. Read this before starting to modify
+This file describes the internals of n3n. Read this before starting to modify
 the code. Because coding examples may be present in this document it is licensed
 under the GPL rather than FDL.
 
@@ -41,9 +41,9 @@ Whereas a symmetric NAT would keep the mapping:
    `<UDP,RemoteIP,ExtPort> -> <IntIP, IntPort>`
 
 so only RemoteIP can send packets to the internal host. RemoteIP is the supernode
-IP in case of n2n, to which the internal host has registered.
+IP in case of n3n, to which the internal host has registered.
 
-In n2n, P2P can work monodirectionally if only one of the two peers is behind a symmetric
+In n3n, P2P can work monodirectionally if only one of the two peers is behind a symmetric
 NAT. For example, if A is behind symmetric NAT and B is behind asymmetric NAT
    - A->B packets are P2P (will have the B public IP as destination)
    - B->A packets must go through the supernode
@@ -52,10 +52,10 @@ If both the peers are behind symmetric NAT, then no P2P communication is possibl
 
 ## ARP Cache
 
-n2n makes use of the host operating system's own ARP cache. Each edge node
+n3n makes use of the host operating system's own ARP cache. Each edge node
 allocates a random MAC address to itself. This MAC is constant for the life of
 the edge process. ARP packets are passed around as broadcast ethernet packets
-over n2n and these packets cause the native ARP cache to be updated.
+over n3n and these packets cause the native ARP cache to be updated.
 
 Edge nodes send gratuitous ARP packets on startup. See section on gratuitous ARP below.
 
@@ -232,7 +232,7 @@ Version 3
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-So each n2n PACKET has a 48 byte overhead. For a 1500 byte ethernet packet this
+So each n3n PACKET has a 48 byte overhead. For a 1500 byte ethernet packet this
 is roughly 3%.
 
 Socket flags provides support for IPv6. In this case the PACKET message ends as

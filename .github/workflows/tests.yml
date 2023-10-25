@@ -375,14 +375,6 @@ jobs:
           name: tests-windows
           path: tests
 
-      - name: Generate coverage data
-        run: |
-          make gcov
-        shell: bash
-
-      - name: Upload data to codecov
-        uses: codecov/codecov-action@v3
-
   package_dpkg:
     name: Package for Debian/Ubuntu
     needs:
@@ -517,33 +509,33 @@ jobs:
           mv openwrt-sdk-* openwrt
         working-directory: ./
 
-      - name: Checkout n2n
+      - name: Checkout
         uses: actions/checkout@v3
         with:
-          path: n2n
+          path: n3n
           fetch-depth: 0
 
       - name: Fix Checkout
         run: |
           git fetch --force --tags
-        working-directory: n2n
+        working-directory: n3n
 
-      - name: Copy n2n package definition into openwrt
+      - name: Copy package definition into openwrt
         run: |
-          cp -r n2n/packages/openwrt openwrt/package/n2n
+          cp -r n3n/packages/openwrt openwrt/package/n3n
         working-directory: ./
 
       - name: Configure OpenWrt
         run: |
           make defconfig
 
-      - name: Build n2n openwrt packages
+      - name: Build openwrt packages
         run: |
-          export N2N_PKG_VERSION=$(../n2n/scripts/version.sh)
-          echo "Build for $N2N_PKG_VERSION"
-          make package/n2n/clean V=s
-          make package/n2n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n2n V=s
-          make package/n2n/compile V=s
+          export PKG_VERSION=$(../n3n/scripts/version.sh)
+          echo "Build for $PKG_VERSION"
+          make package/n3n/clean V=s
+          make package/n3n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n3n V=s
+          make package/n3n/compile V=s
 
 # FIXME: add a way to run the test suite!
 #      - name: Run embedded tests

@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
  * Common routines shared between the management interfaces
  *
  */

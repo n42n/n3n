@@ -1,4 +1,4 @@
-# n2n's Scratchpad
+# n3n's Scratchpad
 
 ## RPM Packaging
 
@@ -10,7 +10,7 @@ make
 
 cd packages/rpm
 ./configure
-rpmbuild -bb ./n2n.spec
+rpmbuild -bb ./n3n.spec
 ```
 
 
@@ -27,9 +27,9 @@ rpmbuild -bb ./n2n.spec
 
 ### New Features
 
-- Enhanced management port JSON interface to let n2n interact with external tools
-- Added `n2n-route` tool (Linux only so far)
-- Introduced `n2n-portfwd` tool to support UPnP and PMP port forwarding
+- Enhanced management port JSON interface to let n3n interact with external tools
+- Added `n3n-route` tool (Linux only so far)
+- Introduced `n3n-portfwd` tool to support UPnP and PMP port forwarding
 - Furthered the build system
 
 ### Improvements

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-# Licensed under GPLv3
 #
-# Simple script to query the management interface of a running n2n edge node
+# Copyright (C) 2023 Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Simple script to query the management interface of a running n3n edge node
 
 import argparse
 import socket
@@ -248,7 +250,7 @@ def subcmd_default(rpc, args):
 
 def main():
     ap = argparse.ArgumentParser(
-            description='Query the running local n2n edge')
+            description='Query the running local n3n edge')
     ap.add_argument('-t', '--mgmtport', action='store', default=5644,
                     help='Management Port (default=5644)', type=int)
     ap.add_argument('-k', '--key', action='store',

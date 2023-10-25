@@ -1,3 +1,6 @@
+Copyright (C) 2023 Hamish Coleman
+SPDX-License-Identifier: GPL-3.0-only
+
 # Management API
 
 This document is focused on the machine readable API interfaces.  It is a
@@ -220,7 +223,7 @@ connection.
 
 Asynchronous events will arrive with this message type, using the same tag as
 the original subscribe request.  Just like with the `row` packets, the non
-metadata contents are entirely defined by the topic and the specific n2n
+metadata contents are entirely defined by the topic and the specific n3n
 version.
 
 ## Subscribe API
@@ -239,10 +242,10 @@ the same tag as the debug subscription.
 ## Authentication
 
 Some API requests will make global changes to the running daemon and may
-affect the availability of the n2n networking.  Therefore the machine
+affect the availability of the n3n networking.  Therefore the machine
 readable API include an authentication component.
 
 Currently, the only authentication is a simple password that the client
-must provide. It defaults to 'n2n' and can manually be set through the
+must provide. It defaults to 'n3n' and can manually be set through the
 command line parameter `--management-password <pw>` – for edge as well
 as for supernode.

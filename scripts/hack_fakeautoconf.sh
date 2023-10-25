@@ -1,5 +1,8 @@
 #!/bin/sh
 #
+# Copyright (C) 2023 Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
+#
 # Specifically for windows, where installing autoconf looks suspiciously
 # like boiling the ocean.
 

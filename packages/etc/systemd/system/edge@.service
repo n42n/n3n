@@ -1,12 +1,12 @@
 [Unit]
-Description=n2n edge process, on %I
+Description=n3n edge process, on %I
 After=network-online.target syslog.target nfw.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 ExecStartPre=
-ExecStart=/usr/sbin/edge /etc/n2n/edge-%i.conf -f
+ExecStart=/usr/sbin/edge /etc/n3n/edge-%i.conf -f
 Restart=on-abnormal
 RestartSec=5
 

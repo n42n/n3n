@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-# Licensed under GPLv3
 #
-# Simple http server to allow user control of n2n edge nodes
+# Copyright (C) 2023 Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Simple http server to allow user control of n3n edge nodes
 #
 # Currently only for demonstration
 # - needs nicer looking html written
@@ -45,9 +47,9 @@ def import_filename(modulename, filename):
     return module
 
 
-# We share the implementation of the RPC class with the n2n-ctl script. We
-# cannot just import the module as 'n2n-ctl' has a dash in its name :-(
-JsonUDP = import_filename('n2nctl', 'n2n-ctl').JsonUDP
+# We share the implementation of the RPC class with the n3n-ctl script. We
+# cannot just import the module as 'n3n-ctl' has a dash in its name :-(
+JsonUDP = import_filename('n3nctl', 'n3n-ctl').JsonUDP
 
 
 pages = {
@@ -177,7 +179,7 @@ function refresh_setup(interval) {
         "content": """
 <html>
 <head>
- <title>n2n edge management</title>
+ <title>n3n edge management</title>
 </head>
 <body>
  <table>
@@ -251,7 +253,7 @@ refresh_job();
         "content": """
 <html>
 <head>
- <title>n2n supernode management</title>
+ <title>n3n supernode management</title>
 </head>
 <body>
  <table>
@@ -347,7 +349,7 @@ class SimpleHandler(http.server.BaseHTTPRequestHandler):
 
     def _replyunauth(self):
         self.send_response(HTTPStatus.UNAUTHORIZED)
-        self.send_header('WWW-Authenticate', 'Basic realm="n2n"')
+        self.send_header('WWW-Authenticate', 'Basic realm="n3n"')
         self.end_headers()
 
     def _extractauth(self, rpc):
@@ -433,7 +435,7 @@ class SimpleHandler(http.server.BaseHTTPRequestHandler):
 
 def main():
     ap = argparse.ArgumentParser(
-        description='Control the running local n2n edge via http')
+        description='Control the running local n3n edge via http')
     ap.add_argument('-t', '--mgmtport', action='store', default=5644,
                     help='Management Port (default=5644)', type=int)
     ap.add_argument('--snmgmtport', action='store', default=5645,

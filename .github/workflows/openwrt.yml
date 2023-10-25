@@ -35,26 +35,26 @@ jobs:
           echo "OPENWRT_REF=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           git rev-parse --short HEAD
 
-      - name: Checkout n2n
+      - name: Checkout
         uses: actions/checkout@v2
         with:
-          path: n2n
+          path: src
           fetch-depth: 0
 
       - name: Fix Checkout
         run: |
           git fetch --force --tags
-        working-directory: n2n
+        working-directory: src
 
-      - name: Set n2n ref
+      - name: Set ref
         run: |
           echo "N2N_REF=$(./scripts/version.sh)" >> $GITHUB_ENV
           ./scripts/version.sh
-        working-directory: n2n
+        working-directory: src
 
-      - name: Copy n2n package definition into openwrt
+      - name: Copy src package definition into openwrt
         run: |
-          cp -r n2n/packages/openwrt openwrt/package/n2n
+          cp -r src/packages/openwrt openwrt/package/n3n
         working-directory: ./
 
       - name: Cache openwrt source downloads
@@ -68,10 +68,10 @@ jobs:
           echo "CONFIG_TARGET_x86=y" >.config
           echo "CONFIG_TARGET_x86_64=y" >>.config
 
-      - name: Add n2n package to openwrt config
+      - name: Add package to openwrt config
         run: |
-          echo "CONFIG_PACKAGE_n2n-edge=m" >>.config
-          echo "CONFIG_PACKAGE_n2n-supernode=m" >>.config
+          echo "CONFIG_PACKAGE_n3n-edge=m" >>.config
+          echo "CONFIG_PACKAGE_n3n-supernode=m" >>.config
 
       - name: Build a full config from our stub file
         run: |
@@ -85,19 +85,19 @@ jobs:
         run: |
           make -j `nproc` tools/install toolchain/install
 
-      - name: Build n2n dependancies
+      - name: Build dependancies
         run: |
           make -j `nproc` package/libs/libpcap/compile
 
-      - name: Build n2n openwrt packages
+      - name: Build openwrt packages
         env:
           N2N_PKG_VERSION: ${{ env.N2N_REF }}
         run: |
           echo "Build for $N2N_PKG_VERSION"
           export N2N_PKG_VERSION
-          make package/n2n/clean V=s
-          make package/n2n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n2n V=s
-          make package/n2n/compile V=s
+          make package/n3n/clean V=s
+          make package/n3n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n3n V=s
+          make package/n3n/compile V=s
 
 # FIXME: add a way to run the test suite!
 #      - name: Run embedded tests

@@ -12,7 +12,7 @@
 # http://www.tin.org/bin/man.cgi?section=7&topic=debhelper
 #
 
-package=n2n
+package=n3n
 
 build: build-stamp
 build-stamp:
@@ -46,10 +46,10 @@ binary-arch: build install
 	dh_compress
 	dh_fixperms
 	dh_installdeb
-	cp -r n2n debian
-	cp -r ../etc debian/n2n
-	find debian/n2n -name "*.in" -exec /bin/rm {} ';'
-	find debian/n2n -name "*~" -exec /bin/rm {} ';'
+	cp -r n3n debian
+	cp -r ../etc debian/n3n
+	find debian/n3n -name "*.in" -exec /bin/rm {} ';'
+	find debian/n3n -name "*~" -exec /bin/rm {} ';'
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
 	dh_link
 	dh_gencontrol

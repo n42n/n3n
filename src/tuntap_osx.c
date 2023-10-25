@@ -54,7 +54,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
 
     if(device->fd < 0) {
         traceEvent(TRACE_ERROR, "Unable to open any tap devices /dev/tap0 through /dev/tap254. Is this user properly authorized to access those descriptors?");
-        traceEvent(TRACE_ERROR, "Please read https://github.com/ntop/n2n/blob/dev/doc/Building.md");
+        traceEvent(TRACE_ERROR, "Please read Building.md");
         return -1;
     } else {
         char buf[256];

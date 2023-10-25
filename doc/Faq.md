@@ -1,4 +1,4 @@
-# n2n Frequently Asked Questions
+# n3n Frequently Asked Questions
 
 
 ## Releases
@@ -6,9 +6,6 @@
 ### Where can I find binaries for Windows?
 
 We do not explicitly release Windows binaries, but the automated test workflow creates them. You can find the the most current binaries at the _Actions_ tab, at the _Testing_ workflow, select the newest run, scroll down to the _Artifacts_ sections where the _binaries_ file contains the Windows binaries in its `/x86_64-pc-mingw64/usr/sbin/` folder.
-
-Furthermore and as [mentioned](https://github.com/ntop/n2n#further-readings-and-related-projects) in our README, you might find some Windows binaries [provided](https://github.com/lucktu/n2n) by github-user lucktu who updates them from time to time.
-
 
 ## Supernode
 
@@ -19,9 +16,9 @@ Please think of the community-name as password and start the supernode with the 
 
 If you additionally want to prevent open transmission of your secret community name via the network, **all** edge nodes should use `-H` command line option for header encryption.
 
-Also, please see the `community.list` file coming with n2n for advanced use of that file.
+Also, please see the `community.list` file coming with n3n for advanced use of that file.
 
-Beyond this access barrier you may want to use payload encryption `-A_` at the edges. Only the edges – not the supernode – are able to decipher the payload data. So, even if anyone would be able to break the access barrier to the supernode, the payload remains protected by the payload crypto, see [this document](https://github.com/ntop/n2n/blob/dev/doc/Crypto.md) for details.
+Beyond this access barrier you may want to use payload encryption `-A_` at the edges. Only the edges – not the supernode – are able to decipher the payload data. So, even if anyone would be able to break the access barrier to the supernode, the payload remains protected by the payload crypto, see [this document](Crypto.md) for details.
 
 
 ### Can I get a list of connected edge nodes and their community and source IP address from the supernode?
@@ -35,7 +32,7 @@ You can request the current status by just sending a new line, i.e. pressing [EN
 
 ### Is there support for multiple supernodes?
 
-Yes, there is. Please [read](https://github.com/ntop/n2n/blob/dev/doc/Federation.md) about how several supernodes can form a Federation to increase network resilience.
+Yes, there is. Please [read](Federation.md) about how several supernodes can form a Federation to increase network resilience.
 
 
 ### Can a supernode listen on multiple ports?
@@ -72,7 +69,7 @@ answers every new line, i.e. pressing [ENTER] key, with current information. The
 
 ### The edge repeatedly throws an "Authentication error. MAC or IP address already in use or not released yet by supernode" message. What is wrong?
 
-The edge encountered n2n's protection against spoofing. It prevents that one edge's identity, MAC and IP address, can be impersonated by some other while the original one is still online, see some [details](Authentication.md). Mostly, there are two situations which can trigger this:
+The edge encountered n3n's protection against spoofing. It prevents that one edge's identity, MAC and IP address, can be impersonated by some other while the original one is still online, see some [details](Authentication.md). Mostly, there are two situations which can trigger this:
 
 If you use a MAC or IP address that already is in use, just change those parameters.
 

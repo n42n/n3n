@@ -34,7 +34,7 @@ Once edges have received this information, it is up to them choosing the superno
 
 An edge connects to the supernode with the lowest work-load and it is re-considered from time to time, with each re-registration. We use a stickyness factor to avoid too much jumping between supernodes.
 
-Thanks to this feature, n2n is now able to handle security attacks such as DoS against supernodes and it can redistribute the entire load of the network in a fair manner between all the supernodes.
+Thanks to this feature, n3n is now able to handle security attacks such as DoS against supernodes and it can redistribute the entire load of the network in a fair manner between all the supernodes.
 
 To serve scenarios in which an edge is supposed to select the supernode by round trip time, i.e. choosing the "closest" one, the `--select-rtt` command line option is available at the edge. Note, that workload distribution among supernodes might not be so fair then.
 

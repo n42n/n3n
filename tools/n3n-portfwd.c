@@ -214,7 +214,7 @@ static void help (int level) {
 
     if(level == 0) return; /* no help required */
 
-    printf("  n2n-portfwd [-t <manangement_port>] [-v] [-V]"
+    printf("  n3n-portfwd [-t <manangement_port>] [-v] [-V]"
         "\n"
         "\n           This tool tries to find a router in local network and asks it to"
         "\n           forward the edge's port(UDP and TCP) by sending corresponding"

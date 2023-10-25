@@ -680,12 +680,12 @@ static void help (int level) {
 
     if(level == 0) return; /* no help required */
 
-    printf("  n2n-route [-t <manangement_port>] [-p <management_port_password>] [-v] [-V]"
+    printf("  n3n-route [-t <manangement_port>] [-p <management_port_password>] [-v] [-V]"
          "\n            [-g <default gateway>] [-n <network address>/bitlen[:gateway]]"
          "\n            <vpn gateway>"
         "\n"
         "\n           This tool sets new routes for all the traffic to be routed via the"
-        "\n           <vpn gateway> and polls the management port of a local n2n edge for"
+        "\n           <vpn gateway> and polls the management port of a local n3n edge for"
         "\n           it can add routes to supernodes and peers via the original default"
         "\n           gateway. Adapt port (default: %d) and password (default: '%s')"
         "\n           to match your edge's configuration."

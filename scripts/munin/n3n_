@@ -2,6 +2,9 @@
 use warnings;
 use strict;
 #
+# Copyright (C) 2023 Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
+#
 # Requires
 #   libjson-perl
 #
@@ -225,7 +228,7 @@ sub do_config {
     my $rpc = shift;
     my $name = shift;
 
-    print("graph_title n2n $name status\n");
+    print("graph_title n3n $name status\n");
     print("graph_category network\n");
     my @names;
     while (my ($fieldname, $field) = each(%{$config->{$name}})) {
@@ -303,7 +306,7 @@ my $subc = {
 
 sub main() {
     my $name = $ARGV[1] || $0;
-    $name =~ s%^.*/n2n_([^/]+)%$1%;
+    $name =~ s%^.*/n3n_([^/]+)%$1%;
 
     my $port = $fetchinfo->{$name}->{port};
     my $rpc = JsonUDP->new($port);

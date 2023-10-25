@@ -1,4 +1,7 @@
-This document describes the process for compiling n2n in several different
+Copyright (C) 2023 Hamish Coleman and other contributors
+SPDX-License-Identifier: GPL-3.0-only
+
+This document describes the process for compiling n3n in several different
 scenarios.
 
 There are some configuration options available during the build process,
@@ -20,8 +23,8 @@ To make this scenario simpler, the required source code has been added
 to this repository as git `submodules` which require one extra step to
 complete their checkout.
 
-So the very first time after cloning the n2n git repo, you should run
-this command in the n2n directory to fetch the submodules:
+So the very first time after cloning the n3n git repo, you should run
+this command in the n3n directory to fetch the submodules:
 
 ```bash
 git submodule update --init --recursive
@@ -29,7 +32,7 @@ git submodule update --init --recursive
 
 # Build on macOS
 
-In order to use n2n on macOS, you first need to install support for TUN/TAP interfaces:
+In order to use n3n on macOS, you first need to install support for TUN/TAP interfaces:
 
 ```bash
 brew tap homebrew/cask
@@ -43,7 +46,7 @@ For more information refer to vendor documentation or the [Apple Technical Note]
 Note that on the newest MacOS versions and on Apple Silicon, there may be
 increasing security restrictions in the OS that make installing the TUN/TAP
 kernel extension difficult.  Alternative software implementations to avoid
-these difficulties are being discussed for future n2n versions.
+these difficulties are being discussed for future n3n versions.
 
 # Build on Windows
 
@@ -63,7 +66,7 @@ applied as of 2021-09-29.
   called "Git Bash".  All the remaining commands must be run from inside the
   shell started by that menu item:
     - `git clone $THIS_REPO`
-    - `cd n2n`
+    - `cd n3n`
     - `./scripts/hack_fakeautoconf.sh`
     - `make`
     - `make test`
@@ -79,7 +82,7 @@ will be compatible.
 
 ## Run on Windows
 
-In order to run n2n on Windows, you will need the following:
+In order to run n3n on Windows, you will need the following:
 
 - The TAP drivers should be installed into the system. They can be installed from
   http://build.openvpn.net/downloads/releases, search for "tap-windows".
@@ -91,8 +94,8 @@ The `edge.exe` program reads the `edge.conf` file located into the current direc
 
 The `supernode.exe` program reads the `supernode.conf` file located into the current directory if no option is provided.
 
-Example [edge.conf](../packages/etc/n2n/edge.conf.sample)
-and [supernode.conf](../packages/etc/n2n/supernode.conf.sample) are available.
+Example [edge.conf](../packages/etc/n3n/edge.conf.sample)
+and [supernode.conf](../packages/etc/n3n/supernode.conf.sample) are available.
 
 See `edge.exe --help` and `supernode.exe --help` for a full list of supported options.
 

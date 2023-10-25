@@ -17,14 +17,14 @@ esac
 
 umask 022
 
-if ! grep -q n2n /etc/group; then
-    echo 'Creating n2n group'
-    /usr/sbin/groupadd -r n2n
+if ! grep -q n3n /etc/group; then
+    echo 'Creating n3n group'
+    /usr/sbin/groupadd -r n3n
 fi
 
-if ! /usr/bin/id -u n2n > /dev/null 2>&1; then
-    echo "Creating n2n user..."
-    /usr/sbin/useradd -M -N -g n2n -r -s /bin/false n2n
+if ! /usr/bin/id -u n3n > /dev/null 2>&1; then
+    echo "Creating n3n user..."
+    /usr/sbin/useradd -M -N -g n3n -r -s /bin/false n3n
 fi
 
 echo "Rebuilding ld cache..."
@@ -39,7 +39,7 @@ systemctl reset-failed
 # Enable edge
 if systemctl -q is-active edge; then
     # only restart edge if it's already running
-    echo "Restarting n2n edge..."
+    echo "Restarting n3n edge..."
     deb-systemd-invoke restart edge
 fi
 
@@ -49,7 +49,7 @@ deb-systemd-invoke restart 'edge@*.service' 'edge-ntopng@*.service'
 # Enable supernode
 if systemctl -q is-active supernode; then
     # only restart supernode if it's already running
-    echo "Restarting n2n supernode..."
+    echo "Restarting n3n supernode..."
     deb-systemd-invoke restart supernode
 fi
 
