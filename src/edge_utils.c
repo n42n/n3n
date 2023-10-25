@@ -1865,9 +1865,8 @@ static int check_query_peer_info (n2n_edge_t *eee, time_t now, n2n_mac_t mac) {
     HASH_FIND_PEER(eee->pending_peers, mac, scan);
 
     if(!scan) {
-        scan = calloc(1, sizeof(struct peer_info));
+        scan = peer_info_malloc(mac);
 
-        memcpy(scan->mac_addr, mac, N2N_MAC_SIZE);
         scan->timeout = eee->conf.register_interval; /* TODO: should correspond to the peer supernode registration timeout */
         scan->last_seen = now; /* Don't change this it marks the pending peer for removal. */
 

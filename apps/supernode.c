@@ -32,8 +32,10 @@
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
 #include "n2n.h"               // for n2n_sn_t, sn_community, traceEvent
 #include "pearson.h"           // for pearson_hash_64
-#include "peer_info.h"         // for peer_info, peer_info_init
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
+
+// FIXME: including a private header
+#include "../src/peer_info.h"         // for peer_info, peer_info_init
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
