@@ -25,7 +25,7 @@
 
 static bool keep_running = true;
 
-int main() {
+int main () {
 
     n2n_edge_conf_t conf;
     tuntap_dev tuntap;
@@ -60,10 +60,9 @@ int main() {
                    "DE:AD:BE:EF:01:10", // Set mac address
                    DEFAULT_MTU,         // MTU to use
                    0                    // Metric - unused in n2n on most OS
-                   ) < 0)
-        {
-                return -1;
-        }
+                   ) < 0) {
+        return -1;
+    }
 
     eee = edge_init(&conf, &rc);
     if(eee == NULL) {

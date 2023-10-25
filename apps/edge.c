@@ -142,8 +142,8 @@ static int scan_address (char * ip_addr, size_t addr_size,
         // no slash present -- default end
         end = s + strlen(s);
     else
-	// slash is present. now, handle the sub-network address
-	sscanf(end + 1, "%u", &bitlen);
+        // slash is present. now, handle the sub-network address
+        sscanf(end + 1, "%u", &bitlen);
 
     strncpy(ip_addr, start, (size_t)MIN(end - start, addr_size - 1)); // ensure NULL term
 
@@ -162,7 +162,8 @@ static void help (int level) {
     printf("\n");
     print_n2n_version();
 
-    if(level == 1) /* short help */ {
+    if(level == 1) {
+        /* short help */
 
         printf("   basic usage:  edge <config file> (see edge.conf)\n"
                "\n"
@@ -184,16 +185,17 @@ static void help (int level) {
                "\n   man  files for n3n, edge, and supernode contain in-depth information"
                "\n\n");
 
-    } else if(level == 2) /* quick reference */ {
+    } else if(level == 2) {
+        /* quick reference */
 
         printf(" general usage:  edge <config file> (see edge.conf)\n"
-           "\n"
+               "\n"
                "            or   edge "
                " -c <community name>"
                " -l <supernode host:port>"
-            "\n                      "
+               "\n                      "
                "[-p [<local bind ip address>:]<local port>] "
-            "\n                      "
+               "\n                      "
 
 #ifdef __linux__
                "[-T <type of service>] "
@@ -201,94 +203,93 @@ static void help (int level) {
 #ifndef __APPLE__
                "[-D] "
 #endif
-            "\n options for under-   "
+               "\n options for under-   "
                "[-i <registration interval>] "
                "[-L <registration ttl>] "
-            "\n lying connection     "
+               "\n lying connection     "
                "[-k <key>] "
                "[-A<cipher>] "
                "[-H] "
                "[-z<compression>] "
-            "\n                      "
+               "\n                      "
                "[-e <preferred local IP address>] [-S<level of solitude>]"
-            "\n                      "
+               "\n                      "
                "[--select-rtt] "
 #if defined(HAVE_MINIUPNP) || defined(HAVE_NATPMP)
                "[--no-port-forwarding] "
 #endif // HAVE_MINIUPNP || HAVE_NATPMP
-          "\n\n tap device and       "
+               "\n\n tap device and       "
                "[-a [static:|dhcp:]<tap IP address>[/<cidr suffix>]] "
-            "\n overlay network      "
+               "\n overlay network      "
                "[-m <tap MAC address>] "
 #if defined(N2N_CAN_NAME_IFACE)
                "[-d <tap device name>] "
 #endif
-            "\n configuration        "
+               "\n configuration        "
                "[-M <tap MTU>] "
                "[-r] "
                "[-E] "
                "[-I <edge description>] "
-            "\n                      "
+               "\n                      "
                "[-J <password>] "
                "[-P <public key>] "
                "[-R <rule string>] "
 #ifdef _WIN32
-            "\n                      "
+               "\n                      "
                "[-x <metric>] "
 #endif
-          "\n\n local options        "
+               "\n\n local options        "
 #ifndef _WIN32
                "[-f] "
 #endif
                "[-t <management port>] "
                "[--management-password <pw>] "
-            "\n                      "
+               "\n                      "
                "[-v] "
                "[-V] "
 #ifndef _WIN32
-            "\n                      "
+               "\n                      "
                "[-u <numerical user id>] "
                "[-g <numerical group id>] "
 #endif
-          "\n\n environment          "
+               "\n\n environment          "
                "N2N_KEY         instead of [-k <key>]"
-          "\n variables            "
+               "\n variables            "
                "N2N_COMMUNITY   instead of -c <community>"
-          "\n                      "
+               "\n                      "
                "N2N_PASSWORD    instead of [-J <password>]"
-
-          "\n                      "
-
-          "\n meaning of the       "
+               "\n                      "
+               "\n meaning of the       "
 #ifndef __APPLE__
-                                  "[-D]  enable PMTU discovery"
+               "[-D]  enable PMTU discovery"
 #endif
-          "\n flag options         [-H]  enable header encryption"
-          "\n                      [-r]  enable packet forwarding through n3n community"
-          "\n                      [-E]  accept multicast MAC addresses"
-          "\n            [--select-rtt]  select supernode by round trip time"
-          "\n            [--select-mac]  select supernode by MAC address"
+               "\n flag options         [-H]  enable header encryption"
+               "\n                      [-r]  enable packet forwarding through n3n community"
+               "\n                      [-E]  accept multicast MAC addresses"
+               "\n            [--select-rtt]  select supernode by round trip time"
+               "\n            [--select-mac]  select supernode by MAC address"
 #ifndef _WIN32
-          "\n                      [-f]  do not fork but run in foreground"
+               "\n                      [-f]  do not fork but run in foreground"
 #endif
-          "\n                      [-v]  make more verbose, repeat as required"
-          "\n                      [-V]  make less verbose, repeat as required"
-          "\n                      "
+               "\n                      [-v]  make more verbose, repeat as required"
+               "\n                      [-V]  make less verbose, repeat as required"
+               "\n                      "
 
-          "\n  -h    shows this quick reference including all available options"
-          "\n --help gives a detailed parameter description"
-          "\n   man  files for n3n, edge, and supernode contain in-depth information"
-          "\n\n");
+               "\n  -h    shows this quick reference including all available options"
+               "\n --help gives a detailed parameter description"
+               "\n   man  files for n3n, edge, and supernode contain in-depth information"
+               "\n\n");
 
-    } else /* long help */ {
+    } else {
+        /* long help */
 
         printf(" general usage:  edge <config file> (see edge.conf)\n"
                "\n"
                "            or   edge  -c <community name> -l <supernode host:port>\n"
                "                      [further optional command line parameters]\n\n"
-        );
-        printf (" OPTIONS FOR THE UNDERLYING NETWORK CONNECTION\n");
-        printf (" ---------------------------------------------\n\n");
+               );
+        printf(" OPTIONS FOR THE UNDERLYING NETWORK CONNECTION\n");
+        printf(" ---------------------------------------------\n\n");
         printf(" -c <community>    | n3n community name the edge belongs to\n");
         printf(" -l <host:port>    | supernode ip address or name, and port\n");
         printf(" -p [<ip>:]<port>  | fixed local UDP port and optionally bind to the\n"
@@ -307,9 +308,9 @@ static void help (int level) {
                "                   | -S1 = via UDP"
 
 #ifdef N2N_HAVE_TCP
-                                  ", -S2 = via TCP"
+               ", -S2 = via TCP"
 #endif
-"\n");
+               "\n");
         printf(" -i <reg_interval> | registration interval, for NAT hole punching (default\n"
                "                   | %u seconds)\n", REGISTER_SUPER_INTERVAL_DFL);
         printf(" -L <reg_ttl>      | TTL for registration packet for NAT hole punching through\n"
@@ -324,15 +325,15 @@ static void help (int level) {
         printf(" -z1 ... -z2       | compress outgoing data packets, -z1 = lzo1x,\n"
                "                   | "
 #ifdef HAVE_ZSTD
-                                     "-z2 = zstd, "
+               "-z2 = zstd, "
 #endif
-                                     "disabled by default\n");
+               "disabled by default\n");
         printf("--select-rtt       | supernode selection based on round trip time\n"
                "--select-mac       | supernode selection based on MAC address (default:\n"
                "                   | by load)\n");
-        printf ("\n");
-        printf (" TAP DEVICE AND OVERLAY NETWORK CONFIGURATION\n");
-        printf (" --------------------------------------------\n\n");
+        printf("\n");
+        printf(" TAP DEVICE AND OVERLAY NETWORK CONFIGURATION\n");
+        printf(" --------------------------------------------\n\n");
         printf(" -a [mode]<ip>[/n] | interface address and optional CIDR subnet, default '/24',\n"
                "                   | mode = [static|dhcp]:, for DHCP use '-r -a dhcp:0.0.0.0',\n"
                "                   | edge draws IP address from supernode if no '-a ...' given\n");
@@ -357,9 +358,9 @@ static void help (int level) {
         printf(" -x <metric>       | set TAP interface metric, defaults to 0 (auto),\n"
                "                   | e.g. set to 1 for better multiplayer game detection\n");
 #endif
-        printf ("\n");
-        printf (" LOCAL OPTIONS\n");
-        printf (" -------------\n\n");
+        printf("\n");
+        printf(" LOCAL OPTIONS\n");
+        printf(" -------------\n\n");
 #ifndef _WIN32
         printf(" -f                | do not fork and run as a daemon, rather run in foreground\n");
 #endif
@@ -373,24 +374,24 @@ static void help (int level) {
         printf(" -u <UID>          | numeric user ID to use when privileges are dropped\n");
         printf(" -g <GID>          | numeric group ID to use when privileges are dropped\n");
 #endif
-        printf ("\n");
-        printf (" ENVIRONMENT VARIABLES\n");
-        printf (" ---------------------\n\n");
+        printf("\n");
+        printf(" ENVIRONMENT VARIABLES\n");
+        printf(" ---------------------\n\n");
         printf(" N2N_KEY           | encryption key (ASCII), not with '-k ...'\n");
         printf(" N2N_COMMUNITY     | community name (ASCII), overwritten by '-c ...'\n");
         printf(" N2N_PASSWORD      | password (ASCII) for user-password authentication,\n"
                "                   | overwritten by '-J ...'\n");
 #ifdef _WIN32
-        printf ("\n");
-        printf (" AVAILABLE TAP ADAPTERS\n");
-        printf (" ----------------------\n\n");
+        printf("\n");
+        printf(" AVAILABLE TAP ADAPTERS\n");
+        printf(" ----------------------\n\n");
         win_print_available_adapters();
 #endif
-        printf ("\n"
-                "\n  -h    shows a quick reference including all available options"
-                "\n --help gives this detailed parameter description"
-                "\n   man  files for n3n, edge, and supernode contain in-depth information"
-                "\n\n");
+        printf("\n"
+               "\n  -h    shows a quick reference including all available options"
+               "\n --help gives this detailed parameter description"
+               "\n   man  files for n3n, edge, and supernode contain in-depth information"
+               "\n\n");
     }
 
     exit(0);
@@ -403,7 +404,7 @@ static void setPayloadCompression (n2n_edge_conf_t *conf, int compression) {
     /* even though 'compression' and 'conf->compression' share the same encoding scheme,
      * a switch-statement under conditional compilation is used to sort out the
      * unsupported optarguments */
-    switch (compression) {
+    switch(compression) {
         case 1: {
             conf->compression = N2N_COMPRESSION_ID_LZO;
             break;
@@ -431,7 +432,7 @@ static void setPayloadEncryption (n2n_edge_conf_t *conf, int cipher) {
     /* even though 'cipher' and 'conf->transop_id' share the same encoding scheme,
      * a switch-statement under conditional compilation is used to sort out the
      * unsupported ciphers */
-    switch (cipher) {
+    switch(cipher) {
         case 1: {
             conf->transop_id = N2N_TRANSFORM_ID_NULL;
             break;
@@ -474,9 +475,9 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
     switch(optkey) {
         case 'a': /* IP address and mode of TUNTAP interface */ {
             scan_address(ec->ip_addr, N2N_NETMASK_STR_SIZE,
-                                     ec->netmask, N2N_NETMASK_STR_SIZE,
-                                     ec->ip_mode, N2N_IF_MODE_SIZE,
-                                     optargument);
+                         ec->netmask, N2N_NETMASK_STR_SIZE,
+                         ec->ip_mode, N2N_IF_MODE_SIZE,
+                         optargument);
             break;
         }
 
@@ -505,25 +506,25 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
 #endif
 
 #ifndef _WIN32
-        case 'f' : /* do not fork as daemon */ {
+        case 'f': /* do not fork as daemon */ {
             ec->daemon = 0;
             break;
         }
 #endif /* #ifndef _WIN32 */
 
-        case 'm' : /* TUNTAP MAC address */ {
+        case 'm': /* TUNTAP MAC address */ {
             strncpy(ec->device_mac, optargument, N2N_MACNAMSIZ);
             ec->device_mac[N2N_MACNAMSIZ - 1] = '\0';
             break;
         }
 
-        case 'M' : /* TUNTAP MTU */ {
+        case 'M': /* TUNTAP MTU */ {
             ec->mtu = atoi(optargument);
             break;
         }
 
 #ifndef __APPLE__
-        case 'D' : /* enable PMTU discovery */ {
+        case 'D': /* enable PMTU discovery */ {
             conf->disable_pmtu_discovery = 0;
             break;
         }
@@ -660,7 +661,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
                     }
                 } else { /* port only */
                     conf->local_port = atoi(optargument);
-                     if(conf->local_port == 0) {
+                    if(conf->local_port == 0) {
                         traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
                     }
                 }
@@ -712,7 +713,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
 #endif
         case 'n': {
             traceEvent(TRACE_WARNING, "route support (-n) has been removed from n3n's core since version 3.1, "
-                                      "please try tools/n3n-route instead");
+                       "please try tools/n3n-route instead");
             return 2;
         }
 
@@ -806,20 +807,19 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
 /* *********************************************** */
 
 
-static const struct option long_options[] =
-    {
-        { "community",           required_argument, NULL, 'c' },
-        { "supernode-list",      required_argument, NULL, 'l' },
-        { "tap-device",          required_argument, NULL, 'd' },
-        { "euid",                required_argument, NULL, 'u' },
-        { "egid",                required_argument, NULL, 'g' },
-        { "verbose",             no_argument,       NULL, 'v' },
-        { "help",                no_argument,       NULL, '@' }, /* internal special character '@' to identify long help case */
-        { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
-        { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
-        { "management-password", required_argument, NULL, '{' }, /*                            '{'             management port password */
-        { NULL,                  0,                 NULL,  0  }
-    };
+static const struct option long_options[] = {
+    { "community",           required_argument, NULL, 'c' },
+    { "supernode-list",      required_argument, NULL, 'l' },
+    { "tap-device",          required_argument, NULL, 'd' },
+    { "euid",                required_argument, NULL, 'u' },
+    { "egid",                required_argument, NULL, 'g' },
+    { "verbose",             no_argument,       NULL, 'v' },
+    { "help",                no_argument,       NULL, '@' }, /* internal special character '@' to identify long help case */
+    { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
+    { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
+    { "management-password", required_argument, NULL, '{' }, /*                            '{'             management port password */
+    { NULL,                  0,                 NULL,  0  }
+};
 
 /* *************************************************** */
 
@@ -828,16 +828,16 @@ static int loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf, n2n_tunta
 
     u_char c;
 
-    while ((c = getopt_long(argc, argv,
-                            "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S::DL:z::A::Hn:R:e:"
+    while((c = getopt_long(argc, argv,
+                           "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S::DL:z::A::Hn:R:e:"
 #ifdef __linux__
-                            "T:"
+                           "T:"
 #endif
 #ifdef _WIN32
-                            "x:"
+                           "x:"
 #endif
-                            ,
-                            long_options, NULL)) != '?') {
+                           ,
+                           long_options, NULL)) != '?') {
 
         if(c == 255) break;
         help(setOption(c, optarg, ec, conf));
@@ -858,7 +858,7 @@ static char *trim (char *s) {
 
     end = &s[strlen(s) - 1];
     while(end > s
-                && (isspace(end[0])|| (end[0] == '"') || (end[0] == '\'')))
+          && (isspace(end[0])|| (end[0] == '"') || (end[0] == '\'')))
         end--;
     end[1] = 0;
 
@@ -965,9 +965,9 @@ static bool keep_on_running = true;
 
 #if defined(__linux__) || defined(_WIN32)
 #ifdef _WIN32
-BOOL WINAPI term_handler(DWORD sig)
+BOOL WINAPI term_handler (DWORD sig)
 #else
-    static void term_handler(int sig)
+static void term_handler (int sig)
 #endif
 {
     static int called = 0;
@@ -982,7 +982,7 @@ BOOL WINAPI term_handler(DWORD sig)
 
     keep_on_running = false;
 #ifdef _WIN32
-    switch (sig) {
+    switch(sig) {
         case CTRL_CLOSE_EVENT:
         case CTRL_LOGOFF_EVENT:
         case CTRL_SHUTDOWN_EVENT:
@@ -1014,7 +1014,7 @@ int main (int argc, char* argv[]) {
 
     uint16_t expected = sizeof(uint16_t);
     uint16_t position = 0;
-    uint8_t  pktbuf[N2N_SN_PKTBUF_SIZE + sizeof(uint16_t)]; /* buffer + prepended buffer length in case of tcp */
+    uint8_t pktbuf[N2N_SN_PKTBUF_SIZE + sizeof(uint16_t)]; /* buffer + prepended buffer length in case of tcp */
 
 
 #ifndef _WIN32
@@ -1119,7 +1119,7 @@ int main (int argc, char* argv[]) {
     traceEvent(TRACE_NORMAL, "using %s cipher.", transop_str(conf.transop_id));
 
     /* Random seed */
-    n2n_srand (n2n_seed());
+    n2n_srand(n2n_seed());
 
 #ifndef _WIN32
     /* If running suid root then we need to setuid before using the force. */
@@ -1139,7 +1139,7 @@ int main (int argc, char* argv[]) {
     memcpy(&(eee->tuntap_priv_conf), &ec, sizeof(ec));
 
     if((0 == strcmp("static", eee->tuntap_priv_conf.ip_mode)) ||
-         ((eee->tuntap_priv_conf.ip_mode[0] == '\0') && (eee->tuntap_priv_conf.ip_addr[0] != '\0'))) {
+       ((eee->tuntap_priv_conf.ip_mode[0] == '\0') && (eee->tuntap_priv_conf.ip_addr[0] != '\0'))) {
         traceEvent(TRACE_NORMAL, "use manually set IP address");
         eee->conf.tuntap_ip_mode = TUNTAP_IP_MODE_STATIC;
     } else if(0 == strcmp("dhcp", eee->tuntap_priv_conf.ip_mode)) {
@@ -1219,7 +1219,7 @@ int main (int argc, char* argv[]) {
                 send_register_super(eee);
                 runlevel++;
                 traceEvent(TRACE_NORMAL, "send REGISTER_SUPER to supernode [%s] asking for IP address",
-                                         eee->curr_sn->ip_addr);
+                           eee->curr_sn->ip_addr);
             } else {
                 runlevel += 2; /* skip waiting for TUNTAP IP address */
                 traceEvent(TRACE_DEBUG, "skip auto IP address asignment");
@@ -1253,9 +1253,9 @@ int main (int argc, char* argv[]) {
                 exit(1);
             memcpy(&eee->device, &tuntap, sizeof(tuntap));
             traceEvent(TRACE_NORMAL, "created local tap device IP: %s, Mask: %s, MAC: %s",
-                                     eee->tuntap_priv_conf.ip_addr,
-                                     eee->tuntap_priv_conf.netmask,
-                                     macaddr_str(mac_buf, eee->device.mac_addr));
+                       eee->tuntap_priv_conf.ip_addr,
+                       eee->tuntap_priv_conf.netmask,
+                       macaddr_str(mac_buf, eee->device.mac_addr));
             runlevel = 5;
             // no more answers required
             seek_answer = 0;
@@ -1271,9 +1271,9 @@ int main (int argc, char* argv[]) {
             if(select(eee->sock + 1, &socket_mask, NULL, NULL, &wait_time) > 0) {
                 if(FD_ISSET(eee->sock, &socket_mask)) {
 
-                    fetch_and_eventually_process_data (eee, eee->sock,
-                                                       pktbuf, &expected, &position,
-                                                       now);
+                    fetch_and_eventually_process_data(eee, eee->sock,
+                                                      pktbuf, &expected, &position,
+                                                      now);
                 }
             }
         }

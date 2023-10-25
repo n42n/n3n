@@ -32,29 +32,29 @@ static bool keep_running = true;
 
 int main () {
 
-        n2n_sn_t sss_node;
-        int rc;
+    n2n_sn_t sss_node;
+    int rc;
 
-        sn_init_defaults(&sss_node);
-        sss_node.daemon = 0;   // Whether to daemonize
-        sss_node.lport = 1234; // Main UDP listen port
+    sn_init_defaults(&sss_node);
+    sss_node.daemon = 0;   // Whether to daemonize
+    sss_node.lport = 1234; // Main UDP listen port
 
-        sss_node.sock = open_socket(sss_node.lport, INADDR_ANY, 0 /* UDP */);
-        if(-1 == sss_node.sock) {
-            exit(-2);
-        }
+    sss_node.sock = open_socket(sss_node.lport, INADDR_ANY, 0 /* UDP */);
+    if(-1 == sss_node.sock) {
+        exit(-2);
+    }
 
-        sss_node.mgmt_sock = open_socket(5645, INADDR_LOOPBACK, 0 /* UDP */); // Main UDP management port
-        if(-1 == sss_node.mgmt_sock) {
-            exit(-2);
-        }
+    sss_node.mgmt_sock = open_socket(5645, INADDR_LOOPBACK, 0 /* UDP */); // Main UDP management port
+    if(-1 == sss_node.mgmt_sock) {
+        exit(-2);
+    }
 
-        sn_init(&sss_node);
+    sn_init(&sss_node);
 
-        sss_node.keep_running = &keep_running;
-        rc = run_sn_loop(&sss_node);
+    sss_node.keep_running = &keep_running;
+    rc = run_sn_loop(&sss_node);
 
-        sn_term(&sss_node);
+    sn_term(&sss_node);
 
-        return rc;
+    return rc;
 }

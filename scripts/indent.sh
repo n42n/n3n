@@ -57,8 +57,7 @@ indentOne() {
 }
 
 indentDir() {
-    DIR="$1"
-    for i in $(find "$1" -type f -name \*.h -o -name \*.c); do
+    for i in $(find "$1" -type f -name \*.h -o -name \*.c |sort); do
         indentOne "$i"
     done
 }

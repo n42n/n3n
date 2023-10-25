@@ -103,7 +103,7 @@ N2N_DEPS=$(wildcard include/*.h) $(wildcard src/*.c) config.mak
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)
 LINT_CCODE=\
-	apps/example_edge_embed_quick_edge_init.c \
+	apps/ \
 	include/curve25519.h \
 	include/header_encryption.h \
 	include/hexdump.h \
