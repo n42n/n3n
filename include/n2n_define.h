@@ -130,7 +130,7 @@ enum n2n_event_topic {
 #define N2N_EVENT_PEER_DEL_P2P  3
 #define N2N_EVENT_PEER_ADD_P2P  4
 
-#define N2N_MGMT_PASSWORD  "n2n"               /* default password for management port access (so far, json only) */
+#define N2N_MGMT_PASSWORD  "n3n"               /* default password for management port access (so far, json only) */
 
 
 #define N2N_TCP_BACKLOG_QUEUE_SIZE   3         /* number of concurrently pending connections to be accepted */

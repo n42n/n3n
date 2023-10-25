@@ -27,7 +27,7 @@ else
   fi
 fi
 
-APP=n2n
+APP=n3n
 DATE=`date -R`
 
 CENTOS_RELEASE=`cat /etc/centos-release | cut -d ' ' -f 3|cut -d '.' -f 1`
@@ -47,6 +47,6 @@ AC_SUBST(EXTN)
 AC_SUBST(DATE)
 AC_SUBST(RPM_SIGN_CMD)
 
-AC_CONFIG_FILES(n2n.spec)
+AC_CONFIG_FILES(n3n.spec)
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

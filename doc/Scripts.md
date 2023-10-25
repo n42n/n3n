@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0-only
 There are a number of useful scripts included with the distribution.
 Some of these scripts are only useful during build and development, but
 other scripts are intended for end users to be able to use.  These scripts
-may be installed with n2n as part of your operating system package.
+may be installed with n3n as part of your operating system package.
 
 All scripts can be found in the `scripts` directory.
 
@@ -14,18 +14,18 @@ Short descriptions of these scripts are below.
 
 ## End user scripts
 
-### `n2n-ctl`
+### `n3n-ctl`
 
 This python script provides an easy command line interface to the running
-n2n processes.  It uses UDP communications to talk to the Management API.
+n3n processes.  It uses UDP communications to talk to the Management API.
 By specifying the right UDP port, it can talk to both the edge and the
 supernode daemons.
 
 Example:
-- `scripts/n2n-ctl --help`
-- `scripts/n2n-ctl help`
+- `scripts/n3n-ctl --help`
+- `scripts/n3n-ctl help`
 
-### `n2n-httpd`
+### `n3n-httpd`
 
 This python script is a simple http gateway to the running edge.  It provides
 a proxy for REST-like HTTP requests to talk to the Management API.
@@ -37,8 +37,8 @@ run with default settings can be seen at http://localhost:8080/ (Also
 a http://localhost:8080/supernode.html page for the supernode)
 
 Example:
-- `scripts/n2n-httpd --help`
-- `scripts/n2n-httpd 8087`
+- `scripts/n3n-httpd --help`
+- `scripts/n3n-httpd 8087`
 
 ## Build and Development scripts
 
@@ -54,10 +54,10 @@ This shell script is a wrapper for the `uncrustify` C code style checker
 which checks or applies a set of rules to the code.  It is used during
 the automated lint checks.
 
-### `n2n-gateway.sh`
+### `n3n-gateway.sh`
 
 A sample script to route all the host traffic towards a remote gateway,
-which is reachable via the n2n virtual interface.
+which is reachable via the n3n virtual interface.
 
 ### `version.sh`
 
@@ -69,31 +69,31 @@ version number to use.
 
 ## Monitoring and statistics
 
-### `munin/n2n_`
+### `munin/n3n_`
 
 This is a simple monitoring script that can be used with the munin-node
-system to monitor the n2n daemons.
+system to monitor the n3n daemons.
 
 This is a fully autoconfigurable wildcard munin plugin, but to get a quick
 sample:
 
 get a list of suggested plugin names:
 ```
-munin/n2n_ suggest
+munin/n3n_ suggest
 ```
 
 Enable some of those names:
 
 ```
-ln -s /usr/share/munin/plugins/n2n_ /etc/munin/plugins/n2n_supernode_pkts
-ln -s /usr/share/munin/plugins/n2n_ /etc/munin/plugins/n2n_supernode_counts
+ln -s /usr/share/munin/plugins/n3n_ /etc/munin/plugins/n3n_supernode_pkts
+ln -s /usr/share/munin/plugins/n3n_ /etc/munin/plugins/n3n_supernode_counts
 ```
 
 Manually test fetching and config:
 
 ```
-/etc/munin/plugins/n2n_supernode_pkts
-/etc/munin/plugins/n2n_supernode_pkts config
+/etc/munin/plugins/n3n_supernode_pkts
+/etc/munin/plugins/n3n_supernode_pkts config
 ```
 
 ## Testing scripts
@@ -117,4 +117,4 @@ and compared with the expected output.
 ### `scripts/test_integration_supernode.sh`
 
 This starts a supernode and runs an integration test on the Json API using
-the `n2n-ctl` command.
+the `n3n-ctl` command.

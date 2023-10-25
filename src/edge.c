@@ -178,7 +178,7 @@ static void help (int level) {
                "\n"
                "\n  -h    shows a quick reference including all available options"
                "\n --help gives a detailed parameter description"
-               "\n   man  files for n2n, edge, and supernode contain in-depth information"
+               "\n   man  files for n3n, edge, and supernode contain in-depth information"
                "\n\n");
 
     } else if(level == 2) /* quick reference */ {
@@ -261,7 +261,7 @@ static void help (int level) {
                                   "[-D]  enable PMTU discovery"
 #endif
           "\n flag options         [-H]  enable header encryption"
-          "\n                      [-r]  enable packet forwarding through n2n community"
+          "\n                      [-r]  enable packet forwarding through n3n community"
           "\n                      [-E]  accept multicast MAC addresses"
           "\n            [--select-rtt]  select supernode by round trip time"
           "\n            [--select-mac]  select supernode by MAC address"
@@ -274,7 +274,7 @@ static void help (int level) {
 
           "\n  -h    shows this quick reference including all available options"
           "\n --help gives a detailed parameter description"
-          "\n   man  files for n2n, edge, and supernode contain in-depth information"
+          "\n   man  files for n3n, edge, and supernode contain in-depth information"
           "\n\n");
 
     } else /* long help */ {
@@ -286,7 +286,7 @@ static void help (int level) {
         );
         printf (" OPTIONS FOR THE UNDERLYING NETWORK CONNECTION\n");
         printf (" ---------------------------------------------\n\n");
-        printf(" -c <community>    | n2n community name the edge belongs to\n");
+        printf(" -c <community>    | n3n community name the edge belongs to\n");
         printf(" -l <host:port>    | supernode ip address or name, and port\n");
         printf(" -p [<ip>:]<port>  | fixed local UDP port and optionally bind to the\n"
                "                   | sepcified local IP address only (any by default)\n");
@@ -338,8 +338,8 @@ static void help (int level) {
 #if defined(N2N_CAN_NAME_IFACE)
         printf(" -d <device>       | TAP device name\n");
 #endif
-        printf(" -M <mtu>          | specify n2n MTU of TAP interface, default %d\n", DEFAULT_MTU);
-        printf(" -r                | enable packet forwarding through n2n community,\n"
+        printf(" -M <mtu>          | specify n3n MTU of TAP interface, default %d\n", DEFAULT_MTU);
+        printf(" -r                | enable packet forwarding through n3n community,\n"
                "                   | also required for bridging\n");
         printf(" -E                | accept multicast MAC addresses, drop by default\n");
         printf(" -I <description>  | annotate the edge's description used for easier\n"
@@ -386,7 +386,7 @@ static void help (int level) {
         printf ("\n"
                 "\n  -h    shows a quick reference including all available options"
                 "\n --help gives this detailed parameter description"
-                "\n   man  files for n2n, edge, and supernode contain in-depth information"
+                "\n   man  files for n3n, edge, and supernode contain in-depth information"
                 "\n\n");
     }
 
@@ -708,8 +708,8 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 #endif
         case 'n': {
-            traceEvent(TRACE_WARNING, "route support (-n) has been removed from n2n's core since version 3.1, "
-                                      "please try tools/n2n-route instead");
+            traceEvent(TRACE_WARNING, "route support (-n) has been removed from n3n's core since version 3.1, "
+                                      "please try tools/n3n-route instead");
             return 2;
         }
 
@@ -1031,7 +1031,7 @@ int main (int argc, char* argv[]) {
     ec.daemon = 1;        /* By default run in daemon mode. */
 
 #ifndef _WIN32
-    if(((pw = getpwnam("n2n")) != NULL) ||
+    if(((pw = getpwnam("n3n")) != NULL) ||
        ((pw = getpwnam("nobody")) != NULL)) {
         ec.userid = pw->pw_uid;
         ec.groupid = pw->pw_gid;
@@ -1106,7 +1106,7 @@ int main (int argc, char* argv[]) {
     if(edge_verify_conf(&conf) != 0)
         help(1); /* short help */
 
-    traceEvent(TRACE_NORMAL, "starting n2n edge %s %s", PACKAGE_VERSION, PACKAGE_BUILDDATE);
+    traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", PACKAGE_VERSION, PACKAGE_BUILDDATE);
 
 #ifdef HAVE_LIBCRYPTO
     traceEvent(TRACE_NORMAL, "using %s", OpenSSL_version(0));
@@ -1311,7 +1311,7 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_WARNING, "unable to retain permitted capabilities [%s]\n", strerror(errno));
 #else
 #ifndef __APPLE__
-    traceEvent(TRACE_WARNING, "n2n has not been compiled with libcap-dev; some commands may fail");
+    traceEvent(TRACE_WARNING, "n3n has not been compiled with libcap-dev; some commands may fail");
 #endif
 #endif /* HAVE_LIBCAP */
 

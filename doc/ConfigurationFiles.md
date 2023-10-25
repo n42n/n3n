@@ -1,6 +1,6 @@
 # Configuration Files
 
-To help deployment and better handle locally different configurations, n2n supports the optional use of configuration files for `edge` and `supernode`.
+To help deployment and better handle locally different configurations, n3n supports the optional use of configuration files for `edge` and `supernode`.
 
 They are plain text files and contain the desired command line options, **one per line**.
 

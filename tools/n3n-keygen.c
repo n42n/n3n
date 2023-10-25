@@ -35,9 +35,9 @@ int main(int argc, char * argv[]) {
     if(argc != 3) {
         // error message to stderr to not interfere with batch usage
         fprintf(stderr, "\n"
-                        "n2n-keygen tool\n\n"
-                        "  usage:  n2n-keygen <username> <password>\n\n"
-                        "     or   n2n-keygen -F <federation name>\n\n"
+                        "n3n-keygen tool\n\n"
+                        "  usage:  n3n-keygen <username> <password>\n\n"
+                        "     or   n3n-keygen -F <federation name>\n\n"
                         "          outputs a line to insert at supernode's community file for user-and-\n"
                         "          password authentication or a command line parameter with the public\n"
                         "          federation key for use at edge's command line, please refer to the\n"

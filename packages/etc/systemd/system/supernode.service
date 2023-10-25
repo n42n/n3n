@@ -1,13 +1,13 @@
 [Unit]
-Description=n2n supernode process
+Description=n3n supernode process
 After=network-online.target syslog.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=n2n
-Group=n2n
-ExecStart=/usr/sbin/supernode /etc/n2n/supernode.conf -f
+User=n3n
+Group=n3n
+ExecStart=/usr/sbin/supernode /etc/n3n/supernode.conf -f
 Restart=on-abnormal
 RestartSec=5
 

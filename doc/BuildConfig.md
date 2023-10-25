@@ -22,7 +22,7 @@ the (re-)configuration and before building (again) using `make`.
 ZSTD Compression Support
 
 In addition to the built-in LZO1x for payload compression (`-z1` at the edge's
-commandline), n2n optionally supports [ZSTD](https://github.com/facebook/zstd).
+commandline), n3n optionally supports [ZSTD](https://github.com/facebook/zstd).
 As of 2020, it is considered cutting edge and [praised](https://en.wikipedia.org/wiki/Zstandard)
 for reaching the currently technologically possible Pareto frontier in terms
 of CPU power versus compression ratio.
@@ -71,7 +71,7 @@ running daemon
 
 ### `--enable-pcap`
 
-If the pcap library is available then the `n2n-decode` tool can be compiled.
+If the pcap library is available then the `n3n-decode` tool can be compiled.
 
 ### `--enable-natpmp`
 
@@ -86,7 +86,7 @@ this is `apt-get install libnatpmp-dev`
 Enables the other kind of UPnP port mapping protocol.
 
 Turning on either of these two UPnP libraries will enable UPnP support within
-the n2n-portfwd tool.
+the n3n-portfwd tool.
 
 This option depends on the library being installed - on Debian and Ubuntu,
 this is `apt-get install libminiupnpc-dev`
@@ -98,7 +98,7 @@ packets to a certain multicast address. Also, edges listen to this address to ev
 fetch such packets.
 
 If these packets disturb network's peace or even get forwarded by (other) edges through the
-n2n network, this behavior can be disabled
+n3n network, this behavior can be disabled
 
 #### Makefile
 
@@ -125,7 +125,7 @@ The easiest way to boosting speed is by allowing the compiler to apply optimizat
 
 `./configure CFLAGS="-O3"`
 
-The `tools/n2n-benchmark` tool reports speed-ups of 200% or more! There is no known risk in terms of instable code or so.
+The `tools/n3n-benchmark` tool reports speed-ups of 200% or more! There is no known risk in terms of instable code or so.
 
 ## Hardware Features
 
@@ -134,7 +134,7 @@ such as NEON, SSE and AVX. It needs to be decided at compile-time. Hence if comp
 platform with known features (maybe the local one), it should be specified to the compiler – for
 example through the `-march=sandybridge` (you name it) or just `-march=native` for local use.
 
-So far, the following portions of n2n's code benefit from hardware features:
+So far, the following portions of n3n's code benefit from hardware features:
 
 ```
 AES:               AES-NI
@@ -147,7 +147,7 @@ The compilations flags could easily be combined:
 
 `./configure CFLAGS="-O3 -march=native"`.
 
-There are reports of compile errors showing `n2n_seed': random_numbers.c:(.text+0x214): undefined reference to _rdseed64_step'` even though the CPU should support it, see #696. In this case, best solution found so far is to disable `RDSEED` support by adding `-U__RDSEED__` to the `CFLAGS`.
+There are reports of compile errors showing `n3n_seed': random_numbers.c:(.text+0x214): undefined reference to _rdseed64_step'` even though the CPU should support it, see #696. In this case, best solution found so far is to disable `RDSEED` support by adding `-U__RDSEED__` to the `CFLAGS`.
 
 ## SPECK – ARM NEON Hardware Acceleration
 

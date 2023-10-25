@@ -1,5 +1,5 @@
 #! /bin/sh
-# preinst script for n2n
+# preinst script for n3n
 #
 # see: dh_installdeb(1)
 

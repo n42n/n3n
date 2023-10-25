@@ -1,4 +1,4 @@
-# Cryptography in n2n
+# Cryptography in n3n
 
 ## Payload
 
@@ -22,7 +22,7 @@ The following chart might help to make a quick comparison and decide what cipher
 
 The two block ciphers Twofish and AES are used in CTS mode.
 
-n2n has all four ciphers built-in as basic versions. Some of them optionally compile to faster versions by the means of available hardware support (AES-NI, SSE, AVX – please see the [Building document](./Building.md) for details. Depending on your platform, AES and ChaCha20 might also draw notable acceleration from optionally compiling with openSSL 1.1 support.
+n3n has all four ciphers built-in as basic versions. Some of them optionally compile to faster versions by the means of available hardware support (AES-NI, SSE, AVX – please see the [Building document](./Building.md) for details. Depending on your platform, AES and ChaCha20 might also draw notable acceleration from optionally compiling with openSSL 1.1 support.
 
 The`-k <key>` command line parameter supplies the key. As even non-privileged users might get to see the command line parameters (try `ps -Af | grep edge`), the key can also be supplied through the `N2N_KEY` environment variable: `sudo N2N_KEY=mysecretpass edge -c mynetwork -a 192.168.100.1 -f -l supernode.ntop.org:7777`.
 
@@ -36,19 +36,19 @@ This implementation prepends a 128 bit random value to the plain text. Its size 
 
 Twofish requires no padding as it employs a CBC/CTS scheme which can send out plaintext-length ciphertexts. The scheme however has a small flaw in handling messages shorter than one block, only low-level programmer might encounter this.
 
-On Intel CPUs, Twofish usually is the slowest of the ciphers present. However, on Raspberry Pi 3B+, Twofish was observed to be faster than AES-CTS. Your mileage may vary. Cipher speed's can be compared running the `tools/n2n-benchmark` tool.
+On Intel CPUs, Twofish usually is the slowest of the ciphers present. However, on Raspberry Pi 3B+, Twofish was observed to be faster than AES-CTS. Your mileage may vary. Cipher speed's can be compared running the `tools/n3n-benchmark` tool.
 
 ### AES
 
 AES also prepends a random value to the plaintext. Its size is adjustable by changing the `AES_PREAMBLE_SIZE` definition found in `src/transform_aes.c`. It defaults to AES_BLOCK_SIZE (== 16). The AES scheme uses a CBC/CTS scheme which can send out plaintext-length ciphertexts as long as they are one block or more in length.
 
-Apart from n2n's plain C implementation, Intel's AES-NI is supported – again, please have a look at the [Building document](./Building.md). In case of openSSL support its `evp_*` interface gets used which also offers hardware acceleration where available (SSE, AES-NI, …). It however is slower than the following stream ciphers because the CBC mode cannot compete with the optimized stream ciphers.
+Apart from n3n's plain C implementation, Intel's AES-NI is supported – again, please have a look at the [Building document](./Building.md). In case of openSSL support its `evp_*` interface gets used which also offers hardware acceleration where available (SSE, AES-NI, …). It however is slower than the following stream ciphers because the CBC mode cannot compete with the optimized stream ciphers.
 
-This cipher's different key-sizes are triggered by the length of the user-provided key: 22 characters or less make n2n use AES-128, between 23 and 32 characters lead to AES-192, and 33 or more characters trigger AES-256.
+This cipher's different key-sizes are triggered by the length of the user-provided key: 22 characters or less make n3n use AES-128, between 23 and 32 characters lead to AES-192, and 33 or more characters trigger AES-256.
 
 ### ChaCha20
 
-ChaCha20 was the first stream cipher supported by n2n.
+ChaCha20 was the first stream cipher supported by n3n.
 
 In addition to the basic C implementation, an SSE version is offered. If compiled with openSSL support, ChaCha20 is provided via the `evp_*` interface. It is not used together with the Poly1305 message tag from the same author though. Whole packet's checksum will be handled in the header (see below).
 
@@ -64,13 +64,13 @@ On modern Intel CPUs, SPECK performs even faster than openSSL's ChaCha20 as it t
 
 ### Random Numbers
 
-Throughout n2n, pseudo-random numbers are generated for several purposes, e.g. random MAC assignment and the IVs for use with the various ciphers. Regarding IVs, especially for using in the stream ciphers, the pseudo-random numbers shall be as collision-free as possible. n2n uses an implementation of XORSHIFT128+ which shows a periodicity of 2¹²⁸.
+Throughout n3n, pseudo-random numbers are generated for several purposes, e.g. random MAC assignment and the IVs for use with the various ciphers. Regarding IVs, especially for using in the stream ciphers, the pseudo-random numbers shall be as collision-free as possible. n3n uses an implementation of XORSHIFT128+ which shows a periodicity of 2¹²⁸.
 
 Its initialization relies on seeding with a value as random as possible. Various sources are tapped including a syscall to Linux' `SYS_getrandom` as well as Intels hardware random number generators `RDRND` and `RDSEED`, if available (compile using `-march=native`).
 
 ### Pearson Block Hashing
 
-For general purpose hashing, n2n employs [Pearson Block Hashing](https://github.com/Logan007/pearsonB) as it offers variable hash sizes and is said not to be too "collidy". However, this is not a cryptographically secure hashing function which by the way is not required here: The hashing is never applied in a way that the hash value shall publicly prove the knowledge of a secret without showing the secret itself.
+For general purpose hashing, n3n employs [Pearson Block Hashing](https://github.com/Logan007/pearsonB) as it offers variable hash sizes and is said not to be too "collidy". However, this is not a cryptographically secure hashing function which by the way is not required here: The hashing is never applied in a way that the hash value shall publicly prove the knowledge of a secret without showing the secret itself.
 
 _Pearson hashing is tweakable by using your own block-sized permutation._ Here, we use a three-round xor-rotate-multiply permutation scheme on 64-bit wide integer numbers with constants discovered by [David Stafford](http://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html) (`mix13`, permission obtained via eMail) which, meanwhile, is better known as part of `splitmix64()`.
 
@@ -211,6 +211,6 @@ Upon receival, the time stamp as well as the checksum can be extracted from the 
 
 - Valid (remote) time stamps get stored as "last valid time stamp" seen from each node (supernode and edges). So, a newly arriving packet's time stamp can be compared to the last valid one. It should be equal or higher. However, as UDP packets may overtake each other just by taking another path through the internet, they are allowed to be 160 millisecond earlier than the last valid one. This limit is set with the `TIME_STAMP_JITTER` definition. If the accuracy flag is set, the time stamp will be allowed a jitter eight times as high, corresponding to 1.25 seconds by default.
 
-- However, the systemic packets such as REGISTER_SUPER are not allowed any time stamp jitter because n2n relies on the actual sender's socket. A replay from another IP within any allowed jitter time frame would deviate the traffic which shall be prevented (even if it remains undecryptable). Under absolutely rare (!) circumstances, this might cause a re-registration requirement which happens automatically but might cause a small delay – security (including network availability) first! REGISTER packets from the local multicast environment are exempt from the very strict no-jitter requirement because they indeed regularly can show some deviation if compared to time stamps in packets received on the regular socket. As these packets are incoming on different sockets, their processing is more likely to no take place in the order these packets were sent.
+- However, the systemic packets such as REGISTER_SUPER are not allowed any time stamp jitter because n3n relies on the actual sender's socket. A replay from another IP within any allowed jitter time frame would deviate the traffic which shall be prevented (even if it remains undecryptable). Under absolutely rare (!) circumstances, this might cause a re-registration requirement which happens automatically but might cause a small delay – security (including network availability) first! REGISTER packets from the local multicast environment are exempt from the very strict no-jitter requirement because they indeed regularly can show some deviation if compared to time stamps in packets received on the regular socket. As these packets are incoming on different sockets, their processing is more likely to no take place in the order these packets were sent.
 
 The way the IV is used for replay protection and for checksumming makes enabled header encryption a prerequisite for these features.

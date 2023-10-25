@@ -507,7 +507,7 @@ int main(int argc, char* argv[]) {
   int i;
   int mtu = 1400;
 
-  printf("Welcome to n2n\n");
+  printf("Welcome to n3n\n");
   initWin32();
   open_wintap(&tuntap, "static", "1.2.3.20", "255.255.255.0", mtu, 0);
 

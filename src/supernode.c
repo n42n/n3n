@@ -16,8 +16,6 @@
  *
  */
 
-/* Supernode for n2n-2.x */
-
 
 #include <ctype.h>             // for isspace
 #include <errno.h>             // for errno
@@ -75,7 +73,7 @@ static void help (int level) {
                "\n short help text is displayed"
              "\n\n  -h    shows a quick reference including all available options"
                "\n --help gives a detailed parameter description"
-               "\n   man  files for n2n, edge, and supernode contain in-depth information"
+               "\n   man  files for n3n, edge, and supernode contain in-depth information"
                "\n\n");
 
     } else if(level == 2) /* quick reference */ {
@@ -125,7 +123,7 @@ static void help (int level) {
           "\n short help text is displayed"
         "\n\n  -h    shows this quick reference including all available options"
           "\n --help gives a detailed parameter description"
-          "\n   man  files for n2n, edge, and supernode contain in-depth information"
+          "\n   man  files for n3n, edge, and supernode contain in-depth information"
           "\n\n");
 
     } else /* long help */ {
@@ -176,7 +174,7 @@ static void help (int level) {
                "\n short help text is displayed"
              "\n\n  -h    shows a quick reference including all available options"
                "\n --help gives this detailed parameter description"
-               "\n   man  files for n2n, edge, and supernode contain in-depth information"
+               "\n   man  files for n3n, edge, and supernode contain in-depth information"
                "\n\n");
     }
 
@@ -693,7 +691,7 @@ int main (int argc, char * const argv[]) {
      * If no uid/gid is specified on the commandline, use the uid/gid of the
      * first found out of user "n2n" or "nobody"
      */
-    if(((pw = getpwnam ("n2n")) != NULL) || ((pw = getpwnam ("nobody")) != NULL)) {
+    if(((pw = getpwnam ("n3n")) != NULL) || ((pw = getpwnam ("nobody")) != NULL)) {
         /*
          * If the uid/gid is not set from the CLI, set it from getpwnam
          * otherwise reset it to zero
