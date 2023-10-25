@@ -279,8 +279,9 @@ clean:
 distclean:
 	rm -f tests/*.out src/*.gcno src/*.gcda src/*.indent src/*.unc-backup*
 	rm -rf autom4te.cache/
-	rm -f config.log config.status configure include/config.h include/config.h.in
-	rm -f doc/edge.8.gz doc/n2n.7.gz doc/supernode.1.gz
+	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
+	rm -f edge.8.gz n2n.7.gz supernode.1.gz
+	rm -f edge supernode libn2n.a
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
