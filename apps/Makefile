@@ -3,18 +3,19 @@
 # service within other software.
 #
 
+APPS+=edge
+APPS+=supernode
+
 EXAMPLES+=example_edge_embed_quick_edge_init
 EXAMPLES+=example_edge_embed
 EXAMPLES+=example_sn_embed
 
-all: $(EXAMPLES)
+all: $(APPS) $(EXAMPLES)
 
 CFLAGS+=-I../include
 LDFLAGS+=-L../
 
-example_edge_embed_quick_edge_init: ../libn3n.a
-example_sn_embed: ../libn3n.a
-example_edge_embed: ../libn3n.a
+$(APPS) $(EXAMPLES): ../libn3n.a
 
 clean:
-	rm -f $(EXAMPLES)
+	rm -f $(APPS) $(EXAMPLES)

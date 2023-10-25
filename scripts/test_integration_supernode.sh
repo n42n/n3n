@@ -19,7 +19,7 @@ docmd() {
 }
 
 # start it running in the background
-docmd "${BINDIR}"/supernode -v
+docmd "${BINDIR}"/apps/supernode -v
 
 # TODO: probe the api endpoint, waiting for the supernode to be available?
 sleep 0.1

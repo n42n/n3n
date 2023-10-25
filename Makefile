@@ -102,7 +102,7 @@ N2N_DEPS=$(wildcard include/*.h) $(wildcard src/*.c) config.mak
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)
 LINT_CCODE=\
-	examples/example_edge_embed_quick_edge_init.c \
+	apps/example_edge_embed_quick_edge_init.c \
 	include/curve25519.h \
 	include/header_encryption.h \
 	include/hexdump.h \
@@ -140,9 +140,6 @@ LINT_CCODE=\
 LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)
 
-APPS=edge$(EXE)
-APPS+=supernode$(EXE)
-
 DOCS=edge.8.gz supernode.1.gz n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
@@ -159,14 +156,14 @@ BUILD_DEP:=\
 	yamllint \
 
 SUBDIRS+=tools
-SUBDIRS+=examples
+SUBDIRS+=apps
 
 COVERAGEDIR?=coverage
 
 .PHONY: $(SUBDIRS)
 
 .PHONY: all
-all: version $(APPS) $(DOCS) $(SUBDIRS)
+all: version apps $(DOCS) $(SUBDIRS)
 
 # This allows breaking the build if the version.sh script discovers
 # any inconsistancies
@@ -175,14 +172,8 @@ version:
 	@echo -n "Build for version: "
 	@scripts/version.sh
 
-examples tools: $(N2N_LIB)
+apps tools: $(N2N_LIB)
 	$(MAKE) -C $@
-
-src/edge.o: $(N2N_DEPS)
-src/supernode.o: $(N2N_DEPS)
-
-src/edge: $(N2N_LIB)
-src/supernode: $(N2N_LIB)
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
 N2N_OBJS+=src/win32/edge_utils_win32.o
@@ -195,9 +186,6 @@ endif
 src/win32/edge.rc: src/win32/edge.manifest
 src/win32/edge_rc.o: src/win32/edge.rc
 	$(WINDRES) $< -O coff -o $@
-
-src/edge.exe: src/edge
-src/supernode.exe: src/supernode
 
 %: src/%
 	cp $< $@
@@ -215,7 +203,7 @@ test: test.units test.integration
 test.units: tools
 	scripts/test_harness.sh tests/tests_units.list
 
-test.integration: $(APPS)
+test.integration: apps
 	scripts/test_harness.sh tests/tests_integration.list
 
 .PHONY: lint lint.python lint.ccode lint.shell lint.yaml
@@ -270,8 +258,7 @@ build-dep-brew:
 
 .PHONY: clean
 clean:
-	rm -f src/edge.o src/supernode.o
-	rm -rf $(N2N_OBJS) $(N2N_LIB) $(APPS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(N2N_OBJS) $(N2N_LIB) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out src/*.gcno src/*.gcda
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
 
@@ -281,18 +268,17 @@ distclean:
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
 	rm -f edge.8.gz n3n.7.gz supernode.1.gz
-	rm -f edge supernode libn3n.a
+	rm -f libn3n.a
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
-	rm -f $(addprefix src/,$(APPS))
 
 .PHONY: install
-install: edge$(EXE) supernode$(EXE) edge.8.gz supernode.1.gz n3n.7.gz
+install: apps/edge$(EXE) apps/supernode$(EXE) edge.8.gz supernode.1.gz n3n.7.gz
 	echo "MANDIR=$(MANDIR)"
 	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
-	$(INSTALL_PROG) supernode$(EXE) $(SBINDIR)/
-	$(INSTALL_PROG) edge$(EXE) $(SBINDIR)/
+	$(INSTALL_PROG) apps/supernode$(EXE) $(SBINDIR)/
+	$(INSTALL_PROG) apps/edge$(EXE) $(SBINDIR)/
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/

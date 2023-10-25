@@ -21,8 +21,8 @@ pkg:
 	if test -e "${N2N_BUILD}"; then /bin/rm -fr ${N2N_BUILD}; fi
 	mkdir -p ${N2N_BUILD}/usr/sbin ${N2N_BUILD}/usr/share/man/man1 ${N2N_BUILD}/usr/share/man/man7 ${N2N_BUILD}/usr/share/man/man8
 	mkdir -p ${N2N_BUILD}/usr/share/doc/n3n/examples
-	install -m755 ../../supernode ${N2N_BUILD}/usr/sbin/
-	install -m755 ../../edge ${N2N_BUILD}/usr/sbin/
+	install -m755 ../../apps/supernode ${N2N_BUILD}/usr/sbin/
+	install -m755 ../../apps/edge ${N2N_BUILD}/usr/sbin/
 	install -m644 ../../edge.8.gz ${N2N_BUILD}/usr/share/man/man8/
 	install -m644 ../../supernode.1.gz ${N2N_BUILD}/usr/share/man/man1/
 	install -m644 ../../n3n.7.gz ${N2N_BUILD}/usr/share/man/man7/

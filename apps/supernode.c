@@ -34,7 +34,7 @@
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
 #ifdef _WIN32
-#include "win32/defs.h"
+#include "../src/win32/defs.h"  // FIXME: untangle the include path
 #else
 #include <arpa/inet.h>         // for inet_addr
 #include <netinet/in.h>        // for ntohl, INADDR_ANY, INADDR_NONE, in_addr_t

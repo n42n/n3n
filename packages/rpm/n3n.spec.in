@@ -28,8 +28,8 @@ mkdir -p $RPM_BUILD_ROOT/usr/lib/systemd/system/
 # TODO: move to %install
 cd ../../n3n # FIXME: dont hardcode sourcecode dir name
 
-cp edge $RPM_BUILD_ROOT/usr/sbin
-cp supernode $RPM_BUILD_ROOT/usr/sbin
+cp apps/edge $RPM_BUILD_ROOT/usr/sbin
+cp apps/supernode $RPM_BUILD_ROOT/usr/sbin
 cp n3n.7.gz $RPM_BUILD_ROOT/usr/share/man/man7
 cp supernode.1.gz $RPM_BUILD_ROOT/usr/share/man/man1
 cp edge.8.gz $RPM_BUILD_ROOT/usr/share/man/man8

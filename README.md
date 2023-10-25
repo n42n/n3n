@@ -73,7 +73,7 @@ make install
 
 For Windows, MacOS, optimizations and general building options, please check out [Building documentation](doc/Building.md) for compilation and running.
 
-**IMPORTANT** It is generally recommended to use the [latest stable release](https://github.com/ntop/n2n/releases). Please note that the current _dev_ branch usually is not guaranteed to be backward compatible neither with the latest stable release nor with previous _dev_ states. On the other hand, if you dare to try bleeding edge features, you are encouraged to compile from _dev_ – just keep track of sometimes rapidly occuring changes. Feedback in the _Issues_ section is appreciated.
+**IMPORTANT** It is generally recommended to use the [latest stable release](https://github.com/n42n/n3n/releases). Please note that the current _main_ branch usually is not guaranteed to be backward compatible neither with the latest stable release nor with previous _main_ states. On the other hand, if you dare to try bleeding edge features, you are encouraged to compile from _main_ – just keep track of sometimes rapidly occuring changes. Feedback in the _Issues_ section is appreciated.
 
 
 ## Security Considerations
@@ -101,26 +101,19 @@ a service is available in the [more detailed documentation](doc/Advanced.md).
 
 You can contribute to n2n in various ways:
 
-- Update an [open issue](https://github.com/ntop/n2n/issues) or create a new one with detailed information
+- Update an [open issue](https://github.com/n42n/n3n/issues) or create a new one with detailed information
 - Propose new features
 - Improve the documentation
 - Provide pull requests with enhancements
 
-For details about the internals of n2n check out the [Hacking guide](https://github.com/ntop/n2n/blob/dev/doc/Hacking.md).
+For details about the internals of n2n check out the [Hacking guide](doc/Hacking.md).
 
 
 ## Further Readings and Related Projects
 
-Answers to frequently asked questions can be found in our [FAQ document](https://github.com/ntop/n2n/blob/dev/doc/Faq.md).
-
-Here is a list of third-party projects connected to this repository:
-
-- Collection of pre-built binaries for Windows: [lucktu](https://github.com/lucktu/n2n)
-- n2n for Android: [hin2n](https://github.com/switch-iot/hin2n)
-- Docker images: [Docker Hub](https://hub.docker.com/r/supermock/supernode/)
-- Go bindings, management daemons and CLIs for n2n edges and supernodes, Docker, Kubernetes & Helm Charts: [pojntfx/gon2n](https://pojntfx.github.io/gon2n/)
-- Windows GUI (along with a custom version of n2n) but also working with regular n2n: [HappyNet](https://github.com/happynclient/happynwindows)
+Answers to frequently asked questions can be found in our [FAQ document](doc/Faq.md).
 
 ---
 
 (C) 2007-22 - ntop.org and contributors
+Copyright (C) 2023 Hamish Coleman
