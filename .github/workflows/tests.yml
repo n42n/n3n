@@ -375,14 +375,6 @@ jobs:
           name: tests-windows
           path: tests
 
-      - name: Generate coverage data
-        run: |
-          make gcov
-        shell: bash
-
-      - name: Upload data to codecov
-        uses: codecov/codecov-action@v3
-
   package_dpkg:
     name: Package for Debian/Ubuntu
     needs:
