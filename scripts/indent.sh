@@ -43,8 +43,10 @@ indentOne() {
     if [ "$INPLACE" -eq 0 ]; then
         OFILE="$1.indent"
         rm -f "$OFILE"
+        CLEAN=true
     else
         OFILE="$1"
+        CLEAN=false
     fi
     if ! uncrustify -c uncrustify.cfg -f "$IFILE" -o "$OFILE"; then
         echo "Error while formatting \"$1\""
@@ -54,6 +56,8 @@ indentOne() {
     if ! diff -u "$IFILE" "$OFILE"; then
         RESULT=1
     fi
+
+    $CLEAN && rm -f "$OFILE"
 }
 
 indentDir() {
