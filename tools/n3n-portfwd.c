@@ -57,7 +57,7 @@
 
 
 typedef struct n2n_portfwd_conf {
-    uint16_t          port;               /* management port */
+    uint16_t port;                        /* management port */
 } n2n_portfwd_conf_t;
 
 
@@ -68,7 +68,7 @@ static bool keep_running = true;              /* for main loop, handled by signa
 // PLATFORM-DEPENDANT CODE (FOR NON-MANDATORY FEATURE)
 
 
-void set_term_handler(const void *handler) {
+void set_term_handler (const void *handler) {
 
 #ifdef __linux__
     signal(SIGPIPE, SIG_IGN);
@@ -123,14 +123,14 @@ SOCKET connect_to_management_port (n2n_portfwd_conf_t *ppp) {
     wVersionRequested = MAKEWORD(2, 2);
 
     err = WSAStartup(wVersionRequested, &wsaData);
-    if (err != 0) {
+    if(err != 0) {
         // tell the user that we could not find a usable Winsock DLL
         traceEvent(TRACE_ERROR, "WSAStartup failed with error: %d\n", err);
         return -1;
     }
 #endif
 
-    ret = socket (PF_INET, SOCK_DGRAM, 0);
+    ret = socket(PF_INET, SOCK_DGRAM, 0);
     if((int)ret < 0)
         return -1;
 
@@ -215,15 +215,15 @@ static void help (int level) {
     if(level == 0) return; /* no help required */
 
     printf("  n3n-portfwd [-t <manangement_port>] [-v] [-V]"
-        "\n"
-        "\n           This tool tries to find a router in local network and asks it to"
-        "\n           forward the edge's port(UDP and TCP) by sending corresponding"
-        "\n           UPnP and PMP requests."
-      "\n\n           Adapt port (default: %d) to match your edge's management port"
-        "\n           configuration."
-      "\n\n           Verbosity can be increased or decreased with -v or -V , repeat as"
-        "\n           as needed."
-      "\n\n",
+           "\n"
+           "\n           This tool tries to find a router in local network and asks it to"
+           "\n           forward the edge's port(UDP and TCP) by sending corresponding"
+           "\n           UPnP and PMP requests."
+           "\n\n           Adapt port (default: %d) to match your edge's management port"
+           "\n           configuration."
+           "\n\n           Verbosity can be increased or decreased with -v or -V , repeat as"
+           "\n           as needed."
+           "\n\n",
            N2N_EDGE_MGMT_PORT);
 
     exit(0);
@@ -258,7 +258,7 @@ static int set_option (n2n_portfwd_conf_t *ppp, int optkey, char *optargument) {
         }
     }
 
-   return 0;
+    return 0;
 }
 
 
@@ -354,7 +354,7 @@ reset_main_loop:
             while(!(tag_info = ((uint32_t)n2n_rand()) >> 23));
             msg_len = 0;
             msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
-                                 "r %u info\n", tag_info);
+                                "r %u info\n", tag_info);
             ret = send(sock, udp_buf, msg_len, 0);
             last_info_req = now;
         }
@@ -373,7 +373,7 @@ reset_main_loop:
                 if((msg_len > 0) && (msg_len < sizeof(udp_buf))) {
                     // make sure it is a string and replace all newlines with spaces
                     udp_buf[msg_len] = '\0';
-                    for (p = udp_buf; (p = strchr(p, '\n')) != NULL; p++) *p = ' ';
+                    for(p = udp_buf; (p = strchr(p, '\n')) != NULL; p++) *p = ' ';
                     traceEvent(TRACE_DEBUG, "received '%s' from management port", udp_buf);
 
                     // handle the answer, json needs to be freed later

@@ -131,12 +131,7 @@ LINT_CCODE=\
 	src/win32/edge_utils_win32.c \
 	src/win32/edge_utils_win32.h \
 	src/wire.c \
-	tools/tests-auth.c \
-	tools/tests-compress.c \
-	tools/tests-elliptic.c \
-	tools/tests-hashing.c \
-	tools/tests-transform.c \
-	tools/tests-wire.c \
+	tools/ \
 
 LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)

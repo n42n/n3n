@@ -89,22 +89,22 @@
 
 
 typedef struct n2n_route {
-    struct in_addr    net_addr;           /* network address to be routed, also key for hash table*/
-    struct in_addr    net_mask;           /* network address mask */
-    struct in_addr    gateway;            /* gateway address */
+    struct in_addr net_addr;              /* network address to be routed, also key for hash table*/
+    struct in_addr net_mask;              /* network address mask */
+    struct in_addr gateway;               /* gateway address */
 
-    uint8_t           purgeable;          /* unpurgeable user-supplied or new default route */
-    time_t            last_seen;          /* last seen at management port output */
+    uint8_t purgeable;                    /* unpurgeable user-supplied or new default route */
+    time_t last_seen;                     /* last seen at management port output */
 
-    UT_hash_handle    hh;                 /* makes this structure hashable */
+    UT_hash_handle hh;                    /* makes this structure hashable */
 } n2n_route_t;
 
 typedef struct n2n_route_conf {
-    struct in_addr    gateway_vpn;        /* vpn gateway address */
-    struct in_addr    gateway_org;        /* original default gateway used for peer/supernode traffic */
-    uint8_t           gateway_detect;     /* have the gateway automatically detected */
+    struct in_addr gateway_vpn;           /* vpn gateway address */
+    struct in_addr gateway_org;           /* original default gateway used for peer/supernode traffic */
+    uint8_t gateway_detect;               /* have the gateway automatically detected */
     char*             password;           /* pointer to management port password */
-    uint16_t          port;               /* management port */
+    uint16_t port;                        /* management port */
     n2n_route_t       *routes;            /* list of routes */
 } n2n_route_conf_t;
 
@@ -126,21 +126,21 @@ int is_privileged (void) {
 
 #elif defined(_WIN32)
 // taken from https://stackoverflow.com/a/10553065
-        int result;
-        DWORD rc;
-        wchar_t user_name[256];
-        USER_INFO_1 *info;
-        DWORD size = sizeof(user_name);
+    int result;
+    DWORD rc;
+    wchar_t user_name[256];
+    USER_INFO_1 *info;
+    DWORD size = sizeof(user_name);
 
-        GetUserNameW(user_name, &size);
-        rc = NetUserGetInfo(NULL, user_name, 1, (unsigned char**)&info);
-        if (rc) {
-                return 0;
-        }
-        result = (info->usri1_priv == USER_PRIV_ADMIN);
-        NetApiBufferFree(info);
+    GetUserNameW(user_name, &size);
+    rc = NetUserGetInfo(NULL, user_name, 1, (unsigned char**)&info);
+    if(rc) {
+        return 0;
+    }
+    result = (info->usri1_priv == USER_PRIV_ADMIN);
+    NetApiBufferFree(info);
 
-        return result;
+    return result;
 #endif
 }
 
@@ -149,7 +149,7 @@ int is_privileged (void) {
 // PLATFORM-DEPENDANT CODE
 
 
-void set_term_handler(const void *handler) {
+void set_term_handler (const void *handler) {
 
 #if defined(__linux__)
     signal(SIGPIPE, SIG_IGN);
@@ -198,16 +198,16 @@ int find_default_gateway (struct in_addr *gateway_addr, struct in_addr *exclude)
     // with modifications
     // originally licensed under GPLV2, Apache, and/or MIT
 
-    int     ret = 0;
-    int     received_bytes = 0, msg_len = 0, route_attribute_len = 0;
-    SOCKET  sock = -1;
-    int     msgseq = 0;
+    int ret = 0;
+    int received_bytes = 0, msg_len = 0, route_attribute_len = 0;
+    SOCKET sock = -1;
+    int msgseq = 0;
     struct  nlmsghdr *nlh, *nlmsg;
     struct  rtmsg *route_entry;
     struct  rtattr *route_attribute; /* this contains route attributes (route type) */
     ipstr_t gateway_address;
     devstr_t interface;
-    char    msgbuf[RTLINK_BUFFER_SIZE], buffer[RTLINK_BUFFER_SIZE];
+    char msgbuf[RTLINK_BUFFER_SIZE], buffer[RTLINK_BUFFER_SIZE];
     char    *ptr = buffer;
     struct timeval tv;
 
@@ -237,7 +237,7 @@ int find_default_gateway (struct in_addr *gateway_addr, struct in_addr *exclude)
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
 
     // send msg
-    if (send(sock, nlmsg, nlmsg->nlmsg_len, 0) < 0) {
+    if(send(sock, nlmsg, nlmsg->nlmsg_len, 0) < 0) {
         traceEvent(TRACE_WARNING, "error from send() while determining gateway");
         ret = EXIT_FAILURE;
         goto find_default_gateway_end;
@@ -276,12 +276,12 @@ int find_default_gateway (struct in_addr *gateway_addr, struct in_addr *exclude)
     } while((nlmsg->nlmsg_seq != msgseq) || (nlmsg->nlmsg_pid != getpid()));
 
     // parse response
-    for ( ; NLMSG_OK(nlh, received_bytes); nlh = NLMSG_NEXT(nlh, received_bytes)) {
+    for( ; NLMSG_OK(nlh, received_bytes); nlh = NLMSG_NEXT(nlh, received_bytes)) {
         // get the route data
         route_entry = (struct rtmsg *) NLMSG_DATA(nlh);
 
         // we are just interested in main routing table
-        if (route_entry->rtm_table != RT_TABLE_MAIN)
+        if(route_entry->rtm_table != RT_TABLE_MAIN)
             continue;
 
         route_attribute = (struct rtattr*)RTM_RTA(route_entry);
@@ -291,7 +291,7 @@ int find_default_gateway (struct in_addr *gateway_addr, struct in_addr *exclude)
         interface[0] = '\0';
         // loop through all attributes
         for( ; RTA_OK(route_attribute, route_attribute_len);
-               route_attribute = RTA_NEXT(route_attribute, route_attribute_len)) {
+             route_attribute = RTA_NEXT(route_attribute, route_attribute_len)) {
             switch(route_attribute->rta_type) {
                 case RTA_OIF:
                     // for informational purposes only
@@ -312,7 +312,7 @@ int find_default_gateway (struct in_addr *gateway_addr, struct in_addr *exclude)
                 if(!memcmp(gateway_addr, exclude, sizeof(*gateway_addr)))
                     continue;
                 traceEvent(TRACE_DEBUG, "assuming default gateway %s on interface %s",
-                                        gateway_address, interface);
+                           gateway_address, interface);
                 break;
             }
         }
@@ -347,7 +347,7 @@ find_default_gateway_end:
         dwStatus = GetIpForwardTable(pIpForwardTable, &dwSize, bOrder);
     }
 
-    if (dwStatus != ERROR_SUCCESS) {
+    if(dwStatus != ERROR_SUCCESS) {
         traceEvent(TRACE_DEBUG, "getIpForwardTable failed\n");
         if(pIpForwardTable)
             free(pIpForwardTable);
@@ -365,7 +365,7 @@ find_default_gateway_end:
             dwStatus = 0;
             gateway_addr->S_un.S_addr = pIpForwardTable->table[i].dwForwardNextHop;
             traceEvent(TRACE_DEBUG, "assuming default gateway %s",
-                                    inaddrtoa(gateway_address, *gateway_addr));
+                       inaddrtoa(gateway_address, *gateway_addr));
             break;
         }
     }
@@ -410,7 +410,7 @@ DWORD get_interface_index (struct in_addr addr) {
         dwStatus = GetIpForwardTable(pIpForwardTable, &dwSize, bOrder);
     }
 
-    if (dwStatus != ERROR_SUCCESS) {
+    if(dwStatus != ERROR_SUCCESS) {
         traceEvent(TRACE_DEBUG, "getIpForwardTable failed\n");
         if(pIpForwardTable)
             free(pIpForwardTable);
@@ -433,7 +433,7 @@ DWORD get_interface_index (struct in_addr addr) {
     }
 
     traceEvent(TRACE_DEBUG, "found interface index %u for gateway %s",
-                           max_idx, inaddrtoa(gateway_address, addr));
+               max_idx, inaddrtoa(gateway_address, addr));
 
     if(pIpForwardTable) {
         free(pIpForwardTable);
@@ -488,17 +488,17 @@ void handle_route (n2n_route_t* in_route, int verb) {
     // try to set route through ioctl
     if(ioctl(sock, verb == ROUTE_ADD ? SIOCADDRT : SIOCDELRT, &route) < 0) {
         traceEvent(TRACE_WARNING, "error '%s' while %s route to %s/%u via %s",
-                                  strerror(errno),
-                                  !verb ? "adding" : "deleting",
-                                  inaddrtoa(dst_ip_str, dst->sin_addr),
-                                  bitlen,
-                                  inaddrtoa(gateway_ip_str, gateway->sin_addr));
+                   strerror(errno),
+                   !verb ? "adding" : "deleting",
+                   inaddrtoa(dst_ip_str, dst->sin_addr),
+                   bitlen,
+                   inaddrtoa(gateway_ip_str, gateway->sin_addr));
     } else {
         traceEvent(TRACE_INFO, "%s route to %s/%u via %s",
-                               !verb ? "added" : "deleted",
-                               inaddrtoa(dst_ip_str, dst->sin_addr),
-                               bitlen,
-                               inaddrtoa(gateway_ip_str, gateway->sin_addr));
+                   !verb ? "added" : "deleted",
+                   inaddrtoa(dst_ip_str, dst->sin_addr),
+                   bitlen,
+                   inaddrtoa(gateway_ip_str, gateway->sin_addr));
     }
 
     closesocket(sock);
@@ -590,14 +590,14 @@ SOCKET connect_to_management_port (n2n_route_conf_t *rrr) {
     wVersionRequested = MAKEWORD(2, 2);
 
     err = WSAStartup(wVersionRequested, &wsaData);
-    if (err != 0) {
+    if(err != 0) {
         // tell the user that we could not find a usable Winsock DLL
         traceEvent(TRACE_ERROR, "WSAStartup failed with error: %d\n", err);
         return -1;
     }
 #endif
 
-    ret = socket (PF_INET, SOCK_DGRAM, 0);
+    ret = socket(PF_INET, SOCK_DGRAM, 0);
     if((int)ret < 0)
         return -1;
 
@@ -681,21 +681,21 @@ static void help (int level) {
     if(level == 0) return; /* no help required */
 
     printf("  n3n-route [-t <manangement_port>] [-p <management_port_password>] [-v] [-V]"
-         "\n            [-g <default gateway>] [-n <network address>/bitlen[:gateway]]"
-         "\n            <vpn gateway>"
-        "\n"
-        "\n           This tool sets new routes for all the traffic to be routed via the"
-        "\n           <vpn gateway> and polls the management port of a local n3n edge for"
-        "\n           it can add routes to supernodes and peers via the original default"
-        "\n           gateway. Adapt port (default: %d) and password (default: '%s')"
-        "\n           to match your edge's configuration."
-      "\n\n           If no <default gateway> provided, the tool will try to auto-detect."
-      "\n\n           To only route some traffic through vpn, inidicate the networks to be"
-        "\n           routed with '-n' option and use as many as required."
-      "\n\n           Verbosity can be increased or decreased with -v or -V , repeat as"
-        "\n           as needed."
-      "\n\n           Run with sufficient rights to let the tool add and delete routes."
-      "\n\n",
+           "\n            [-g <default gateway>] [-n <network address>/bitlen[:gateway]]"
+           "\n            <vpn gateway>"
+           "\n"
+           "\n           This tool sets new routes for all the traffic to be routed via the"
+           "\n           <vpn gateway> and polls the management port of a local n3n edge for"
+           "\n           it can add routes to supernodes and peers via the original default"
+           "\n           gateway. Adapt port (default: %d) and password (default: '%s')"
+           "\n           to match your edge's configuration."
+           "\n\n           If no <default gateway> provided, the tool will try to auto-detect."
+           "\n\n           To only route some traffic through vpn, inidicate the networks to be"
+           "\n           routed with '-n' option and use as many as required."
+           "\n\n           Verbosity can be increased or decreased with -v or -V , repeat as"
+           "\n           as needed."
+           "\n\n           Run with sufficient rights to let the tool add and delete routes."
+           "\n\n",
            N2N_EDGE_MGMT_PORT, N2N_MGMT_PASSWORD);
 
     exit(0);
@@ -755,7 +755,7 @@ static int set_option (n2n_route_conf_t *rrr, int optkey, char *optargument) {
                 if(!inet_address_valid(inet_address(gateway))) {
                     traceEvent(TRACE_WARNING, "bad gateway '%s' in '%s'", gateway, optargument);
                     return 1;
-                 }
+                }
             }
             traceEvent(TRACE_NORMAL, "routing %s/%d via %s", cidr_net, bitlen, gateway[0] ? gateway : "vpn gateway");
 
@@ -785,7 +785,7 @@ static int set_option (n2n_route_conf_t *rrr, int optkey, char *optargument) {
         }
     }
 
-   return 0;
+    return 0;
 }
 
 
@@ -941,7 +941,7 @@ reset_main_loop:
             while(!(tag_info = ((uint32_t)n2n_rand()) >> 23));
             msg_len = 0;
             msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
-                                 "r %u info\n", tag_info);
+                                "r %u info\n", tag_info);
             ret = send(sock, udp_buf, msg_len, 0);
             last_info_req = now;
         }
@@ -1006,7 +1006,7 @@ reset_main_loop:
                 if((msg_len > 0) && (msg_len < sizeof(udp_buf))) {
                     // make sure it is a string and replace all newlines with spaces
                     udp_buf[msg_len] = '\0';
-                    for (p = udp_buf; (p = strchr(p, '\n')) != NULL; p++) *p = ' ';
+                    for(p = udp_buf; (p = strchr(p, '\n')) != NULL; p++) *p = ' ';
                     traceEvent(TRACE_DEBUG, "received '%s' from management port", udp_buf);
 
                     // handle the answer, json needs to be freed later
@@ -1048,7 +1048,7 @@ reset_main_loop:
                             if(!route)
                                 route = calloc(1, sizeof(n2n_route_t));
                             else
-                               HASH_DEL(rrr.routes, route);
+                                HASH_DEL(rrr.routes, route);
                             if(route) {
                                 fill_route(route, addr, inet_address(HOST_MASK), rrr.gateway_org);
                                 route->purgeable = true;
