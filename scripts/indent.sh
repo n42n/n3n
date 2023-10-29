@@ -6,7 +6,7 @@
 # Given one or more input source files, run a re-indenter on them.
 
 help() {
-    echo "Usage: scripts/indent [-i] [file...]"
+    echo "Usage: scripts/indent [-i] [-e regex] [file...]"
     echo " -i   modify file in place with reindent results"
     echo ""
     echo "By default, will output a diff and exitcode if changed are needed"
@@ -22,6 +22,12 @@ INPLACE=0
 if [ "$1" = "-i" ]; then
     shift
     INPLACE=1
+fi
+
+EXCLUDE=
+if [ "$1" = "-e" ]; then
+    EXCLUDE="$2"
+    shift 2
 fi
 
 ## indentOneClang() {
@@ -62,7 +68,7 @@ indentOne() {
 
 indentDir() {
     for i in $(find "$1" -type f -name \*.h -o -name \*.c |sort); do
-        indentOne "$i"
+        echo "$i" | grep -E "$EXCLUDE" >/dev/null || indentOne "$i"
     done
 }
 

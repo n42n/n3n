@@ -104,17 +104,7 @@ N2N_DEPS=$(wildcard include/*.h) $(wildcard src/*.c) config.mak
 # is passing the linter tests, this can be refactored)
 LINT_CCODE=\
 	apps/ \
-	include/curve25519.h \
-	include/header_encryption.h \
-	include/hexdump.h \
-	include/n2n_define.h \
-	include/n2n_wire.h \
-	include/network_traffic_filter.h \
-	include/pearson.h \
-	include/random_numbers.h \
-	include/sn_selection.h \
-	include/speck.h \
-	include/tf.h \
+	include/ \
 	src/edge_management.c \
 	src/header_encryption.c \
 	src/management.c \
@@ -132,6 +122,9 @@ LINT_CCODE=\
 	src/win32/edge_utils_win32.h \
 	src/wire.c \
 	tools/ \
+
+# Some files currently cause the linter to fail, so they need to be excluded
+LINT_EXCLUDE=include/uthash.h|include/lzodefs.h
 
 LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)
@@ -209,7 +202,7 @@ lint.python:
 	flake8 scripts/n3n-ctl scripts/n3n-httpd
 
 lint.ccode:
-	scripts/indent.sh $(LINT_CCODE)
+	scripts/indent.sh -e '$(LINT_EXCLUDE)' $(LINT_CCODE)
 
 lint.shell:
 	shellcheck scripts/*.sh
