@@ -83,11 +83,11 @@ static int transop_encode_speck (n2n_trans_op_t *arg,
             // len is set to the length of the cipher plain text to be encrpyted
             // which is (in this case) identical to original packet lentgh
             len = in_len;
-            speck_ctr (outbuf + TRANSOP_SPECK_PREAMBLE_SIZE, /* output starts right after the iv */
-                       inbuf,       /* input */
-                       in_len,      /* len */
-                       outbuf,      /* iv, already encoded in outbuf, speck does not change it */
-                       priv->ctx);  /* ctx already setup with round keys */
+            speck_ctr(outbuf + TRANSOP_SPECK_PREAMBLE_SIZE,  /* output starts right after the iv */
+                      inbuf,        /* input */
+                      in_len,       /* len */
+                      outbuf,       /* iv, already encoded in outbuf, speck does not change it */
+                      priv->ctx);   /* ctx already setup with round keys */
 
             traceEvent(TRACE_DEBUG, "encode_speck: encrypted %u bytes.\n", in_len);
 
@@ -114,16 +114,16 @@ static int transop_decode_speck (n2n_trans_op_t *arg,
     transop_speck_t *priv = (transop_speck_t *)arg->priv;
 
     if(((in_len - TRANSOP_SPECK_PREAMBLE_SIZE) <= N2N_PKT_BUF_SIZE) /* cipher text fits in buffer */
-     && (in_len >= TRANSOP_SPECK_PREAMBLE_SIZE)) {                  /* has at least iv */
+       && (in_len >= TRANSOP_SPECK_PREAMBLE_SIZE)) {                /* has at least iv */
 
         traceEvent(TRACE_DEBUG, "decode_speck %lu bytes", in_len);
 
         len = (in_len - TRANSOP_SPECK_PREAMBLE_SIZE);
-        speck_ctr (outbuf,     /* output */
-                   inbuf + TRANSOP_SPECK_PREAMBLE_SIZE, /* encrypted data starts right after preamble (iv) */
-                   len,        /* len */
-                   inbuf,      /* iv can be found at input's beginning */
-                   priv->ctx); /* ctx already setup with round keys */
+        speck_ctr(outbuf,      /* output */
+                  inbuf + TRANSOP_SPECK_PREAMBLE_SIZE,  /* encrypted data starts right after preamble (iv) */
+                  len,         /* len */
+                  inbuf,       /* iv can be found at input's beginning */
+                  priv->ctx);  /* ctx already setup with round keys */
 
         traceEvent(TRACE_DEBUG, "decode_speck decrypted %u bytes.\n", len);
     } else

@@ -35,16 +35,16 @@
 // taken from https://en.wikibooks.org/wiki/OpenSSL/Error_handling
 static char *openssl_err_as_string (void) {
 
-    BIO *bio = BIO_new (BIO_s_mem ());
-    ERR_print_errors (bio);
+    BIO *bio = BIO_new(BIO_s_mem());
+    ERR_print_errors(bio);
     char *buf = NULL;
-    size_t len = BIO_get_mem_data (bio, &buf);
-    char *ret = (char *) calloc (1, 1 + len);
+    size_t len = BIO_get_mem_data(bio, &buf);
+    char *ret = (char *) calloc(1, 1 + len);
 
     if(ret)
-        memcpy (ret, buf, len);
+        memcpy(ret, buf, len);
 
-    BIO_free (bio);
+    BIO_free(bio);
 
     return ret;
 }
@@ -64,19 +64,19 @@ int aes_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                     evp_ciphertext_len += evp_len;
                     if(evp_ciphertext_len != in_len)
                         traceEvent(TRACE_ERROR, "aes_cbc_encrypt openssl encryption: encrypted %u bytes where %u were expected",
-                                                evp_ciphertext_len, in_len);
+                                   evp_ciphertext_len, in_len);
                 } else
                     traceEvent(TRACE_ERROR, "aes_cbc_encrypt openssl final encryption: %s",
-                                            openssl_err_as_string());
+                               openssl_err_as_string());
             } else
                 traceEvent(TRACE_ERROR, "aes_cbc_encrypt openssl encrpytion: %s",
-                                        openssl_err_as_string());
+                           openssl_err_as_string());
         } else
             traceEvent(TRACE_ERROR, "aes_cbc_encrypt openssl padding setup: %s",
-                                    openssl_err_as_string());
+                       openssl_err_as_string());
     } else
         traceEvent(TRACE_ERROR, "aes_cbc_encrypt openssl init: %s",
-                                openssl_err_as_string());
+                   openssl_err_as_string());
 
     EVP_CIPHER_CTX_reset(ctx->enc_ctx);
 
@@ -98,19 +98,19 @@ int aes_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                     evp_plaintext_len += evp_len;
                     if(evp_plaintext_len != in_len)
                         traceEvent(TRACE_ERROR, "aes_cbc_decrypt openssl decryption: decrypted %u bytes where %u were expected",
-                                                evp_plaintext_len, in_len);
+                                   evp_plaintext_len, in_len);
                 } else
                     traceEvent(TRACE_ERROR, "aes_cbc_decrypt openssl final decryption: %s",
-                                            openssl_err_as_string());
+                               openssl_err_as_string());
             } else
                 traceEvent(TRACE_ERROR, "aes_cbc_decrypt openssl decrpytion: %s",
-                                        openssl_err_as_string());
+                           openssl_err_as_string());
         } else
             traceEvent(TRACE_ERROR, "aes_cbc_decrypt openssl padding setup: %s",
-                                    openssl_err_as_string());
+                       openssl_err_as_string());
     } else
         traceEvent(TRACE_ERROR, "aes_cbc_decrypt openssl init: %s",
-                                openssl_err_as_string());
+                   openssl_err_as_string());
 
     EVP_CIPHER_CTX_reset(ctx->dec_ctx);
 
@@ -138,13 +138,13 @@ int aes_init (const unsigned char *key, size_t key_size, aes_context_t **ctx) {
     // initialize data structures
     if(!((*ctx)->enc_ctx = EVP_CIPHER_CTX_new())) {
         traceEvent(TRACE_ERROR, "aes_init openssl's evp_* encryption context creation failed: %s",
-                                openssl_err_as_string());
+                   openssl_err_as_string());
         return -1;
     }
 
     if(!((*ctx)->dec_ctx = EVP_CIPHER_CTX_new())) {
         traceEvent(TRACE_ERROR, "aes_init openssl's evp_* decryption context creation failed: %s",
-                                openssl_err_as_string());
+                   openssl_err_as_string());
         return -1;
     }
 
@@ -182,7 +182,7 @@ int aes_init (const unsigned char *key, size_t key_size, aes_context_t **ctx) {
 // https://www.intel.com/content/dam/doc/white-paper/advanced-encryption-standard-new-instructions-set-paper.pdf
 
 
-static __m128i aes128_keyexpand(__m128i key, __m128i keygened, uint8_t shuf) {
+static __m128i aes128_keyexpand (__m128i key, __m128i keygened, uint8_t shuf) {
 
     key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
     key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
@@ -209,7 +209,7 @@ static __m128i aes128_keyexpand(__m128i key, __m128i keygened, uint8_t shuf) {
 }
 
 
-static __m128i aes192_keyexpand_2(__m128i key, __m128i key2) {
+static __m128i aes192_keyexpand_2 (__m128i key, __m128i key2) {
 
     key = _mm_shuffle_epi32(key, 0xff);
     key2 = _mm_xor_si128(key2, _mm_slli_si128(key2, 4));
@@ -218,11 +218,11 @@ static __m128i aes192_keyexpand_2(__m128i key, __m128i key2) {
 }
 
 
-#define KEYEXP128(K, I)      aes128_keyexpand  (K,  _mm_aeskeygenassist_si128(K,  I),    0xff)
-#define KEYEXP192(K1, K2, I) aes128_keyexpand  (K1, _mm_aeskeygenassist_si128(K2, I),    0x55)
+#define KEYEXP128(K, I)      aes128_keyexpand(K,  _mm_aeskeygenassist_si128(K,  I),    0xff)
+#define KEYEXP192(K1, K2, I) aes128_keyexpand(K1, _mm_aeskeygenassist_si128(K2, I),    0x55)
 #define KEYEXP192_2(K1, K2)  aes192_keyexpand_2(K1, K2)
-#define KEYEXP256(K1, K2, I) aes128_keyexpand  (K1, _mm_aeskeygenassist_si128(K2, I),    0xff)
-#define KEYEXP256_2(K1, K2)  aes128_keyexpand  (K1, _mm_aeskeygenassist_si128(K2, 0x00), 0xaa)
+#define KEYEXP256(K1, K2, I) aes128_keyexpand(K1, _mm_aeskeygenassist_si128(K2, I),    0xff)
+#define KEYEXP256_2(K1, K2)  aes128_keyexpand(K1, _mm_aeskeygenassist_si128(K2, 0x00), 0xaa)
 
 
 // key setup
@@ -318,25 +318,25 @@ static void aes_internal_encrypt (aes_context_t *ctx, const uint8_t pt[16], uint
 
     __m128i tmp = _mm_loadu_si128((__m128i*)pt);
 
-    tmp = _mm_xor_si128           (tmp, ctx->rk_enc[ 0]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 1]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 2]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 3]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 4]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 5]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 6]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 7]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 8]);
-    tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 9]);
+    tmp = _mm_xor_si128(tmp, ctx->rk_enc[ 0]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 1]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 2]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 3]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 4]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 5]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 6]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 7]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 8]);
+    tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 9]);
     if(ctx->Nr > 10) {
-        tmp = _mm_aesenc_si128    (tmp, ctx->rk_enc[10]);
-        tmp = _mm_aesenc_si128    (tmp, ctx->rk_enc[11]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[10]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[11]);
         if(ctx->Nr > 12) {
             tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[12]);
             tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[13]);
         }
     }
-    tmp = _mm_aesenclast_si128    (tmp, ctx->rk_enc[ctx->Nr]);
+    tmp = _mm_aesenclast_si128(tmp, ctx->rk_enc[ctx->Nr]);
 
     _mm_storeu_si128((__m128i*) ct, tmp);
 }
@@ -346,25 +346,25 @@ static void aes_internal_decrypt (aes_context_t *ctx, const uint8_t ct[16], uint
 
     __m128i tmp = _mm_loadu_si128((__m128i*)ct);
 
-    tmp = _mm_xor_si128           (tmp, ctx->rk_dec[ 0]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 1]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 2]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 3]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 4]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 5]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 6]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 7]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 8]);
-    tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 9]);
+    tmp = _mm_xor_si128(tmp, ctx->rk_dec[ 0]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 1]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 2]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 3]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 4]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 5]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 6]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 7]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 8]);
+    tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 9]);
     if(ctx->Nr > 10) {
-        tmp = _mm_aesdec_si128    (tmp, ctx->rk_dec[10]);
-        tmp = _mm_aesdec_si128    (tmp, ctx->rk_dec[11]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[10]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[11]);
         if(ctx->Nr > 12) {
             tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[12]);
             tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[13]);
         }
     }
-    tmp = _mm_aesdeclast_si128    (tmp, ctx->rk_enc[ 0]);
+    tmp = _mm_aesdeclast_si128(tmp, ctx->rk_enc[ 0]);
 
     _mm_storeu_si128((__m128i*) pt, tmp);
 }
@@ -403,25 +403,25 @@ int aes_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         in += 16;
         tmp = _mm_xor_si128(tmp, ivec);
 
-        tmp = _mm_xor_si128           (tmp, ctx->rk_enc[ 0]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 1]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 2]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 3]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 4]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 5]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 6]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 7]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 8]);
-        tmp = _mm_aesenc_si128        (tmp, ctx->rk_enc[ 9]);
+        tmp = _mm_xor_si128(tmp, ctx->rk_enc[ 0]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 1]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 2]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 3]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 4]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 5]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 6]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 7]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 8]);
+        tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[ 9]);
         if(ctx->Nr > 10) {
-            tmp = _mm_aesenc_si128    (tmp, ctx->rk_enc[10]);
-            tmp = _mm_aesenc_si128    (tmp, ctx->rk_enc[11]);
+            tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[10]);
+            tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[11]);
             if(ctx->Nr > 12) {
                 tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[12]);
                 tmp = _mm_aesenc_si128(tmp, ctx->rk_enc[13]);
             }
         }
-        tmp = _mm_aesenclast_si128    (tmp, ctx->rk_enc[ctx->Nr]);
+        tmp = _mm_aesenclast_si128(tmp, ctx->rk_enc[ctx->Nr]);
 
         ivec = tmp;
 
@@ -453,56 +453,56 @@ int aes_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         __m128i old_in3 = tmp3;
         __m128i old_in4 = tmp4;
 
-        tmp1 = _mm_xor_si128           (tmp1, ctx->rk_dec[ 0]); tmp2 = _mm_xor_si128       (tmp2, ctx->rk_dec[ 0]);
-        tmp3 = _mm_xor_si128           (tmp3, ctx->rk_dec[ 0]); tmp4 = _mm_xor_si128       (tmp4, ctx->rk_dec[ 0]);
+        tmp1 = _mm_xor_si128(tmp1, ctx->rk_dec[ 0]); tmp2 = _mm_xor_si128(tmp2, ctx->rk_dec[ 0]);
+        tmp3 = _mm_xor_si128(tmp3, ctx->rk_dec[ 0]); tmp4 = _mm_xor_si128(tmp4, ctx->rk_dec[ 0]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 1]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 1]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 1]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 1]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 1]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 1]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 1]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 1]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 2]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 2]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 2]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 2]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 2]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 2]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 2]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 2]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 3]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 3]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 3]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 3]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 3]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 3]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 3]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 3]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 4]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 4]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 4]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 4]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 4]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 4]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 4]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 4]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 5]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 5]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 5]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 5]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 5]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 5]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 5]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 5]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 6]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 6]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 6]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 6]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 6]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 6]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 6]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 6]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 7]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 7]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 7]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 7]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 7]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 7]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 7]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 7]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 8]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 8]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 8]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 8]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 8]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 8]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 8]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 8]);
 
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 9]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 9]);
-        tmp3 = _mm_aesdec_si128        (tmp3, ctx->rk_dec[ 9]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[ 9]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 9]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 9]);
+        tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[ 9]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[ 9]);
 
         if(ctx->Nr > 10) {
-            tmp1 = _mm_aesdec_si128    (tmp1, ctx->rk_dec[10]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[10]);
-            tmp3 = _mm_aesdec_si128    (tmp3, ctx->rk_dec[10]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[10]);
+            tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[10]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[10]);
+            tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[10]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[10]);
 
-            tmp1 = _mm_aesdec_si128    (tmp1, ctx->rk_dec[11]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[11]);
-            tmp3 = _mm_aesdec_si128    (tmp3, ctx->rk_dec[11]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[11]);
+            tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[11]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[11]);
+            tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[11]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[11]);
 
             if(ctx->Nr > 12) {
-                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[12]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[12]);
-                tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[12]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[12]);
+                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[12]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[12]);
+                tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[12]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[12]);
 
-                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[13]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[13]);
-                tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[13]); tmp4 = _mm_aesdec_si128    (tmp4, ctx->rk_dec[13]);
+                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[13]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[13]);
+                tmp3 = _mm_aesdec_si128(tmp3, ctx->rk_dec[13]); tmp4 = _mm_aesdec_si128(tmp4, ctx->rk_dec[13]);
             }
         }
         tmp1 =     _mm_aesdeclast_si128(tmp1, ctx->rk_enc[ 0]); tmp2 = _mm_aesdeclast_si128(tmp2, ctx->rk_enc[ 0]);
         tmp3 =     _mm_aesdeclast_si128(tmp3, ctx->rk_enc[ 0]); tmp4 = _mm_aesdeclast_si128(tmp4, ctx->rk_enc[ 0]);
 
-        tmp1 = _mm_xor_si128 (tmp1, ivec); tmp2 = _mm_xor_si128 (tmp2, old_in1);
-        tmp3 = _mm_xor_si128 (tmp3, old_in2); tmp4 = _mm_xor_si128 (tmp4, old_in3);
+        tmp1 = _mm_xor_si128(tmp1, ivec); tmp2 = _mm_xor_si128(tmp2, old_in1);
+        tmp3 = _mm_xor_si128(tmp3, old_in2); tmp4 = _mm_xor_si128(tmp4, old_in3);
 
         ivec = old_in4;
 
@@ -523,27 +523,27 @@ int aes_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         __m128i old_in1 = tmp1;
         __m128i old_in2 = tmp2;
 
-        tmp1 = _mm_xor_si128           (tmp1, ctx->rk_dec[ 0]); tmp2 = _mm_xor_si128       (tmp2, ctx->rk_dec[ 0]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 1]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 1]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 2]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 2]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 3]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 3]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 4]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 4]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 5]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 5]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 6]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 6]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 7]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 7]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 8]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 8]);
-        tmp1 = _mm_aesdec_si128        (tmp1, ctx->rk_dec[ 9]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[ 9]);
+        tmp1 = _mm_xor_si128(tmp1, ctx->rk_dec[ 0]); tmp2 = _mm_xor_si128(tmp2, ctx->rk_dec[ 0]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 1]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 1]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 2]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 2]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 3]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 3]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 4]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 4]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 5]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 5]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 6]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 6]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 7]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 7]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 8]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 8]);
+        tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[ 9]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[ 9]);
         if(ctx->Nr > 10) {
-            tmp1 = _mm_aesdec_si128    (tmp1, ctx->rk_dec[10]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[10]);
-            tmp1 = _mm_aesdec_si128    (tmp1, ctx->rk_dec[11]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[11]);
+            tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[10]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[10]);
+            tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[11]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[11]);
             if(ctx->Nr > 12) {
-                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[12]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[12]);
-                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[13]); tmp2 = _mm_aesdec_si128    (tmp2, ctx->rk_dec[13]);
+                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[12]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[12]);
+                tmp1 = _mm_aesdec_si128(tmp1, ctx->rk_dec[13]); tmp2 = _mm_aesdec_si128(tmp2, ctx->rk_dec[13]);
             }
         }
-        tmp1 = _mm_aesdeclast_si128    (tmp1, ctx->rk_enc[ 0]); tmp2 = _mm_aesdeclast_si128(tmp2, ctx->rk_enc[ 0]);
+        tmp1 = _mm_aesdeclast_si128(tmp1, ctx->rk_enc[ 0]); tmp2 = _mm_aesdeclast_si128(tmp2, ctx->rk_enc[ 0]);
 
-        tmp1 = _mm_xor_si128 (tmp1, ivec); tmp2 = _mm_xor_si128 (tmp2, old_in1);
+        tmp1 = _mm_xor_si128(tmp1, ivec); tmp2 = _mm_xor_si128(tmp2, old_in1);
 
         ivec = old_in2;
 
@@ -555,27 +555,27 @@ int aes_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
     if(n) {
         __m128i tmp = _mm_loadu_si128((__m128i*)in);
 
-        tmp = _mm_xor_si128           (tmp, ctx->rk_dec[ 0]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 1]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 2]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 3]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 4]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 5]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 6]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 7]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 8]);
-        tmp = _mm_aesdec_si128        (tmp, ctx->rk_dec[ 9]);
+        tmp = _mm_xor_si128(tmp, ctx->rk_dec[ 0]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 1]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 2]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 3]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 4]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 5]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 6]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 7]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 8]);
+        tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[ 9]);
         if(ctx->Nr > 10) {
-            tmp = _mm_aesdec_si128    (tmp, ctx->rk_dec[10]);
-            tmp = _mm_aesdec_si128    (tmp, ctx->rk_dec[11]);
+            tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[10]);
+            tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[11]);
             if(ctx->Nr > 12) {
                 tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[12]);
                 tmp = _mm_aesdec_si128(tmp, ctx->rk_dec[13]);
             }
         }
-        tmp = _mm_aesdeclast_si128    (tmp, ctx->rk_enc[ 0]);
+        tmp = _mm_aesdeclast_si128(tmp, ctx->rk_enc[ 0]);
 
-        tmp = _mm_xor_si128 (tmp, ivec);
+        tmp = _mm_xor_si128(tmp, ivec);
 
         _mm_storeu_si128((__m128i*) out, tmp);
     }
@@ -608,7 +608,7 @@ int aes_init (const unsigned char *key, size_t key_size, aes_context_t **ctx) {
     }
 
     // key materiel handling
-    aes_internal_key_setup ( *ctx, key, 8 * key_size);
+    aes_internal_key_setup( *ctx, key, 8 * key_size);
 
     return 0;
 }
@@ -660,7 +660,8 @@ static const uint32_t Te0[256] = {
     0xd9e1e138U, 0xebf8f813U, 0x2b9898b3U, 0x22111133U, 0xd26969bbU, 0xa9d9d970U, 0x078e8e89U, 0x339494a7U,
     0x2d9b9bb6U, 0x3c1e1e22U, 0x15878792U, 0xc9e9e920U, 0x87cece49U, 0xaa5555ffU, 0x50282878U, 0xa5dfdf7aU,
     0x038c8c8fU, 0x59a1a1f8U, 0x09898980U, 0x1a0d0d17U, 0x65bfbfdaU, 0xd7e6e631U, 0x844242c6U, 0xd06868b8U,
-    0x824141c3U, 0x299999b0U, 0x5a2d2d77U, 0x1e0f0f11U, 0x7bb0b0cbU, 0xa85454fcU, 0x6dbbbbd6U, 0x2c16163aU };
+    0x824141c3U, 0x299999b0U, 0x5a2d2d77U, 0x1e0f0f11U, 0x7bb0b0cbU, 0xa85454fcU, 0x6dbbbbd6U, 0x2c16163aU
+};
 
 // Te1[x] = S [x].[03, 02, 01, 01];
 static const uint32_t Te1[256] = {
@@ -695,7 +696,8 @@ static const uint32_t Te1[256] = {
     0x38d9e1e1U, 0x13ebf8f8U, 0xb32b9898U, 0x33221111U, 0xbbd26969U, 0x70a9d9d9U, 0x89078e8eU, 0xa7339494U,
     0xb62d9b9bU, 0x223c1e1eU, 0x92158787U, 0x20c9e9e9U, 0x4987ceceU, 0xffaa5555U, 0x78502828U, 0x7aa5dfdfU,
     0x8f038c8cU, 0xf859a1a1U, 0x80098989U, 0x171a0d0dU, 0xda65bfbfU, 0x31d7e6e6U, 0xc6844242U, 0xb8d06868U,
-    0xc3824141U, 0xb0299999U, 0x775a2d2dU, 0x111e0f0fU, 0xcb7bb0b0U, 0xfca85454U, 0xd66dbbbbU, 0x3a2c1616U };
+    0xc3824141U, 0xb0299999U, 0x775a2d2dU, 0x111e0f0fU, 0xcb7bb0b0U, 0xfca85454U, 0xd66dbbbbU, 0x3a2c1616U
+};
 
 // Te2[x] = S [x].[01, 03, 02, 01];
 static const uint32_t Te2[256] = {
@@ -730,7 +732,8 @@ static const uint32_t Te2[256] = {
     0xe138d9e1U, 0xf813ebf8U, 0x98b32b98U, 0x11332211U, 0x69bbd269U, 0xd970a9d9U, 0x8e89078eU, 0x94a73394U,
     0x9bb62d9bU, 0x1e223c1eU, 0x87921587U, 0xe920c9e9U, 0xce4987ceU, 0x55ffaa55U, 0x28785028U, 0xdf7aa5dfU,
     0x8c8f038cU, 0xa1f859a1U, 0x89800989U, 0x0d171a0dU, 0xbfda65bfU, 0xe631d7e6U, 0x42c68442U, 0x68b8d068U,
-    0x41c38241U, 0x99b02999U, 0x2d775a2dU, 0x0f111e0fU, 0xb0cb7bb0U, 0x54fca854U, 0xbbd66dbbU, 0x163a2c16U };
+    0x41c38241U, 0x99b02999U, 0x2d775a2dU, 0x0f111e0fU, 0xb0cb7bb0U, 0x54fca854U, 0xbbd66dbbU, 0x163a2c16U
+};
 
 // Te3[x] = S [x].[01, 01, 03, 02];
 static const uint32_t Te3[256] = {
@@ -765,7 +768,8 @@ static const uint32_t Te3[256] = {
     0xe1e138d9U, 0xf8f813ebU, 0x9898b32bU, 0x11113322U, 0x6969bbd2U, 0xd9d970a9U, 0x8e8e8907U, 0x9494a733U,
     0x9b9bb62dU, 0x1e1e223cU, 0x87879215U, 0xe9e920c9U, 0xcece4987U, 0x5555ffaaU, 0x28287850U, 0xdfdf7aa5U,
     0x8c8c8f03U, 0xa1a1f859U, 0x89898009U, 0x0d0d171aU, 0xbfbfda65U, 0xe6e631d7U, 0x4242c684U, 0x6868b8d0U,
-    0x4141c382U, 0x9999b029U, 0x2d2d775aU, 0x0f0f111eU, 0xb0b0cb7bU, 0x5454fca8U, 0xbbbbd66dU, 0x16163a2cU };
+    0x4141c382U, 0x9999b029U, 0x2d2d775aU, 0x0f0f111eU, 0xb0b0cb7bU, 0x5454fca8U, 0xbbbbd66dU, 0x16163a2cU
+};
 
 // Te4[x] = S [x].[01, 01, 01, 01];
 static const uint32_t Te4[256] = {
@@ -800,7 +804,8 @@ static const uint32_t Te4[256] = {
     0xe1e1e1e1U, 0xf8f8f8f8U, 0x98989898U, 0x11111111U, 0x69696969U, 0xd9d9d9d9U, 0x8e8e8e8eU, 0x94949494U,
     0x9b9b9b9bU, 0x1e1e1e1eU, 0x87878787U, 0xe9e9e9e9U, 0xcecececeU, 0x55555555U, 0x28282828U, 0xdfdfdfdfU,
     0x8c8c8c8cU, 0xa1a1a1a1U, 0x89898989U, 0x0d0d0d0dU, 0xbfbfbfbfU, 0xe6e6e6e6U, 0x42424242U, 0x68686868U,
-    0x41414141U, 0x99999999U, 0x2d2d2d2dU, 0x0f0f0f0fU, 0xb0b0b0b0U, 0x54545454U, 0xbbbbbbbbU, 0x16161616U };
+    0x41414141U, 0x99999999U, 0x2d2d2d2dU, 0x0f0f0f0fU, 0xb0b0b0b0U, 0x54545454U, 0xbbbbbbbbU, 0x16161616U
+};
 
 // Td0[x] = Si[x].[0e, 09, 0d, 0b];
 static const uint32_t Td0[256] = {
@@ -835,7 +840,8 @@ static const uint32_t Td0[256] = {
     0x9ad7618cU, 0x37a10c7aU, 0x59f8148eU, 0xeb133c89U, 0xcea927eeU, 0xb761c935U, 0xe11ce5edU, 0x7a47b13cU,
     0x9cd2df59U, 0x55f2733fU, 0x1814ce79U, 0x73c737bfU, 0x53f7cdeaU, 0x5ffdaa5bU, 0xdf3d6f14U, 0x7844db86U,
     0xcaaff381U, 0xb968c43eU, 0x3824342cU, 0xc2a3405fU, 0x161dc372U, 0xbce2250cU, 0x283c498bU, 0xff0d9541U,
-    0x39a80171U, 0x080cb3deU, 0xd8b4e49cU, 0x6456c190U, 0x7bcb8461U, 0xd532b670U, 0x486c5c74U, 0xd0b85742U };
+    0x39a80171U, 0x080cb3deU, 0xd8b4e49cU, 0x6456c190U, 0x7bcb8461U, 0xd532b670U, 0x486c5c74U, 0xd0b85742U
+};
 
 // Td1[x] = Si[x].[0b, 0e, 09, 0d];
 static const uint32_t Td1[256] = {
@@ -870,7 +876,8 @@ static const uint32_t Td1[256] = {
     0x8c9ad761U, 0x7a37a10cU, 0x8e59f814U, 0x89eb133cU, 0xeecea927U, 0x35b761c9U, 0xede11ce5U, 0x3c7a47b1U,
     0x599cd2dfU, 0x3f55f273U, 0x791814ceU, 0xbf73c737U, 0xea53f7cdU, 0x5b5ffdaaU, 0x14df3d6fU, 0x867844dbU,
     0x81caaff3U, 0x3eb968c4U, 0x2c382434U, 0x5fc2a340U, 0x72161dc3U, 0x0cbce225U, 0x8b283c49U, 0x41ff0d95U,
-    0x7139a801U, 0xde080cb3U, 0x9cd8b4e4U, 0x906456c1U, 0x617bcb84U, 0x70d532b6U, 0x74486c5cU, 0x42d0b857U };
+    0x7139a801U, 0xde080cb3U, 0x9cd8b4e4U, 0x906456c1U, 0x617bcb84U, 0x70d532b6U, 0x74486c5cU, 0x42d0b857U
+};
 
 // Td2[x] = Si[x].[0d, 0b, 0e, 09];
 static const uint32_t Td2[256] = {
@@ -905,7 +912,8 @@ static const uint32_t Td2[256] = {
     0x618c9ad7U, 0x0c7a37a1U, 0x148e59f8U, 0x3c89eb13U, 0x27eecea9U, 0xc935b761U, 0xe5ede11cU, 0xb13c7a47U,
     0xdf599cd2U, 0x733f55f2U, 0xce791814U, 0x37bf73c7U, 0xcdea53f7U, 0xaa5b5ffdU, 0x6f14df3dU, 0xdb867844U,
     0xf381caafU, 0xc43eb968U, 0x342c3824U, 0x405fc2a3U, 0xc372161dU, 0x250cbce2U, 0x498b283cU, 0x9541ff0dU,
-    0x017139a8U, 0xb3de080cU, 0xe49cd8b4U, 0xc1906456U, 0x84617bcbU, 0xb670d532U, 0x5c74486cU, 0x5742d0b8U };
+    0x017139a8U, 0xb3de080cU, 0xe49cd8b4U, 0xc1906456U, 0x84617bcbU, 0xb670d532U, 0x5c74486cU, 0x5742d0b8U
+};
 
 // Td3[x] = Si[x].[09, 0d, 0b, 0e];
 static const uint32_t Td3[256] = {
@@ -940,7 +948,8 @@ static const uint32_t Td3[256] = {
     0xd7618c9aU, 0xa10c7a37U, 0xf8148e59U, 0x133c89ebU, 0xa927eeceU, 0x61c935b7U, 0x1ce5ede1U, 0x47b13c7aU,
     0xd2df599cU, 0xf2733f55U, 0x14ce7918U, 0xc737bf73U, 0xf7cdea53U, 0xfdaa5b5fU, 0x3d6f14dfU, 0x44db8678U,
     0xaff381caU, 0x68c43eb9U, 0x24342c38U, 0xa3405fc2U, 0x1dc37216U, 0xe2250cbcU, 0x3c498b28U, 0x0d9541ffU,
-    0xa8017139U, 0x0cb3de08U, 0xb4e49cd8U, 0x56c19064U, 0xcb84617bU, 0x32b670d5U, 0x6c5c7448U, 0xb85742d0U };
+    0xa8017139U, 0x0cb3de08U, 0xb4e49cd8U, 0x56c19064U, 0xcb84617bU, 0x32b670d5U, 0x6c5c7448U, 0xb85742d0U
+};
 
 // Td4[x] = Si[x].[01, 01, 01, 01];
 static const uint32_t Td4[256] = {
@@ -975,13 +984,15 @@ static const uint32_t Td4[256] = {
     0xa0a0a0a0U, 0xe0e0e0e0U, 0x3b3b3b3bU, 0x4d4d4d4dU, 0xaeaeaeaeU, 0x2a2a2a2aU, 0xf5f5f5f5U, 0xb0b0b0b0U,
     0xc8c8c8c8U, 0xebebebebU, 0xbbbbbbbbU, 0x3c3c3c3cU, 0x83838383U, 0x53535353U, 0x99999999U, 0x61616161U,
     0x17171717U, 0x2b2b2b2bU, 0x04040404U, 0x7e7e7e7eU, 0xbabababaU, 0x77777777U, 0xd6d6d6d6U, 0x26262626U,
-    0xe1e1e1e1U, 0x69696969U, 0x14141414U, 0x63636363U, 0x55555555U, 0x21212121U, 0x0c0c0c0cU, 0x7d7d7d7dU };
+    0xe1e1e1e1U, 0x69696969U, 0x14141414U, 0x63636363U, 0x55555555U, 0x21212121U, 0x0c0c0c0cU, 0x7d7d7d7dU
+};
 
 // for 128-bit blocks, Rijndael never uses more than 10 rcon values
 static const uint32_t rcon[] = {
     0x01000000, 0x02000000, 0x04000000, 0x08000000,
     0x10000000, 0x20000000, 0x40000000, 0x80000000,
-    0x1B000000, 0x36000000 };
+    0x1B000000, 0x36000000
+};
 
 
 #define GETU32(p) (be32toh((*((uint32_t*)(p)))))
@@ -1000,7 +1011,7 @@ static const uint32_t rcon[] = {
 
 // expand the cipher key into the encryption key schedule and
 // return the number of rounds for the given cipher key size
-static int aes_internal_key_setup_enc (uint32_t rk[/*4*(Nr + 1)*/], const uint8_t cipherKey[], int keyBits) {
+static int aes_internal_key_setup_enc (uint32_t rk[] /*4*(Nr + 1)*/, const uint8_t cipherKey[], int keyBits) {
 
     int i = 0;
     uint32_t temp;
@@ -1033,11 +1044,11 @@ static int aes_internal_key_setup_enc (uint32_t rk[/*4*(Nr + 1)*/], const uint8_
         for(;;) {
             temp = rk[ 5];
             rk[ 6] = rk[ 0] ^
-                    (Te4[b2(temp)] & 0xff000000) ^
-                    (Te4[b1(temp)] & 0x00ff0000) ^
-                    (Te4[b0(temp)] & 0x0000ff00) ^
-                    (Te4[b3(temp)] & 0x000000ff) ^
-                    rcon[i];
+                     (Te4[b2(temp)] & 0xff000000) ^
+                     (Te4[b1(temp)] & 0x00ff0000) ^
+                     (Te4[b0(temp)] & 0x0000ff00) ^
+                     (Te4[b3(temp)] & 0x000000ff) ^
+                     rcon[i];
             rk[ 7] = rk[ 1] ^ rk[ 6];
             rk[ 8] = rk[ 2] ^ rk[ 7];
             rk[ 9] = rk[ 3] ^ rk[ 8];
@@ -1055,11 +1066,11 @@ static int aes_internal_key_setup_enc (uint32_t rk[/*4*(Nr + 1)*/], const uint8_
         for(;;) {
             temp = rk[ 7];
             rk[ 8] = rk[ 0] ^
-                    (Te4[b2(temp)] & 0xff000000) ^
-                    (Te4[b1(temp)] & 0x00ff0000) ^
-                    (Te4[b0(temp)] & 0x0000ff00) ^
-                    (Te4[b3(temp)] & 0x000000ff) ^
-                    rcon[i];
+                     (Te4[b2(temp)] & 0xff000000) ^
+                     (Te4[b1(temp)] & 0x00ff0000) ^
+                     (Te4[b0(temp)] & 0x0000ff00) ^
+                     (Te4[b3(temp)] & 0x000000ff) ^
+                     rcon[i];
             rk[ 9] = rk[ 1] ^ rk[ 8];
             rk[10] = rk[ 2] ^ rk[ 9];
             rk[11] = rk[ 3] ^ rk[10];
@@ -1068,10 +1079,10 @@ static int aes_internal_key_setup_enc (uint32_t rk[/*4*(Nr + 1)*/], const uint8_
             }
             temp = rk[11];
             rk[12] = rk[ 4] ^
-                    (Te4[b3(temp)] & 0xff000000) ^
-                    (Te4[b2(temp)] & 0x00ff0000) ^
-                    (Te4[b1(temp)] & 0x0000ff00) ^
-                    (Te4[b0(temp)] & 0x000000ff);
+                     (Te4[b3(temp)] & 0xff000000) ^
+                     (Te4[b2(temp)] & 0x00ff0000) ^
+                     (Te4[b1(temp)] & 0x0000ff00) ^
+                     (Te4[b0(temp)] & 0x000000ff);
             rk[13] = rk[ 5] ^ rk[12];
             rk[14] = rk[ 6] ^ rk[13];
             rk[15] = rk[ 7] ^ rk[14];
@@ -1088,7 +1099,7 @@ static int aes_internal_key_setup_enc (uint32_t rk[/*4*(Nr + 1)*/], const uint8_
 
 // expand the cipher key into the decryption key schedule and
 // return the number of rounds for the given cipher key size
-static int aes_internal_key_setup_dec (uint32_t rk[/*4*(Nr + 1)*/], const uint8_t cipherKey[], int keyBits) {
+static int aes_internal_key_setup_dec (uint32_t rk[] /*4*(Nr + 1)*/, const uint8_t cipherKey[], int keyBits) {
 
     int Nr, i, j;
     uint32_t temp;
@@ -1117,13 +1128,13 @@ static int aes_internal_key_setup_dec (uint32_t rk[/*4*(Nr + 1)*/], const uint8_
 
 
 #define AES_ENC_ROUND(DST, SRC, round) \
-    DST##0 = Te0[b3(SRC##0)] ^ Te1[b2(SRC##1)] ^ Te2[b1(SRC##2)] ^ Te3[b0(SRC##3)] ^ rk[4 * round + 0]; \
-    DST##1 = Te0[b3(SRC##1)] ^ Te1[b2(SRC##2)] ^ Te2[b1(SRC##3)] ^ Te3[b0(SRC##0)] ^ rk[4 * round + 1]; \
-    DST##2 = Te0[b3(SRC##2)] ^ Te1[b2(SRC##3)] ^ Te2[b1(SRC##0)] ^ Te3[b0(SRC##1)] ^ rk[4 * round + 2]; \
-    DST##3 = Te0[b3(SRC##3)] ^ Te1[b2(SRC##0)] ^ Te2[b1(SRC##1)] ^ Te3[b0(SRC##2)] ^ rk[4 * round + 3];
+    DST ## 0 = Te0[b3(SRC ## 0)] ^ Te1[b2(SRC ## 1)] ^ Te2[b1(SRC ## 2)] ^ Te3[b0(SRC ## 3)] ^ rk[4 * round + 0]; \
+    DST ## 1 = Te0[b3(SRC ## 1)] ^ Te1[b2(SRC ## 2)] ^ Te2[b1(SRC ## 3)] ^ Te3[b0(SRC ## 0)] ^ rk[4 * round + 1]; \
+    DST ## 2 = Te0[b3(SRC ## 2)] ^ Te1[b2(SRC ## 3)] ^ Te2[b1(SRC ## 0)] ^ Te3[b0(SRC ## 1)] ^ rk[4 * round + 2]; \
+    DST ## 3 = Te0[b3(SRC ## 3)] ^ Te1[b2(SRC ## 0)] ^ Te2[b1(SRC ## 1)] ^ Te3[b0(SRC ## 2)] ^ rk[4 * round + 3];
 
 
-static void aes_internal_encrypt (const uint32_t rk[/*4*(Nr + 1)*/], int Nr, const uint8_t pt[16], uint8_t ct[16]) {
+static void aes_internal_encrypt (const uint32_t rk[] /*4*(Nr + 1)*/, int Nr, const uint8_t pt[16], uint8_t ct[16]) {
 
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
 
@@ -1155,7 +1166,7 @@ static void aes_internal_encrypt (const uint32_t rk[/*4*(Nr + 1)*/], int Nr, con
     rk += Nr << 2;
     // apply last round and map cipher state to byte array block
     s0 = m3(Te4[b3(t0)]) ^ m2(Te4[b2(t1)]) ^ m1(Te4[b1(t2)]) ^ m0(Te4[b0(t3)]) ^ rk[0];
-    PUTU32(ct     , s0);
+    PUTU32(ct, s0);
     s1 = m3(Te4[b3(t1)]) ^ m2(Te4[b2(t2)]) ^ m1(Te4[b1(t3)]) ^ m0(Te4[b0(t0)]) ^ rk[1];
     PUTU32(ct +  4, s1);
     s2 = m3(Te4[b3(t2)]) ^ m2(Te4[b2(t3)]) ^ m1(Te4[b1(t0)]) ^ m0(Te4[b0(t1)]) ^ rk[2];
@@ -1166,13 +1177,13 @@ static void aes_internal_encrypt (const uint32_t rk[/*4*(Nr + 1)*/], int Nr, con
 
 
 #define AES_DEC_ROUND(DST, SRC, round) \
-    DST##0 = Td0[b3(SRC##0)] ^ Td1[b2(SRC##3)] ^ Td2[b1(SRC##2)] ^ Td3[b0(SRC##1)] ^ rk[4 * round + 0]; \
-    DST##1 = Td0[b3(SRC##1)] ^ Td1[b2(SRC##0)] ^ Td2[b1(SRC##3)] ^ Td3[b0(SRC##2)] ^ rk[4 * round + 1]; \
-    DST##2 = Td0[b3(SRC##2)] ^ Td1[b2(SRC##1)] ^ Td2[b1(SRC##0)] ^ Td3[b0(SRC##3)] ^ rk[4 * round + 2]; \
-    DST##3 = Td0[b3(SRC##3)] ^ Td1[b2(SRC##2)] ^ Td2[b1(SRC##1)] ^ Td3[b0(SRC##0)] ^ rk[4 * round + 3];
+    DST ## 0 = Td0[b3(SRC ## 0)] ^ Td1[b2(SRC ## 3)] ^ Td2[b1(SRC ## 2)] ^ Td3[b0(SRC ## 1)] ^ rk[4 * round + 0]; \
+    DST ## 1 = Td0[b3(SRC ## 1)] ^ Td1[b2(SRC ## 0)] ^ Td2[b1(SRC ## 3)] ^ Td3[b0(SRC ## 2)] ^ rk[4 * round + 1]; \
+    DST ## 2 = Td0[b3(SRC ## 2)] ^ Td1[b2(SRC ## 1)] ^ Td2[b1(SRC ## 0)] ^ Td3[b0(SRC ## 3)] ^ rk[4 * round + 2]; \
+    DST ## 3 = Td0[b3(SRC ## 3)] ^ Td1[b2(SRC ## 2)] ^ Td2[b1(SRC ## 1)] ^ Td3[b0(SRC ## 0)] ^ rk[4 * round + 3];
 
 
-static void aes_internal_decrypt (const uint32_t rk[/*4*(Nr + 1)*/], int Nr, const uint8_t ct[16], uint8_t pt[16]) {
+static void aes_internal_decrypt (const uint32_t rk[] /*4*(Nr + 1)*/, int Nr, const uint8_t ct[16], uint8_t pt[16]) {
 
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
 
@@ -1204,7 +1215,7 @@ static void aes_internal_decrypt (const uint32_t rk[/*4*(Nr + 1)*/], int Nr, con
     rk += Nr << 2;
     // apply last round and map cipher state to byte array block
     s0 = m3(Td4[b3(t0)]) ^ m2(Td4[b2(t3)]) ^ m1(Td4[b1(t2)]) ^ m0(Td4[b0(t1)]) ^ rk[0];
-    PUTU32(pt     , s0);
+    PUTU32(pt, s0);
     s1 = m3(Td4[b3(t1)]) ^ m2(Td4[b2(t0)]) ^ m1(Td4[b1(t3)]) ^ m0(Td4[b0(t2)]) ^ rk[1];
     PUTU32(pt +  4, s1);
     s2 = m3(Td4[b3(t2)]) ^ m2(Td4[b2(t1)]) ^ m1(Td4[b1(t0)]) ^ m0(Td4[b0(t3)]) ^ rk[2];
@@ -1235,7 +1246,7 @@ int aes_ecb_encrypt (unsigned char *out, const unsigned char *in, aes_context_t 
 
 
 #define fix_xor(target, source) *(uint32_t*)&(target)[0] = *(uint32_t*)&(target)[0] ^ *(uint32_t*)&(source)[0]; *(uint32_t*)&(target)[4] = *(uint32_t*)&(target)[4] ^ *(uint32_t*)&(source)[4]; \
-                                *(uint32_t*)&(target)[8] = *(uint32_t*)&(target)[8] ^ *(uint32_t*)&(source)[8]; *(uint32_t*)&(target)[12] = *(uint32_t*)&(target)[12] ^ *(uint32_t*)&(source)[12];
+    *(uint32_t*)&(target)[8] = *(uint32_t*)&(target)[8] ^ *(uint32_t*)&(source)[8]; *(uint32_t*)&(target)[12] = *(uint32_t*)&(target)[12] ^ *(uint32_t*)&(source)[12];
 
 
 int aes_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
@@ -1304,8 +1315,8 @@ int aes_init (const unsigned char *key, size_t key_size, aes_context_t **ctx) {
     }
 
     // key materiel handling
-    (*ctx)->Nr = aes_internal_key_setup_enc((*ctx)->enc_rk/*[4*(Nr + 1)]*/, key, 8 * key_size);
-                 aes_internal_key_setup_dec((*ctx)->dec_rk/*[4*(Nr + 1)]*/, key, 8 * key_size);
+    (*ctx)->Nr = aes_internal_key_setup_enc((*ctx)->enc_rk /*[4*(Nr + 1)]*/, key, 8 * key_size);
+    aes_internal_key_setup_dec((*ctx)->dec_rk /*[4*(Nr + 1)]*/, key, 8 * key_size);
     return 0;
 }
 

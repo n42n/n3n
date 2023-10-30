@@ -105,26 +105,12 @@ N2N_DEPS=$(wildcard include/*.h) $(wildcard src/*.c) config.mak
 LINT_CCODE=\
 	apps/ \
 	include/ \
-	src/edge_management.c \
-	src/header_encryption.c \
-	src/management.c \
-	src/management.h \
-	src/sn_management.c \
-	src/sn_selection.c \
-	src/strbuf.h \
-	src/transform_cc20.c \
-	src/transform_null.c \
-	src/tuntap_freebsd.c \
-	src/tuntap_linux.c \
-	src/tuntap_netbsd.c \
-	src/tuntap_osx.c \
-	src/win32/edge_utils_win32.c \
-	src/win32/edge_utils_win32.h \
-	src/wire.c \
+	src/ \
 	tools/ \
 
 # Some files currently cause the linter to fail, so they need to be excluded
-LINT_EXCLUDE=include/uthash.h|include/lzodefs.h
+# TODO: change either the files or the linter to remove these failures
+LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
 
 LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)

@@ -61,9 +61,9 @@
     dec1(in)
 
 #define hash_round(hash, in, part) \
-    hash##part ^= in;              \
-    dec##part(hash##part);         \
-    permute64(hash##part)
+    hash ## part ^= in;              \
+    dec ## part(hash ## part);         \
+    permute64(hash ## part)
 
 
 void pearson_hash_256 (uint8_t *out, const uint8_t *in, size_t len) {
@@ -76,7 +76,7 @@ void pearson_hash_256 (uint8_t *out, const uint8_t *in, size_t len) {
     uint64_t hash3 = 0;
     uint64_t hash4 = 0;
 
-    while (len > 7) {
+    while(len > 7) {
         // digest words little endian first
         hash_round(hash, le64toh(*current), 1);
         hash_round(hash, le64toh(*current), 2);
@@ -136,7 +136,7 @@ void pearson_hash_128 (uint8_t *out, const uint8_t *in, size_t len) {
     uint64_t hash1 = 0;
     uint64_t hash2 = 0;
 
-    while (len > 7) {
+    while(len > 7) {
         // digest words little endian first
         hash_round(hash, le64toh(*current), 1);
         hash_round(hash, le64toh(*current), 2);
@@ -220,6 +220,6 @@ uint16_t pearson_hash_16 (const uint8_t *in, size_t len) {
 }
 
 
-void pearson_hash_init(void) {
+void pearson_hash_init (void) {
 
 }

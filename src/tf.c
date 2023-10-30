@@ -144,7 +144,7 @@ const uint8_t multEF[] = { 0x00, 0xEF, 0xB7, 0x58, 0x07, 0xE8, 0xB0, 0x5F, 0x0E,
 
 
 // multiply two polynomials represented as u32's, actually called with bytes
-uint32_t polyMult(uint32_t a, uint32_t b) {
+uint32_t polyMult (uint32_t a, uint32_t b) {
 
     uint32_t t=0;
 
@@ -160,7 +160,7 @@ uint32_t polyMult(uint32_t a, uint32_t b) {
 
 
 // take the polynomial t and return the t % modulus in GF(256)
-uint32_t gfMod(uint32_t t, uint32_t modulus) {
+uint32_t gfMod (uint32_t t, uint32_t modulus) {
 
     int i;
     uint32_t tt;
@@ -169,7 +169,7 @@ uint32_t gfMod(uint32_t t, uint32_t modulus) {
     for(i = 0; i < 8; i++) {
         tt = t ^ modulus;
         if(tt < t)
-             t = tt;
+            t = tt;
         modulus >>= 1;
     }
 
@@ -182,7 +182,7 @@ uint32_t gfMod(uint32_t t, uint32_t modulus) {
 
 
 // return a u32 containing the result of multiplying the RS Code matrix by the sd matrix
-uint32_t RSMatrixMultiply(uint8_t sd[8]) {
+uint32_t RSMatrixMultiply (uint8_t sd[8]) {
 
     int j, k;
     uint8_t t;
@@ -201,7 +201,7 @@ uint32_t RSMatrixMultiply(uint8_t sd[8]) {
 
 
 // the Zero-keyed h function (used by the key setup routine)
-uint32_t h(uint32_t X, uint32_t L[4], int k) {
+uint32_t h (uint32_t X, uint32_t L[4], int k) {
 
     uint8_t y0, y1, y2, y3;
     uint8_t z0, z1, z2, z3;
@@ -240,7 +240,7 @@ uint32_t h(uint32_t X, uint32_t L[4], int k) {
 
 
 // given the Sbox keys, create the fully keyed QF
-void fullKey(uint32_t L[4], int k, uint32_t QF[4][256]) {
+void fullKey (uint32_t L[4], int k, uint32_t QF[4][256]) {
 
     uint8_t y0, y1, y2, y3;
     int i;
@@ -269,21 +269,21 @@ void fullKey(uint32_t L[4], int k, uint32_t QF[4][256]) {
 
         // now do the partial MDS matrix multiplies
         QF[0][i] = ((multEF[y0] << 24)
-                 | (multEF[y0] << 16)
-                 | (mult5B[y0] << 8)
-                 | y0);
+                    | (multEF[y0] << 16)
+                    | (mult5B[y0] << 8)
+                    | y0);
         QF[1][i] = ((y1 << 24)
-                 | (mult5B[y1] << 16)
-                 | (multEF[y1] << 8)
-                 | multEF[y1]);
+                    | (mult5B[y1] << 16)
+                    | (multEF[y1] << 8)
+                    | multEF[y1]);
         QF[2][i] = ((multEF[y2] << 24)
-                 | (y2 << 16)
-                 | (multEF[y2] << 8)
-                 | mult5B[y2]);
+                    | (y2 << 16)
+                    | (multEF[y2] << 8)
+                    | mult5B[y2]);
         QF[3][i] = ((mult5B[y3] << 24)
-                 | (multEF[y3] << 16)
-                 | (y3 << 8)
-                 | mult5B[y3]);
+                    | (multEF[y3] << 16)
+                    | (y3 << 8)
+                    | mult5B[y3]);
     }
 }
 
@@ -305,7 +305,7 @@ void fullKey(uint32_t L[4], int k, uint32_t QF[4][256]) {
     R3 = ROL(R3, 1) ^ (2*T1 + T0 + ctx->K[2*round+9]);
 
 
-void twofish_internal_encrypt(uint8_t PT[16], tf_context_t *ctx) {
+void twofish_internal_encrypt (uint8_t PT[16], tf_context_t *ctx) {
 
     uint32_t R0, R1, R2, R3;
     uint32_t T0, T1;
@@ -352,7 +352,7 @@ void twofish_internal_encrypt(uint8_t PT[16], tf_context_t *ctx) {
     R3 = ROR(R3 ^ (T0 + 2*T1 + ctx->K[2*round+9]), 1);
 
 
-void twofish_internal_decrypt(uint8_t PT[16], const uint8_t CT[16], tf_context_t *ctx) {
+void twofish_internal_decrypt (uint8_t PT[16], const uint8_t CT[16], tf_context_t *ctx) {
 
     uint32_t T0, T1;
     uint32_t R0, R1, R2, R3;
@@ -392,7 +392,7 @@ void twofish_internal_decrypt(uint8_t PT[16], const uint8_t CT[16], tf_context_t
 
 
 // the key schedule routine
-void keySched(const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
+void keySched (const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
 
     uint32_t Mo[4], Me[4];
     int i, j;
@@ -428,7 +428,7 @@ void keySched(const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
 
 
 #define fix_xor(target, source) *(uint32_t*)&(target)[0] = *(uint32_t*)&(target)[0] ^ *(uint32_t*)&(source)[0]; *(uint32_t*)&(target)[4] = *(uint32_t*)&(target)[4] ^ *(uint32_t*)&(source)[4]; \
-                                *(uint32_t*)&(target)[8] = *(uint32_t*)&(target)[8] ^ *(uint32_t*)&(source)[8]; *(uint32_t*)&(target)[12] = *(uint32_t*)&(target)[12] ^ *(uint32_t*)&(source)[12];
+    *(uint32_t*)&(target)[8] = *(uint32_t*)&(target)[8] ^ *(uint32_t*)&(source)[8]; *(uint32_t*)&(target)[12] = *(uint32_t*)&(target)[12] ^ *(uint32_t*)&(source)[12];
 
 // ----------------------------------------------------------------------------------------------------------------
 

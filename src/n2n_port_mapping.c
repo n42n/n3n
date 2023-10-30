@@ -37,7 +37,7 @@
  *       this list of conditions and the following disclaimer in the documentation
  *       and/or other materials provided with the distribution.
  *     * The name of the author may not be used to endorse or promote products
- * 	  derived from this software without specific prior written permission.
+ *        derived from this software without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -449,7 +449,7 @@ static int n2n_natpmp_del_port_mapping (const uint16_t port) {
 
     // UDP port
     ret = n2n_natpmp_port_mapping_request(&natpmp, port, NATPMP_PROTOCOL_UDP, 0);
-    if(ret != 0)  {
+    if(ret != 0) {
         traceEvent(TRACE_WARNING, "NAT-PMP failed to delete UDP port mapping for %s:%hu", externaladdr, externalport);
         errorcode = -1;
     } else

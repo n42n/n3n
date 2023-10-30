@@ -65,14 +65,14 @@ static int transop_encode_zstd (n2n_trans_op_t *arg,
                                  // ZSTD_compressBound(in_len)
                                  // which is slower
         traceEvent(TRACE_ERROR, "encode_zstd outbuf too small (%ul) to compress inbuf (%ul)",
-                                out_len, in_len);
+                   out_len, in_len);
         return 0;
     }
 
     compression_len = ZSTD_compress(outbuf, out_len, inbuf, in_len, ZSTD_COMPRESSION_LEVEL);
     if(ZSTD_isError(compression_len)) {
         traceEvent(TRACE_ERROR, "payload compression failed with zstd error '%s'",
-                                ZSTD_getErrorName(compression_len));
+                   ZSTD_getErrorName(compression_len));
         // we do no return the error code to the caller, just return 0 len
         // so, any further specific error handling would have to happen right here
         compression_len = 0;
@@ -100,7 +100,7 @@ static int transop_decode_zstd (n2n_trans_op_t *arg,
 
     if(ZSTD_isError(deflated_len)) {
         traceEvent(TRACE_WARNING, "payload decompression failed with zstd error '%s'",
-                                   ZSTD_getErrorName(deflated_len));
+                   ZSTD_getErrorName(deflated_len));
         return 0; // cannot help it
     }
 

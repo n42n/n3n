@@ -54,7 +54,7 @@ SOCKET open_socket (int local_port, in_addr_t address, int type /* 0 = UDP, TCP 
     struct sockaddr_in local_address;
     int sockopt;
 
-    if((int)(sock_fd = socket(PF_INET, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM) , 0)) < 0) {
+    if((int)(sock_fd = socket(PF_INET, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
         traceEvent(TRACE_ERROR, "Unable to create socket [%s][%d]\n",
                    strerror(errno), sock_fd);
         return(-1);
@@ -172,17 +172,17 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
             syslog(LOG_INFO, "%s", out_buf);
         } else {
 #endif
-            for(i = strlen(file) - 1; i > 0; i--) {
-                if((file[i] == '/') || (file[i] == '\\')) {
-                    i++;
-                    break;
-                }
+        for(i = strlen(file) - 1; i > 0; i--) {
+            if((file[i] == '/') || (file[i] == '\\')) {
+                i++;
+                break;
             }
-            snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
-            fprintf(traceFile, "%s\n", out_buf);
-            fflush(traceFile);
-#ifndef _WIN32
         }
+        snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
+        fprintf(traceFile, "%s\n", out_buf);
+        fflush(traceFile);
+#ifndef _WIN32
+    }
 #endif
     }
 
@@ -241,7 +241,7 @@ uint32_t bitlen2mask (uint8_t bitlen) {
     uint8_t i;
     uint32_t mask = 0;
 
-    for (i = 1; i <= bitlen; ++i) {
+    for(i = 1; i <= bitlen; ++i) {
         mask |= 1 << (32 - i);
     }
 
@@ -254,7 +254,7 @@ uint8_t mask2bitlen (uint32_t mask) {
 
     uint8_t i, bitlen = 0;
 
-    for (i = 0; i < 32; ++i) {
+    for(i = 0; i < 32; ++i) {
         if((mask << i) & 0x80000000) {
             ++bitlen;
         } else {
@@ -305,7 +305,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
             sn->port = atoi(supernode_port);
             nameerr = getaddrinfo(supernode_host, NULL, &aihints, &ainfo);
             if(0 == nameerr) {
-               /* ainfo s the head of a linked list if non-NULL. */
+                /* ainfo s the head of a linked list if non-NULL. */
                 if(ainfo && (PF_INET == ainfo->ai_family)) {
                     /* It is definitely and IPv4 address -> sockaddr_in */
                     saddr = (struct sockaddr_in *)ainfo->ai_addr;
@@ -340,12 +340,12 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
 
 
 #ifdef HAVE_LIBPTHREAD
-N2N_THREAD_RETURN_DATATYPE resolve_thread(N2N_THREAD_PARAMETER_DATATYPE p) {
+N2N_THREAD_RETURN_DATATYPE resolve_thread (N2N_THREAD_PARAMETER_DATATYPE p) {
 
     n2n_resolve_parameter_t *param = (n2n_resolve_parameter_t*)p;
     n2n_resolve_ip_sock_t   *entry, *tmp_entry;
-    time_t                  rep_time = N2N_RESOLVE_INTERVAL / 10;
-    time_t                  now;
+    time_t rep_time = N2N_RESOLVE_INTERVAL / 10;
+    time_t now;
 
     while(1) {
         sleep(N2N_RESOLVE_INTERVAL / 60); /* wake up in-between to check for signaled requests */
@@ -363,10 +363,10 @@ N2N_THREAD_RETURN_DATATYPE resolve_thread(N2N_THREAD_PARAMETER_DATATYPE p) {
                 entry->error_code = supernode2sock(&entry->sock, entry->org_ip);
                 // if socket changed and no error
                 if(!sock_equal(&entry->sock, entry->org_sock)
-                  && (!entry->error_code)) {
+                   && (!entry->error_code)) {
                     // flag the change
                     param->changed = 1;
-               }
+                }
             }
             param->last_resolved = now;
 
@@ -395,7 +395,7 @@ int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn
 #ifdef HAVE_LIBPTHREAD
     struct peer_info        *sn, *tmp_sn;
     n2n_resolve_ip_sock_t   *entry;
-    int                     ret;
+    int ret;
 
     // create parameter structure
     *param = (n2n_resolve_parameter_t*)calloc(1, sizeof(n2n_resolve_parameter_t));
@@ -470,8 +470,8 @@ uint8_t resolve_check (n2n_resolve_parameter_t *param, uint8_t requires_resoluti
                 HASH_ITER(hh, param->list, entry, tmp_entry) {
                     memcpy(entry->org_sock, &entry->sock, sizeof(n2n_sock_t));
                     traceEvent(TRACE_INFO, "resolve_check renews ip address of supernode '%s' to %s",
-                                           entry->org_ip, sock_to_cstr(sock_buf, &(entry->sock)));
-               }
+                               entry->org_ip, sock_to_cstr(sock_buf, &(entry->sock)));
+                }
             }
 
             // let the resolver thread know eventual difficulties in reaching the supernode

@@ -51,8 +51,8 @@ static char *openssl_err_as_string (void) {
 int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
                 const unsigned char *iv, cc20_context_t *ctx) {
 
-  int evp_len;
-  int evp_ciphertext_len;
+    int evp_len;
+    int evp_ciphertext_len;
 
     if(1 == EVP_EncryptInit_ex(ctx->ctx, ctx->cipher, NULL, ctx->key, iv)) {
         if(1 == EVP_CIPHER_CTX_set_padding(ctx->ctx, 0)) {
@@ -62,19 +62,19 @@ int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
                     evp_ciphertext_len += evp_len;
                     if(evp_ciphertext_len != in_len)
                         traceEvent(TRACE_ERROR, "cc20_crypt openssl encryption: encrypted %u bytes where %u were expected",
-                                                evp_ciphertext_len, in_len);
+                                   evp_ciphertext_len, in_len);
                 } else
                     traceEvent(TRACE_ERROR, "cc20_crypt openssl final encryption: %s",
-                                            openssl_err_as_string());
+                               openssl_err_as_string());
             } else
                 traceEvent(TRACE_ERROR, "cc20_encrypt openssl encrpytion: %s",
-                                        openssl_err_as_string());
+                           openssl_err_as_string());
         } else
             traceEvent(TRACE_ERROR, "cc20_encrypt openssl padding setup: %s",
-                                    openssl_err_as_string());
+                       openssl_err_as_string());
     } else
         traceEvent(TRACE_ERROR, "cc20_encrypt openssl init: %s",
-                                openssl_err_as_string());
+                   openssl_err_as_string());
 
     EVP_CIPHER_CTX_reset(ctx->ctx);
 
@@ -136,17 +136,17 @@ int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
     C = ADD(C, D); B = ROL(XOR(B, C),  7)
 
 #define CC20_EVEN_ROUND(A,B,C,D)       \
-    CC20_PERMUTE_ROWS    (A, B, C, D); \
-    CC20_ODD_ROUND       (A, B, C, D); \
+    CC20_PERMUTE_ROWS(A, B, C, D); \
+    CC20_ODD_ROUND(A, B, C, D); \
     CC20_PERMUTE_ROWS_INV(A, B, C, D)
 
 #define CC20_DOUBLE_ROUND(A,B,C,D)   \
-    CC20_ODD_ROUND (A, B, C, D);     \
+    CC20_ODD_ROUND(A, B, C, D);     \
     CC20_EVEN_ROUND(A, B, C, D)
 
 #define STOREXOR(O,I,X)                                                \
     _mm_storeu_si128((__m128i*)O,                                      \
-                      _mm_xor_si128(_mm_loadu_si128((__m128i*)I), X)); \
+                     _mm_xor_si128(_mm_loadu_si128((__m128i*)I), X)); \
     I += 16; O += 16                                                   \
 
 
@@ -257,7 +257,7 @@ int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
 // taken (and modified) from https://github.com/Ginurx/chacha20-c (public domain)
 
 
-static void cc20_init_block(cc20_context_t *ctx, const uint8_t nonce[]) {
+static void cc20_init_block (cc20_context_t *ctx, const uint8_t nonce[]) {
 
     const uint8_t *magic_constant = (uint8_t*)"expand 32-byte k";
 
@@ -288,7 +288,7 @@ static void cc20_init_block(cc20_context_t *ctx, const uint8_t nonce[]) {
     CC20_QUARTERROUND(s, 3, 4,  9, 14)
 
 
-static void cc20_block_next(cc20_context_t *ctx) {
+static void cc20_block_next (cc20_context_t *ctx) {
 
     uint32_t *counter = ctx->state + 12;
 
@@ -343,7 +343,7 @@ static void cc20_block_next(cc20_context_t *ctx) {
 }
 
 
-static void cc20_init_context(cc20_context_t *ctx, const uint8_t *nonce) {
+static void cc20_init_context (cc20_context_t *ctx, const uint8_t *nonce) {
 
     cc20_init_block(ctx, nonce);
 }
@@ -355,7 +355,7 @@ int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
     uint8_t   *keystream8 = (uint8_t*)ctx->keystream32;
     uint32_t * in_p       = (uint32_t*)in;
     uint32_t * out_p      = (uint32_t*)out;
-    size_t   tmp_len      = in_len;
+    size_t tmp_len      = in_len;
 
     cc20_init_context(ctx, iv);
 
@@ -409,7 +409,7 @@ int cc20_init (const unsigned char *key, cc20_context_t **ctx) {
 #ifdef HAVE_LIBCRYPTO
     if(!((*ctx)->ctx = EVP_CIPHER_CTX_new())) {
         traceEvent(TRACE_ERROR, "cc20_init openssl's evp_* encryption context creation failed: %s",
-                                openssl_err_as_string());
+                   openssl_err_as_string());
         return -1;
     }
 

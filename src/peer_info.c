@@ -24,17 +24,17 @@ void peer_info_init (struct peer_info *peer, const n2n_mac_t mac) {
 struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
     struct peer_info *peer;
     peer = (struct peer_info*)calloc(1, sizeof(struct peer_info));
-    if (!peer) {
+    if(!peer) {
         return NULL;
     }
     peer->purgeable = true;
     // TODO peer->last_valid_time_stamp = initial_time_stamp();
-    
+
     return peer;
 }
 
 /** Purge old items from the peer_list, eventually close the related socket, and
-  * return the number of items that were removed. */
+ * return the number of items that were removed. */
 size_t purge_peer_list (struct peer_info **peer_list,
                         SOCKET socket_not_to_close,
                         n2n_tcp_connection_t **tcp_connections,
@@ -75,7 +75,7 @@ size_t clear_peer_list (struct peer_info ** peer_list) {
     size_t retval = 0;
 
     HASH_ITER(hh, *peer_list, scan, tmp) {
-        if (!scan->purgeable && scan->ip_addr) {
+        if(!scan->purgeable && scan->ip_addr) {
             free(scan->ip_addr);
         }
         HASH_DEL(*peer_list, scan);

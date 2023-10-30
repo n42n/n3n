@@ -65,7 +65,7 @@ static int transop_encode_lzo (n2n_trans_op_t *arg,
 
     if(out_len < in_len + in_len / 16 + 64 + 3) {
         traceEvent(TRACE_ERROR, "encode_lzo outbuf too small (%ul) to compress inbuf (%ul)",
-                                out_len, in_len);
+                   out_len, in_len);
         return 0;
     }
 
