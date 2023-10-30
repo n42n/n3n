@@ -24,7 +24,7 @@ if [ "$1" = "-i" ]; then
     INPLACE=1
 fi
 
-EXCLUDE=
+EXCLUDE=dont_exclude_any_token
 if [ "$1" = "-e" ]; then
     EXCLUDE="$2"
     shift 2
