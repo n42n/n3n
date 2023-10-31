@@ -1019,10 +1019,6 @@ int main (int argc, char* argv[]) {
     uint16_t position = 0;
     uint8_t pktbuf[N2N_SN_PKTBUF_SIZE + sizeof(uint16_t)]; /* buffer + prepended buffer length in case of tcp */
 
-
-#ifndef _WIN32
-    struct passwd *pw = NULL;
-#endif
 #ifdef HAVE_LIBCAP
     cap_t caps;
 #endif
@@ -1037,6 +1033,7 @@ int main (int argc, char* argv[]) {
     ec.daemon = 1;        /* By default run in daemon mode. */
 
 #ifndef _WIN32
+    struct passwd *pw = NULL;
     if(((pw = getpwnam("n3n")) != NULL) ||
        ((pw = getpwnam("nobody")) != NULL)) {
         ec.userid = pw->pw_uid;
