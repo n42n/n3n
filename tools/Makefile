@@ -4,50 +4,28 @@
 
 DEBUG?=-g3
 
-HEADERS=$(wildcard include/*.h)
-CFLAGS+=-I../include
-
 CFLAGS+=$(DEBUG)
+
+CFLAGS+=-I../include
 LDFLAGS+=-L..
+LDLIBS+=-ln3n
+LDLIBS+=$(LDLIBS_EXTRA)
 
-N2N_LIB=../libn3n.a
+TOOLS+=n3n-benchmark
+TOOLS+=n3n-keygen
+TOOLS+=n3n-route
+TOOLS+=n3n-portfwd
+TOOLS+=n3n-decode
 
-TOOLS+=n3n-benchmark$(EXE)
-TOOLS+=n3n-keygen$(EXE)
-TOOLS+=n3n-route$(EXE)
-TOOLS+=n3n-portfwd$(EXE)
-TOOLS+=n3n-decode$(EXE)
-
-TESTS=tests-compress$(EXE)
-TESTS+=tests-elliptic$(EXE)
-TESTS+=tests-hashing$(EXE)
-TESTS+=tests-transform$(EXE)
-TESTS+=tests-wire$(EXE)
-TESTS+=tests-auth$(EXE)
+TESTS=tests-compress
+TESTS+=tests-elliptic
+TESTS+=tests-hashing
+TESTS+=tests-transform
+TESTS+=tests-wire
+TESTS+=tests-auth
 
 .PHONY: all clean install
 all: $(TOOLS) $(TESTS)
-
-n3n-benchmark.o: $(N2N_LIB) $(HEADERS) ../config.mak
-n3n-keygen.o: $(N2N_LIB) $(HEADERS) ../config.mak
-n3n-route.o: $(N2N_LIB) $(HEADERS) ../config.mak
-n3n-portfwd.o: $(N2N_LIB) $(HEADERS) ../config.mak
-n3n-decode.o: $(N2N_LIB) $(HEADERS) ../config.mak
-
-ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
-# HACK for windows.
-n3n-benchmark.exe: n3n-benchmark
-n3n-keygen.exe: n3n-keygen
-n3n-route.exe: n3n-route
-n3n-portfwd.exe: n3n-portfwd
-n3n-decode.exe: n3n-decode
-tests-compress.exe: tests-compress
-tests-elliptic.exe: tests-elliptic
-tests-hashing.exe: tests-hashing
-tests-transform.exe: tests-transform
-tests-wire.exe: tests-wire
-tests-auth.exe: tests-auth
-endif
 
 # See comments in the topdir Makefile about how to generate coverage
 # data.
@@ -59,4 +37,4 @@ clean:
 	rm -f $(TESTS) *.gcno *.gcda
 
 install: $(TOOLS)
-	$(INSTALL_PROG) $(TOOLS) $(SBINDIR)/
+	$(INSTALL_PROG) $(addsuffix $(EXE),$(TOOLS)) $(SBINDIR)/

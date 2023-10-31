@@ -19,10 +19,17 @@ EXAMPLES+=example_edge_embed_quick_edge_init
 EXAMPLES+=example_edge_embed
 EXAMPLES+=example_sn_embed
 
-all: $(APPS) $(EXAMPLES)
-
 CFLAGS+=-I$(INCDIR)
 LDFLAGS+=-L$(LIBDIR)
+LDLIBS+=-ln3n
+LDLIBS+=$(LDLIBS_EXTRA)
+
+all: $(APPS) $(EXAMPLES)
+
+.PHONY: install
+install: $(addsuffix $(EXE),$(APPS))
+	$(INSTALL_PROG) supernode$(EXE) $(SBINDIR)/
+	$(INSTALL_PROG) edge$(EXE) $(SBINDIR)/
 
 clean:
 	rm -f $(APPS) $(EXAMPLES)

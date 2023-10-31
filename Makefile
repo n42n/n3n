@@ -6,7 +6,7 @@ export AR
 export EXE
 export CFLAGS
 export LDFLAGS
-export LDLIBS
+export LDLIBS_EXTRA
 export CONFIG_HOST_OS
 
 -include config.mak
@@ -98,8 +98,6 @@ N2N_OBJS=\
 	src/tuntap_osx.o \
 	src/wire.o \
 
-N2N_DEPS=$(wildcard include/*.h) $(wildcard src/*.c) config.mak
-
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)
 LINT_CCODE=\
@@ -111,9 +109,6 @@ LINT_CCODE=\
 # Some files currently cause the linter to fail, so they need to be excluded
 # TODO: change either the files or the linter to remove these failures
 LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
-
-LDLIBS+=-ln3n
-LDLIBS+=$(LDLIBS_EXTRA)
 
 DOCS=edge.8.gz supernode.1.gz n3n.7.gz
 
@@ -249,12 +244,11 @@ distclean:
 	rm -f packages/rpm/config.log packages/rpm/config.status
 
 .PHONY: install
-install: apps/edge$(EXE) apps/supernode$(EXE) edge.8.gz supernode.1.gz n3n.7.gz
+install: apps tools edge.8.gz supernode.1.gz n3n.7.gz
 	echo "MANDIR=$(MANDIR)"
 	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
-	$(INSTALL_PROG) apps/supernode$(EXE) $(SBINDIR)/
-	$(INSTALL_PROG) apps/edge$(EXE) $(SBINDIR)/
+	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
+	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
-	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
