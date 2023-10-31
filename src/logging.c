@@ -76,7 +76,6 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
 
     char buf[1024];
     char out_buf[1280];
-    char theDate[N2N_TRACE_DATESIZE];
     char *extra_msg = "";
     time_t theTime = time(NULL);
     int i;
@@ -88,7 +87,6 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
      */
 
     memset(buf, 0, sizeof(buf));
-    strftime(theDate, N2N_TRACE_DATESIZE, "%d/%b/%Y %H:%M:%S", localtime(&theTime));
 
     va_start(va_ap, format);
     vsnprintf(buf, sizeof(buf) - 1, format, va_ap);
@@ -119,6 +117,8 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
                 break;
             }
         }
+        char theDate[N2N_TRACE_DATESIZE];
+        strftime(theDate, N2N_TRACE_DATESIZE, "%d/%b/%Y %H:%M:%S", localtime(&theTime));
         snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
         fprintf(traceFile, "%s\n", out_buf);
         fflush(traceFile);
