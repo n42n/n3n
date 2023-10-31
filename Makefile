@@ -71,6 +71,7 @@ N2N_OBJS=\
 	src/header_encryption.o \
 	src/hexdump.o \
 	src/json.o \
+	src/logging.o \
 	src/management.o \
 	src/minilzo.o \
 	src/n2n.o \

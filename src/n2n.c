@@ -21,7 +21,6 @@
 
 #include <errno.h>           // for errno
 #include <n3n/logging.h>     // for traceEvent
-#include <stdarg.h>          // for va_end, va_list, va_start
 #include <stdbool.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
 #include <string.h>          // for memcmp, memcpy, memset, strlen, strerror
@@ -44,7 +43,6 @@
 #include <arpa/inet.h>       // for inet_ntop
 #include <netdb.h>           // for addrinfo, freeaddrinfo, gai_strerror
 #include <sys/socket.h>      // for AF_INET, PF_INET, bind, setsockopt, shut...
-#include <syslog.h>          // for closelog, openlog, syslog, LOG_DAEMON
 #endif
 
 
@@ -80,114 +78,6 @@ SOCKET open_socket (int local_port, in_addr_t address, int type /* 0 = UDP, TCP 
     }
 
     return(sock_fd);
-}
-
-
-static int traceLevel = 2 /* NORMAL */;
-static int useSyslog = 0;
-#ifndef _WIN32
-static int syslog_opened = 0;
-#endif
-static FILE *traceFile = NULL;
-
-int getTraceLevel () {
-
-    return(traceLevel);
-}
-
-void setTraceLevel (int level) {
-
-    traceLevel = level;
-}
-
-void setUseSyslog (int use_syslog) {
-
-    useSyslog = use_syslog;
-}
-
-void setTraceFile (FILE *f) {
-
-    traceFile = f;
-}
-
-void closeTraceFile () {
-
-    if((traceFile != NULL) && (traceFile != stdout)) {
-        fclose(traceFile);
-    }
-#ifndef _WIN32
-    if(useSyslog && syslog_opened) {
-        closelog();
-        syslog_opened = 0;
-    }
-#endif
-}
-
-#define N2N_TRACE_DATESIZE 32
-void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...) {
-
-    va_list va_ap;
-
-    if(traceFile == NULL) {
-        traceFile = stdout;
-    }
-
-    if(eventTraceLevel <= traceLevel) {
-        char buf[1024];
-        char out_buf[1280];
-        char theDate[N2N_TRACE_DATESIZE];
-        char *extra_msg = "";
-        time_t theTime = time(NULL);
-        int i;
-
-        /* We have two paths - one if we're logging, one if we aren't
-         * Note that the no-log case is those systems which don't support it(WIN32),
-         * those without the headers !defined(USE_SYSLOG)
-         * those where it's parametrically off...
-         */
-
-        memset(buf, 0, sizeof(buf));
-        strftime(theDate, N2N_TRACE_DATESIZE, "%d/%b/%Y %H:%M:%S", localtime(&theTime));
-
-        va_start(va_ap, format);
-        vsnprintf(buf, sizeof(buf) - 1, format, va_ap);
-        va_end(va_ap);
-
-        if(eventTraceLevel == 0 /* TRACE_ERROR */) {
-            extra_msg = "ERROR: ";
-        } else if(eventTraceLevel == 1 /* TRACE_WARNING */) {
-            extra_msg = "WARNING: ";
-        }
-
-        while(buf[strlen(buf) - 1] == '\n') {
-            buf[strlen(buf) - 1] = '\0';
-        }
-
-#ifndef _WIN32
-        if(useSyslog) {
-            if(!syslog_opened) {
-                openlog("n2n", LOG_PID, LOG_DAEMON);
-                syslog_opened = 1;
-            }
-
-            snprintf(out_buf, sizeof(out_buf), "%s%s", extra_msg, buf);
-            syslog(LOG_INFO, "%s", out_buf);
-        } else {
-#endif
-        for(i = strlen(file) - 1; i > 0; i--) {
-            if((file[i] == '/') || (file[i] == '\\')) {
-                i++;
-                break;
-            }
-        }
-        snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
-        fprintf(traceFile, "%s\n", out_buf);
-        fflush(traceFile);
-#ifndef _WIN32
-    }
-#endif
-    }
-
 }
 
 
