@@ -64,62 +64,63 @@ void closeTraceFile () {
 
 #define N2N_TRACE_DATESIZE 32
 void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...) {
-
     va_list va_ap;
+
+    if(eventTraceLevel > traceLevel) {
+        return;
+    }
 
     if(traceFile == NULL) {
         traceFile = stderr;
     }
 
-    if(eventTraceLevel <= traceLevel) {
-        char buf[1024];
-        char out_buf[1280];
-        char theDate[N2N_TRACE_DATESIZE];
-        char *extra_msg = "";
-        time_t theTime = time(NULL);
-        int i;
+    char buf[1024];
+    char out_buf[1280];
+    char theDate[N2N_TRACE_DATESIZE];
+    char *extra_msg = "";
+    time_t theTime = time(NULL);
+    int i;
 
-        /* We have two paths - one if we're logging, one if we aren't
-         * Note that the no-log case is those systems which don't support it(WIN32),
-         * those without the headers !defined(USE_SYSLOG)
-         * those where it's parametrically off...
-         */
+    /* We have two paths - one if we're logging, one if we aren't
+     * Note that the no-log case is those systems which don't support it(WIN32),
+     * those without the headers !defined(USE_SYSLOG)
+     * those where it's parametrically off...
+     */
 
-        memset(buf, 0, sizeof(buf));
-        strftime(theDate, N2N_TRACE_DATESIZE, "%d/%b/%Y %H:%M:%S", localtime(&theTime));
+    memset(buf, 0, sizeof(buf));
+    strftime(theDate, N2N_TRACE_DATESIZE, "%d/%b/%Y %H:%M:%S", localtime(&theTime));
 
-        va_start(va_ap, format);
-        vsnprintf(buf, sizeof(buf) - 1, format, va_ap);
-        va_end(va_ap);
+    va_start(va_ap, format);
+    vsnprintf(buf, sizeof(buf) - 1, format, va_ap);
+    va_end(va_ap);
 
-        if(eventTraceLevel == 0 /* TRACE_ERROR */) {
-            extra_msg = "ERROR: ";
-        } else if(eventTraceLevel == 1 /* TRACE_WARNING */) {
-            extra_msg = "WARNING: ";
+    if(eventTraceLevel == 0 /* TRACE_ERROR */) {
+        extra_msg = "ERROR: ";
+    } else if(eventTraceLevel == 1 /* TRACE_WARNING */) {
+        extra_msg = "WARNING: ";
+    }
+
+    while(buf[strlen(buf) - 1] == '\n') {
+        buf[strlen(buf) - 1] = '\0';
+    }
+
+    if(useSyslog) {
+        if(!syslog_opened) {
+            openlog("n3n", LOG_PID, LOG_DAEMON);
+            syslog_opened = 1;
         }
 
-        while(buf[strlen(buf) - 1] == '\n') {
-            buf[strlen(buf) - 1] = '\0';
-        }
-
-        if(useSyslog) {
-            if(!syslog_opened) {
-                openlog("n3n", LOG_PID, LOG_DAEMON);
-                syslog_opened = 1;
+        snprintf(out_buf, sizeof(out_buf), "%s%s", extra_msg, buf);
+        syslog(LOG_INFO, "%s", out_buf);
+    } else {
+        for(i = strlen(file) - 1; i > 0; i--) {
+            if((file[i] == '/') || (file[i] == '\\')) {
+                i++;
+                break;
             }
-
-            snprintf(out_buf, sizeof(out_buf), "%s%s", extra_msg, buf);
-            syslog(LOG_INFO, "%s", out_buf);
-        } else {
-            for(i = strlen(file) - 1; i > 0; i--) {
-                if((file[i] == '/') || (file[i] == '\\')) {
-                    i++;
-                    break;
-                }
-            }
-            snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
-            fprintf(traceFile, "%s\n", out_buf);
-            fflush(traceFile);
         }
+        snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
+        fprintf(traceFile, "%s\n", out_buf);
+        fflush(traceFile);
     }
 }
