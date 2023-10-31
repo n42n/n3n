@@ -8,6 +8,7 @@
 #include <n3n/logging.h>
 #include <stdarg.h>  // for va_end, va_list, va_start
 #include <stdio.h>   // for snprinf
+#include <stdlib.h>  // for getenv
 #include <string.h>  // for strlen
 #include <time.h>    // for time_t
 
@@ -33,7 +34,7 @@ void closelog () {
 void openlog (char *s, int a, int b) {
     return;
 }
-void syslog (int a, char *s, char *buf) {
+void syslog (int a, char *fmt, ...) {
     return;
 }
 #endif
