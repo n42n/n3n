@@ -967,12 +967,7 @@ static void daemonize () {
 static bool keep_on_running = true;
 
 #if defined(__linux__) || defined(_WIN32)
-#ifdef _WIN32
-BOOL WINAPI term_handler (DWORD sig)
-#else
-static void term_handler (int sig)
-#endif
-{
+static void term_handler (int sig) {
     static int called = 0;
 
     if(called) {
@@ -984,7 +979,13 @@ static void term_handler (int sig)
     }
 
     keep_on_running = false;
+}
+#endif /* defined(__linux__) || defined(_WIN32) */
+
 #ifdef _WIN32
+BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
+    term_handler(sig);
+
     switch(sig) {
         case CTRL_CLOSE_EVENT:
         case CTRL_LOGOFF_EVENT:
@@ -993,9 +994,8 @@ static void term_handler (int sig)
             Sleep(INFINITE);
     }
     return(TRUE);
-#endif
 }
-#endif /* defined(__linux__) || defined(_WIN32) */
+#endif
 
 /* *************************************************** */
 
@@ -1031,6 +1031,7 @@ int main (int argc, char* argv[]) {
     memset(&ec, 0, sizeof(ec));
     ec.mtu = DEFAULT_MTU;
     ec.daemon = 1;        /* By default run in daemon mode. */
+    ec.metric = 0;
 
 #ifndef _WIN32
     struct passwd *pw = NULL;
@@ -1043,7 +1044,6 @@ int main (int argc, char* argv[]) {
 
 #ifdef _WIN32
     ec.tuntap_dev_name[0] = '\0';
-    ec.metric = 0;
 #else
     snprintf(ec.tuntap_dev_name, sizeof(ec.tuntap_dev_name), N2N_EDGE_DEFAULT_DEV_NAME);
 #endif
@@ -1340,7 +1340,7 @@ int main (int argc, char* argv[]) {
     signal(SIGINT,  term_handler);
 #endif
 #ifdef _WIN32
-    SetConsoleCtrlHandler(term_handler, TRUE);
+    SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
 #endif
 
     eee->keep_running = &keep_on_running;
