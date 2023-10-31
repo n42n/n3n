@@ -20,13 +20,14 @@
 
 #include <assert.h>    // for assert
 #include <inttypes.h>  // for PRIx64
+#include <n3n/logging.h> // for traceEvent
 #include <stdint.h>    // for uint8_t
 #include <stdio.h>     // for printf, fprintf, stderr, stdout, NULL
 #include <stdlib.h>    // for exit
 #include <string.h>    // for memcmp
 #include "hexdump.h"   // for fhexdump
 #include "minilzo.h"   // for lzo1x_1_compress, lzo1x_decompress, LZO1X_1_ME...
-#include "n2n.h"       // for N2N_PKT_BUF_SIZE, TRACE_ERROR, traceEvent
+#include "n2n.h"       // for N2N_PKT_BUF_SIZE
 
 
 /* heap allocation for compression as per lzo example doc */

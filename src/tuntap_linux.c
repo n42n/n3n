@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +29,7 @@
 #include <linux/if_tun.h>             // for IFF_NO_PI, IFF_TAP, TUNSETIFF
 #include <linux/netlink.h>            // for sockaddr_nl, nlmsghdr, NETLINK_...
 #include <linux/rtnetlink.h>          // for ifinfomsg, RTMGRP_LINK
+#include <n3n/logging.h>              // for traceEvent
 #include <net/if.h>                   // for ifreq, IFNAMSIZ, ifr_name, ifr_...
 #include <net/if_arp.h>               // for ARPHRD_ETHER
 #include <netinet/in.h>               // for sockaddr_in, IPPROTO_IP, in_addr
@@ -36,7 +39,7 @@
 #include <sys/param.h>                // for MIN
 #include <sys/socket.h>               // for socket, msghdr, AF_INET, sockaddr
 #include <unistd.h>                   // for close, getpid, read, write, ssi...
-#include "n2n.h"                      // for tuntap_dev, traceEvent, TRACE_E...
+#include "n2n.h"                      // for tuntap_dev, ...
 
 
 static int setup_ifname (int fd, const char *ifname, const char *ipaddr,

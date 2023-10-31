@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +19,9 @@
  */
 
 
+#include <n3n/logging.h>     // for setTraceLevel
 #include <stdbool.h>
-#include "n2n.h"             // for quick_edge_init, setTraceLevel
+#include "n2n.h"             // for quick_edge_init
 #include "random_numbers.h"  // for n2n_seed, n2n_srand
 
 

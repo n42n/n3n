@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@
 #include <ctype.h>             // for isspace
 #include <errno.h>             // for errno
 #include <getopt.h>            // for required_argument, getopt_long, no_arg...
+#include <n3n/logging.h>       // for traceEvent
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
 #include <stdint.h>            // for uint8_t, uint32_t
@@ -30,7 +32,7 @@
 #include <sys/types.h>         // for time_t, u_char, u_int
 #include <time.h>              // for time
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
-#include "n2n.h"               // for n2n_sn_t, sn_community, traceEvent
+#include "n2n.h"               // for n2n_sn_t, sn_community
 #include "pearson.h"           // for pearson_hash_64
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 

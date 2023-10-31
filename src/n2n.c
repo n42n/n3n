@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +20,7 @@
 
 
 #include <errno.h>           // for errno
+#include <n3n/logging.h>     // for traceEvent
 #include <stdarg.h>          // for va_end, va_list, va_start
 #include <stdbool.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
@@ -615,8 +617,8 @@ void print_n2n_version () {
 
     printf("Welcome to n3n v.%s\n"
            "Built on %s\n"
-           "Copyright (C) 2023 Hamish Coleman\n",
-           "Copyright 2007-2022 - ntop.org and contributors\n\n",
+           "Copyright 2007-2022 - ntop.org and contributors\n"
+           "Copyright (C) 2023 Hamish Coleman\n\n",
            PACKAGE_VERSION, PACKAGE_BUILDDATE);
 }
 

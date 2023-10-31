@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +21,7 @@
 
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
+#include <n3n/logging.h>             // for traceEvent
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t, uint32_t, uin...
 #include <stdio.h>                   // for snprintf, sprintf
@@ -32,7 +34,7 @@
 #include "auth.h"                    // for generate_private_key
 #include "portable_endian.h"         // for be16toh, htobe16
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
-#include "n2n.h"                     // for n2n_edge_t, peer_info, n2n_edge_...
+#include "n2n.h"                     // for n2n_edge_t, n2n_edge_...
 #include "n2n_wire.h"                // for encode_mac, fill_sockaddr, decod...
 #include "network_traffic_filter.h"  // for create_network_traffic_filter
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64

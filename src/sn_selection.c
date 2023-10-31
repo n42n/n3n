@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +19,7 @@
  */
 
 
+#include <n3n/logging.h> // for traceEvent
 #include <stdint.h>           // for UINT64_MAX, uint32_t, int64_t, uint64_t
 #include <stdio.h>            // for snprintf, NULL
 #include <string.h>           // for memcpy, memset

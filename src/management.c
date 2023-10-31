@@ -7,13 +7,13 @@
  */
 
 
+#include <n3n/logging.h> // for traceEvent
 #include <pearson.h>     // for pearson_hash_64
 #include <stdbool.h>
 #include <stdio.h>       // for snprintf, NULL, size_t
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
 #include "management.h"
-#include "n2n.h"         // for TRACE_DEBUG, traceEvent
 
 #ifdef _WIN32
 #include "win32/defs.h"

@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +21,7 @@
 
 #include <errno.h>             // for errno
 #include <getopt.h>            // for getopt_long, optind, optarg
+#include <n3n/logging.h>       // for traceEvent
 #include <signal.h>            // for signal, SIGINT, SIGPIPE, SIGTERM, SIG_IGN
 #include <stdbool.h>
 #include <stdint.h>            // for uint8_t, uint16_t, uint32_t

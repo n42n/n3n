@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +20,7 @@
 
 
 #include <getopt.h>            // for getopt_long
-#include <unistd.h>            // for optarg
+#include <n3n/logging.h> // for traceEvent
 #include <signal.h>            // for signal, SIGINT, SIGPIPE, SIGTERM, SIG_IGN
 #include <stdbool.h>
 #include <stdint.h>            // for uint16_t, uint32_t, uint8_t
@@ -27,9 +29,9 @@
 #include <string.h>            // for strchr, strcmp
 #include <sys/time.h>          // for timeval
 #include <time.h>              // for time, time_t
-#include <unistd.h>            // for STDIN_FILENO, _exit
+#include <unistd.h>            // for STDIN_FILENO, _exit, optarg
 #include "json.h"              // for _jsonpair, json_object_t, json_free
-#include "n2n.h"               // for traceEvent, setTraceLevel, getTraceLevel
+#include "n2n.h"               // for SOCKET, N2N_EDGE_MGMT_PORT, closesocke...
 #include "n2n_port_mapping.h"  // for n2n_del_port_mapping, n2n_set_port_map...
 #include "random_numbers.h"    // for n2n_rand, n2n_seed, n2n_srand
 
