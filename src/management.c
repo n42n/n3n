@@ -23,10 +23,6 @@
 #endif
 
 
-// TODO: move logging defs in their own header and include that
-void setTraceLevel (int level);
-int getTraceLevel ();
-
 ssize_t send_reply (mgmt_req_t *req, strbuf_t *buf, size_t msg_len) {
     // TODO: better error handling (counters?)
     return sendto(req->mgmt_sock, buf->str, msg_len, 0,
