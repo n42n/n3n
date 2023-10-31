@@ -8,8 +8,6 @@ generic document describing the protocol framing, but not the specific
 messages and replies.
 
 Both the edge and the supernode provide a management interface UDP port.
-These interfaces have some documentation on their non machine readable
-commands in the respective daemon man pages.
 
 Default Ports:
 - UDP/5644 - edge

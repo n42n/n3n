@@ -258,12 +258,8 @@ startup. If all keys become invalid while running, edge continues to encode
 using the last key that was valid.
 
 .SH MANAGEMENT INTERFACE
-Edge provides a very simple management system on UDP port 5644. Send a newline
-to receive a status output. Send 'stop' to cause edge to exit cleanly.
-
-.TP
-.B echo | nc -w1 -u 127.0.0.1 5644
-Shows the current statistics of a running edge.
+Edge provides a very simple management system on UDP port 5644. See the docs/ManagementAPI.md
+for details.
 
 .SH EXIT STATUS
 edge is a daemon and any exit is an error.
