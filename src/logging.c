@@ -80,12 +80,6 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
     time_t theTime = time(NULL);
     int i;
 
-    /* We have two paths - one if we're logging, one if we aren't
-     * Note that the no-log case is those systems which don't support it(WIN32),
-     * those without the headers !defined(USE_SYSLOG)
-     * those where it's parametrically off...
-     */
-
     memset(buf, 0, sizeof(buf));
 
     va_start(va_ap, format);
