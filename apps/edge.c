@@ -1364,10 +1364,6 @@ int main (int argc, char* argv[]) {
     tuntap_close(&eee->device);
     edge_term(eee);
 
-#ifdef _WIN32
-    destroyWin32();
-#endif
-
     return(rc);
 }
 
