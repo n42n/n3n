@@ -148,9 +148,9 @@ void collect_packet_info (packet_address_proto_info_t* out_info, unsigned char *
                         }
                         default:
                             out_info->proto = FPP_UNKNOWN;
-                        };
-                        break;
-                    }
+                    };
+                    break;
+                }
                 case 6: {
                     // TODO: IPV6 Not Support
                     out_info->proto = FPP_UNKNOWN;
@@ -158,17 +158,17 @@ void collect_packet_info (packet_address_proto_info_t* out_info, unsigned char *
                 }
                 default:
                     out_info->proto = FPP_UNKNOWN;
-                }
+            }
             break;
         }
-    case 0x0806:
-        out_info->proto = FPP_ARP;
-        break;
-    case 0x86DD:
-        out_info->proto = FPP_UNKNOWN;
-        break;
-    default:
-        traceEvent(TRACE_DEBUG, "collect_packet_info stumbled across the unknown ether type 0x%04X", ether_type);
+        case 0x0806:
+            out_info->proto = FPP_ARP;
+            break;
+        case 0x86DD:
+            out_info->proto = FPP_UNKNOWN;
+            break;
+        default:
+            traceEvent(TRACE_DEBUG, "collect_packet_info stumbled across the unknown ether type 0x%04X", ether_type);
     };
 }
 
@@ -704,91 +704,91 @@ uint8_t process_traffic_filter_rule_str (const char *rule_str, filter_rule_t *ru
             }
 
             case FPS_DST_PORT_SINGLE: {
-            if((*cur_pos >= '0') && (*cur_pos <= '9')) {
-                ; // Normal FPS_DST_PORT_SINGLE, next char
-            } else if((*cur_pos == ',') || (*cur_pos == 0)) {
-                // FPS_DST_PORT_SINGLE finish, next is FPS_PROTO
-                rule_struct->key.dst_port_range.start_port = get_int32_from_number_string(stage_begin_pos, cur_pos);
-                rule_struct->key.dst_port_range.end_port = rule_struct->key.dst_port_range.start_port;
-                stage_begin_pos = cur_pos + 1;
-                stage = FPS_PROTO;
-            } else {
-                traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
-                return 0;
-            }
-            break;
-        }
-
-        case FPS_DST_PORT_RANGE: {
-            if(*cur_pos == '[') {
-                stage_begin_pos = cur_pos + 1;
-                stage = FPS_DST_PORT_START;
-            } else {
-                traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
-                return 0;
-            }
-            break;
-        }
-
-        case FPS_DST_PORT_START: {
-            if((*cur_pos >= '0') && (*cur_pos <= '9')) {
-                ; // Normal FPS_DST_PORT_START, next char
-            } else if(*cur_pos == ',') {
-                // FPS_DST_PORT_START finish, next is FPS_DST_PORT_END
-                rule_struct->key.dst_port_range.start_port = get_int32_from_number_string(stage_begin_pos, cur_pos);
-                stage_begin_pos = cur_pos + 1;
-                stage = FPS_DST_PORT_END;
-            } else {
-                traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
-                return 0;
-            }
-            break;
-        }
-
-        case FPS_DST_PORT_END: {
-            if((*cur_pos >= '0') && (*cur_pos <= '9')) {
-                ; // Normal FPS_DST_PORT_END, next char
-            } else if(*cur_pos == ']') {
-                // FPS_DST_PORT_END finish, next is FPS_PROTO
-                rule_struct->key.dst_port_range.end_port = get_int32_from_number_string(stage_begin_pos, cur_pos);
-                stage = FPS_PROTO;
-                if(*(cur_pos + 1) == ',') {
-                    stage_begin_pos = cur_pos + 2;
-                    ++cur_pos; //skip next char ','
-                } else if(*(cur_pos + 1) != 0) {
+                if((*cur_pos >= '0') && (*cur_pos <= '9')) {
+                    ; // Normal FPS_DST_PORT_SINGLE, next char
+                } else if((*cur_pos == ',') || (*cur_pos == 0)) {
+                    // FPS_DST_PORT_SINGLE finish, next is FPS_PROTO
+                    rule_struct->key.dst_port_range.start_port = get_int32_from_number_string(stage_begin_pos, cur_pos);
+                    rule_struct->key.dst_port_range.end_port = rule_struct->key.dst_port_range.start_port;
+                    stage_begin_pos = cur_pos + 1;
+                    stage = FPS_PROTO;
+                } else {
                     traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
                     return 0;
                 }
-            } else {
-                traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
-                return 0;
+                break;
             }
-            break;
-        }
 
-        case FPS_PROTO: {
-            if((*cur_pos != '-') && (*cur_pos != '+') && (*cur_pos != ',')) {
-                ; // Normal FPS_PROTO. next char
-            } else if(*cur_pos != ',') {
-                process_traffic_filter_proto(stage_begin_pos, cur_pos + 1, rule_struct);
-                if(*(cur_pos+1) == 0) { // end of whole rule string
-                    break;
-                } else { // new proto info, and skip next char ','
-                    stage_begin_pos = cur_pos + 2;
-                    ++cur_pos;
+            case FPS_DST_PORT_RANGE: {
+                if(*cur_pos == '[') {
+                    stage_begin_pos = cur_pos + 1;
+                    stage = FPS_DST_PORT_START;
+                } else {
+                    traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
+                    return 0;
                 }
-            } else {
-                traceEvent(TRACE_WARNING, "Internal Error: ',' should skiped", *cur_pos, cur_pos - rule_str);
-                return 0;
+                break;
             }
+
+            case FPS_DST_PORT_START: {
+                if((*cur_pos >= '0') && (*cur_pos <= '9')) {
+                    ; // Normal FPS_DST_PORT_START, next char
+                } else if(*cur_pos == ',') {
+                    // FPS_DST_PORT_START finish, next is FPS_DST_PORT_END
+                    rule_struct->key.dst_port_range.start_port = get_int32_from_number_string(stage_begin_pos, cur_pos);
+                    stage_begin_pos = cur_pos + 1;
+                    stage = FPS_DST_PORT_END;
+                } else {
+                    traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
+                    return 0;
+                }
+                break;
+            }
+
+            case FPS_DST_PORT_END: {
+                if((*cur_pos >= '0') && (*cur_pos <= '9')) {
+                    ; // Normal FPS_DST_PORT_END, next char
+                } else if(*cur_pos == ']') {
+                    // FPS_DST_PORT_END finish, next is FPS_PROTO
+                    rule_struct->key.dst_port_range.end_port = get_int32_from_number_string(stage_begin_pos, cur_pos);
+                    stage = FPS_PROTO;
+                    if(*(cur_pos + 1) == ',') {
+                        stage_begin_pos = cur_pos + 2;
+                        ++cur_pos; //skip next char ','
+                    } else if(*(cur_pos + 1) != 0) {
+                        traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
+                        return 0;
+                    }
+                } else {
+                    traceEvent(TRACE_WARNING, "process filter rule with error char %c at pos %d", *cur_pos, cur_pos - rule_str);
+                    return 0;
+                }
+                break;
+            }
+
+            case FPS_PROTO: {
+                if((*cur_pos != '-') && (*cur_pos != '+') && (*cur_pos != ',')) {
+                    ; // Normal FPS_PROTO. next char
+                } else if(*cur_pos != ',') {
+                    process_traffic_filter_proto(stage_begin_pos, cur_pos + 1, rule_struct);
+                    if(*(cur_pos+1) == 0) { // end of whole rule string
+                        break;
+                    } else { // new proto info, and skip next char ','
+                        stage_begin_pos = cur_pos + 2;
+                        ++cur_pos;
+                    }
+                } else {
+                    traceEvent(TRACE_WARNING, "Internal Error: ',' should skiped", *cur_pos, cur_pos - rule_str);
+                    return 0;
+                }
+                break;
+            }
+        }
+
+        if(0 == *cur_pos) {
             break;
         }
-    }
-
-    if(0 == *cur_pos) {
-        break;
-    }
-    ++cur_pos;
+        ++cur_pos;
     }
 
     return 1;

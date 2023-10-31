@@ -19,6 +19,8 @@
 #include "defs.h"
 #include <iphlpapi.h>
 
+#include "../peer_info.h"   // FIXME: untangle include
+
 #include "edge_utils_win32.h"
 
 /* ************************************** */

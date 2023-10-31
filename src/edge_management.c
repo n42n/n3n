@@ -33,6 +33,7 @@
 #include "management.h"    // for mgmt_req_t, send_reply, send_json_1str
 #include "n2n_define.h"    // for N2N_PKT_BUF_SIZE, N2N_EVENT_DEBUG, N2N_EVE...
 #include "n2n_typedefs.h"  // for n2n_edge_t, peer_info, n2n_edge_conf_t
+#include "peer_info.h"     // for peer_info, peer_info_t
 #include "sn_selection.h"  // for sn_selection_criterion_str, selection_crit...
 #include "strbuf.h"        // for strbuf_t, STRBUF_INIT
 #include "uthash.h"        // for UT_hash_handle, HASH_ITER
@@ -383,7 +384,10 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
     /* we reuse the buffer already on the stack for all our strings */
     STRBUF_INIT(buf, udp_buf, N2N_SN_PKTBUF_SIZE);
 
-    mgmt_req_init2(req, buf, (char *)&cmdlinebuf);
+    if(!mgmt_req_init2(req, buf, (char *)&cmdlinebuf)) {
+        // if anything failed during init
+        return;
+    }
 
     if(req->type == N2N_MGMT_SUB) {
         int handler;
@@ -609,7 +613,7 @@ void readFromMgmtSocket (n2n_edge_t *eee) {
         msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
                             "%-19s %1s%1s | %-17s | %-21s | %-15s | %9s | %10s\n",
                             peer->version,
-                            (peer->purgeable == false) ? "l" : "",
+                            (peer->purgeable) ? "" : "l",
                             (peer == eee->curr_sn) ? (eee->sn_wait ? "." : "*" ) : "",
                             is_null_mac(peer->mac_addr) ? "" : macaddr_str(mac_buf, peer->mac_addr),
                             sock_to_cstr(sockbuf, &(peer->sock)),

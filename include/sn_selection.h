@@ -1,5 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +19,9 @@
 
 #ifndef _SN_SELECTION_
 #define _SN_SELECTION_
+
+// FIXME: including the private header in a public interface, should untangle
+#include "../src/peer_info.h" // for peer_info, peer_info_t
 
 typedef char selection_criterion_str_t[SN_SELECTION_CRITERION_BUF_SIZE];
 

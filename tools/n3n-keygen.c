@@ -24,7 +24,7 @@
 #include "n2n.h"     // for n2n_private_public_key_t, N2N_USER_KEY_LINE_STARTER
 
 
-int main(int argc, char * argv[]) {
+int main (int argc, char * argv[]) {
 
     n2n_private_public_key_t prv;  /* 32 bytes private key                        */
     n2n_private_public_key_t bin;  /* 32 bytes public key binary output buffer    */
@@ -35,13 +35,13 @@ int main(int argc, char * argv[]) {
     if(argc != 3) {
         // error message to stderr to not interfere with batch usage
         fprintf(stderr, "\n"
-                        "n3n-keygen tool\n\n"
-                        "  usage:  n3n-keygen <username> <password>\n\n"
-                        "     or   n3n-keygen -F <federation name>\n\n"
-                        "          outputs a line to insert at supernode's community file for user-and-\n"
-                        "          password authentication or a command line parameter with the public\n"
-                        "          federation key for use at edge's command line, please refer to the\n"
-                        "          doc/Authentication.md document or the man pages for more details\n\n");
+                "n3n-keygen tool\n\n"
+                "  usage:  n3n-keygen <username> <password>\n\n"
+                "     or   n3n-keygen -F <federation name>\n\n"
+                "          outputs a line to insert at supernode's community file for user-and-\n"
+                "          password authentication or a command line parameter with the public\n"
+                "          federation key for use at edge's command line, please refer to the\n"
+                "          doc/Authentication.md document or the man pages for more details\n\n");
         return 1;
     }
 

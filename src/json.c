@@ -190,12 +190,12 @@ static json_object_t *_json_parse (char *str, int *offset) {
             }
             obj->pairs[obj->count - 1] = tempPtr;
 
-        } else if (*str == ',') {
+        } else if(*str == ',') {
             obj->count++;
             obj->pairs = (json_pair_t*)realloc(obj->pairs, obj->count * sizeof(json_pair_t));
             str++;
             _offset++;
-        } else if (*str == '}') {
+        } else if(*str == '}') {
             (*offset) += _offset + 1;
             return obj;
         }

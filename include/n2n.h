@@ -1,5 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +30,7 @@
 
 
     tunctl -u UID -t tunX
-*/
+ */
 
 #define SN_MANUAL_MAC   /* allows supernode MAC address to be set manually */
 
@@ -123,7 +124,7 @@ void setTraceFile (FILE *f);
 int getTraceLevel ();
 void closeTraceFile ();
 void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...);
-#define traceEvent(level, format, ...) _traceEvent(level, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define traceEvent(level, format, ...) _traceEvent(level, __FILE__, __LINE__, format, ## __VA_ARGS__)
 
 /* Tuntap API */
 int tuntap_open (struct tuntap_dev *device, char *dev, const char *address_mode, char *device_ip,
@@ -162,22 +163,7 @@ int sock_equal (const n2n_sock_t * a,
 
 /* Header encryption */
 uint64_t time_stamp (void);
-uint64_t initial_time_stamp (void);
 int time_stamp_verify_and_update (uint64_t stamp, uint64_t * previous_stamp, int allow_jitter);
-
-/* Operations on peer_info lists. */
-size_t purge_peer_list (struct peer_info ** peer_list,
-                        SOCKET socket_not_to_close,
-                        n2n_tcp_connection_t **tcp_connections,
-                        time_t purge_before);
-
-size_t clear_peer_list (struct peer_info ** peer_list);
-
-size_t purge_expired_nodes (struct peer_info **peer_list,
-                            SOCKET socket_not_to_close,
-                            n2n_tcp_connection_t **tcp_connections,
-                            time_t *p_last_purge,
-                            int frequency, int timeout);
 
 /* Edge conf */
 void edge_init_conf_defaults (n2n_edge_conf_t *conf);

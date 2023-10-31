@@ -39,7 +39,7 @@
 typedef struct cc20_context_t {
     EVP_CIPHER_CTX      *ctx;                    /* openssl's reusable evp_* en/de-cryption context */
     const EVP_CIPHER    *cipher;                 /* cipher to use: e.g. EVP_chacha20() */
-    uint8_t             key[CC20_KEY_BYTES];     /* the pure key data for payload encryption & decryption */
+    uint8_t key[CC20_KEY_BYTES];                 /* the pure key data for payload encryption & decryption */
 } cc20_context_t;
 
 

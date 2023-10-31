@@ -10,7 +10,7 @@
 ###
 [
     {
-        "rx_pkt": 0,
+        "rx_pkt": 2,
         "tx_pkt": 2,
         "type": "transop"
     },
@@ -20,19 +20,42 @@
         "type": "p2p"
     },
     {
-        "rx_pkt": 0,
+        "rx_pkt": 2,
         "tx_pkt": 2,
         "type": "super"
     },
     {
-        "rx_pkt": 0,
+        "rx_pkt": 2,
         "tx_pkt": 2,
         "type": "super_broadcast"
     }
 ]
 
 ###
-[]
+[
+    {
+        "desc": "",
+        "ip4addr": "",
+        "last_p2p": 0,
+        "last_sent_query": 0,
+        "local": 0,
+        "macaddr": "",
+        "mode": "pSp",
+        "purgeable": 1,
+        "sockaddr": "127.0.0.1:7654"
+    },
+    {
+        "desc": "",
+        "ip4addr": "",
+        "last_p2p": 0,
+        "last_sent_query": 0,
+        "local": 0,
+        "macaddr": "",
+        "mode": "pSp",
+        "purgeable": 1,
+        "sockaddr": "127.0.0.1:7654"
+    }
+]
 
 ###
 [

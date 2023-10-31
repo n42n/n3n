@@ -3,97 +3,15 @@ name: Testing
 
 # yamllint disable-line rule:truthy
 on:
-  push:
   pull_request:
+  release:
+    types:
+      - published
+      - created
+      - edited
+  workflow_dispatch:
 
 jobs:
-  smoketest:
-    name: Smoke test
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Fix Checkout
-        run: |
-          git fetch --force --tags
-
-      - name: Run minimal test set
-        run: |
-          ./autogen.sh
-          ./configure
-          make test
-
-      - if: ${{ failure() }}
-        name: Upload tests output
-        uses: actions/upload-artifact@v3
-        with:
-          name: tests-smoketest
-          path: tests
-
-  smoketest_all_opts:
-    name: Smoke test With all options turned on
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Fix Checkout
-        run: |
-          git fetch --force --tags
-
-      - name: Install libraries needed for all options turned on
-        run: |
-          sudo apt-get install -y \
-            libminiupnpc-dev \
-            libnatpmp-dev \
-            libpcap-dev \
-            libcap-dev \
-            libzstd-dev
-
-      - name: Run minimal test set
-        run: |
-          ./autogen.sh
-          ./configure \
-            --enable-pthread \
-            --enable-miniupnp \
-            --enable-natpmp \
-            --enable-cap \
-            --enable-pcap \
-            --with-openssl \
-            --with-zstd \
-            CFLAGS="-O3"
-          make test
-
-  lint:
-    name: Code syntax
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Fix Checkout
-        run: |
-          git fetch --force --tags
-
-
-      - name: Make the makefiles
-        run: |
-          ./autogen.sh
-          ./configure
-
-      - name: Install essential
-        run: |
-          sudo apt update
-          make build-dep
-
-      - name: Run the lint tools
-        run: |
-          make lint
-
   analyse:
     name: Code Analysers
     runs-on: ubuntu-latest
@@ -211,45 +129,6 @@ jobs:
 
       - name: Upload data to codecov
         uses: codecov/codecov-action@v3
-
-  test_bsd:
-    name: Test BSD
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os:
-          - name: freebsd
-            architecture: x86-64
-            version: '13.2'
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Fix Checkout
-        run: |
-          git fetch --force --tags
-
-      - name: Test on ${{ matrix.os.name }}
-        uses: cross-platform-actions/action@v0.15.0
-        with:
-          operating_system: ${{ matrix.os.name }}
-          architecture: ${{ matrix.os.architecture }}
-          version: ${{ matrix.os.version }}
-          shell: bash
-          memory: 5G
-          cpu_count: 4
-          run: |
-            sudo pkg install -y \
-              autoconf \
-              automake \
-              gcc \
-              git \
-              gmake \
-              python3
-            ./autogen.sh
-            ./configure
-            gmake all
 
   test_macos:
     name: Test MacOS

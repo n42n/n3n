@@ -84,7 +84,7 @@ static void squeeze (unsigned int a[32]) {
 
 
 static const unsigned int minusp[32] = { 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128 };
+                                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128 };
 
 
 static void freeze (unsigned int a[32]) {
@@ -220,7 +220,7 @@ static void mainloop (unsigned int work[64], const unsigned char e[32]) {
         select(xzmb, xzm1b, xzm, xzm1, b);
         add(a0, xzmb, xzmb + 32);
         sub(a0 + 32, xzmb, xzmb + 32);
-        add (a1, xzm1b, xzm1b + 32);
+        add(a1, xzm1b, xzm1b + 32);
         sub(a1 + 32, xzm1b, xzm1b + 32);
         square(b0, a0);
         square(b0 + 32, a0 + 32);
@@ -230,7 +230,7 @@ static void mainloop (unsigned int work[64], const unsigned char e[32]) {
         sub(c1 + 32, b1, b1 + 32);
         square(r, c1 + 32);
         sub(s, b0, b0 + 32);
-        mult121665 (t, s);
+        mult121665(t, s);
         add(u, t, b0);
         mult(xznb, b0, b0 + 32);
         mult(xznb + 32, s, u);
@@ -336,13 +336,13 @@ void curve25519 (unsigned char *q, const unsigned char *n, const unsigned char *
     unsigned char e[32];
     unsigned int i;
 
-    for (i = 0; i < 32; ++i)
+    for(i = 0; i < 32; ++i)
         e[i] = n[i];
     e[0] &= 248;
     e[31] &= 127;
     e[31] |= 64;
 
-    for (i = 0; i < 32; ++i)
+    for(i = 0; i < 32; ++i)
         work[i] = p[i];
     work[31] &= 127;
 

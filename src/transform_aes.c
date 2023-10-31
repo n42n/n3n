@@ -118,7 +118,7 @@ static int transop_encode_aes (n2n_trans_op_t *arg,
         } else
             traceEvent(TRACE_ERROR, "transop_encode_aes outbuf too small");
     } else
-    traceEvent(TRACE_ERROR, "transop_encode_aes inbuf too big to encrypt");
+        traceEvent(TRACE_ERROR, "transop_encode_aes inbuf too big to encrypt");
 
     return idx;
 }
@@ -140,9 +140,9 @@ static int transop_decode_aes (n2n_trans_op_t *arg,
     uint8_t buf[AES_BLOCK_SIZE];
     int len = -1;
 
-     if(((in_len - AES_PREAMBLE_SIZE) <= N2N_PKT_BUF_SIZE) /* cipher text fits in assembly */
-      && (in_len >= AES_PREAMBLE_SIZE)                     /* has at least random number */
-      && (in_len >= AES_BLOCK_SIZE)) {                     /* minimum size requirement for cipher text stealing */
+    if(((in_len - AES_PREAMBLE_SIZE) <= N2N_PKT_BUF_SIZE)  /* cipher text fits in assembly */
+       && (in_len >= AES_PREAMBLE_SIZE)                    /* has at least random number */
+       && (in_len >= AES_BLOCK_SIZE)) {                    /* minimum size requirement for cipher text stealing */
         traceEvent(TRACE_DEBUG, "transop_decode_aes %lu bytes ciphertext", in_len);
 
         rest = in_len % AES_BLOCK_SIZE;
@@ -185,9 +185,9 @@ static int transop_decode_aes (n2n_trans_op_t *arg,
 
 static int setup_aes_key (transop_aes_t *priv, const uint8_t *password, ssize_t password_len) {
 
-    unsigned char   key_mat[32];     /* maximum aes key length, equals hash length */
+    unsigned char key_mat[32];       /* maximum aes key length, equals hash length */
     unsigned char   *key;
-    size_t          key_size;
+    size_t key_size;
 
     // let the user choose the degree of encryption:
     // long input passwords will pick AES192 or AES256 with more robust but expensive encryption
@@ -211,7 +211,7 @@ static int setup_aes_key (transop_aes_t *priv, const uint8_t *password, ssize_t 
     key = key_mat + sizeof(key_mat) - key_size;
 
     // setup the key and have corresponding context created
-    if(aes_init (key, key_size, &(priv->ctx))) {
+    if(aes_init(key, key_size, &(priv->ctx))) {
         traceEvent(TRACE_ERROR, "setup_aes_key %u-bit key setup unsuccessful", key_size * 8);
         return -1;
     }

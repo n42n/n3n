@@ -32,7 +32,7 @@ sleep 0.1
 
 docmd "${TOPDIR}"/scripts/n3n-ctl communities
 docmd "${TOPDIR}"/scripts/n3n-ctl packetstats
-docmd "${TOPDIR}"/scripts/n3n-ctl edges --raw
+docmd "${TOPDIR}"/scripts/n3n-ctl edges --raw |grep -v "last_seen"
 
 # TODO:
 # docmd ${TOPDIR}/scripts/n3n-ctl supernodes --raw

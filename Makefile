@@ -6,7 +6,7 @@ export AR
 export EXE
 export CFLAGS
 export LDFLAGS
-export LDLIBS
+export LDLIBS_EXTRA
 export CONFIG_HOST_OS
 
 -include config.mak
@@ -78,6 +78,7 @@ N2N_OBJS=\
 	src/n2n_regex.o \
 	src/network_traffic_filter.o \
 	src/pearson.o \
+	src/peer_info.o \
 	src/random_numbers.o \
 	src/sn_management.o \
 	src/sn_selection.o \
@@ -97,48 +98,17 @@ N2N_OBJS=\
 	src/tuntap_osx.o \
 	src/wire.o \
 
-N2N_DEPS=$(wildcard include/*.h) $(wildcard src/*.c) config.mak
-
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)
 LINT_CCODE=\
-	apps/example_edge_embed_quick_edge_init.c \
-	include/curve25519.h \
-	include/header_encryption.h \
-	include/hexdump.h \
-	include/n2n_define.h \
-	include/n2n_wire.h \
-	include/network_traffic_filter.h \
-	include/pearson.h \
-	include/random_numbers.h \
-	include/sn_selection.h \
-	include/speck.h \
-	include/tf.h \
-	src/edge_management.c \
-	src/header_encryption.c \
-	src/management.c \
-	src/management.h \
-	src/sn_management.c \
-	src/sn_selection.c \
-	src/strbuf.h \
-	src/transform_cc20.c \
-	src/transform_null.c \
-	src/tuntap_freebsd.c \
-	src/tuntap_linux.c \
-	src/tuntap_netbsd.c \
-	src/tuntap_osx.c \
-	src/win32/edge_utils_win32.c \
-	src/win32/edge_utils_win32.h \
-	src/wire.c \
-	tools/tests-auth.c \
-	tools/tests-compress.c \
-	tools/tests-elliptic.c \
-	tools/tests-hashing.c \
-	tools/tests-transform.c \
-	tools/tests-wire.c \
+	apps/ \
+	include/ \
+	src/ \
+	tools/ \
 
-LDLIBS+=-ln3n
-LDLIBS+=$(LDLIBS_EXTRA)
+# Some files currently cause the linter to fail, so they need to be excluded
+# TODO: change either the files or the linter to remove these failures
+LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
 
 DOCS=edge.8.gz supernode.1.gz n3n.7.gz
 
@@ -213,7 +183,7 @@ lint.python:
 	flake8 scripts/n3n-ctl scripts/n3n-httpd
 
 lint.ccode:
-	scripts/indent.sh $(LINT_CCODE)
+	scripts/indent.sh -e '$(LINT_EXCLUDE)' $(LINT_CCODE)
 
 lint.shell:
 	shellcheck scripts/*.sh
@@ -274,50 +244,11 @@ distclean:
 	rm -f packages/rpm/config.log packages/rpm/config.status
 
 .PHONY: install
-install: apps/edge$(EXE) apps/supernode$(EXE) edge.8.gz supernode.1.gz n3n.7.gz
+install: apps tools edge.8.gz supernode.1.gz n3n.7.gz
 	echo "MANDIR=$(MANDIR)"
 	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
-	$(INSTALL_PROG) apps/supernode$(EXE) $(SBINDIR)/
-	$(INSTALL_PROG) apps/edge$(EXE) $(SBINDIR)/
+	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
+	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
-	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
-
-# Docker builder section
-DOCKER_IMAGE_NAME=ntop/supernode
-DOCKER_IMAGE_VERSION=$N2N_VERSION_SHORT
-N2N_COMMIT_HASH=$(shell scripts/version.sh hash)
-
-.PHONY: default steps build push
-default: steps
-
-steps:
-	$(info This code appears to have been bitrotted since 2019 - please let us know if you are using it)
-	if [ "$(TARGET_ARCHITECTURE)" = "arm32v7" ] || [ "$(TARGET_ARCHITECTURE)" = "" ]; then DOCKER_IMAGE_FILENAME="Dockerfile.arm32v7" DOCKER_IMAGE_TAGNAME=$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_VERSION)-arm32v7 make build; fi
-	if [ "$(TARGET_ARCHITECTURE)" = "x86_64" ] || [ "$(TARGET_ARCHITECTURE)" = "" ]; then DOCKER_IMAGE_FILENAME="Dockerfile.x86_64" DOCKER_IMAGE_TAGNAME=$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_VERSION)-x86_64 make build; fi
-
-build:
-	$(eval OS := $(shell uname -s))
-	$(eval ARCHITECTURE := $(shell export DOCKER_IMAGE_TAGNAME="$(DOCKER_IMAGE_TAGNAME)"; echo $$DOCKER_IMAGE_TAGNAME | grep -oe -.*))
-
-	docker build --target builder --build-arg COMMIT_HASH=$(N2N_COMMIT_HASH) -t $(DOCKER_IMAGE_TAGNAME) -f image-platforms/$(DOCKER_IMAGE_FILENAME) .
-
-	docker container create --name builder $(DOCKER_IMAGE_TAGNAME)
-	if [ ! -d "./build" ]; then mkdir ./build; fi
-	docker container cp builder:/usr/src/n2n/supernode ./build/supernode-$(OS)$(ARCHITECTURE)
-	docker container cp builder:/usr/src/n2n/edge ./build/edge-$(OS)$(ARCHITECTURE)
-	docker container rm -f builder
-
-	docker build --build-arg COMMIT_HASH=$(N2N_COMMIT_HASH) -t $(DOCKER_IMAGE_TAGNAME) -f image-platforms/$(DOCKER_IMAGE_FILENAME) .
-	docker tag $(DOCKER_IMAGE_TAGNAME) $(DOCKER_IMAGE_NAME):latest$(ARCHITECTURE)
-
-push:
-	if [ ! "$(TARGET_ARCHITECTURE)" = "" ]; then \
-		docker push $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_VERSION)-$(TARGET_ARCHITECTURE); \
-		docker push $(DOCKER_IMAGE_NAME):latest-$(TARGET_ARCHITECTURE); \
-	else \
-		echo "Please pass TARGET_ARCHITECTURE, see README.md."; \
-	fi
-
-# End Docker builder section

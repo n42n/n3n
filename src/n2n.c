@@ -1,5 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +54,7 @@ SOCKET open_socket (int local_port, in_addr_t address, int type /* 0 = UDP, TCP 
     struct sockaddr_in local_address;
     int sockopt;
 
-    if((int)(sock_fd = socket(PF_INET, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM) , 0)) < 0) {
+    if((int)(sock_fd = socket(PF_INET, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
         traceEvent(TRACE_ERROR, "Unable to create socket [%s][%d]\n",
                    strerror(errno), sock_fd);
         return(-1);
@@ -171,17 +172,17 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
             syslog(LOG_INFO, "%s", out_buf);
         } else {
 #endif
-            for(i = strlen(file) - 1; i > 0; i--) {
-                if((file[i] == '/') || (file[i] == '\\')) {
-                    i++;
-                    break;
-                }
+        for(i = strlen(file) - 1; i > 0; i--) {
+            if((file[i] == '/') || (file[i] == '\\')) {
+                i++;
+                break;
             }
-            snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
-            fprintf(traceFile, "%s\n", out_buf);
-            fflush(traceFile);
-#ifndef _WIN32
         }
+        snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
+        fprintf(traceFile, "%s\n", out_buf);
+        fflush(traceFile);
+#ifndef _WIN32
+    }
 #endif
     }
 
@@ -240,7 +241,7 @@ uint32_t bitlen2mask (uint8_t bitlen) {
     uint8_t i;
     uint32_t mask = 0;
 
-    for (i = 1; i <= bitlen; ++i) {
+    for(i = 1; i <= bitlen; ++i) {
         mask |= 1 << (32 - i);
     }
 
@@ -253,7 +254,7 @@ uint8_t mask2bitlen (uint32_t mask) {
 
     uint8_t i, bitlen = 0;
 
-    for (i = 0; i < 32; ++i) {
+    for(i = 0; i < 32; ++i) {
         if((mask << i) & 0x80000000) {
             ++bitlen;
         } else {
@@ -304,7 +305,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
             sn->port = atoi(supernode_port);
             nameerr = getaddrinfo(supernode_host, NULL, &aihints, &ainfo);
             if(0 == nameerr) {
-               /* ainfo s the head of a linked list if non-NULL. */
+                /* ainfo s the head of a linked list if non-NULL. */
                 if(ainfo && (PF_INET == ainfo->ai_family)) {
                     /* It is definitely and IPv4 address -> sockaddr_in */
                     saddr = (struct sockaddr_in *)ainfo->ai_addr;
@@ -339,12 +340,12 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
 
 
 #ifdef HAVE_LIBPTHREAD
-N2N_THREAD_RETURN_DATATYPE resolve_thread(N2N_THREAD_PARAMETER_DATATYPE p) {
+N2N_THREAD_RETURN_DATATYPE resolve_thread (N2N_THREAD_PARAMETER_DATATYPE p) {
 
     n2n_resolve_parameter_t *param = (n2n_resolve_parameter_t*)p;
     n2n_resolve_ip_sock_t   *entry, *tmp_entry;
-    time_t                  rep_time = N2N_RESOLVE_INTERVAL / 10;
-    time_t                  now;
+    time_t rep_time = N2N_RESOLVE_INTERVAL / 10;
+    time_t now;
 
     while(1) {
         sleep(N2N_RESOLVE_INTERVAL / 60); /* wake up in-between to check for signaled requests */
@@ -362,10 +363,10 @@ N2N_THREAD_RETURN_DATATYPE resolve_thread(N2N_THREAD_PARAMETER_DATATYPE p) {
                 entry->error_code = supernode2sock(&entry->sock, entry->org_ip);
                 // if socket changed and no error
                 if(!sock_equal(&entry->sock, entry->org_sock)
-                  && (!entry->error_code)) {
+                   && (!entry->error_code)) {
                     // flag the change
                     param->changed = 1;
-               }
+                }
             }
             param->last_resolved = now;
 
@@ -394,7 +395,7 @@ int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn
 #ifdef HAVE_LIBPTHREAD
     struct peer_info        *sn, *tmp_sn;
     n2n_resolve_ip_sock_t   *entry;
-    int                     ret;
+    int ret;
 
     // create parameter structure
     *param = (n2n_resolve_parameter_t*)calloc(1, sizeof(n2n_resolve_parameter_t));
@@ -469,8 +470,8 @@ uint8_t resolve_check (n2n_resolve_parameter_t *param, uint8_t requires_resoluti
                 HASH_ITER(hh, param->list, entry, tmp_entry) {
                     memcpy(entry->org_sock, &entry->sock, sizeof(n2n_sock_t));
                     traceEvent(TRACE_INFO, "resolve_check renews ip address of supernode '%s' to %s",
-                                           entry->org_ip, sock_to_cstr(sock_buf, &(entry->sock)));
-               }
+                               entry->org_ip, sock_to_cstr(sock_buf, &(entry->sock)));
+                }
             }
 
             // let the resolver thread know eventual difficulties in reaching the supernode
@@ -524,12 +525,10 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
         }
 
         if((peer == NULL) && (*skip_add == SN_ADD)) {
-            peer = (struct peer_info*)calloc(1, sizeof(struct peer_info));
+            peer = peer_info_malloc(mac);
             if(peer) {
                 sn_selection_criterion_default(&(peer->selection_criterion));
-                peer->last_valid_time_stamp = initial_time_stamp();
                 memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
-                memcpy(peer->mac_addr, mac, sizeof(n2n_mac_t));
                 HASH_ADD_PEER(*sn_list, peer);
                 *skip_add = SN_ADD_ADDED;
             }
@@ -622,84 +621,6 @@ void print_n2n_version () {
 }
 
 /* *********************************************** */
-
-size_t purge_expired_nodes (struct peer_info **peer_list,
-                            SOCKET socket_not_to_close,
-                            n2n_tcp_connection_t **tcp_connections,
-                            time_t *p_last_purge,
-                            int frequency, int timeout) {
-
-    time_t now = time(NULL);
-    size_t num_reg = 0;
-
-    if((now - (*p_last_purge)) < frequency) {
-        return 0;
-    }
-
-    traceEvent(TRACE_DEBUG, "Purging old registrations");
-
-    num_reg = purge_peer_list(peer_list, socket_not_to_close, tcp_connections, now - timeout);
-
-    (*p_last_purge) = now;
-    traceEvent(TRACE_DEBUG, "Remove %ld registrations", num_reg);
-
-    return num_reg;
-}
-
-/** Purge old items from the peer_list, eventually close the related socket, and
-  * return the number of items that were removed. */
-size_t purge_peer_list (struct peer_info **peer_list,
-                        SOCKET socket_not_to_close,
-                        n2n_tcp_connection_t **tcp_connections,
-                        time_t purge_before) {
-
-    struct peer_info *scan, *tmp;
-    n2n_tcp_connection_t *conn;
-    size_t retval = 0;
-
-    HASH_ITER(hh, *peer_list, scan, tmp) {
-        if(scan->purgeable && scan->last_seen < purge_before) {
-            if((scan->socket_fd >=0) && (scan->socket_fd != socket_not_to_close)) {
-                if(tcp_connections) {
-                    HASH_FIND_INT(*tcp_connections, &scan->socket_fd, conn);
-                    if(conn) {
-                        HASH_DEL(*tcp_connections, conn);
-                        free(conn);
-                    }
-                    shutdown(scan->socket_fd, SHUT_RDWR);
-                    closesocket(scan->socket_fd);
-                }
-            }
-            HASH_DEL(*peer_list, scan);
-            mgmt_event_post(N2N_EVENT_PEER,N2N_EVENT_PEER_PURGE,scan);
-            /* FIXME: generates events for more than just p2p */
-            retval++;
-            free(scan);
-        }
-    }
-
-    return retval;
-}
-
-/** Purge all items from the peer_list and return the number of items that were removed. */
-size_t clear_peer_list (struct peer_info ** peer_list) {
-
-    struct peer_info *scan, *tmp;
-    size_t retval = 0;
-
-    HASH_ITER(hh, *peer_list, scan, tmp) {
-        if (scan->purgeable == false && scan->ip_addr) {
-            free(scan->ip_addr);
-        }
-        HASH_DEL(*peer_list, scan);
-        mgmt_event_post(N2N_EVENT_PEER,N2N_EVENT_PEER_CLEAR,scan);
-        /* FIXME: generates events for more than just p2p */
-        retval++;
-        free(scan);
-    }
-
-    return retval;
-}
 
 static uint8_t hex2byte (const char * s) {
 
@@ -941,13 +862,6 @@ uint64_t time_stamp (void) {
     previously_issued_time_stamp = micro_seconds;
 
     return micro_seconds;
-}
-
-
-// returns an initial time stamp for use with replay protection
-uint64_t initial_time_stamp (void) {
-
-    return time_stamp() - TIME_STAMP_FRAME;
 }
 
 

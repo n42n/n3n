@@ -115,7 +115,7 @@ static int transop_encode_tf (n2n_trans_op_t *arg,
                 memcpy(outbuf + padded_len - 2 * TF_BLOCK_SIZE, buf, TF_BLOCK_SIZE);
             }
         } else
-          traceEvent(TRACE_ERROR, "transop_encode_tf outbuf too small");
+            traceEvent(TRACE_ERROR, "transop_encode_tf outbuf too small");
     } else
         traceEvent(TRACE_ERROR, "transop_encode_tf inbuf too big to encrypt");
 
@@ -141,8 +141,8 @@ static int transop_decode_tf (n2n_trans_op_t *arg,
     int len = -1;
 
     if(((in_len - TF_PREAMBLE_SIZE) <= N2N_PKT_BUF_SIZE) /* cipher text fits in assembly */
-     && (in_len >= TF_PREAMBLE_SIZE)                     /* has at least random number */
-     && (in_len >= TF_BLOCK_SIZE)) {                     /* minimum size requirement for cipher text stealing */
+       && (in_len >= TF_PREAMBLE_SIZE)                   /* has at least random number */
+       && (in_len >= TF_BLOCK_SIZE)) {                   /* minimum size requirement for cipher text stealing */
 
         traceEvent(TRACE_DEBUG, "transop_decode_tf %lu bytes ciphertext", in_len);
 
@@ -186,8 +186,8 @@ static int transop_decode_tf (n2n_trans_op_t *arg,
 
 static int setup_tf_key (transop_tf_t *priv, const uint8_t *password, ssize_t password_len) {
 
-    unsigned char   key[32];     /* tf key length, equals hash length */
-    size_t          key_size;
+    unsigned char key[32];       /* tf key length, equals hash length */
+    size_t key_size;
 
     // the input password always gets hashed to make a more unpredictable use of the key space
     // just think of usually reset MSB of ASCII coded password bytes
