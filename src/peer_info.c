@@ -1,11 +1,13 @@
 /**
  * (C) 2007-23 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  */
 
 #include <n2n.h>        // for time_stamp
 #include <n2n_define.h> // for TIME_STAMP_FRAME
+#include <n3n/logging.h> // for traceEvent
 #include <stdbool.h>
 #include "peer_info.h"
 

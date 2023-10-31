@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +21,7 @@
 
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
+#include <n3n/logging.h>             // for traceEvent
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t, uint32_t, uin...
 #include <stdio.h>                   // for snprintf, sprintf
@@ -32,7 +34,7 @@
 #include "auth.h"                    // for generate_private_key
 #include "portable_endian.h"         // for be16toh, htobe16
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
-#include "n2n.h"                     // for n2n_edge_t, peer_info, n2n_edge_...
+#include "n2n.h"                     // for n2n_edge_t, n2n_edge_...
 #include "n2n_wire.h"                // for encode_mac, fill_sockaddr, decod...
 #include "network_traffic_filter.h"  // for create_network_traffic_filter
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
@@ -422,9 +424,9 @@ n2n_edge_t* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     if(rc) goto edge_init_error; /* error message is printed in zstd_init */
 #endif
 
-    traceEvent(TRACE_NORMAL, "number of supernodes in the list: %d\n", HASH_COUNT(eee->conf.supernodes));
+    traceEvent(TRACE_INFO, "number of supernodes in the list: %d\n", HASH_COUNT(eee->conf.supernodes));
     HASH_ITER(hh, eee->conf.supernodes, scan, tmp) {
-        traceEvent(TRACE_NORMAL, "supernode %u => %s\n", i, (scan->ip_addr));
+        traceEvent(TRACE_INFO, "supernode %u => %s\n", i, (scan->ip_addr));
         i++;
     }
 
@@ -3224,7 +3226,7 @@ int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
 
     free(sock);
 
-    traceEvent(TRACE_NORMAL, "adding supernode = %s", sn->ip_addr);
+    traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
     conf->sn_num++;
 
     return 0;

@@ -7,13 +7,13 @@
  */
 
 
+#include <n3n/logging.h> // for traceEvent
 #include <pearson.h>     // for pearson_hash_64
 #include <stdbool.h>
 #include <stdio.h>       // for snprintf, NULL, size_t
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
 #include "management.h"
-#include "n2n.h"         // for TRACE_DEBUG, traceEvent
 
 #ifdef _WIN32
 #include "win32/defs.h"
@@ -22,10 +22,6 @@
 #include <sys/socket.h>  // for sendto, sockaddr
 #endif
 
-
-// TODO: move logging defs in their own header and include that
-void setTraceLevel (int level);
-int getTraceLevel ();
 
 ssize_t send_reply (mgmt_req_t *req, strbuf_t *buf, size_t msg_len) {
     // TODO: better error handling (counters?)

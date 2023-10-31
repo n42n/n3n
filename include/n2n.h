@@ -96,16 +96,6 @@
 
 /* ************************************** */
 
-#ifndef TRACE_ERROR
-#define TRACE_ERROR       0
-#define TRACE_WARNING     1
-#define TRACE_NORMAL      2
-#define TRACE_INFO        3
-#define TRACE_DEBUG       4
-#endif
-
-/* ************************************** */
-
 /* Transop Init Functions */
 int n2n_transop_null_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
 int n2n_transop_tf_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
@@ -116,15 +106,6 @@ int n2n_transop_lzo_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
 #ifdef HAVE_ZSTD
 int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
 #endif
-
-/* Log */
-void setTraceLevel (int level);
-void setUseSyslog (int use_syslog);
-void setTraceFile (FILE *f);
-int getTraceLevel ();
-void closeTraceFile ();
-void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...);
-#define traceEvent(level, format, ...) _traceEvent(level, __FILE__, __LINE__, format, ## __VA_ARGS__)
 
 /* Tuntap API */
 int tuntap_open (struct tuntap_dev *device, char *dev, const char *address_mode, char *device_ip,

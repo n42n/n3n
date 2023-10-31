@@ -1,5 +1,7 @@
 /**
  * (C) 2019-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +23,7 @@
 #ifdef HAVE_LIBPCAP
 
 #include <errno.h>             // for errno
+#include <n3n/logging.h>       // for traceEvent
 #include <pcap.h>
 #include <signal.h>            // for signal, SIGINT, SIGTERM
 #include "n2n.h"
@@ -237,9 +240,6 @@ int main (int argc, char* argv[]) {
     char errbuf[PCAP_ERRBUF_SIZE];
     int rv = 0;
     FILE *outf = stdout;
-
-    /* Trace to stderr to leave stdout for the PCAP dump if "-w -" is used */
-    setTraceFile(stderr);
 
     /* Init configuration */
     edge_init_conf_defaults(&conf);

@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +20,11 @@
 
 #include "config.h"
 
+#include <n3n/logging.h> // for traceEvent
 #include <stdint.h>  // for uint32_t, uint8_t
 #include <stdlib.h>  // for calloc, free
 #include <string.h>  // for memcpy, size_t
 #include "aes.h"     // for AES_BLOCK_SIZE, aes_context_t, AES128_KEY_BYTES
-#include "n2n.h"     // for TRACE_ERROR, traceEvent
 #include "portable_endian.h"  // for be32toh, htobe32
 
 

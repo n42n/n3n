@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@
 #include <ctype.h>             // for isspace
 #include <errno.h>             // for errno
 #include <getopt.h>            // for required_argument, getopt_long, no_arg...
+#include <n3n/logging.h>       // for traceEvent
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
 #include <stdint.h>            // for uint8_t, uint32_t
@@ -30,7 +32,7 @@
 #include <sys/types.h>         // for time_t, u_char, u_int
 #include <time.h>              // for time
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
-#include "n2n.h"               // for n2n_sn_t, sn_community, traceEvent
+#include "n2n.h"               // for n2n_sn_t, sn_community
 #include "pearson.h"           // for pearson_hash_64
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
@@ -674,7 +676,7 @@ int main (int argc, char * const argv[]) {
         traceEvent(TRACE_ERROR, "failed to open auxiliary TCP socket, %s", strerror(errno));
         exit(-2);
     } else {
-        traceEvent(TRACE_NORMAL, "supernode opened TCP %u (aux)", sss_node.lport);
+        traceEvent(TRACE_INFO, "supernode opened TCP %u (aux)", sss_node.lport);
     }
 
     if(-1 == listen(sss_node.tcp_sock, N2N_TCP_BACKLOG_QUEUE_SIZE)) {
@@ -716,7 +718,7 @@ int main (int argc, char * const argv[]) {
      * those
      */
     if((sss_node.userid != 0) || (sss_node.groupid != 0)) {
-        traceEvent(TRACE_NORMAL, "dropping privileges to uid=%d, gid=%d",
+        traceEvent(TRACE_INFO, "dropping privileges to uid=%d, gid=%d",
                    (signed int)sss_node.userid, (signed int)sss_node.groupid);
 
         /* Finished with the need for root privileges. Drop to unprivileged user. */

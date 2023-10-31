@@ -25,13 +25,14 @@
 
 
 #include <errno.h>       // for errno
+#include <n3n/logging.h> // for traceEvent
 #include <stdbool.h>
 #include <stdint.h>      // for uint8_t, uint32_t
 #include <stdio.h>       // for snprintf, size_t, sprintf, NULL
 #include <string.h>      // for memcmp, memcpy, strerror, strncpy
 #include <sys/types.h>   // for ssize_t, time_t
 #include "management.h"  // for mgmt_req_t, send_reply, mgmt_handler_t, mgmt...
-#include "n2n.h"         // for n2n_sn_t, sn_community, peer_info, N2N_SN_PK...
+#include "n2n.h"         // for n2n_sn_t, sn_community, N2N_SN_PK...
 #include "n2n_define.h"    // for N2N_SN_PKTBUF_SIZE, UNPURGEABLE
 #include "n2n_typedefs.h"  // for n2n_sn_t, sn_community, peer_info, sn_stats_t
 #include "peer_info.h"   // for peer_info, peer_info_t

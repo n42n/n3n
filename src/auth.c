@@ -1,5 +1,7 @@
 /*
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +20,7 @@
 
 
 #include "auth.h"
+#include <n3n/logging.h> // for traceEvent
 #include <stdlib.h>      // for calloc, free
 #include <string.h>      // for strlen, size_t
 #include "curve25519.h"  // for curve25519

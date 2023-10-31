@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@
 #include <ctype.h>                   // for isspace
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
+#include <n3n/logging.h>             // for traceEvent
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t
@@ -1070,7 +1072,7 @@ int main (int argc, char* argv[]) {
     if(conf.transop_id == N2N_TRANSFORM_ID_NULL) {
         if(conf.encrypt_key) {
             // make sure that AES is default cipher if key only (and no cipher) is specified
-            traceEvent(TRACE_WARNING, "switching to AES as key was provided");
+            traceEvent(TRACE_WARNING, "switching to AES as key was provided and no cipher set");
             conf.transop_id = N2N_TRANSFORM_ID_AES;
         }
     }
@@ -1178,7 +1180,7 @@ int main (int argc, char* argv[]) {
             // (re-)initialize the number of max concurrent pings (decreases by calling send_query_peer)
             eee->conf.number_max_sn_pings = NUMBER_SN_PINGS_INITIAL;
             send_query_peer(eee, null_mac);
-            traceEvent(TRACE_NORMAL, "send PING to supernodes");
+            traceEvent(TRACE_INFO, "send PING to supernodes");
             runlevel++;
         }
 
@@ -1219,7 +1221,7 @@ int main (int argc, char* argv[]) {
                 eee->sn_wait = 1;
                 send_register_super(eee);
                 runlevel++;
-                traceEvent(TRACE_NORMAL, "send REGISTER_SUPER to supernode [%s] asking for IP address",
+                traceEvent(TRACE_INFO, "send REGISTER_SUPER to supernode [%s] asking for IP address",
                            eee->curr_sn->ip_addr);
             } else {
                 runlevel += 2; /* skip waiting for TUNTAP IP address */
@@ -1230,7 +1232,7 @@ int main (int argc, char* argv[]) {
         if(runlevel == 3) { /* REGISTER_SUPER to get auto ip address from a sn has been sent */
             if(!eee->sn_wait) { /* TUNTAP IP address received */
                 runlevel++;
-                traceEvent(TRACE_NORMAL, "received REGISTER_SUPER_ACK from supernode for IP address asignment");
+                traceEvent(TRACE_INFO, "received REGISTER_SUPER_ACK from supernode for IP address asignment");
                 // it should be from curr_sn, but we can't determine definitely here, so no details to output
             } else if(last_action <= (now - BOOTSTRAP_TIMEOUT)) {
                 // timeout, so try next supernode

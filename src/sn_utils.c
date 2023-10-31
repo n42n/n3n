@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +20,7 @@
 
 
 #include <errno.h>              // for errno, EAFNOSUPPORT
+#include <n3n/logging.h>        // for traceEvent
 #include <stdbool.h>
 #include <stdint.h>             // for uint8_t, uint32_t, uint16_t, uint64_t
 #include <stdio.h>              // for sscanf, snprintf, fclose, fgets, fopen
@@ -31,7 +33,7 @@
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
 #include "config.h"             // for PACKAGE_VERSION
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
-#include "n2n.h"                // for sn_community, n2n_sn_t, peer_info
+#include "n2n.h"                // for sn_community, n2n_sn_t
 #include "n2n_regex.h"          // for re_matchp, re_compile
 #include "n2n_wire.h"           // for encode_buf, encode_PEER_INFO, encode_...
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
@@ -163,7 +165,7 @@ void calculate_shared_secrets (n2n_sn_t *sss) {
         }
     }
 
-    traceEvent(TRACE_NORMAL, "calculated shared secrets for edge authentication");
+    traceEvent(TRACE_INFO, "calculated shared secrets for edge authentication");
 }
 
 
@@ -841,7 +843,7 @@ int sn_init_defaults (n2n_sn_t *sss) {
 void sn_init (n2n_sn_t *sss) {
 
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
-        traceEvent(TRACE_NORMAL, "successfully created resolver thread");
+        traceEvent(TRACE_INFO, "successfully created resolver thread");
     }
 }
 

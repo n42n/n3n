@@ -18,11 +18,12 @@
  *
  */
 
-#include "n2n.h"           // for n2n_edge_t, peer_info, getTraceLevel, N2N_...
+#include "n2n.h"           // for n2n_edge_t, N2N_...
 // FIXME: if this headers is sorted alphabetically, the test_integration_edge
 // fails with what looks like a struct rearrangement involving eee->stats
 
 #include <errno.h>         // for errno
+#include <n3n/logging.h>   // for traceEvent
 #include <stdbool.h>
 #include <stdint.h>        // for uint32_t
 #include <stdio.h>         // for snprintf, size_t, NULL
@@ -32,7 +33,7 @@
 #include "config.h"        // for PACKAGE_VERSION
 #include "management.h"    // for mgmt_req_t, send_reply, send_json_1str
 #include "n2n_define.h"    // for N2N_PKT_BUF_SIZE, N2N_EVENT_DEBUG, N2N_EVE...
-#include "n2n_typedefs.h"  // for n2n_edge_t, peer_info, n2n_edge_conf_t
+#include "n2n_typedefs.h"  // for n2n_edge_t, n2n_edge_conf_t
 #include "peer_info.h"     // for peer_info, peer_info_t
 #include "sn_selection.h"  // for sn_selection_criterion_str, selection_crit...
 #include "strbuf.h"        // for strbuf_t, STRBUF_INIT
