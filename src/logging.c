@@ -51,11 +51,6 @@ void setUseSyslog (int use_syslog) {
     useSyslog = use_syslog;
 }
 
-void setTraceFile (FILE *f) {
-
-    traceFile = f;
-}
-
 void closeTraceFile () {
 
     if((traceFile != NULL) && (traceFile != stdout)) {
@@ -73,7 +68,7 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
     va_list va_ap;
 
     if(traceFile == NULL) {
-        traceFile = stdout;
+        traceFile = stderr;
     }
 
     if(eventTraceLevel <= traceLevel) {

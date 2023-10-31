@@ -19,7 +19,6 @@
 
 void setTraceLevel (int level);
 void setUseSyslog (int use_syslog);
-void setTraceFile (FILE *f);
 int getTraceLevel ();
 void closeTraceFile ();
 void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...);

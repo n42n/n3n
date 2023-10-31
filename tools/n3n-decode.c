@@ -241,9 +241,6 @@ int main (int argc, char* argv[]) {
     int rv = 0;
     FILE *outf = stdout;
 
-    /* Trace to stderr to leave stdout for the PCAP dump if "-w -" is used */
-    setTraceFile(stderr);
-
     /* Init configuration */
     edge_init_conf_defaults(&conf);
 
