@@ -5,6 +5,7 @@
  *
  */
 
+#include <n3n/logging.h>
 #include <stdarg.h>  // for va_end, va_list, va_start
 #include <stdio.h>   // for snprinf
 #include <string.h>  // for strlen
@@ -19,6 +20,7 @@ static int traceLevel = 2 /* NORMAL */;
 static int useSyslog = 0;
 static int syslog_opened = 0;
 static FILE *traceFile = NULL;
+static int output_dateprefix = -1; // initially "unknown"
 
 #ifdef _WIN32
 // Some dummy definitions to make windows compiling simpler
@@ -70,28 +72,25 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
         return;
     }
 
-    if(traceFile == NULL) {
-        traceFile = stderr;
-    }
-
     char buf[1024];
-    char out_buf[1280];
     char *extra_msg = "";
-    time_t theTime = time(NULL);
-    int i;
-
-    memset(buf, 0, sizeof(buf));
 
     va_start(va_ap, format);
-    vsnprintf(buf, sizeof(buf) - 1, format, va_ap);
+    int size = vsnprintf(buf, sizeof(buf) - 1, format, va_ap);
     va_end(va_ap);
 
-    if(eventTraceLevel == 0 /* TRACE_ERROR */) {
+    if(size > (sizeof(buf)-1)) {
+        // truncation has occured
+        buf[sizeof(buf)-1] = 0;
+    }
+
+    if(eventTraceLevel == TRACE_ERROR ) {
         extra_msg = "ERROR: ";
-    } else if(eventTraceLevel == 1 /* TRACE_WARNING */) {
+    } else if(eventTraceLevel == TRACE_WARNING ) {
         extra_msg = "WARNING: ";
     }
 
+    // Remove trailing newlines
     while(buf[strlen(buf) - 1] == '\n') {
         buf[strlen(buf) - 1] = '\0';
     }
@@ -102,19 +101,31 @@ void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...)
             syslog_opened = 1;
         }
 
-        snprintf(out_buf, sizeof(out_buf), "%s%s", extra_msg, buf);
-        syslog(LOG_INFO, "%s", out_buf);
+        syslog(LOG_INFO, "[%s:%i] %s%s", file, line, extra_msg, buf);
+        return;
     } else {
-        for(i = strlen(file) - 1; i > 0; i--) {
-            if((file[i] == '/') || (file[i] == '\\')) {
-                i++;
-                break;
+        if(output_dateprefix == -1) {
+            char *stream = getenv("JOURNAL_STREAM");
+            if(stream == NULL) {
+                output_dateprefix = 1;
+            } else {
+                // If we are outputting via the journald, avoid double dates
+                output_dateprefix = 0;
             }
         }
-        char theDate[N2N_TRACE_DATESIZE];
-        strftime(theDate, N2N_TRACE_DATESIZE, "%d/%b/%Y %H:%M:%S", localtime(&theTime));
-        snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, &file[i], line, extra_msg, buf);
-        fprintf(traceFile, "%s\n", out_buf);
+
+        char theDate[N2N_TRACE_DATESIZE] = "";
+        if(output_dateprefix == 1) {
+            time_t theTime = time(NULL);
+            strftime(theDate, N2N_TRACE_DATESIZE, "%d/%b/%Y %H:%M:%S ", localtime(&theTime));
+        }
+
+        if(traceFile == NULL) {
+            traceFile = stderr;
+        }
+
+        fprintf(traceFile, "%s[%s:%d] %s%s\n", theDate, file, line, extra_msg, buf);
         fflush(traceFile);
+        return;
     }
 }
