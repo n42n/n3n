@@ -424,9 +424,9 @@ n2n_edge_t* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     if(rc) goto edge_init_error; /* error message is printed in zstd_init */
 #endif
 
-    traceEvent(TRACE_NORMAL, "number of supernodes in the list: %d\n", HASH_COUNT(eee->conf.supernodes));
+    traceEvent(TRACE_INFO, "number of supernodes in the list: %d\n", HASH_COUNT(eee->conf.supernodes));
     HASH_ITER(hh, eee->conf.supernodes, scan, tmp) {
-        traceEvent(TRACE_NORMAL, "supernode %u => %s\n", i, (scan->ip_addr));
+        traceEvent(TRACE_INFO, "supernode %u => %s\n", i, (scan->ip_addr));
         i++;
     }
 
@@ -3226,7 +3226,7 @@ int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
 
     free(sock);
 
-    traceEvent(TRACE_NORMAL, "adding supernode = %s", sn->ip_addr);
+    traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
     conf->sn_num++;
 
     return 0;

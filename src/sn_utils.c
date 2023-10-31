@@ -165,7 +165,7 @@ void calculate_shared_secrets (n2n_sn_t *sss) {
         }
     }
 
-    traceEvent(TRACE_NORMAL, "calculated shared secrets for edge authentication");
+    traceEvent(TRACE_INFO, "calculated shared secrets for edge authentication");
 }
 
 
@@ -843,7 +843,7 @@ int sn_init_defaults (n2n_sn_t *sss) {
 void sn_init (n2n_sn_t *sss) {
 
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
-        traceEvent(TRACE_NORMAL, "successfully created resolver thread");
+        traceEvent(TRACE_INFO, "successfully created resolver thread");
     }
 }
 

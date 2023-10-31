@@ -676,7 +676,7 @@ int main (int argc, char * const argv[]) {
         traceEvent(TRACE_ERROR, "failed to open auxiliary TCP socket, %s", strerror(errno));
         exit(-2);
     } else {
-        traceEvent(TRACE_NORMAL, "supernode opened TCP %u (aux)", sss_node.lport);
+        traceEvent(TRACE_INFO, "supernode opened TCP %u (aux)", sss_node.lport);
     }
 
     if(-1 == listen(sss_node.tcp_sock, N2N_TCP_BACKLOG_QUEUE_SIZE)) {
@@ -718,7 +718,7 @@ int main (int argc, char * const argv[]) {
      * those
      */
     if((sss_node.userid != 0) || (sss_node.groupid != 0)) {
-        traceEvent(TRACE_NORMAL, "dropping privileges to uid=%d, gid=%d",
+        traceEvent(TRACE_INFO, "dropping privileges to uid=%d, gid=%d",
                    (signed int)sss_node.userid, (signed int)sss_node.groupid);
 
         /* Finished with the need for root privileges. Drop to unprivileged user. */
