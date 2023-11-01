@@ -80,7 +80,7 @@ define Package/n3n-edge/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/edge $(1)/etc/init.d/edge
 	$(INSTALL_DIR) $(1)/etc/n3n
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/packages/etc/n3n/edge.conf.sample $(1)/etc/n3n/edge.conf
+	$(INSTALL_CONF) $(PKG_BUILD_DIR)/doc/edge.conf.sample $(1)/etc/n3n/edge.conf
 endef
 
 define Package/n3n-supernode/conffiles
@@ -93,7 +93,7 @@ define Package/n3n-supernode/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/supernode $(1)/etc/init.d/supernode
 	$(INSTALL_DIR) $(1)/etc/n3n
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/packages/etc/n3n/supernode.conf.sample $(1)/etc/n3n/supernode.conf
+	$(INSTALL_CONF) $(PKG_BUILD_DIR)/doc/supernode.conf.sample $(1)/etc/n3n/supernode.conf
 endef
 
 $(eval $(call BuildPackage,n3n-edge))

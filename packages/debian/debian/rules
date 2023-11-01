@@ -47,7 +47,7 @@ binary-arch: build install
 	dh_fixperms
 	dh_installdeb
 	cp -r n3n debian
-	cp -r ../etc debian/n3n
+	cp -r ../lib debian/n3n
 	find debian/n3n -name "*.in" -exec /bin/rm {} ';'
 	find debian/n3n -name "*~" -exec /bin/rm {} ';'
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info

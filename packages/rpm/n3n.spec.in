@@ -23,7 +23,8 @@ n3n peer-to-peer VPN
 
 mkdir -p $RPM_BUILD_ROOT/usr/sbin $RPM_BUILD_ROOT/usr/share/man/man1 $RPM_BUILD_ROOT/usr/share/man/man7 $RPM_BUILD_ROOT/usr/share/man/man8
 mkdir -p $RPM_BUILD_ROOT/etc/n3n
-mkdir -p $RPM_BUILD_ROOT/usr/lib/systemd/system/
+mkdir -p $RPM_BUILD_ROOT/lib/systemd/system/
+mkdir -p $RPM_BUILD_ROOT/usr/share/doc/n3n/examples
 
 # TODO: move to %install
 cd ../../n3n # FIXME: dont hardcode sourcecode dir name
@@ -33,8 +34,9 @@ cp apps/supernode $RPM_BUILD_ROOT/usr/sbin
 cp n3n.7.gz $RPM_BUILD_ROOT/usr/share/man/man7
 cp supernode.1.gz $RPM_BUILD_ROOT/usr/share/man/man1
 cp edge.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
-cp packages/etc/systemd/system/*.service $RPM_BUILD_ROOT/usr/lib/systemd/system/
-cp packages/etc/n3n/*.conf.sample $RPM_BUILD_ROOT/etc/n3n
+cp packages/lib/systemd/system/*.service $RPM_BUILD_ROOT/lib/systemd/system/
+cp doc/*.sample $RPM_BUILD_ROOT/usr/share/doc/n3n/examples
+cp doc/community.list $RPM_BUILD_ROOT/usr/share/doc/n3n/examples
 
 find $RPM_BUILD_ROOT -name ".git" | xargs /bin/rm -rf
 find $RPM_BUILD_ROOT -name ".svn" | xargs /bin/rm -rf
@@ -53,11 +55,12 @@ rm -fr $RPM_BUILD_ROOT
 /usr/share/man/man7/n3n.7.gz
 /usr/share/man/man1/supernode.1.gz
 /usr/share/man/man8/edge.8.gz
-/usr/lib/systemd/system/edge.service
-/usr/lib/systemd/system/edge@.service
-/usr/lib/systemd/system/supernode.service
-%config(noreplace) /etc/n3n/supernode.conf.sample
-%config(noreplace) /etc/n3n/edge.conf.sample
+/lib/systemd/system/edge.service
+/lib/systemd/system/edge@.service
+/lib/systemd/system/supernode.service
+/usr/share/doc/n3n/examples/supernode.conf.sample
+/usr/share/doc/n3n/examples/edge.conf.sample
+/usr/share/doc/n3n/examples/community.list
 
 # Set the default attributes of all of the files specified to have an
 # owner and group of root and to inherit the permissions of the file
@@ -65,8 +68,8 @@ rm -fr $RPM_BUILD_ROOT
 %defattr(-, root, root)
 
 %changelog
-* Fri Aug 17 2018 Luca Deri <deri@ntop.org> 1.0
-- Current package version
+* Sun Oct 31 2021 Hamish Coleman <hamish@zot.org> 3.1.0
+- Last stable release
 
 # Execution order:
 # install:    pre -> (copy) -> post

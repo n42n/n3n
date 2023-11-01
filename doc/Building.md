@@ -94,8 +94,8 @@ The `edge.exe` program reads the `edge.conf` file located into the current direc
 
 The `supernode.exe` program reads the `supernode.conf` file located into the current directory if no option is provided.
 
-Example [edge.conf](../packages/etc/n3n/edge.conf.sample)
-and [supernode.conf](../packages/etc/n3n/supernode.conf.sample) are available.
+Example [edge.conf](edge.conf.sample)
+and [supernode.conf](supernode.conf.sample) are available.
 
 See `edge.exe --help` and `supernode.exe --help` for a full list of supported options.
 
