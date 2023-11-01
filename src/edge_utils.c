@@ -3072,6 +3072,11 @@ void edge_term (n2n_edge_t * eee) {
     closeTraceFile();
 
     free(eee);
+
+#ifdef _WIN32
+    destroyWin32();
+#endif
+
 }
 
 

@@ -276,41 +276,13 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
     return;
 }
 
-static int sendto_mgmt (n2n_sn_t *sss,
-                        const struct sockaddr *sender_sock, socklen_t sock_size,
-                        const uint8_t *mgmt_buf,
-                        size_t mgmt_size) {
-
-    ssize_t r = sendto(sss->mgmt_sock, (void *)mgmt_buf, mgmt_size, 0 /*flags*/,
-                       sender_sock, sock_size);
-
-    if(r <= 0) {
-        ++(sss->stats.errors);
-        traceEvent(TRACE_ERROR, "sendto_mgmt : sendto failed. %s", strerror(errno));
-        return -1;
-    }
-
-    return 0;
-}
-
 int process_mgmt (n2n_sn_t *sss,
                   const struct sockaddr *sender_sock, socklen_t sock_size,
                   char *mgmt_buf,
                   size_t mgmt_size,
                   time_t now) {
 
-    char resbuf[N2N_SN_PKTBUF_SIZE];
-    size_t ressize = 0;
     mgmt_req_t req;
-    uint32_t num_edges = 0;
-    uint32_t num_comm = 0;
-    uint32_t num = 0;
-    struct sn_community *community, *tmp;
-    struct peer_info *peer, *tmpPeer;
-    macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
-    char time_buf[10]; /* 9 digits + 1 terminating zero */
-    dec_ip_bit_str_t ip_bit_str = {'\0'};
 
     traceEvent(TRACE_DEBUG, "process_mgmt");
 
@@ -325,123 +297,12 @@ int process_mgmt (n2n_sn_t *sss,
     /* avoid parsing any uninitialized junk from the stack */
     mgmt_buf[mgmt_size] = 0;
 
-    // process input, if any
-    if((0 == memcmp(mgmt_buf, "help", 4)) || (0 == memcmp(mgmt_buf, "?", 1))) {
-        ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                            "Help for supernode management console:\n"
-                            "\thelp                 | This help message\n"
-                            "\treload_communities   | Reloads communities and user's public keys\n"
-                            "\t<enter>              | Display status and statistics\n");
-        sendto_mgmt(sss, sender_sock, sock_size, (const uint8_t *) resbuf, ressize);
-        return 0; /* no status output afterwards */
-    }
-
-    if(0 == memcmp(mgmt_buf, "reload_communities", 18)) {
-        if(!sss->community_file) {
-            ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                                "No community file provided (-c command line option)\n");
-            sendto_mgmt(sss, sender_sock, sock_size, (const uint8_t *) resbuf, ressize);
-            return 0; /* no status output afterwards */
-        }
-        traceEvent(TRACE_NORMAL, "'reload_communities' command");
-
-        if(load_allowed_sn_community(sss)) {
-            ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                                "Error while re-loading community file (not found or no valid content)\n");
-            sendto_mgmt(sss, sender_sock, sock_size, (const uint8_t *) resbuf, ressize);
-            return 0; /* no status output afterwards */
-        }
-        ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                            "OK.\n");
-        sendto_mgmt(sss, sender_sock, sock_size, (const uint8_t *) resbuf, ressize);
-        return 0; /* no status output afterwards */
-    }
-
     if((mgmt_buf[0] >= 'a' || mgmt_buf[0] <= 'z') && (mgmt_buf[1] == ' ')) {
         /* this is a JSON request */
         handleMgmtJson(&req, mgmt_buf, mgmt_size);
         return 0;
     }
 
-    // output current status
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        " ### | TAP                 | MAC               | EDGE                      | HINT            | LAST SEEN\n");
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "========================================================================================================\n");
-    HASH_ITER(hh, sss->communities, community, tmp) {
-        if(num_comm)
-            ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                                "--------------------------------------------------------------------------------------------------------\n");
-        num_comm++;
-        num_edges += HASH_COUNT(community->edges);
-
-        ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                            "%s '%s'\n",
-                            (community->is_federation) ? "FEDERATION" : ((community->purgeable) ? "COMMUNITY" : "FIXED NAME COMMUNITY"),
-                            (community->is_federation) ? "-/-" : community->community);
-        sendto_mgmt(sss, sender_sock, sock_size, (const uint8_t *) resbuf, ressize);
-        ressize = 0;
-
-        num = 0;
-        HASH_ITER(hh, community->edges, peer, tmpPeer) {
-            sprintf(time_buf, "%9u", (unsigned int)(now - peer->last_seen));
-            ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                                "%4u | %-19s | %-17s | %-21s %-3s | %-15s | %9s\n",
-                                ++num,
-                                (peer->dev_addr.net_addr == 0) ? ((peer->purgeable) ? "" : "-l") : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
-                                (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
-                                sock_to_cstr(sockbuf, &(peer->sock)),
-                                ((peer->socket_fd >= 0) && (peer->socket_fd != sss->sock)) ? "TCP" : "",
-                                peer->dev_desc,
-                                (peer->last_seen) ? time_buf : "");
-
-            sendto_mgmt(sss, sender_sock, sock_size, (const uint8_t *) resbuf, ressize);
-            ressize = 0;
-        }
-    }
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "========================================================================================================\n");
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "uptime %lu | ", (now - sss->start_time));
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "edges %u | ",
-                        num_edges);
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "reg_sup %u | ",
-                        (unsigned int) sss->stats.reg_super);
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "reg_nak %u | ",
-                        (unsigned int) sss->stats.reg_super_nak);
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "errors %u \n",
-                        (unsigned int) sss->stats.errors);
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "fwd %u | ",
-                        (unsigned int) sss->stats.fwd);
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "broadcast %u | ",
-                        (unsigned int) sss->stats.broadcast);
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "cur_cmnts %u\n", HASH_COUNT(sss->communities));
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "last_fwd  %lu sec ago | ",
-                        (long unsigned int) (now - sss->stats.last_fwd));
-
-    ressize += snprintf(resbuf + ressize, N2N_SN_PKTBUF_SIZE - ressize,
-                        "last reg  %lu sec ago\n\n",
-                        (long unsigned int) (now - sss->stats.last_reg_super));
-
-    sendto_mgmt(sss, sender_sock, sock_size, (const uint8_t *) resbuf, ressize);
-
+    traceEvent(TRACE_WARNING, "unknown mgmt request");
     return 0;
 }

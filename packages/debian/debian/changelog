@@ -1,4 +1,5 @@
-n3n (3.1.0) table; urgency=high
+n3n (3.1.0) stable; urgency=medium
+
    * Last stable release
 
- -- Hamish Coleman <hamish@zot.org>  Sun Oct 31 20:40:46 2021 +0000
+ -- Hamish Coleman <hamish@zot.org>  Sun, 31 Oct 2021 20:40:46 +0000
