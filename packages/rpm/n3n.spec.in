@@ -55,7 +55,6 @@ rm -fr $RPM_BUILD_ROOT
 /usr/share/man/man8/edge.8.gz
 /usr/lib/systemd/system/edge.service
 /usr/lib/systemd/system/edge@.service
-/usr/lib/systemd/system/edge-ntopng@.service
 /usr/lib/systemd/system/supernode.service
 %config(noreplace) /etc/n3n/supernode.conf.sample
 %config(noreplace) /etc/n3n/edge.conf.sample
@@ -98,7 +97,7 @@ fi
 if [ -f /bin/systemctl ]; then
   if [ ! -f /.dockerenv ]; then
       # possibly remove the installed services
-      %systemd_preun supernode.service edge.service 'edge-ntopng@*.service' 'edge@*.service'
+      %systemd_preun supernode.service edge.service 'edge@*.service'
   fi
 fi
 
@@ -106,6 +105,6 @@ fi
 if [ -f /bin/systemctl ]; then
   if [ ! -f /.dockerenv ]; then
       # possibly restart the running services
-      %systemd_postun_with_restart supernode.service edge.service 'edge-ntopng@*.service' 'edge@*.service'
+      %systemd_postun_with_restart supernode.service edge.service 'edge@*.service'
   fi
 fi
