@@ -65,7 +65,7 @@ int main (int argc, char * argv[]) {
     n2n_trans_op_t transop_speck;
     n2n_edge_conf_t conf;
 
-    print_n2n_version();
+    print_n3n_version();
 
     /* Init configuration */
     edge_init_conf_defaults(&conf);

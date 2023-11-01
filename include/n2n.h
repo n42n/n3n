@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,7 +129,7 @@ uint8_t is_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_null_mac (const n2n_mac_t dest_mac);
 char* msg_type2str (uint16_t msg_type);
 void hexdump (const uint8_t * buf, size_t len);
-void print_n2n_version ();
+void print_n3n_version ();
 int is_empty_ip_address (const n2n_sock_t * sock);
 void print_edge_stats (const n2n_edge_t *eee);
 int memrnd (uint8_t *address, size_t len);

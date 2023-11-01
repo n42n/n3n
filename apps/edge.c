@@ -163,26 +163,12 @@ static void help (int level) {
     if(level == 0) return; /* no help required */
 
     printf("\n");
-    print_n2n_version();
+    print_n3n_version();
 
     if(level == 1) {
         /* short help */
 
-        printf("   basic usage:  edge <config file> (see edge.conf)\n"
-               "\n"
-               "            or   edge "
-               " -c <community name> "
-               "\n                      "
-               " -l <supernode host>:<port> "
-               "\n                      "
-               "[-a <tap IP address>] "
-               "\n                      "
-#if defined(N2N_CAN_NAME_IFACE)
-               "[-d <tap device name>] "
-               "\n                      "
-#endif
-               "[-k <encryption key>] "
-               "\n"
+        printf("   basic usage:  edge start [sessionname]\n"
                "\n  -h    shows a quick reference including all available options"
                "\n --help gives a detailed parameter description"
                "\n   man  files for n3n, edge, and supernode contain in-depth information"
@@ -191,9 +177,11 @@ static void help (int level) {
     } else if(level == 2) {
         /* quick reference */
 
-        printf(" general usage:  edge <config file> (see edge.conf)\n"
+        printf(" general usage:  edge start [sessionname]\n"
                "\n"
-               "            or   edge "
+               "Loads a config file named from the sessionname (default 'edge.conf')\n"
+               "Any commandline options override the config loaded\n"
+               "\n                      "
                " -c <community name>"
                " -l <supernode host:port>"
                "\n                      "
@@ -286,10 +274,10 @@ static void help (int level) {
     } else {
         /* long help */
 
-        printf(" general usage:  edge <config file> (see edge.conf)\n"
+        printf(" general usage:  edge start [sessionname]\n"
                "\n"
-               "            or   edge  -c <community name> -l <supernode host:port>\n"
-               "                      [further optional command line parameters]\n\n"
+               "Loads a config file named from the sessionname (default 'edge.conf')\n"
+               "Any commandline options override the config loaded\n\n"
                );
         printf(" OPTIONS FOR THE UNDERLYING NETWORK CONNECTION\n");
         printf(" ---------------------------------------------\n\n");
@@ -913,6 +901,76 @@ static int loadFromFile (const char *path, n2n_edge_conf_t *conf, n2n_tuntap_pri
     optind = tmp;
 
     return 0;
+
+
+}
+
+static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf, n2n_tuntap_priv_config_t *ec) {
+
+    // A first pass through to reorder the argv
+    while(1) {
+        int c = getopt_long(argc, argv,
+                            // The superset of all possible short options
+                            "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S::DL:z::A::Hn:R:e:T:x:",
+                            long_options, NULL
+                            );
+        if(c==-1) {
+            // End of options
+            break;
+        }
+
+        switch(c) {
+            case 'h': /* quick reference */
+                help(2);
+            case '@': /* long help */
+                help(3);
+        }
+    }
+
+    if(optind >= argc) {
+        help(1); /* short help */
+    }
+    // We now know there is a sub command on the commandline
+
+    // This is a quick and dirty subcommand processer - it would be better if
+    // it was table driven
+    //
+    char *cmd = argv[optind];
+
+    if(strncmp(cmd,"start",6)==0) {
+        char *arg = argv[optind+1];
+
+        if(!arg) {
+            // If no session name is specified, use the default
+            arg = defname;
+        }
+
+        // TODO: want to have a searchpath for the conf file
+        // which would also allow avoiding the ifdef
+
+        char pathname[1024];
+#ifdef _WIN32
+        // load from current directory
+        snprintf(pathname, sizeof(pathname), "%s.conf", arg);
+#else
+        snprintf(pathname, sizeof(pathname), "/etc/n3n/%s.conf", arg);
+#endif
+        loadFromFile(pathname, conf, ec);
+        // Ignore any error as it currently can only be "file not found"
+    } else if(strncmp(cmd,"test",5)==0) {
+        printf("Unimplemented\n");
+        exit(1);
+    } else {
+        printf("Unknown sub command: %s\n", cmd);
+        exit(1);
+    }
+
+    optind = 1;
+
+    // Update the loaded conf with any option args
+    int rc = loadFromCLI(argc, argv, conf, ec);
+
+    return rc;
 }
 
 /* ************************************** */
@@ -1049,20 +1107,7 @@ int main (int argc, char* argv[]) {
 #endif
     snprintf(ec.netmask, sizeof(ec.netmask), N2N_EDGE_DEFAULT_NETMASK);
 
-    if((argc >= 2) && (argv[1][0] != '-')) {
-        rc = loadFromFile(argv[1], &conf, &ec);
-        if(argc > 2)
-            rc = loadFromCLI(argc, argv, &conf, &ec);
-    } else if(argc > 1)
-        rc = loadFromCLI(argc, argv, &conf, &ec);
-    else
-
-#ifdef _WIN32
-        // load from current directory
-        rc = loadFromFile("edge.conf", &conf, &ec);
-#else
-        rc = -1;
-#endif
+    rc = n3n_config(argc, argv, "edge", &conf, &ec);
 
     // --- additional crypto setup; REVISIT: move to edge_init()?
     // payload

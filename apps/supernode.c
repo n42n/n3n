@@ -65,7 +65,7 @@ static void help (int level) {
         return;
 
     printf("\n");
-    print_n2n_version();
+    print_n3n_version();
 
     if(level == 1) {
         /* short help */

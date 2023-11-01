@@ -1,8 +1,10 @@
 # Configuration Files
 
-To help deployment and better handle locally different configurations, n3n supports the optional use of configuration files for `edge` and `supernode`.
+To help deployment and better handle locally different configurations, n3n
+supports the optional use of configuration files for `edge` and `supernode`.
 
-They are plain text files and contain the desired command line options, **one per line**.
+They are plain text files and contain the desired command line options, **one
+per line**.
 
 The exemplary command line
 
@@ -24,7 +26,7 @@ translates into the following `edge.conf` file:
 which can be loaded by
 
 ```
-sudo ./edge edge.conf
+sudo ./edge start edge
 ```
 
 Comment lines starting with a hash '#' are ignored.
@@ -53,7 +55,11 @@ Long options can be used as well. Please note the double minus/dash-character `-
 -l             supernode.ntop.org:7777
 ```
 
-If using a configuration file, its filename needs to be supplied as first parameter to `edge` or `supernode`. If required, additional command line parameters can be supplied afterwards:
+The edge will attempt to locate a configuration file based on the "sessionname", which
+defaults to "edge".  This would result in a config file called "edge.conf", which is
+located in "/etc/n3n" (or the current directory on Windows)
+
+If required, additional command line parameters can also be supplied:
 
 ```
 sudo edge edge.conf -z1 -I myComputer
