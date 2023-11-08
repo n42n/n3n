@@ -38,7 +38,7 @@ int main () {
     conf.allow_routing = 1;                                                                  // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to
     conf.disable_pmtu_discovery = 1;                                                         // Whether to disable the path MTU discovery
-    conf.drop_multicast = 0;                                                                 // Whether to disable multicast
+    conf.drop_multicast = false;                                                             // Whether to disable multicast
     conf.tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;                                          // How to set the IP address
     conf.encrypt_key = "mysecret";                                                           // Secret to decrypt & encrypt with
     conf.local_port = 0;                                                                     // What port to use (0 = any port)

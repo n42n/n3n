@@ -643,7 +643,7 @@ typedef struct n2n_edge_conf {
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
     uint8_t allow_routing;                           /**< Accept packet no to interface address. */
-    uint8_t drop_multicast;                          /**< Multicast ethernet addresses. */
+    bool drop_multicast;                             /**< Multicast ethernet addresses. */
     uint8_t disable_pmtu_discovery;                  /**< Disable the Path MTU discovery. */
     uint8_t allow_p2p;                               /**< Allow P2P connection */
     uint8_t sn_num;                                  /**< Number of supernode addresses defined. */
