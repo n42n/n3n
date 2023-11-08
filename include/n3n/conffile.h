@@ -10,6 +10,7 @@
 
 enum n3n_conf_type {
     n3n_conf_strncpy,
+    n3n_conf_bool,
     // n3n_conf_int32,
 };
 

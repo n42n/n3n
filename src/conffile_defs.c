@@ -26,6 +26,20 @@ static struct n3n_conf_option section_community[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_option section_filter[] = {
+    {
+        .name = "drop_multicast",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, drop_multicast),
+        .desc = "Optionally filter multicast traffic",
+        .help = "Amungst other things, multicast is used for IPv6 neighbour "
+                "discovery.  If drop is true then these multicast packets "
+                "are discarded.",
+    },
+    {.name = NULL},
+};
+
 void n3n_conffile_defs_init () {
     n3n_config_register_section("community", section_community);
+    n3n_config_register_section("filter", section_filter);
 }

@@ -6,6 +6,7 @@
  */
 
 #include <n3n/conffile.h>
+#include <stdbool.h>            // for true, false
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
@@ -65,6 +66,18 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
 
             strncpy(dst, value, p->length);
             dst[p->length -1] = 0;
+            return 0;
+        }
+        case n3n_conf_bool: {
+            bool *dst = (bool *)((char *)conf + p->offset);
+
+            if (0==strcmp("true", value)) {
+                *dst = true;
+            } else if (0==strcmp("false", value)) {
+                *dst = false;
+            } else {
+                return -1;
+            }
             return 0;
         }
     }
