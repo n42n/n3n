@@ -505,7 +505,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'f': /* do not fork as daemon */ {
-            ec->daemon = false;
+            set_option_wrap(conf, "daemon", "background", "false");
             break;
         }
 
@@ -1102,7 +1102,6 @@ int main (int argc, char* argv[]) {
     edge_init_conf_defaults(&conf);
     memset(&ec, 0, sizeof(ec));
     ec.mtu = DEFAULT_MTU;
-    ec.daemon = true;        /* By default run in daemon mode. */
     ec.metric = 0;
 
 #ifndef _WIN32
@@ -1357,7 +1356,7 @@ int main (int argc, char* argv[]) {
     eee->last_register_req = 0;
 
 #ifndef _WIN32
-    if(eee->tuntap_priv_conf.daemon) {
+    if(conf.daemon) {
         setUseSyslog(1); /* traceEvent output now goes to syslog. */
         daemonize();
     }

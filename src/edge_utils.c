@@ -3173,6 +3173,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
     conf->metric = 0;
+    conf->daemon = true;
 }
 
 /* ************************************** */

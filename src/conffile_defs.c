@@ -41,6 +41,13 @@ static struct n3n_conf_option section_daemon[] = {
         .desc = "The group id",
         .help = "Run the daemon with this group id (ignored on windows)",
     },
+    {
+        .name = "background",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, daemon),
+        .desc = "Daemonize the process",
+        .help = "Runs as a daemon in the background (ignored on windows)",
+    },
     {.name = NULL},
 };
 

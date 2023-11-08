@@ -548,7 +548,6 @@ typedef struct n2n_tuntap_priv_config {
     char device_mac[N2N_MACNAMSIZ];
     int mtu;
     int metric;
-    bool daemon;
 } n2n_tuntap_priv_config_t;
 
 /* *************************************************** */
@@ -662,6 +661,7 @@ typedef struct n2n_edge_conf {
     uint64_t mgmt_password_hash;                    /**< contains hash of managament port password. */
     uint32_t userid;
     uint32_t groupid;
+    bool daemon;
 } n2n_edge_conf_t;
 
 
