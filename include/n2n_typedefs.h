@@ -549,8 +549,6 @@ typedef struct n2n_tuntap_priv_config {
     int mtu;
     int metric;
     uint8_t daemon;
-    uint32_t userid;
-    uint32_t groupid;
 } n2n_tuntap_priv_config_t;
 
 /* *************************************************** */
@@ -662,6 +660,8 @@ typedef struct n2n_edge_conf {
     uint8_t sn_selection_strategy;                  /**< encodes currently chosen supernode selection strategy. */
     uint8_t number_max_sn_pings;                    /**< Number of maximum concurrently allowed supernode pings. */
     uint64_t mgmt_password_hash;                    /**< contains hash of managament port password. */
+    uint32_t userid;
+    uint32_t groupid;
 } n2n_edge_conf_t;
 
 

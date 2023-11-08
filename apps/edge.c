@@ -495,12 +495,12 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'u': /* unprivileged uid */ {
-            ec->userid = atoi(optargument);
+            conf->userid = atoi(optargument);
             break;
         }
 
         case 'g': /* unprivileged uid */ {
-            ec->groupid = atoi(optargument);
+            conf->groupid = atoi(optargument);
             break;
         }
 
@@ -1111,8 +1111,8 @@ int main (int argc, char* argv[]) {
     struct passwd *pw = NULL;
     if(((pw = getpwnam("n3n")) != NULL) ||
        ((pw = getpwnam("nobody")) != NULL)) {
-        ec.userid = pw->pw_uid;
-        ec.groupid = pw->pw_gid;
+        conf.userid = pw->pw_uid;
+        conf.groupid = pw->pw_gid;
     }
 #endif
 
@@ -1379,13 +1379,13 @@ int main (int argc, char* argv[]) {
 #endif
 #endif /* HAVE_LIBCAP */
 
-    if((eee->tuntap_priv_conf.userid != 0) || (eee->tuntap_priv_conf.groupid != 0)) {
+    if((conf.userid != 0) || (conf.groupid != 0)) {
         traceEvent(TRACE_NORMAL, "dropping privileges to uid=%d, gid=%d",
-                   (signed int)eee->tuntap_priv_conf.userid, (signed int)eee->tuntap_priv_conf.groupid);
+                   (signed int)conf.userid, (signed int)conf.groupid);
 
         /* Finished with the need for root privileges. Drop to unprivileged user. */
-        if((setgid(eee->tuntap_priv_conf.groupid) != 0)
-           || (setuid(eee->tuntap_priv_conf.userid) != 0)) {
+        if((setgid(conf.groupid) != 0)
+           || (setuid(conf.userid) != 0)) {
             traceEvent(TRACE_ERROR, "unable to drop privileges [%u/%s]", errno, strerror(errno));
             exit(1);
         }
