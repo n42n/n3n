@@ -60,13 +60,13 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
     }
 
     switch(p->type) {
-        case n3n_conf_strncpy:
-            char *dst;
-            dst = (char *)conf + p->offset;
+        case n3n_conf_strncpy: {
+            char *dst = (char *)conf + p->offset;
 
             strncpy(dst, value, p->length);
             dst[p->length -1] = 0;
             return 0;
+        }
     }
     return -1;
 }
