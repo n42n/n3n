@@ -71,9 +71,9 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         case n3n_conf_bool: {
             bool *dst = (bool *)((char *)conf + p->offset);
 
-            if (0==strcmp("true", value)) {
+            if(0==strcmp("true", value)) {
                 *dst = true;
-            } else if (0==strcmp("false", value)) {
+            } else if(0==strcmp("false", value)) {
                 *dst = false;
             } else {
                 return -1;
