@@ -105,9 +105,6 @@ static void help (int level) {
                "\n configuration             "
                "[-a <net ip>-<net ip>/<cidr suffix>] "
                "\n\n local options             "
-#if defined(N2N_HAVE_DAEMON)
-               "[-f] "
-#endif
                "[-t <management port>] "
                "\n                           "
                "[--management-password <pw>] "
@@ -120,7 +117,7 @@ static void help (int level) {
                "\n\n meaning of the            "
                "[-M]  disable MAC and IP address spoofing protection"
                "\n flag options              "
-#if defined(N2N_HAVE_DAEMON)
+#ifndef _WIN32
                "[-f]  do not fork but run in foreground"
                "\n                           "
 #endif
@@ -166,7 +163,7 @@ static void help (int level) {
         printf("\n");
         printf(" LOCAL OPTIONS\n");
         printf(" -------------\n\n");
-#if defined(N2N_HAVE_DAEMON)
+#ifndef _WIN32
         printf(" -f                | do not fork and run as a daemon, rather run in foreground\n");
 #endif
         printf(" -t <port>         | management UDP port, for multiple supernodes on a machine,\n"
@@ -379,11 +376,9 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
 
             break;
         }
-#if defined(N2N_HAVE_DAEMON)
         case 'f': /* foreground */
-            sss->daemon = 0;
+            sss->daemon = false;
             break;
-#endif
         case 'h': /* quick reference */
             return 2;
 
@@ -407,9 +402,7 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
 
 static const struct option long_options[] = {
     {"communities",         required_argument, NULL, 'c'},
-#if defined(N2N_HAVE_DAEMON)
     {"foreground",          no_argument,       NULL, 'f'},
-#endif
     {"local-port",          required_argument, NULL, 'p'},
     {"mgmt-port",           required_argument, NULL, 't'},
     {"autoip",              required_argument, NULL, 'a'},
@@ -431,12 +424,8 @@ static int loadFromCLI (int argc, char * const argv[], n2n_sn_t *sss) {
 #ifdef SN_MANUAL_MAC
                            "m:"
 #endif
-#if defined(N2N_HAVE_DAEMON)
                            "f"
-#endif
-#ifndef _WIN32
                            "u:g:"
-#endif
                            ,
                            long_options, NULL)) != '?') {
         if(c == 255) {
@@ -638,7 +627,7 @@ int main (int argc, char * const argv[]) {
     if(sss_node.community_file)
         load_allowed_sn_community(&sss_node);
 
-#if defined(N2N_HAVE_DAEMON)
+#ifndef _WIN32
     if(sss_node.daemon) {
         setUseSyslog(1); /* traceEvent output now goes to syslog. */
 
@@ -647,7 +636,7 @@ int main (int argc, char * const argv[]) {
             exit(-5);
         }
     }
-#endif /* #if defined(N2N_HAVE_DAEMON) */
+#endif
 
     // warn on default federation name
     if(!strcmp(sss_node.federation->community, FEDERATION_NAME)) {

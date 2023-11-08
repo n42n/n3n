@@ -548,7 +548,7 @@ typedef struct n2n_tuntap_priv_config {
     char device_mac[N2N_MACNAMSIZ];
     int mtu;
     int metric;
-    uint8_t daemon;
+    bool daemon;
 } n2n_tuntap_priv_config_t;
 
 /* *************************************************** */
@@ -811,7 +811,7 @@ typedef struct n2n_sn {
     time_t start_time;                                      /* Used to measure uptime. */
     n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
     sn_stats_t stats;
-    int daemon;                                             /* If non-zero then daemonise. */
+    bool daemon;                                            /* If non-zero then daemonise. */
     n2n_mac_t mac_addr;
     in_addr_t bind_address;                                 /* The address to bind to if provided */
     uint16_t lport;                                         /* Local UDP port to bind to. */

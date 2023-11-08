@@ -504,12 +504,10 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             break;
         }
 
-#ifndef _WIN32
         case 'f': /* do not fork as daemon */ {
-            ec->daemon = 0;
+            ec->daemon = false;
             break;
         }
-#endif /* #ifndef _WIN32 */
 
         case 'm': /* TUNTAP MAC address */ {
             strncpy(ec->device_mac, optargument, N2N_MACNAMSIZ);
@@ -1104,7 +1102,7 @@ int main (int argc, char* argv[]) {
     edge_init_conf_defaults(&conf);
     memset(&ec, 0, sizeof(ec));
     ec.mtu = DEFAULT_MTU;
-    ec.daemon = 1;        /* By default run in daemon mode. */
+    ec.daemon = true;        /* By default run in daemon mode. */
     ec.metric = 0;
 
 #ifndef _WIN32
@@ -1393,7 +1391,7 @@ int main (int argc, char* argv[]) {
 
     if((getuid() == 0) || (getgid() == 0))
         traceEvent(TRACE_WARNING, "running as root is discouraged, check out the -u/-g options");
-#endif
+#endif /* _WIN32 */
 
 #ifdef __linux__
     signal(SIGPIPE, SIG_IGN);

@@ -35,7 +35,6 @@
 
 #define SN_MANUAL_MAC   /* allows supernode MAC address to be set manually */
 
-#define N2N_HAVE_DAEMON /* needs to be defined before it gets undefined */
 #define N2N_HAVE_TCP    /* needs to be defined before it gets undefined */
 #define HAVE_BRIDGING_SUPPORT
 
@@ -46,9 +45,7 @@
 /* Moved here to define _CRT_SECURE_NO_WARNINGS before all the including takes place */
 #ifdef _WIN32
 #define N2N_CAN_NAME_IFACE 1
-#undef N2N_HAVE_DAEMON
 #undef N2N_HAVE_TCP           /* as explained on https://github.com/ntop/n2n/pull/627#issuecomment-782093706 */
-#undef N2N_HAVE_SETUID
 #endif /* _WIN32 */
 
 

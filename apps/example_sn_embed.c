@@ -37,7 +37,7 @@ int main () {
     int rc;
 
     sn_init_defaults(&sss_node);
-    sss_node.daemon = 0;   // Whether to daemonize
+    sss_node.daemon = false;   // Whether to daemonize
     sss_node.lport = 1234; // Main UDP listen port
 
     sss_node.sock = open_socket(sss_node.lport, INADDR_ANY, 0 /* UDP */);
