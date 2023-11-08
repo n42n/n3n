@@ -549,10 +549,8 @@ typedef struct n2n_tuntap_priv_config {
     int mtu;
     int metric;
     uint8_t daemon;
-#ifndef _WIN32
-    uid_t userid;
-    gid_t groupid;
-#endif
+    uint32_t userid;
+    uint32_t groupid;
 } n2n_tuntap_priv_config_t;
 
 /* *************************************************** */
@@ -824,10 +822,8 @@ typedef struct n2n_sn {
     int mgmt_sock;                                          /* management socket. */
     n2n_ip_subnet_t min_auto_ip_net;                        /* Address range of auto_ip service. */
     n2n_ip_subnet_t max_auto_ip_net;                        /* Address range of auto_ip service. */
-#ifndef _WIN32
-    uid_t userid;
-    gid_t groupid;
-#endif
+    uint32_t userid;
+    uint32_t groupid;
     int lock_communities;                                    /* If true, only loaded and matching communities can be used. */
     char                                   *community_file;
     struct sn_community                    *communities;

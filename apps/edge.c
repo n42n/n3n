@@ -494,7 +494,6 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             break;
         }
 
-#ifndef _WIN32
         case 'u': /* unprivileged uid */ {
             ec->userid = atoi(optargument);
             break;
@@ -504,7 +503,6 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             ec->groupid = atoi(optargument);
             break;
         }
-#endif
 
 #ifndef _WIN32
         case 'f': /* do not fork as daemon */ {
