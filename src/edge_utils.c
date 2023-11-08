@@ -2150,7 +2150,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         tuntap_close(&(eee->device));
         tuntap_open(&(eee->device), eee->tuntap_priv_conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode, eee->tuntap_priv_conf.ip_addr,
                     eee->tuntap_priv_conf.netmask, eee->tuntap_priv_conf.device_mac, eee->tuntap_priv_conf.mtu,
-                    eee->tuntap_priv_conf.metric
+                    eee->conf.metric
                     );
     } else {
         const uint8_t * mac = eth_pkt;

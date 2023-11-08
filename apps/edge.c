@@ -785,13 +785,12 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             }
             break;
         }
-#ifdef _WIN32
+
         case 'x': {
             conf->metric = atoi(optargument);
-            ec->metric = atoi(optargument);
             break;
         }
-#endif
+
         default: {
             traceEvent(TRACE_WARNING, "unknown option -%c", (char)optkey);
             return 2;
@@ -1102,7 +1101,6 @@ int main (int argc, char* argv[]) {
     edge_init_conf_defaults(&conf);
     memset(&ec, 0, sizeof(ec));
     ec.mtu = DEFAULT_MTU;
-    ec.metric = 0;
 
 #ifndef _WIN32
     struct passwd *pw = NULL;
@@ -1307,7 +1305,7 @@ int main (int argc, char* argv[]) {
             if(tuntap_open(&tuntap, eee->tuntap_priv_conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode,
                            eee->tuntap_priv_conf.ip_addr, eee->tuntap_priv_conf.netmask,
                            eee->tuntap_priv_conf.device_mac, eee->tuntap_priv_conf.mtu,
-                           eee->tuntap_priv_conf.metric) < 0)
+                           eee->conf.metric) < 0)
                 exit(1);
             memcpy(&eee->device, &tuntap, sizeof(tuntap));
             traceEvent(TRACE_NORMAL, "created local tap device IP: %s, Mask: %s, MAC: %s",
