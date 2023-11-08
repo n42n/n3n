@@ -7,6 +7,7 @@
 
 #include <n3n/conffile.h>
 #include <stdbool.h>            // for true, false
+#include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
@@ -79,6 +80,18 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
                 return -1;
             }
             return 0;
+        }
+        case n3n_conf_uint32: {
+            uint32_t *dst = (uint32_t *)((char *)conf + p->offset);
+            char *endptr;
+            uint32_t i = strtoull(value, &endptr, 10);
+
+            if(*value && !*endptr) {
+                // "the entire string is valid"
+                *dst = i;
+                return 0;
+            }
+            return -1;
         }
     }
     return -1;

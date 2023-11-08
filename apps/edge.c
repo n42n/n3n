@@ -495,12 +495,12 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'u': /* unprivileged uid */ {
-            conf->userid = atoi(optargument);
+            set_option_wrap(conf, "daemon", "userid", optargument);
             break;
         }
 
         case 'g': /* unprivileged uid */ {
-            conf->groupid = atoi(optargument);
+            set_option_wrap(conf, "daemon", "groupid", optargument);
             break;
         }
 

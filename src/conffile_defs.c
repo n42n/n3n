@@ -26,6 +26,24 @@ static struct n3n_conf_option section_community[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_option section_daemon[] = {
+    {
+        .name = "userid",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, userid),
+        .desc = "The user id",
+        .help = "Run the daemon with this user id (ignored on windows)",
+    },
+    {
+        .name = "groupid",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, groupid),
+        .desc = "The group id",
+        .help = "Run the daemon with this group id (ignored on windows)",
+    },
+    {.name = NULL},
+};
+
 static struct n3n_conf_option section_filter[] = {
     {
         .name = "drop_multicast",
@@ -41,5 +59,6 @@ static struct n3n_conf_option section_filter[] = {
 
 void n3n_conffile_defs_init () {
     n3n_config_register_section("community", section_community);
+    n3n_config_register_section("daemon", section_daemon);
     n3n_config_register_section("filter", section_filter);
 }
