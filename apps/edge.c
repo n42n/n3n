@@ -22,6 +22,8 @@
 #include <ctype.h>                   // for isspace
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
+#include <n3n/conffile.h>            // for n3n_config_set_option
+#include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
@@ -459,6 +461,16 @@ static void setPayloadEncryption (n2n_edge_conf_t *conf, int cipher) {
 
 /* *************************************************** */
 
+// little wrapper to show errors if the conffile parser has a problem
+static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option, char *value) {
+    int i = n3n_config_set_option(conf, section, option, value);
+    if(i==0) {
+        return;
+    }
+
+    traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
+}
+
 static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *ec, n2n_edge_conf_t *conf) {
 
     /* traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optargument ? optargument : ""); */
@@ -473,8 +485,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'c': /* community as a string */ {
-            strncpy((char *)conf->community_name, optargument, N2N_COMMUNITY_SIZE);
-            conf->community_name[N2N_COMMUNITY_SIZE - 1] = '\0';
+            set_option_wrap(conf, "community", "name", optargument);
             break;
         }
 
@@ -959,6 +970,11 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
         // Ignore any error as it currently can only be "file not found"
     } else if(strncmp(cmd,"test",5)==0) {
         printf("Unimplemented\n");
+        // TODO: call internal self tests here
+        exit(1);
+    } else if(strncmp(cmd,"config_help",5)==0) {
+        printf("Unimplemented\n");
+        // TODO: show conffile help here
         exit(1);
     } else {
         printf("Unknown sub command: %s\n", cmd);
@@ -1083,6 +1099,9 @@ int main (int argc, char* argv[]) {
 #ifdef _WIN32
     initWin32();
 #endif
+
+    // Do this early to register all internals
+    n3n_initfuncs();
 
     /* Defaults */
     edge_init_conf_defaults(&conf);
