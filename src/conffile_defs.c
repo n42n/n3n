@@ -73,6 +73,13 @@ static struct n3n_conf_option section_tuntap[] = {
         .desc = "Set the TAP interface MAC address",
         .help = "By default a random MAC address is used.",
     },
+    {
+        .name = "mtu",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, mtu),
+        .desc = "Set the TAP interface MTU",
+        .help = "The default is chosen to work in most cases.",
+    },
     {.name = NULL},
 };
 
