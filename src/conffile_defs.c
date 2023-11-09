@@ -76,6 +76,15 @@ static struct n3n_conf_option section_daemon[] = {
 
 static struct n3n_conf_option section_filter[] = {
     {
+        .name = "allow_routing",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, allow_routing),
+        .desc = "enable IP packet forwarding/routing",
+        .help = "Without this option, IP packets arriving over n2n are "
+                "dropped if they are not for the IP address of the edge "
+                "interface.  This setting is also used to enable bridging.",
+    },
+    {
         .name = "drop_multicast",
         .type = n3n_conf_bool,
         .offset = offsetof(n2n_edge_conf_t, drop_multicast),
