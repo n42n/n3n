@@ -521,7 +521,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
 
 #ifndef __APPLE__
         case 'D': /* enable PMTU discovery */ {
-            conf->disable_pmtu_discovery = 0;
+            conf->disable_pmtu_discovery = false;
             break;
         }
 #endif
