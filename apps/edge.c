@@ -501,7 +501,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         case 'H': /* indicate header encryption */ {
             /* we cannot be sure if this gets parsed before the community name is set.
              * so, only an indicator is set, action is taken later*/
-            conf->header_encryption = HEADER_ENCRYPTION_ENABLED;
+            set_option_wrap(conf, "community", "header_encryption", "true");
             break;
         }
 

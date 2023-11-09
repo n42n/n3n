@@ -20,6 +20,14 @@ static struct n3n_conf_option section_community[] = {
                 "2=Twofish, 3=AES, 4=ChaCha20, 5=Speck-CTR.",
     },
     {
+        .name = "header_encryption",
+        .type = n3n_conf_headerenc,
+        .offset = offsetof(n2n_edge_conf_t, header_encryption),
+        .desc = "Enable header encryption",
+        .help = "All edges within the same community must this set the same "
+                "and the supernode needs to have the community defined",
+    },
+    {
         .name = "key",
         .type = n3n_conf_strdup,
         .offset = offsetof(n2n_edge_conf_t, encrypt_key),

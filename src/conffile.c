@@ -12,6 +12,8 @@
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
 
+#include <n2n_define.h>         // for HEADER_ENCRYPTION_UNKNOWN...
+
 static struct n3n_conf_section *registered_sections;
 
 void n3n_config_register_section (char *name, struct n3n_conf_option options[]) {
@@ -126,6 +128,21 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
                 }
             }
             return -1;
+        }
+        case n3n_conf_headerenc: {
+            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            // TODO: this is a bit of an odd one out, since it is a tristate boolean
+
+            if(0==strcmp("true", value)) {
+                *dst = HEADER_ENCRYPTION_ENABLED;
+            } else if(0==strcmp("false", value)) {
+                *dst = HEADER_ENCRYPTION_NONE;
+            } else if(0==strcmp("unknown", value)) {
+                *dst = HEADER_ENCRYPTION_UNKNOWN;
+            } else {
+                return -1;
+            }
+            return 0;
         }
     }
     return -1;
