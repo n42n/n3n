@@ -12,6 +12,15 @@
 
 static struct n3n_conf_option section_community[] = {
     {
+        .name = "key",
+        .type = n3n_conf_strdup,
+        .offset = offsetof(n2n_edge_conf_t, encrypt_key),
+        .desc = "The encryption key (ASCII)",
+        .help = "All edges within the same community must use the same key. "
+                "If no key is specified then the edge uses cleartext mode "
+                "(no encryption).",
+    },
+    {
         .name = "name",
         .type = n3n_conf_strncpy,
         .length = N2N_COMMUNITY_SIZE,

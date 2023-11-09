@@ -12,6 +12,7 @@ enum n3n_conf_type {
     n3n_conf_strncpy,
     n3n_conf_bool,
     n3n_conf_uint32,
+    n3n_conf_strdup,
 };
 
 struct n3n_conf_option {

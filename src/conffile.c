@@ -93,6 +93,17 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             return -1;
         }
+        case n3n_conf_strdup: {
+            char **dst = (char **)((char *)conf + p->offset);
+            if(*dst) {
+                free(*dst);
+            }
+            *dst = strdup(value);
+            if(*dst) {
+                return 0;
+            }
+            return -1;
+        }
     }
     return -1;
 }

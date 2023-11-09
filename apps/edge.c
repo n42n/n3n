@@ -525,9 +525,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'k': /* encrypt key */ {
-            if(conf->encrypt_key) free(conf->encrypt_key);
-            conf->encrypt_key = strdup(optargument);
-            traceEvent(TRACE_DEBUG, "encrypt_key = '%s'\n", conf->encrypt_key);
+            set_option_wrap(conf, "community", "key", optargument);
             break;
         }
 
