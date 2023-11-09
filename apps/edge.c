@@ -483,11 +483,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'l': /* supernode-list */ {
-            if(optargument) {
-                if(edge_conf_add_supernode(conf, optargument) != 0) {
-                    traceEvent(TRACE_WARNING, "failed to add supernode '%s'", optargument);
-                }
-            }
+            set_option_wrap(conf, "community", "supernode", optargument);
             break;
         }
 

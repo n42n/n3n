@@ -55,6 +55,13 @@ static struct n3n_conf_option section_community[] = {
                 "than this is padded with 0x00 bytes and a name longer than "
                 "this is truncated to fit.",
     },
+    {
+        .name = "supernode",
+        .type = n3n_conf_supernode,
+        .desc = "Add a supernode",
+        .help = "Multiple supernodes can be specified, each one as a "
+                "host:port string, which will be resolved if needed.",
+    },
     {.name = NULL},
 };
 

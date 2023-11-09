@@ -12,6 +12,7 @@
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
 
+#include <n2n.h>                // for edge_conf_add_supernode
 #include <n2n_define.h>         // for HEADER_ENCRYPTION_UNKNOWN...
 
 static struct n3n_conf_section *registered_sections;
@@ -173,6 +174,9 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
                 }
             }
             return -1;
+        }
+        case n3n_conf_supernode: {
+            return edge_conf_add_supernode(conf, value);
         }
     }
     return -1;

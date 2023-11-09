@@ -16,6 +16,7 @@ enum n3n_conf_type {
     n3n_conf_transform,
     n3n_conf_headerenc,
     n3n_conf_compression,
+    n3n_conf_supernode,
 };
 
 struct n3n_conf_option {
