@@ -26,6 +26,20 @@ static struct n3n_conf_option section_community[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_option section_connection[] = {
+    {
+        .name = "disable_pmtu",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, disable_pmtu_discovery),
+        .desc = "Control use of PMTU discovery for network packets",
+        .help = "This can reduce fragmentation but causes connections to "
+                "stall if not properly supported by the network. "
+                "(Ignored on operating systems where this socket option is "
+                "not supported)",
+    },
+    {.name = NULL},
+};
+
 static struct n3n_conf_option section_daemon[] = {
     {
         .name = "userid",
@@ -85,6 +99,7 @@ static struct n3n_conf_option section_tuntap[] = {
 
 void n3n_conffile_defs_init () {
     n3n_config_register_section("community", section_community);
+    n3n_config_register_section("connection", section_connection);
     n3n_config_register_section("daemon", section_daemon);
     n3n_config_register_section("filter", section_filter);
     n3n_config_register_section("tuntap", section_tuntap);
