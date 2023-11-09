@@ -510,8 +510,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'm': /* TUNTAP MAC address */ {
-            strncpy(conf->device_mac, optargument, N2N_MACNAMSIZ);
-            conf->device_mac[N2N_MACNAMSIZ - 1] = '\0';
+            set_option_wrap(conf, "tuntap", "macaddr", optargument);
             break;
         }
 

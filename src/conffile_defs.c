@@ -64,8 +64,21 @@ static struct n3n_conf_option section_filter[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_option section_tuntap[] = {
+    {
+        .name = "macaddr",
+        .type = n3n_conf_strncpy,
+        .length = N2N_MACNAMSIZ,
+        .offset = offsetof(n2n_edge_conf_t, device_mac),
+        .desc = "Set the TAP interface MAC address",
+        .help = "By default a random MAC address is used.",
+    },
+    {.name = NULL},
+};
+
 void n3n_conffile_defs_init () {
     n3n_config_register_section("community", section_community);
     n3n_config_register_section("daemon", section_daemon);
     n3n_config_register_section("filter", section_filter);
+    n3n_config_register_section("tuntap", section_tuntap);
 }
