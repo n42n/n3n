@@ -635,7 +635,7 @@ typedef struct n2n_edge_conf {
     n2n_transform_t transop_id;                      /**< The transop to use. */
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
-    uint8_t allow_routing;                           /**< Accept packet no to interface address. */
+    bool allow_routing;                              /**< Accept packet no to interface address. */
     bool drop_multicast;                             /**< Multicast ethernet addresses. */
     bool disable_pmtu_discovery;                     /**< Disable the Path MTU discovery. */
     uint8_t allow_p2p;                               /**< Allow P2P connection */

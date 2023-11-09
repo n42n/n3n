@@ -530,7 +530,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'r': /* enable packet routing across n2n endpoints */ {
-            conf->allow_routing = 1;
+            conf->allow_routing = true;
             break;
         }
 
