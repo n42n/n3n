@@ -144,6 +144,36 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             return 0;
         }
+        case n3n_conf_compression: {
+            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            // TODO: in the future, we should lookup against a struct of
+            // registered compressions and prefer to use strings instead of
+            // numbers.
+            // For now, manually keep the max ids in sync with n2n_transform_t
+
+            char *endptr;
+            uint32_t i = strtoull(value, &endptr, 10);
+
+            if(*value && !*endptr) {
+                // "the entire string is valid"
+
+                switch(i) {
+                    case 0:
+                        *dst = N2N_COMPRESSION_ID_NONE;
+                        return 0;
+                    case 1:
+                        *dst = N2N_COMPRESSION_ID_LZO;
+                        return 0;
+#ifdef HAVE_ZSTD
+// FIXME: codebase has these defs wrong, they should be HAVE_LIBZSTD
+                    case 2:
+                        *dst = N2N_COMPRESSION_ID_ZSTD;
+                        return 0;
+#endif
+                }
+            }
+            return -1;
+        }
     }
     return -1;
 }

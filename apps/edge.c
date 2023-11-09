@@ -392,34 +392,6 @@ static void help (int level) {
 
 /* *************************************************** */
 
-static void setPayloadCompression (n2n_edge_conf_t *conf, int compression) {
-
-    /* even though 'compression' and 'conf->compression' share the same encoding scheme,
-     * a switch-statement under conditional compilation is used to sort out the
-     * unsupported optarguments */
-    switch(compression) {
-        case 1: {
-            conf->compression = N2N_COMPRESSION_ID_LZO;
-            break;
-        }
-#ifdef HAVE_ZSTD
-        case 2: {
-            conf->compression = N2N_COMPRESSION_ID_ZSTD;
-            break;
-        }
-#endif
-        default: {
-            conf->compression = N2N_COMPRESSION_ID_NONE;
-            // internal comrpession scheme numbering differs from cli counting by one, hence plus one
-            // (internal: 0 == invalid, 1 == none, 2 == lzo, 3 == zstd)
-            traceEvent(TRACE_NORMAL, "the %s compression given by -z_ option is not supported in this version", compression_str(compression + 1));
-            exit(1); // to make the user aware
-        }
-    }
-}
-
-/* *************************************************** */
-
 // little wrapper to show errors if the conffile parser has a problem
 static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option, char *value) {
     int i = n3n_config_set_option(conf, section, option, value);
@@ -506,18 +478,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'z': {
-            int compression;
-
-            if(optargument) {
-                compression = atoi(optargument);
-            } else {
-                traceEvent(TRACE_WARNING, "the use of the solitary -z switch is deprecated and will not be supported in future versions, "
-                           "please use -z1 instead to choose LZO1X algorithm for payload compression");
-
-                compression = 1; // default, if '-z' only, equals -z1
-            }
-
-            setPayloadCompression(conf, compression);
+            set_option_wrap(conf, "community", "compression", optargument);
             break;
         }
 

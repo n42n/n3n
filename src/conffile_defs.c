@@ -20,6 +20,13 @@ static struct n3n_conf_option section_community[] = {
                 "2=Twofish, 3=AES, 4=ChaCha20, 5=Speck-CTR.",
     },
     {
+        .name = "compression",
+        .type = n3n_conf_compression,
+        .offset = offsetof(n2n_edge_conf_t, compression),
+        .desc = "Compress outgoing data packets",
+        .help = "0=none, 1=lzo1x, 2=zstd (only if supported)",
+    },
+    {
         .name = "header_encryption",
         .type = n3n_conf_headerenc,
         .offset = offsetof(n2n_edge_conf_t, header_encryption),
