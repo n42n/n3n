@@ -104,6 +104,29 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             return -1;
         }
+        case n3n_conf_transform: {
+            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            // TODO: in the future, we should lookup against a struct of
+            // registered transforms and prefer to use strings instead of
+            // numbers.
+            // For now, manually keep the max ids in sync with n2n_transform_t
+
+            char *endptr;
+            uint32_t i = strtoull(value, &endptr, 10);
+
+            if(*value && !*endptr) {
+                // "the entire string is valid"
+
+                if(i>0 && i<6) {
+                    // N2N_TRANSFORM_ID_NULL = 1
+                    // ...
+                    // N2N_TRANSFORM_ID_SPECK = 5
+                    *dst = i;
+                    return 0;
+                }
+            }
+            return -1;
+        }
     }
     return -1;
 }

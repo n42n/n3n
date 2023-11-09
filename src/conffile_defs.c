@@ -12,6 +12,14 @@
 
 static struct n3n_conf_option section_community[] = {
     {
+        .name = "cipher",
+        .type = n3n_conf_transform,
+        .offset = offsetof(n2n_edge_conf_t, transop_id),
+        .desc = "The cipher to use",
+        .help = "Choose a ciper for payload encryption (requires a key). "
+                "2=Twofish, 3=AES, 4=ChaCha20, 5=Speck-CTR.",
+    },
+    {
         .name = "key",
         .type = n3n_conf_strdup,
         .offset = offsetof(n2n_edge_conf_t, encrypt_key),

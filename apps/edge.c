@@ -420,47 +420,6 @@ static void setPayloadCompression (n2n_edge_conf_t *conf, int compression) {
 
 /* *************************************************** */
 
-static void setPayloadEncryption (n2n_edge_conf_t *conf, int cipher) {
-
-    /* even though 'cipher' and 'conf->transop_id' share the same encoding scheme,
-     * a switch-statement under conditional compilation is used to sort out the
-     * unsupported ciphers */
-    switch(cipher) {
-        case 1: {
-            conf->transop_id = N2N_TRANSFORM_ID_NULL;
-            break;
-        }
-
-        case 2: {
-            conf->transop_id = N2N_TRANSFORM_ID_TWOFISH;
-            break;
-        }
-
-        case 3: {
-            conf->transop_id = N2N_TRANSFORM_ID_AES;
-            break;
-        }
-
-        case 4: {
-            conf->transop_id = N2N_TRANSFORM_ID_CHACHA20;
-            break;
-        }
-
-        case 5: {
-            conf->transop_id = N2N_TRANSFORM_ID_SPECK;
-            break;
-        }
-
-        default: {
-            conf->transop_id = N2N_TRANSFORM_ID_INVAL;
-            traceEvent(TRACE_NORMAL, "the %s cipher given by -A_ option is not supported in this version", transop_str(cipher));
-            exit(1);
-        }
-    }
-}
-
-/* *************************************************** */
-
 // little wrapper to show errors if the conffile parser has a problem
 static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option, char *value) {
     int i = n3n_config_set_option(conf, section, option, value);
@@ -535,18 +494,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'A': {
-            int cipher;
-
-            if(optargument) {
-                cipher = atoi(optargument);
-            } else {
-                traceEvent(TRACE_WARNING, "the use of the solitary -A switch is deprecated and will not be supported in future versions, "
-                           "please use -A3 instead to choose AES cipher for payload encryption");
-
-                cipher = N2N_TRANSFORM_ID_AES; // default, if '-A' only
-            }
-
-            setPayloadEncryption(conf, cipher);
+            set_option_wrap(conf, "community", "cipher", optargument);
             break;
         }
 
