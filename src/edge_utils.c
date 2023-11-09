@@ -2149,7 +2149,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         sleep(3);
         tuntap_close(&(eee->device));
         tuntap_open(&(eee->device), eee->tuntap_priv_conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode, eee->tuntap_priv_conf.ip_addr,
-                    eee->tuntap_priv_conf.netmask, eee->conf.device_mac, eee->tuntap_priv_conf.mtu,
+                    eee->tuntap_priv_conf.netmask, eee->conf.device_mac, eee->conf.mtu,
                     eee->conf.metric
                     );
     } else {
@@ -3174,6 +3174,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
     conf->metric = 0;
     conf->daemon = true;
+    conf->mtu = DEFAULT_MTU;
 }
 
 /* ************************************** */

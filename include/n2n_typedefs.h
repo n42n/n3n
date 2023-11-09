@@ -545,7 +545,6 @@ typedef struct n2n_tuntap_priv_config {
     char ip_mode[N2N_IF_MODE_SIZE];
     dec_ip_str_t ip_addr;
     dec_ip_str_t netmask;
-    int mtu;
 } n2n_tuntap_priv_config_t;
 
 /* *************************************************** */
@@ -661,6 +660,7 @@ typedef struct n2n_edge_conf {
     uint32_t groupid;
     bool daemon;
     char device_mac[N2N_MACNAMSIZ];
+    int mtu;
 } n2n_edge_conf_t;
 
 

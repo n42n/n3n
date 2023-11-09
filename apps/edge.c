@@ -515,7 +515,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'M': /* TUNTAP MTU */ {
-            ec->mtu = atoi(optargument);
+            conf->mtu = atoi(optargument);
             break;
         }
 
@@ -1099,7 +1099,6 @@ int main (int argc, char* argv[]) {
     /* Defaults */
     edge_init_conf_defaults(&conf);
     memset(&ec, 0, sizeof(ec));
-    ec.mtu = DEFAULT_MTU;
 
 #ifndef _WIN32
     struct passwd *pw = NULL;
@@ -1303,7 +1302,7 @@ int main (int argc, char* argv[]) {
         if(runlevel == 4) { /* configure the TUNTAP device, including routes */
             if(tuntap_open(&tuntap, eee->tuntap_priv_conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode,
                            eee->tuntap_priv_conf.ip_addr, eee->tuntap_priv_conf.netmask,
-                           eee->conf.device_mac, eee->tuntap_priv_conf.mtu,
+                           eee->conf.device_mac, eee->conf.mtu,
                            eee->conf.metric) < 0)
                 exit(1);
             memcpy(&eee->device, &tuntap, sizeof(tuntap));
