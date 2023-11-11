@@ -501,8 +501,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'I': /* Device Description (hint) or username */ {
-            strncpy((char *)conf->dev_desc, optargument, N2N_DESC_SIZE);
-            conf->dev_desc[N2N_DESC_SIZE - 1] = '\0';
+            set_option_wrap(conf, "connection", "description", optargument);
             break;
         }
 

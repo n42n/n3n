@@ -16,7 +16,7 @@ static struct n3n_conf_option section_community[] = {
         .type = n3n_conf_transform,
         .offset = offsetof(n2n_edge_conf_t, transop_id),
         .desc = "The cipher to use",
-        .help = "Choose a ciper for payload encryption (requires a key). "
+        .help = "Choose a cipher for payload encryption (requires a key). "
                 "2=Twofish, 3=AES, 4=ChaCha20, 5=Speck-CTR.",
     },
     {
@@ -66,6 +66,16 @@ static struct n3n_conf_option section_community[] = {
 };
 
 static struct n3n_conf_option section_connection[] = {
+    {
+        .name = "description",
+        .type = n3n_conf_strncpy,
+        .length = N2N_DESC_SIZE,
+        .offset = offsetof(n2n_edge_conf_t, dev_desc),
+        .desc = "annotate the edge's description",
+        .help = "Used either for easier identification of nodes in the "
+                "management API or as the username when user-password edge "
+                "authentication is used",
+    },
     {
         .name = "disable_pmtu",
         .type = n3n_conf_bool,
