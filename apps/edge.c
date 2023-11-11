@@ -492,7 +492,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             break;
 
         case 'L': /* supernode registration interval */
-            conf->register_ttl = atoi(optarg);
+            set_option_wrap(conf, "connection", "register_ttl", optargument);
             break;
 
 #if defined(N2N_CAN_NAME_IFACE)

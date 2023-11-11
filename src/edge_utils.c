@@ -693,7 +693,7 @@ static void register_with_new_peer (n2n_edge_t *eee,
                 }
                 setsockopt(eee->sock, IPPROTO_IP, IP_TTL, (void *) (char *) &curTTL, sizeof(curTTL));
 #endif
-            } else { /* eee->conf.register_ttl <= 0 */
+            } else { /* eee->conf.register_ttl == 0 */
                 /* Normal STUN */
                 send_register(eee, &(scan->sock), mac, N2N_REGULAR_REG_COOKIE);
             }

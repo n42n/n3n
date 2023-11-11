@@ -87,6 +87,24 @@ static struct n3n_conf_option section_connection[] = {
                 "works for asymmetric NATs and allows for P2P "
                 "communication.",
     },
+    {
+        .name = "register_ttl",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, register_ttl),
+        .desc = "The TTL for the hole punching packet.",
+        .help = "A value of zero will avoid forcing any TTL - this is the "
+                "default.  This is an advanced setting to make sure that the "
+                "registration packet is dropped immediately when it goes out "
+                "of the local nat so that it will not  trigger some firewall "
+                "behavior on target peer.  Actually, the registration packet "
+                "is only expected to make local nat UDP hole and is not "
+                "expected to reach the target peer, see "
+                "https://tools.ietf.org/html/rfc5389.  To achieve this, it "
+                "should be set as nat level + 1. For example, if we have 2 "
+                "layer nat in local, we should set it to 3.  In modern "
+                "networks, you may not be awwre of all the nat levels, so "
+                "this value should be set with caution.",
+    },
     {.name = NULL},
 };
 
