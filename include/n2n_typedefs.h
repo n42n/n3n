@@ -541,7 +541,6 @@ typedef struct n2n_edge_callbacks {
 } n2n_edge_callbacks_t;
 
 typedef struct n2n_tuntap_priv_config {
-    devstr_t tuntap_dev_name;
     char ip_mode[N2N_IF_MODE_SIZE];
     dec_ip_str_t ip_addr;
     dec_ip_str_t netmask;
@@ -661,6 +660,7 @@ typedef struct n2n_edge_conf {
     bool daemon;
     char device_mac[N2N_MACNAMSIZ];
     int mtu;
+    devstr_t tuntap_dev_name;
 } n2n_edge_conf_t;
 
 

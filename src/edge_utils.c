@@ -2148,7 +2148,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
         sleep(3);
         tuntap_close(&(eee->device));
-        tuntap_open(&(eee->device), eee->tuntap_priv_conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode, eee->tuntap_priv_conf.ip_addr,
+        tuntap_open(&(eee->device), eee->conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode, eee->tuntap_priv_conf.ip_addr,
                     eee->tuntap_priv_conf.netmask, eee->conf.device_mac, eee->conf.mtu,
                     eee->conf.metric
                     );

@@ -497,8 +497,8 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
 
 #if defined(N2N_CAN_NAME_IFACE)
         case 'd': /* TUNTAP name */ {
-            strncpy(ec->tuntap_dev_name, optargument, sizeof(devstr_t));
-            ec->tuntap_dev_name[sizeof(devstr_t) - 1] = '\0';
+            strncpy(conf->tuntap_dev_name, optargument, sizeof(devstr_t));
+            conf->tuntap_dev_name[sizeof(devstr_t) - 1] = '\0';
             break;
         }
 #endif
@@ -1011,9 +1011,9 @@ int main (int argc, char* argv[]) {
 #endif
 
 #ifdef _WIN32
-    ec.tuntap_dev_name[0] = '\0';
+    conf.tuntap_dev_name[0] = '\0';
 #else
-    snprintf(ec.tuntap_dev_name, sizeof(ec.tuntap_dev_name), N2N_EDGE_DEFAULT_DEV_NAME);
+    snprintf(conf.tuntap_dev_name, sizeof(conf.tuntap_dev_name), N2N_EDGE_DEFAULT_DEV_NAME);
 #endif
     snprintf(ec.netmask, sizeof(ec.netmask), N2N_EDGE_DEFAULT_NETMASK);
 
@@ -1201,7 +1201,7 @@ int main (int argc, char* argv[]) {
         }
 
         if(runlevel == 4) { /* configure the TUNTAP device, including routes */
-            if(tuntap_open(&tuntap, eee->tuntap_priv_conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode,
+            if(tuntap_open(&tuntap, eee->conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode,
                            eee->tuntap_priv_conf.ip_addr, eee->tuntap_priv_conf.netmask,
                            eee->conf.device_mac, eee->conf.mtu,
                            eee->conf.metric) < 0)
