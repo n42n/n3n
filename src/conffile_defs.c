@@ -6,9 +6,22 @@
  */
 
 #include <stddef.h>
+#include <n2n_typedefs.h>       // for n2n_edge_conf_t
 #include <n3n/conffile.h>
 
-#include <n2n_typedefs.h>       // for n2n_edge_conf_t
+
+static struct n3n_conf_option section_auth[] = {
+    {
+        .name = "password",
+        .type = n3n_conf_privatekey,
+        .offset = offsetof(n2n_edge_conf_t, shared_secret),
+        .desc = "Password for user-password edge authentication",
+        .help = "If the environment contains N2N_PASSWORD then that is used "
+                "as the default for this setting."
+    },
+    // TODO: the connection.description is repurposed as a username for auth
+    {.name = NULL},
+};
 
 static struct n3n_conf_option section_community[] = {
     {
@@ -196,6 +209,7 @@ static struct n3n_conf_option section_tuntap[] = {
 };
 
 void n3n_conffile_defs_init () {
+    n3n_config_register_section("auth", section_auth);
     n3n_config_register_section("community", section_community);
     n3n_config_register_section("connection", section_connection);
     n3n_config_register_section("daemon", section_daemon);

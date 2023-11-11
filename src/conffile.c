@@ -12,6 +12,7 @@
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
 
+#include <auth.h>               // for generate_private_key
 #include <n2n.h>                // for edge_conf_add_supernode
 #include <n2n_define.h>         // for HEADER_ENCRYPTION_UNKNOWN...
 
@@ -177,6 +178,18 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         }
         case n3n_conf_supernode: {
             return edge_conf_add_supernode(conf, value);
+        }
+        case n3n_conf_privatekey: {
+            n2n_private_public_key_t **dst = (n2n_private_public_key_t **)((char *)conf + p->offset);
+            if(*dst) {
+                free(*dst);
+            }
+            *dst = malloc(sizeof(**dst));
+            if(!*dst) {
+                return -1;
+            }
+            generate_private_key(**dst, value);
+            return 0;
         }
     }
     return -1;

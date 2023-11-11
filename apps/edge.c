@@ -506,10 +506,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'J': /* password for user-password authentication */ {
-            if(!conf->shared_secret) /* we could already have it from environment variable, see edge_init_conf_defaults() */
-                conf->shared_secret = calloc(1, sizeof(n2n_private_public_key_t));
-            if(conf->shared_secret)
-                generate_private_key(*(conf->shared_secret), optargument);
+            set_option_wrap(conf, "auth", "password", optargument);
 
             // the hash of the username (-I) gets xored into this key later,
             // we can't be sure to already have it at this point
