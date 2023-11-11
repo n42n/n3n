@@ -495,13 +495,11 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             set_option_wrap(conf, "connection", "register_ttl", optargument);
             break;
 
-#if defined(N2N_CAN_NAME_IFACE)
         case 'd': /* TUNTAP name */ {
-            strncpy(conf->tuntap_dev_name, optargument, sizeof(devstr_t));
-            conf->tuntap_dev_name[sizeof(devstr_t) - 1] = '\0';
+            set_option_wrap(conf, "tuntap", "name", optargument);
             break;
         }
-#endif
+
         case 'I': /* Device Description (hint) or username */ {
             strncpy((char *)conf->dev_desc, optargument, N2N_DESC_SIZE);
             conf->dev_desc[N2N_DESC_SIZE - 1] = '\0';

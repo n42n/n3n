@@ -171,6 +171,17 @@ static struct n3n_conf_option section_tuntap[] = {
         .desc = "Set the TAP interface MTU",
         .help = "The default is chosen to work in most cases.",
     },
+    {
+        .name = "name",
+        .type = n3n_conf_strncpy,
+        .length = N2N_IFNAMSIZ,
+        .offset = offsetof(n2n_edge_conf_t, tuntap_dev_name),
+        .desc = "TAP device name",
+        .help = "On Linux, this creates a new TAP device with this name. "
+                "On Windows, this selects an already installed TAP adaptor "
+                "that matches this name.  On other operating systems, it is "
+                "ignored.",
+    },
     {.name = NULL},
 };
 
