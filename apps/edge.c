@@ -488,7 +488,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'i': /* supernode registration interval */
-            conf->register_interval = atoi(optargument);
+            set_option_wrap(conf, "connection", "register_interval", optargument);
             break;
 
         case 'L': /* supernode registration interval */

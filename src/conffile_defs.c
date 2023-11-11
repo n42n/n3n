@@ -76,6 +76,17 @@ static struct n3n_conf_option section_connection[] = {
                 "(Ignored on operating systems where this socket option is "
                 "not supported)",
     },
+    {
+        .name = "register_interval",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, register_interval),
+        .desc = "Supernode registration interval",
+        .help = "specifies the interval in seconds between consecutive "
+                "REGISTER_SUPER packets - used to keep a NAT hole open "
+                "via the UDP NAT hole punching technique. This only "
+                "works for asymmetric NATs and allows for P2P "
+                "communication.",
+    },
     {.name = NULL},
 };
 
