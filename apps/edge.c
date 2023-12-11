@@ -516,15 +516,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'P': /* federation public key for user-password authentication */ {
-            if(strlen(optargument) < ((N2N_PRIVATE_PUBLIC_KEY_SIZE * 8 + 5)/ 6 + 1)) {
-                conf->federation_public_key = calloc(1, sizeof(n2n_private_public_key_t));
-                if(conf->federation_public_key) {
-                    ascii_to_bin(*(conf->federation_public_key), optargument);
-                }
-            } else {
-                traceEvent(TRACE_WARNING, "public key too long");
-                return 2;
-            }
+            set_option_wrap(conf, "auth", "pubkey", optargument);
             break;
         }
 

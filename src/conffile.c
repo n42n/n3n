@@ -191,6 +191,21 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             generate_private_key(**dst, value);
             return 0;
         }
+        case n3n_conf_publickey: {
+            if(strlen(value) >= ((N2N_PRIVATE_PUBLIC_KEY_SIZE * 8 + 5)/ 6 + 1)) {
+                return -1;
+            }
+            n2n_private_public_key_t **dst = (n2n_private_public_key_t **)((char *)conf + p->offset);
+            if(*dst) {
+                free(*dst);
+            }
+            *dst = malloc(sizeof(**dst));
+            if(!*dst) {
+                return -1;
+            }
+            ascii_to_bin(**dst, value);
+            return 0;
+        }
     }
     return -1;
 }

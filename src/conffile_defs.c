@@ -19,6 +19,13 @@ static struct n3n_conf_option section_auth[] = {
         .help = "If the environment contains N2N_PASSWORD then that is used "
                 "as the default for this setting."
     },
+    {
+        .name = "pubkey",
+        .type = n3n_conf_publickey,
+        .offset = offsetof(n2n_edge_conf_t, federation_public_key),
+        .desc = "federation public key",
+        .help = "Used with user-password authentication.",
+    },
     // TODO: the connection.description is repurposed as a username for auth
     {.name = NULL},
 };
