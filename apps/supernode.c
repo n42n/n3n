@@ -651,7 +651,17 @@ int main (int argc, char * const argv[]) {
 
     traceEvent(TRACE_DEBUG, "traceLevel is %d", getTraceLevel());
 
-    sss_node.sock = open_socket(sss_node.lport, sss_node.bind_address, 0 /* UDP */);
+    struct sockaddr_in local_address;
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(sss_node.lport);
+    local_address.sin_addr.s_addr = htonl(sss_node.bind_address);
+
+    sss_node.sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(-1 == sss_node.sock) {
         traceEvent(TRACE_ERROR, "failed to open main socket. %s", strerror(errno));
         exit(-2);
@@ -660,7 +670,11 @@ int main (int argc, char * const argv[]) {
     }
 
 #ifdef N2N_HAVE_TCP
-    sss_node.tcp_sock = open_socket(sss_node.lport, sss_node.bind_address, 1 /* TCP */);
+    sss_node.tcp_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        1 /* TCP */
+        );
     if(-1 == sss_node.tcp_sock) {
         traceEvent(TRACE_ERROR, "failed to open auxiliary TCP socket, %s", strerror(errno));
         exit(-2);
@@ -676,7 +690,16 @@ int main (int argc, char * const argv[]) {
     }
 #endif
 
-    sss_node.mgmt_sock = open_socket(sss_node.mport, INADDR_LOOPBACK, 0 /* UDP */);
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(sss_node.mport);
+    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    sss_node.mgmt_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(-1 == sss_node.mgmt_sock) {
         traceEvent(TRACE_ERROR, "failed to open management socket, %s", strerror(errno));
         exit(-2);

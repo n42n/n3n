@@ -295,9 +295,17 @@ int supernode_connect (n2n_edge_t *eee) {
             traceEvent(TRACE_NORMAL, "binding to local port %d",
                        (eee->conf.connect_tcp) ? 0 : eee->conf.local_port);
 
-        eee->sock = open_socket((eee->conf.connect_tcp) ?  0 : eee->conf.local_port,
-                                eee->conf.bind_address,
-                                eee->conf.connect_tcp);
+        struct sockaddr_in local_address;
+        memset(&local_address, 0, sizeof(local_address));
+        local_address.sin_family = AF_INET;
+        local_address.sin_port = htons((eee->conf.connect_tcp) ?  0 : eee->conf.local_port);
+        local_address.sin_addr.s_addr = htonl(eee->conf.bind_address);
+
+        eee->sock = open_socket(
+            (struct sockaddr *)&local_address,
+            sizeof(local_address),
+            eee->conf.connect_tcp
+            );
 
         if(eee->sock < 0) {
             traceEvent(TRACE_ERROR, "failed to bind main UDP port %u",
@@ -3093,7 +3101,17 @@ static int edge_init_sockets (n2n_edge_t *eee) {
         closesocket(eee->udp_multicast_sock);
 #endif
 
-    eee->udp_mgmt_sock = open_socket(eee->conf.mgmt_port, INADDR_LOOPBACK, 0 /* UDP */);
+    struct sockaddr_in local_address;
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(eee->conf.mgmt_port);
+    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    eee->udp_mgmt_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(eee->udp_mgmt_sock < 0) {
         traceEvent(TRACE_ERROR, "failed to bind management UDP port %u", eee->conf.mgmt_port);
         return(-2);
@@ -3108,7 +3126,16 @@ static int edge_init_sockets (n2n_edge_t *eee) {
     eee->multicast_peer.addr.v4[2] = 0;
     eee->multicast_peer.addr.v4[3] = 68;
 
-    eee->udp_multicast_sock = open_socket(N2N_MULTICAST_PORT, INADDR_ANY, 0 /* UDP */);
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(N2N_MULTICAST_PORT);
+    local_address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    eee->udp_multicast_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(eee->udp_multicast_sock < 0)
         return(-3);
     else {
