@@ -291,25 +291,14 @@ int supernode_connect (n2n_edge_t *eee) {
 
     if(eee->sock < 0) {
 
-        if(eee->conf.local_port > 0)
-            traceEvent(TRACE_NORMAL, "binding to local port %d",
-                       (eee->conf.connect_tcp) ? 0 : eee->conf.local_port);
-
-        struct sockaddr_in local_address;
-        memset(&local_address, 0, sizeof(local_address));
-        local_address.sin_family = AF_INET;
-        local_address.sin_port = htons((eee->conf.connect_tcp) ?  0 : eee->conf.local_port);
-        local_address.sin_addr.s_addr = htonl(eee->conf.bind_address);
-
         eee->sock = open_socket(
-            (struct sockaddr *)&local_address,
-            sizeof(local_address),
+            eee->conf.bind_address,
+            sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
             eee->conf.connect_tcp
             );
 
         if(eee->sock < 0) {
-            traceEvent(TRACE_ERROR, "failed to bind main UDP port %u",
-                       (eee->conf.connect_tcp) ? 0 : eee->conf.local_port);
+            traceEvent(TRACE_ERROR, "failed to bind main UDP port");
             return -1;
         }
 
@@ -1593,8 +1582,17 @@ void update_supernode_reg (n2n_edge_t * eee, time_t now) {
         // closing and re-opening the socket allows for re-establishing communication
         // this can only be done, if working on some unprivileged port and/or having sufficent
         // privileges. as we are not able to check for sufficent privileges here, we only do it
-        // if port is sufficently high or unset. uncovered: privileged port and sufficent privileges
-        if((eee->conf.local_port == 0) || (eee->conf.local_port > 1024)) {
+        // If bind_address is null then we definitely dont have a local port
+        // set.  Since we have converted to using a sockaddr struct for the
+        // bind details, it is not simple to check the local port.
+        //
+        // TODO:
+        // - probably should re-add checking for unprivileged port
+        // - count this condition in a metric so we can see how often it is
+        //   triggered
+        //
+
+        if(eee->conf.bind_address) {
             // do not explicitly disconnect every time as the condition described is rare, so ...
             // ... check that there are no external peers (indicating a working socket) ...
             HASH_ITER(hh, eee->known_peers, peer, tmp_peer)
@@ -3162,8 +3160,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
     memset(conf, 0, sizeof(*conf));
 
-    conf->bind_address = INADDR_ANY; /* any address */
-    conf->local_port = 0 /* any port */;
+    conf->bind_address = NULL;
     conf->preferred_sock.family = AF_INVALID;
     conf->mgmt_port = N2N_EDGE_MGMT_PORT; /* 5644 by default */
     conf->transop_id = N2N_TRANSFORM_ID_NULL;

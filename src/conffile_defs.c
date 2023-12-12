@@ -87,6 +87,13 @@ static struct n3n_conf_option section_community[] = {
 
 static struct n3n_conf_option section_connection[] = {
     {
+        .name = "bind",
+        .type = n3n_conf_sockaddr,
+        .offset = offsetof(n2n_edge_conf_t, bind_address),
+        .desc = "bind to a local address and/or port",
+        .help = "[address]:[port] to bind.",
+    },
+    {
         .name = "description",
         .type = n3n_conf_strncpy,
         .length = N2N_DESC_SIZE,

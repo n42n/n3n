@@ -6,6 +6,7 @@
  */
 
 #include <n3n/conffile.h>
+#include <netinet/in.h>         // for sockaddr_in
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
@@ -205,6 +206,57 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             ascii_to_bin(**dst, value);
             return 0;
+        }
+        case n3n_conf_sockaddr: {
+            // TODO: this currently only supports IPv4
+            struct sockaddr_in **dst = (struct sockaddr_in **)((char *)conf + p->offset);
+            if(*dst) {
+                free(*dst);
+            }
+            *dst = malloc(sizeof(**dst));
+            if(!*dst) {
+                return -1;
+            }
+            struct sockaddr_in *sa = *dst;
+
+            memset(sa, 0, sizeof(*sa));
+            sa->sin_family = AF_INET;
+
+            in_addr_t bind_address = INADDR_ANY;
+            int local_port = 0;
+
+            char* colon = strpbrk(value, ":");
+            if(colon) { /*ip address:port */
+                *colon = 0;
+                bind_address = ntohl(inet_addr(value));
+                local_port = atoi(++colon);
+
+                if(bind_address == INADDR_NONE) {
+                    // traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
+                    bind_address = INADDR_ANY;
+                }
+                // if(local_port == 0) {
+                //     traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
+                // }
+            } else { /* ip address or port only */
+                char* dot = strpbrk(value, ".");
+                if(dot) { /* ip address only */
+                    bind_address = ntohl(inet_addr(value));
+                    if(bind_address == INADDR_NONE) {
+                        // traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
+                        bind_address = INADDR_ANY;
+                    }
+                } else { /* port only */
+                    local_port = atoi(value);
+                    // if(local_port == 0) {
+                    //     traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
+                    // }
+                }
+            }
+
+            sa->sin_port = htons(local_port);
+            sa->sin_addr.s_addr = htonl(bind_address);
+            break;
         }
     }
     return -1;

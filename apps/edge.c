@@ -521,34 +521,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'p': {
-            char* colon = strpbrk(optargument, ":");
-            if(colon) { /*ip address:port */
-                *colon = 0;
-                conf->bind_address = ntohl(inet_addr(optargument));
-                conf->local_port = atoi(++colon);
-
-                if(conf->bind_address == INADDR_NONE) {
-                    traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                    conf->bind_address = INADDR_ANY;
-                }
-                if(conf->local_port == 0) {
-                    traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
-                }
-            } else { /* ip address or port only */
-                char* dot = strpbrk(optargument, ".");
-                if(dot) { /* ip address only */
-                    conf->bind_address = ntohl(inet_addr(optargument));
-                    if(conf->bind_address == INADDR_NONE) {
-                        traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                        conf->bind_address = INADDR_ANY;
-                    }
-                } else { /* port only */
-                    conf->local_port = atoi(optargument);
-                    if(conf->local_port == 0) {
-                        traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
-                    }
-                }
-            }
+            set_option_wrap(conf, "connection", "bind", optargument);
             break;
         }
 

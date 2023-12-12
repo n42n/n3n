@@ -16,9 +16,10 @@ enum n3n_conf_type {
     n3n_conf_transform,
     n3n_conf_headerenc,
     n3n_conf_compression,
-    n3n_conf_supernode,
+    n3n_conf_supernode,     // TODO: could merge with _conf_sockaddr
     n3n_conf_privatekey,
     n3n_conf_publickey,
+    n3n_conf_sockaddr,
 };
 
 struct n3n_conf_option {

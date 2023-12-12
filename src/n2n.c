@@ -66,6 +66,11 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
     sockopt = 1;
     setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&sockopt, sizeof(sockopt));
 
+    if(!local_address) {
+        // skip binding if we dont have the right details
+        return(sock_fd);
+    }
+
     if(bind(sock_fd,local_address, addrlen) == -1) {
         traceEvent(TRACE_ERROR, "Bind error on local addr [%s]\n", strerror(errno));
         // TODO: use a generic sockaddr stringify to show which bind failed
