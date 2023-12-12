@@ -6,12 +6,17 @@
  */
 
 #include <n3n/conffile.h>
-#include <netinet/in.h>         // for sockaddr_in
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
+
+#ifdef _WIN32
+#include "win32/defs.h"
+#else
+#include <netinet/in.h>  // for sockaddr_in
+#endif
 
 #include <auth.h>               // for generate_private_key
 #include <n2n.h>                // for edge_conf_add_supernode
