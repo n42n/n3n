@@ -239,7 +239,7 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const n2n_edge_t* eee)
 
     out_sock->family = AF_INVALID;
 
-    // always detetct local port even/especially if chosen by OS...
+    // always detect local port even/especially if chosen by OS...
     if((getsockname(eee->sock, (struct sockaddr *)&local_sock, &sock_len) == 0)
        && (local_sock.sin_family == AF_INET)
        && (sock_len == sizeof(local_sock)))
@@ -250,9 +250,11 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const n2n_edge_t* eee)
 
     // probe for local IP address
     probe_sock = socket(PF_INET, SOCK_DGRAM, 0);
-    // connecting the UDP socket makes getsockname read the local address it uses to connect (to the sn in this case);
-    // we cannot do it with the real (eee->sock) socket because socket does not accept any conenction from elsewhere then,
-    // e.g. from another edge instead of the supernode; as re-connecting to AF_UNSPEC might not work to release the socket
+    // connecting the UDP socket makes getsockname read the local address it
+    // uses to connect (to the sn in this case);  we cannot do it with the
+    // real (eee->sock) socket because socket does not accept any conenction
+    // from elsewhere then, e.g. from another edge instead of the supernode;
+    // as re-connecting to AF_UNSPEC might not work to release the socket
     // on non-UNIXoids, we use a temporary socket
     if((int)probe_sock >= 0) {
         fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
