@@ -233,43 +233,64 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const n2n_edge_t* eee)
 
     struct sockaddr_in local_sock;
     struct sockaddr_in sn_sock;
-    socklen_t sock_len = sizeof(local_sock);
+    socklen_t sock_len;
     SOCKET probe_sock;
     int ret = 0;
 
     out_sock->family = AF_INVALID;
 
     // always detect local port even/especially if chosen by OS...
-    if((getsockname(eee->sock, (struct sockaddr *)&local_sock, &sock_len) == 0)
-       && (local_sock.sin_family == AF_INET)
-       && (sock_len == sizeof(local_sock)))
-        // remember the port number
-        out_sock->port = ntohs(local_sock.sin_port);
-    else
-        ret = -1;
+    sock_len = sizeof(local_sock);
+    if(getsockname(eee->sock, (struct sockaddr *)&local_sock, &sock_len) != 0) {
+        return -1;
+    }
+
+    // TODO this whole function doesnt work with IPv6
+    if(local_sock.sin_family != AF_INET) {
+        return -1;
+    }
+
+    if(sock_len != sizeof(local_sock)) {
+        return -1;
+    }
+
+    // remember the port number
+    out_sock->port = ntohs(local_sock.sin_port);
 
     // probe for local IP address
     probe_sock = socket(PF_INET, SOCK_DGRAM, 0);
+    if(probe_sock < 0) {
+        return -2;
+    }
+
     // connecting the UDP socket makes getsockname read the local address it
     // uses to connect (to the sn in this case);  we cannot do it with the
     // real (eee->sock) socket because socket does not accept any conenction
     // from elsewhere then, e.g. from another edge instead of the supernode;
     // as re-connecting to AF_UNSPEC might not work to release the socket
     // on non-UNIXoids, we use a temporary socket
-    if((int)probe_sock >= 0) {
-        fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
-        if(connect(probe_sock, (struct sockaddr *)&sn_sock, sizeof(sn_sock)) == 0) {
-            if((getsockname(probe_sock, (struct sockaddr *)&local_sock, &sock_len) == 0)
-               && (local_sock.sin_family == AF_INET)
-               && (sock_len == sizeof(local_sock))) {
-                memcpy(&(out_sock->addr.v4), &(local_sock.sin_addr.s_addr), IPV4_SIZE);
-            } else
-                ret = -4;
-        } else
-            ret = -3;
-        closesocket(probe_sock);
-    } else
-        ret = -2;
+
+    fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
+    if(connect(probe_sock, (struct sockaddr *)&sn_sock, sizeof(sn_sock)) != 0) {
+        return -3;
+    }
+
+    sock_len = sizeof(local_sock);
+    if(getsockname(probe_sock, (struct sockaddr *)&local_sock, &sock_len) != 0) {
+        return -4;
+    }
+
+    if(local_sock.sin_family != AF_INET) {
+        return -4;
+    }
+
+    if(sock_len != sizeof(local_sock)) {
+        return -4;
+    }
+
+    memcpy(&(out_sock->addr.v4), &(local_sock.sin_addr.s_addr), IPV4_SIZE);
+
+    closesocket(probe_sock);
 
     out_sock->family = AF_INET;
 
