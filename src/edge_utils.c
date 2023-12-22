@@ -367,7 +367,7 @@ int supernode_connect (n2n_edge_t *eee) {
             // always overwrite local port even/especially if chosen by OS...
             eee->conf.preferred_sock.port = local_sock.port;
             // only if auto-detection mode, ...
-            if(eee->conf.preferred_sock_auto) {
+            if(eee->conf.preferred_sock.family != AF_INVALID) {
                 // ... overwrite IP address, too (whole socket struct here)
                 memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
                 traceEvent(TRACE_INFO, "determined local socket [%s]",
