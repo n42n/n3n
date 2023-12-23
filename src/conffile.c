@@ -66,7 +66,7 @@ static struct n3n_conf_option *lookup_option (char *section, char *option) {
 }
 
 int n3n_config_set_option (void *conf, char *section, char *option, char *value) {
-    if (!value) {
+    if(!value) {
         // Dont (currently?) support missing values
         return -1;
     }
