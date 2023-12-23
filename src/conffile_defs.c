@@ -205,6 +205,19 @@ static struct n3n_conf_option section_filter[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_option section_management[] = {
+    {
+        .name = "port",
+        .type = n3n_conf_uint32,    // NOTE: ports are actually uint16
+        .offset = offsetof(n2n_edge_conf_t, mgmt_port),
+        .desc = "The management UDP port",
+        .help = "binds the edge management system to the given UDP port. "
+                "Defaults to 5644.  Use this if you need to run multiple "
+                "instance of edge; or something else is bound to that port.",
+
+    },
+};
+
 static struct n3n_conf_option section_tuntap[] = {
     {
         .name = "macaddr",
@@ -241,5 +254,6 @@ void n3n_conffile_defs_init () {
     n3n_config_register_section("connection", section_connection);
     n3n_config_register_section("daemon", section_daemon);
     n3n_config_register_section("filter", section_filter);
+    n3n_config_register_section("management", section_management);
     n3n_config_register_section("tuntap", section_tuntap);
 }

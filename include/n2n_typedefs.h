@@ -645,7 +645,7 @@ typedef struct n2n_edge_conf {
     uint32_t register_ttl;                           /**< TTL for registration packet when UDP NAT hole punching through supernode. */
     struct sockaddr *bind_address;                   /**< The address to bind to if provided */
     n2n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
-    int mgmt_port;
+    uint16_t mgmt_port;
     uint8_t connect_tcp;                             /** connection to supernode 0 = UDP; 1 = TCP */
     n2n_auth_t auth;
     filter_rule_t            *network_traffic_filter_rules;
