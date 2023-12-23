@@ -526,29 +526,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'e': {
-            in_addr_t address_tmp;
-
-            if(!optargument) {
-                // Needs an arg
-                break;
-            }
-
-            if(!strcmp(optargument, "auto")) {
-                conf->preferred_sock.family = AF_INVALID;
-                break;
-            }
-
-            address_tmp = inet_addr(optargument);
-            if(address_tmp == INADDR_NONE) {
-                traceEvent(TRACE_WARNING, "bad address for preferred local socket, defaulting to auto");
-                conf->preferred_sock.family = AF_INVALID;
-                break;
-            }
-
-            memcpy(&(conf->preferred_sock.addr.v4), &(address_tmp), IPV4_SIZE);
-            conf->preferred_sock.family = AF_INET;
-            // port is set later during supernode_connect()
-
+            set_option_wrap(conf, "connection", "advertise_addr", optargument);
             break;
         }
 

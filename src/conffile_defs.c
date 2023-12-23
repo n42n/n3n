@@ -87,6 +87,19 @@ static struct n3n_conf_option section_community[] = {
 
 static struct n3n_conf_option section_connection[] = {
     {
+        .name = "advertise_addr",
+        .type = n3n_conf_n2n_sock_addr,
+        .offset = offsetof(n2n_edge_conf_t, preferred_sock),
+        .desc = "Set local address to advertise",
+        .help = "The correct address will usually be autodetected.  However, "
+                "if multicast peer detection is not available (e.g: it is "
+                "disabled on the router) a local IP address to use for "
+                "attempted local peer connections can be specified here. "
+                "This can assist with forming a peer-to-peer connection with "
+                "hosts on the same internal network.  It does not help with "
+                "NAT piercing.",
+    },
+    {
         .name = "bind",
         .type = n3n_conf_sockaddr,
         .offset = offsetof(n2n_edge_conf_t, bind_address),

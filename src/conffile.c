@@ -66,6 +66,11 @@ static struct n3n_conf_option *lookup_option (char *section, char *option) {
 }
 
 int n3n_config_set_option (void *conf, char *section, char *option, char *value) {
+    if (!value) {
+        // Dont (currently?) support missing values
+        return -1;
+    }
+
     struct n3n_conf_option *p = lookup_option(section, option);
     if(!p) {
         return -1;
@@ -261,7 +266,24 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
 
             sa->sin_port = htons(local_port);
             sa->sin_addr.s_addr = htonl(bind_address);
-            break;
+            return 0;
+        }
+        case n3n_conf_n2n_sock_addr: {
+            struct n2n_sock *dst = (struct n2n_sock *)((char *)conf + p->offset);
+            if(!strcmp(value, "auto")) {
+                dst->family = AF_INVALID;
+                return 0;
+            }
+
+            in_addr_t address_tmp = inet_addr(value);
+            if(address_tmp == INADDR_NONE) {
+                dst->family = AF_INVALID;
+                return -1;
+            }
+
+            memcpy(&(dst->addr.v4), &(address_tmp), IPV4_SIZE);
+            dst->family = AF_INET;
+            return 0;
         }
     }
     return -1;
