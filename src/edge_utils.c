@@ -3197,7 +3197,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->header_encryption = HEADER_ENCRYPTION_NONE;
     conf->compression = N2N_COMPRESSION_ID_NONE;
     conf->drop_multicast = true;
-    conf->allow_p2p = 1;
+    conf->allow_p2p = true;
     conf->disable_pmtu_discovery = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;

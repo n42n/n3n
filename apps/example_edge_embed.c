@@ -34,7 +34,7 @@ int main () {
     int rc;
 
     edge_init_conf_defaults(&conf);
-    conf.allow_p2p = 1;                                                                      // Whether to allow peer-to-peer communication
+    conf.allow_p2p = true;                                                                   // Whether to allow peer-to-peer communication
     conf.allow_routing = true;                                                               // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to
     conf.disable_pmtu_discovery = true;                                                      // Whether to disable the path MTU discovery

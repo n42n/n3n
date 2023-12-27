@@ -551,10 +551,10 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
 
             // set the level
             if(solitude >= 1)
-                conf->allow_p2p = 0;
+                conf->allow_p2p = false;
 #ifdef N2N_HAVE_TCP
             if(solitude == 2)
-                conf->connect_tcp = 1;
+                conf->connect_tcp = true;
 #endif
             break;
         }

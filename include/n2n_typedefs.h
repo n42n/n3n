@@ -637,7 +637,7 @@ typedef struct n2n_edge_conf {
     bool allow_routing;                              /**< Accept packet no to interface address. */
     bool drop_multicast;                             /**< Multicast ethernet addresses. */
     bool disable_pmtu_discovery;                     /**< Disable the Path MTU discovery. */
-    uint8_t allow_p2p;                               /**< Allow P2P connection */
+    bool allow_p2p;                                  /**< Allow P2P connection */
     uint8_t sn_num;                                  /**< Number of supernode addresses defined. */
     uint32_t tos;                                    /** TOS for sent packets */
     char                     *encrypt_key;
@@ -646,7 +646,7 @@ typedef struct n2n_edge_conf {
     struct sockaddr *bind_address;                   /**< The address to bind to if provided */
     n2n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
     uint16_t mgmt_port;
-    uint8_t connect_tcp;                             /** connection to supernode 0 = UDP; 1 = TCP */
+    bool connect_tcp;                                /** connection to supernode 0 = UDP; 1 = TCP */
     n2n_auth_t auth;
     filter_rule_t            *network_traffic_filter_rules;
     int metric;                                     /**< Network interface metric (Windows only). */
