@@ -543,19 +543,15 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             if(optargument) {
                 solitude = atoi(optargument);
             } else {
-                traceEvent(TRACE_WARNING, "the use of the solitary -S switch is deprecated and will not be supported in future versions, "
-                           "please use -S1 instead to choose supernode-only connection via UDP");
-
-                solitude = 1;
+                traceEvent(TRACE_ERROR, "unknown -S value");
+                break;
             }
 
             // set the level
             if(solitude >= 1)
-                conf->allow_p2p = false;
-#ifdef N2N_HAVE_TCP
+                set_option_wrap(conf, "connection", "allow_p2p", "false");
             if(solitude == 2)
-                conf->connect_tcp = true;
-#endif
+                set_option_wrap(conf, "connection", "connect_tcp", "true");
             break;
         }
 

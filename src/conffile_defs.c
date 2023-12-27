@@ -100,11 +100,31 @@ static struct n3n_conf_option section_connection[] = {
                 "NAT piercing.",
     },
     {
+        .name = "allow_p2p",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, allow_p2p),
+        .desc = "Control use of peer-to-peer packets",
+        .help = "Defaulting to true, this setting can be used to enable or "
+                "disable the use of peer-to-peer connections.  This might "
+                "be used if the network is known to be hostile to p2p.  See "
+                "also the connect_tcp setting as they are used together.",
+    },
+    {
         .name = "bind",
         .type = n3n_conf_sockaddr,
         .offset = offsetof(n2n_edge_conf_t, bind_address),
         .desc = "bind to a local address and/or port",
         .help = "[address]:[port] to bind.",
+    },
+    {
+        .name = "connect_tcp",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, connect_tcp),
+        .desc = "Control use of TCP connections to supernode",
+        .help = "Defaulting to false, this is used to enable the use of a "
+                "TCP connection to the supernode.  If set, the allow_p2p "
+                "setting should usually also be set to false.  This feature "
+                "is not currently available on Windows edge nodes.",
     },
     {
         .name = "description",
