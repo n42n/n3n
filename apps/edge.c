@@ -534,16 +534,10 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
             set_option_wrap(conf, "management", "port", optargument);
             break;
         }
-#ifdef __linux__
         case 'T': {
-            if((optargument[0] == '0') && (optargument[1] == 'x'))
-                conf->tos = strtol(&optargument[2], NULL, 16);
-            else
-                conf->tos = atoi(optargument);
-
+            set_option_wrap(conf, "connection", "tos", optargument);
             break;
         }
-#endif
         case 'n': {
             traceEvent(TRACE_WARNING, "route support (-n) has been removed from n3n's core since version 3.1, "
                        "please try tools/n3n-route instead");

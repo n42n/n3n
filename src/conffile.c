@@ -99,7 +99,7 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         case n3n_conf_uint32: {
             uint32_t *dst = (uint32_t *)((char *)conf + p->offset);
             char *endptr;
-            uint32_t i = strtoull(value, &endptr, 10);
+            uint32_t i = strtoul(value, &endptr, 0);
 
             if(*value && !*endptr) {
                 // "the entire string is valid"
@@ -127,7 +127,7 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             // For now, manually keep the max ids in sync with n2n_transform_t
 
             char *endptr;
-            uint32_t i = strtoull(value, &endptr, 10);
+            uint32_t i = strtoul(value, &endptr, 10);
 
             if(*value && !*endptr) {
                 // "the entire string is valid"
@@ -165,7 +165,7 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             // For now, manually keep the max ids in sync with n2n_transform_t
 
             char *endptr;
-            uint32_t i = strtoull(value, &endptr, 10);
+            uint32_t i = strtoul(value, &endptr, 10);
 
             if(*value && !*endptr) {
                 // "the entire string is valid"

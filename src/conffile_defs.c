@@ -155,6 +155,14 @@ static struct n3n_conf_option section_connection[] = {
                 "networks, you may not be awwre of all the nat levels, so "
                 "this value should be set with caution.",
     },
+    {
+        .name = "tos",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, tos),
+        .desc = "TOS for packets.",
+        .help = "Sets the Type of Service used for outgoing VPN packets. "
+                "e.g. 0x48 for SSH like priority.",
+    },
     {.name = NULL},
 };
 

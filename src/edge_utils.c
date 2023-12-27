@@ -344,7 +344,14 @@ int supernode_connect (n2n_edge_t *eee) {
         }
 
         if(eee->conf.tos) {
-            /* https://www.tucny.com/Home/dscp-tos */
+            /*
+             * See https://www.tucny.com/Home/dscp-tos for a quick table of
+             * the intended functions of each TOS value
+             *
+             * Note that the tos value is a byte and the manpage for IP_TOS
+             * defines it as a byte, but we hand setsockopt() an int value.
+             * This does work on linux, but - TODO, check this on other OS
+             */
             sockopt = eee->conf.tos;
 
             if(setsockopt(eee->sock, IPPROTO_IP, IP_TOS, (char *)&sockopt, sizeof(sockopt)) == 0)

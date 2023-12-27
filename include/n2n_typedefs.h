@@ -639,7 +639,7 @@ typedef struct n2n_edge_conf {
     bool disable_pmtu_discovery;                     /**< Disable the Path MTU discovery. */
     uint8_t allow_p2p;                               /**< Allow P2P connection */
     uint8_t sn_num;                                  /**< Number of supernode addresses defined. */
-    uint8_t tos;                                     /** TOS for sent packets */
+    uint32_t tos;                                    /** TOS for sent packets */
     char                     *encrypt_key;
     uint32_t register_interval;                      /**< Interval for supernode registration, also used for UDP NAT hole punching. */
     uint32_t register_ttl;                           /**< TTL for registration packet when UDP NAT hole punching through supernode. */
