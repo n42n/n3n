@@ -13,7 +13,7 @@ AUTH=n3n
 [ -z "$BINDIR" ] && BINDIR=.
 
 docmd() {
-    echo "###"
+    echo "### test: $@"
     "$@"
     local S=$?
     echo
@@ -45,15 +45,15 @@ docmd "${TOPDIR}"/scripts/n3n-ctl edges --raw |grep -v "last_seen"
 #   - uptime
 
 docmd "${TOPDIR}"/scripts/n3n-ctl verbose
+
+# Test with bad auth
 docmd "${TOPDIR}"/scripts/n3n-ctl --write verbose 1 2>/dev/null
 echo $?
+
 docmd "${TOPDIR}"/scripts/n3n-ctl -k $AUTH --write verbose 1
 
 # looks strange, but we are querying the state of the "stop" verb
 docmd "${TOPDIR}"/scripts/n3n-ctl stop
-
-# confirm that a bad auth doesnt work
-docmd "${TOPDIR}"/scripts/n3n-ctl -k bad --write stop 2>/dev/null ||echo test badauth
 
 # stop them both
 docmd "${TOPDIR}"/scripts/n3n-ctl -k $AUTH --write stop
