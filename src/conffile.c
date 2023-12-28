@@ -285,6 +285,26 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             dst->family = AF_INET;
             return 0;
         }
+        case n3n_conf_sn_selection: {
+            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            // TODO: in the future, we should lookup against a struct of
+            // registered selection strategies
+
+            if(!strcmp(value, "rtt")) {
+                *dst = SN_SELECTION_STRATEGY_RTT;
+                return 0;
+            }
+            if(!strcmp(value, "mac")) {
+                *dst = SN_SELECTION_STRATEGY_MAC;
+                return 0;
+            }
+            if(!strcmp(value, "load")) {
+                *dst = SN_SELECTION_STRATEGY_LOAD;
+                return 0;
+            }
+
+            return -1;
+        }
     }
     return -1;
 }

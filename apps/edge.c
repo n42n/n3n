@@ -556,16 +556,12 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case '[': /* round-trip-time-based supernode selection strategy */ {
-            // overwrites the default load-based strategy
-            conf->sn_selection_strategy = SN_SELECTION_STRATEGY_RTT;
-
+            set_option_wrap(conf, "connection", "supernode_selection", "rtt");
             break;
         }
 
         case ']': /* mac-address-based supernode selection strategy */ {
-            // overwrites the default load-based strategy
-            conf->sn_selection_strategy = SN_SELECTION_STRATEGY_MAC;
-
+            set_option_wrap(conf, "connection", "supernode_selection", "mac");
             break;
         }
 

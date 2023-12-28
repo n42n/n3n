@@ -176,6 +176,17 @@ static struct n3n_conf_option section_connection[] = {
                 "this value should be set with caution.",
     },
     {
+        .name = "supernode_selection",
+        .type = n3n_conf_sn_selection,
+        .offset = offsetof(n2n_edge_conf_t, sn_selection_strategy),
+        .desc = "How to select a supernode",
+        .help = "There are multiple strategies available for how to select "
+                "the current supernode. Default is to use the supernode's "
+                "reported load and choose the lowest (called 'load').  Also "
+                "available are 'rtt' to shoose the lowest measured round trip "
+                "time and 'mac' to shoose the lowest MAC address",
+    },
+    {
         .name = "tos",
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, tos),

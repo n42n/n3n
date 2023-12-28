@@ -21,6 +21,7 @@ enum n3n_conf_type {
     n3n_conf_publickey,
     n3n_conf_sockaddr,
     n3n_conf_n2n_sock_addr, // TODO: want to replace users with sockaddr
+    n3n_conf_sn_selection,
 };
 
 struct n3n_conf_option {
