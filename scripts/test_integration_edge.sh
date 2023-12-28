@@ -13,7 +13,7 @@ AUTH=n3n
 [ -z "$BINDIR" ] && BINDIR=.
 
 docmd() {
-    echo "### test: $@"
+    echo "### test: $*"
     "$@"
     local S=$?
     echo
