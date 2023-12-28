@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Copyright (C) 2023 Hamish Coleman
 # SPDX-License-Identifier: GPL-3.0-only
@@ -15,7 +15,9 @@ AUTH=n3n
 docmd() {
     echo "###"
     "$@"
+    local S=$?
     echo
+    return $S
 }
 
 # start a supernode
@@ -49,6 +51,9 @@ docmd "${TOPDIR}"/scripts/n3n-ctl -k $AUTH --write verbose 1
 
 # looks strange, but we are querying the state of the "stop" verb
 docmd "${TOPDIR}"/scripts/n3n-ctl stop
+
+# confirm that a bad auth doesnt work
+docmd "${TOPDIR}"/scripts/n3n-ctl -k bad --write stop 2>/dev/null ||echo test badauth
 
 # stop them both
 docmd "${TOPDIR}"/scripts/n3n-ctl -k $AUTH --write stop

@@ -566,8 +566,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case '{': /* password for management port */ {
-            conf->mgmt_password_hash = pearson_hash_64((uint8_t*)optargument, strlen(optargument));
-
+            conf->mgmt_password = strdup(optargument);
             break;
         }
 

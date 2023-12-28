@@ -449,7 +449,7 @@ void readFromMgmtSocket (n2n_edge_t *eee) {
     req.eee = eee;
     req.mgmt_sock = eee->udp_mgmt_sock;
     req.keep_running = eee->keep_running;
-    req.mgmt_password_hash = eee->conf.mgmt_password_hash;
+    req.mgmt_password = eee->conf.mgmt_password;
     req.sock_len = sizeof(req.sas);
 
     recvlen = recvfrom(eee->udp_mgmt_sock, udp_buf, N2N_PKT_BUF_SIZE, 0 /*flags*/,

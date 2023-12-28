@@ -193,7 +193,7 @@ int mgmt_auth (mgmt_req_t *req, char *auth) {
 
     if(auth) {
         /* If we have an auth key, it must match */
-        if(req->mgmt_password_hash == pearson_hash_64((uint8_t*)auth, strlen(auth))) {
+        if(!strcmp(req->mgmt_password, auth)) {
             return 1;
         }
         return 0;

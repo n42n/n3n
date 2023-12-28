@@ -652,7 +652,7 @@ typedef struct n2n_edge_conf {
     int metric;                                     /**< Network interface metric (Windows only). */
     uint8_t sn_selection_strategy;                  /**< encodes currently chosen supernode selection strategy. */
     uint8_t number_max_sn_pings;                    /**< Number of maximum concurrently allowed supernode pings. */
-    uint64_t mgmt_password_hash;                    /**< contains hash of managament port password. */
+    char * mgmt_password;
     uint32_t userid;
     uint32_t groupid;
     bool daemon;
@@ -831,7 +831,7 @@ typedef struct n2n_sn {
     uint32_t dynamic_key_time;                                /* UTC time of last dynamic key generation (second accuracy) */
     uint8_t override_spoofing_protection;                                /* set if overriding MAC/IP spoofing protection (cli option '-M') */
     n2n_resolve_parameter_t                *resolve_parameter;/*Pointer to name resolver's parameter block */
-    uint64_t mgmt_password_hash;                              /* contains hash of managament port password */
+    char *mgmt_password;
 } n2n_sn_t;
 
 

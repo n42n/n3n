@@ -372,7 +372,7 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
             break;
 
         case ']': /* password for management port */ {
-            sss->mgmt_password_hash = pearson_hash_64((uint8_t*)_optarg, strlen(_optarg));
+            sss->mgmt_password = strdup(_optarg);
 
             break;
         }

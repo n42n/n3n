@@ -3186,8 +3186,6 @@ static int edge_init_sockets (n2n_edge_t *eee) {
 
 void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
-    char *tmp_string;
-
     memset(conf, 0, sizeof(*conf));
 
     conf->bind_address = NULL;
@@ -3218,12 +3216,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
             generate_private_key(*(conf->shared_secret), getenv("N2N_PASSWORD"));
     }
 
-    tmp_string = calloc(1, strlen(N2N_MGMT_PASSWORD) + 1);
-    if(tmp_string) {
-        strncpy((char*)tmp_string, N2N_MGMT_PASSWORD, strlen(N2N_MGMT_PASSWORD) + 1);
-        conf->mgmt_password_hash = pearson_hash_64((uint8_t*)tmp_string, strlen(N2N_MGMT_PASSWORD));
-        free(tmp_string);
-    }
+    conf->mgmt_password = N2N_MGMT_PASSWORD;
 
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
     conf->metric = 0;
