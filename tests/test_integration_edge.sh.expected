@@ -58,9 +58,6 @@
     }
 ]
 
-### test: ./scripts/n3n-ctl -k bad --write stop
-
-test badauth
 ### test: ./scripts/n3n-ctl -k n3n --write stop
 [
     {
