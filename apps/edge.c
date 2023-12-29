@@ -566,7 +566,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case '{': /* password for management port */ {
-            conf->mgmt_password = strdup(optargument);
+            set_option_wrap(conf, "management", "password", optargument);
             break;
         }
 

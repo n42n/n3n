@@ -246,6 +246,15 @@ static struct n3n_conf_option section_filter[] = {
 
 static struct n3n_conf_option section_management[] = {
     {
+        .name = "password",
+        .type = n3n_conf_strdup,
+        .offset = offsetof(n2n_edge_conf_t, mgmt_password),
+        .desc = "The password to authenticate management access",
+        .help = "Some API access methods or actions require a password to "
+                "succeed (See API docs for details).  The default password "
+                "is 'n3n'.",
+    },
+    {
         .name = "port",
         .type = n3n_conf_uint32,    // NOTE: ports are actually uint16
         .offset = offsetof(n2n_edge_conf_t, mgmt_port),
