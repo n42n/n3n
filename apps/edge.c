@@ -25,6 +25,7 @@
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/network_traffic_filter.h>  // for process_traffic_filter_rule_str
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t
@@ -45,9 +46,6 @@
 #include "sn_selection.h"            // for sn_selection_sort, sn_selection_...
 #include "speck.h"                   // for speck_init, speck_context_t
 #include "uthash.h"                  // for UT_hash_handle, HASH_ADD, HASH_C...
-
-// TODO: breaks build if included in correct sorted spot
-#include <n3n/network_traffic_filter.h>  // for process_traffic_filter_rule_str
 
 // FIXME, including a private header
 #include "../src/peer_info.h"        // for peer_info, peer_info_t
