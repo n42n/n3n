@@ -244,6 +244,16 @@ static struct n3n_conf_option section_filter[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_option section_logging[] = {
+    {
+        .name = "verbose",
+        .type = n3n_conf_verbose,
+        .desc = "Set the logging verbosity",
+        .help = "This is a number between 0 and 4, defaulting to 2 for "
+                "normal amounts of logging."
+    },
+};
+
 static struct n3n_conf_option section_management[] = {
     {
         .name = "password",
@@ -302,6 +312,7 @@ void n3n_conffile_defs_init () {
     n3n_config_register_section("connection", section_connection);
     n3n_config_register_section("daemon", section_daemon);
     n3n_config_register_section("filter", section_filter);
+    n3n_config_register_section("logging", section_logging);
     n3n_config_register_section("management", section_management);
     n3n_config_register_section("tuntap", section_tuntap);
 }

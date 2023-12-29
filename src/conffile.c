@@ -6,6 +6,7 @@
  */
 
 #include <n3n/conffile.h>
+#include <n3n/logging.h>        // for setTraceLevel
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
@@ -303,6 +304,17 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
                 return 0;
             }
 
+            return -1;
+        }
+        case n3n_conf_verbose: {
+            char *endptr;
+            uint32_t i = strtoul(value, &endptr, 0);
+
+            if(*value && !*endptr) {
+                // "the entire string is valid"
+                setTraceLevel(i);
+                return 0;
+            }
             return -1;
         }
     }
