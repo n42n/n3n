@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +22,12 @@
 // Zhou Bin <joshuafc@foxmail.com>
 //
 
-#ifndef N2N_NETWORK_TRAFFIC_FILTER_H
-#define N2N_NETWORK_TRAFFIC_FILTER_H
+// TODO: refactor into public and private definitions
 
-#include "n2n_typedefs.h"
+#ifndef _N3N_NETWORK_TRAFFIC_FILTER_H_
+#define _N3N_NETWORK_TRAFFIC_FILTER_H_
+
+#include "n2n_typedefs.h"   // for network_traffic_filter_t, filter_rule_t
 
 network_traffic_filter_t* create_network_traffic_filter ();
 
@@ -34,4 +38,4 @@ void network_traffic_filter_add_rule (network_traffic_filter_t* filter, filter_r
 //rule_str format: src_ip/len:[b_port,e_port],dst_ip/len:[s_port,e_port],TCP+/-,UDP+/-,ICMP+/-
 uint8_t process_traffic_filter_rule_str (const char* rule_str, filter_rule_t* rule_struct);
 
-#endif //N2N_NETWORK_TRAFFIC_FILTER_H
+#endif //N3N_NETWORK_TRAFFIC_FILTER_H

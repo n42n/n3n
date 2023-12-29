@@ -39,13 +39,15 @@
 #include "auth.h"                    // for generate_private_key, generate_p...
 #include "config.h"                  // for PACKAGE_BUILDDATE, PACKAGE_VERSION
 #include "n2n.h"                     // for n2n_edge_conf_t, n2n_edge_t, fil...
-#include "network_traffic_filter.h"  // for process_traffic_filter_rule_str
 #include "pearson.h"                 // for pearson_hash_64
 #include "portable_endian.h"         // for htobe32
 #include "random_numbers.h"          // for n2n_seed, n2n_srand
 #include "sn_selection.h"            // for sn_selection_sort, sn_selection_...
 #include "speck.h"                   // for speck_init, speck_context_t
 #include "uthash.h"                  // for UT_hash_handle, HASH_ADD, HASH_C...
+
+// TODO: breaks build if included in correct sorted spot
+#include <n3n/network_traffic_filter.h>  // for process_traffic_filter_rule_str
 
 // FIXME, including a private header
 #include "../src/peer_info.h"        // for peer_info, peer_info_t
