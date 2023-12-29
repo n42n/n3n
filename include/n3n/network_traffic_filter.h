@@ -31,7 +31,8 @@
 #include <uthash.h>
 
 #ifdef _WIN32
-#include "../../src/win32/defs.h"  // for in_addr_t, FIXME: untangle path
+// FIXME: I dont even
+typedef unsigned long in_addr_t;
 #else
 #include <arpa/inet.h>  // for in_addr_t
 #endif
