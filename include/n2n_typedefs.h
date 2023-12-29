@@ -436,7 +436,11 @@ typedef struct n2n_edge n2n_edge_t;
 /* *************************************************** */
 
 // FIXME: this definition belongs in n3n/network_traffic_filter.h but
-// it is tangled up
+// it is tangled up.
+// TODO: determine the value of using function pointers for these two
+// definitions - this would allow untangling the definitions.  It would
+// make it harder to write a custom packet filter function in a user
+// application, but that might not be needed.
 struct network_traffic_filter {
     n2n_verdict (*filter_packet_from_peer)(network_traffic_filter_t* filter, n2n_edge_t *eee,
                                            const n2n_sock_t *peer, uint8_t *payload, uint16_t payload_size);
