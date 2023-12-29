@@ -23,6 +23,7 @@ enum n3n_conf_type {
     n3n_conf_n2n_sock_addr, // TODO: want to replace users with sockaddr
     n3n_conf_sn_selection,
     n3n_conf_verbose,
+    n3n_conf_filter_rule,
 };
 
 struct n3n_conf_option {

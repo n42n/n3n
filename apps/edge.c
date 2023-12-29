@@ -25,7 +25,6 @@
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
-#include <n3n/network_traffic_filter.h>  // for process_traffic_filter_rule_str
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t
@@ -588,16 +587,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'R': /* network traffic filter */ {
-            filter_rule_t *new_rule = malloc(sizeof(filter_rule_t));
-            memset(new_rule, 0, sizeof(filter_rule_t));
-
-            if(process_traffic_filter_rule_str(optargument, new_rule)) {
-                HASH_ADD(hh, conf->network_traffic_filter_rules, key, sizeof(filter_rule_key_t), new_rule);
-            } else {
-                free(new_rule);
-                traceEvent(TRACE_WARNING, "invalid filter rule: %s", optargument);
-                return 2;
-            }
+            set_option_wrap(conf, "filter", "rule", optargument);
             break;
         }
 

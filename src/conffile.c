@@ -7,6 +7,7 @@
 
 #include <n3n/conffile.h>
 #include <n3n/logging.h>        // for setTraceLevel
+#include <n3n/network_traffic_filter.h>
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
@@ -316,6 +317,21 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
                 return 0;
             }
             return -1;
+        }
+        case n3n_conf_filter_rule: {
+            filter_rule_t **dst = (filter_rule_t **)((char *)conf + p->offset);
+
+            filter_rule_t *new_rule = malloc(sizeof(filter_rule_t));
+            memset(new_rule, 0, sizeof(filter_rule_t));
+
+            if(process_traffic_filter_rule_str(value, new_rule)) {
+                HASH_ADD(hh, *dst, key, sizeof(filter_rule_key_t), new_rule);
+            } else {
+                free(new_rule);
+                return -1;
+            }
+
+            return 0;
         }
     }
     return -1;

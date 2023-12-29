@@ -241,6 +241,15 @@ static struct n3n_conf_option section_filter[] = {
                 "discovery.  If drop is true then these multicast packets "
                 "are discarded.",
     },
+    {
+        .name = "rule",
+        .type = n3n_conf_filter_rule,
+        .offset = offsetof(n2n_edge_conf_t, network_traffic_filter_rules),
+        .desc = "Add a new traffic filter rule",
+        .help = "Each rule config option adds a new rule. "
+                "rule_str format: `src_ip/len:[b_port,e_port],dst_ip/len:[s_port,e_port],TCP+/-,UDP+/-,ICMP+/-` "
+                "See the doc/TrafficRestrictions.md for more details",
+    },
     {.name = NULL},
 };
 
@@ -252,6 +261,7 @@ static struct n3n_conf_option section_logging[] = {
         .help = "This is a number between 0 and 4, defaulting to 2 for "
                 "normal amounts of logging."
     },
+    {.name = NULL},
 };
 
 static struct n3n_conf_option section_management[] = {
@@ -274,6 +284,7 @@ static struct n3n_conf_option section_management[] = {
                 "instance of edge; or something else is bound to that port.",
 
     },
+    {.name = NULL},
 };
 
 static struct n3n_conf_option section_tuntap[] = {
