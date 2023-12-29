@@ -297,6 +297,14 @@ static struct n3n_conf_option section_tuntap[] = {
         .help = "By default a random MAC address is used.",
     },
     {
+        .name = "metric",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, metric),
+        .desc = "Set the TAP interface metric",
+        .help = "(Windows only) Defaults to 0 (auto), e.g. set to 1 for "
+                "better multiplayer game detection.",
+    },
+    {
         .name = "mtu",
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, mtu),

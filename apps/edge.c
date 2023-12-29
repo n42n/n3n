@@ -592,7 +592,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         }
 
         case 'x': {
-            conf->metric = atoi(optargument);
+            set_option_wrap(conf, "tuntap", "metric", optargument);
             break;
         }
 
