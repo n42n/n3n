@@ -30,7 +30,9 @@
 #include <stdint.h>     // for uint8_t and friends
 #include <uthash.h>
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include "../../src/win32/defs.h"  // for in_addr_t, FIXME: untangle path
+#else
 #include <arpa/inet.h>  // for in_addr_t
 #endif
 
