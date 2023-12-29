@@ -54,8 +54,6 @@ typedef unsigned char uint8_t;
 typedef int ssize_t;
 #endif
 
-typedef unsigned long in_addr_t;
-
 #include "../src/win32/n2n_win32.h"
 // FIXME - continue untangling the build and includes - dont have a ".." here
 
