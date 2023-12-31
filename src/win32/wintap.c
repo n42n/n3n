@@ -309,11 +309,12 @@ int open_wintap (struct tuntap_dev *device,
                   "netsh interface ip set address \"%s\" dhcp > nul",
                   device->ifName);
     }else {
+        uint32_t mask = htonl(bitlen2mask(v4masklen));
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" static %s %s > nul",
                   device->ifName,
                   device_ip,
-                  inet_ntoa((struct in_addr)htonl(bitlen2mask(v4masklen))),
+                  inet_ntoa(*(struct in_addr*)&mask)
                   );
     }
 

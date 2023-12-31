@@ -72,10 +72,11 @@ int tuntap_open (tuntap_dev *device /* ignored */,
             system(buf);
         }
 
+        uint32_t mask = htonl(bitlen2mask(v4masklen));
         snprintf(buf, sizeof(buf), "ifconfig tap%d %s netmask %s mtu %d up",
                  i,
                  device_ip,
-                 inet_ntoa((struct in_addr)htonl(bitlen2mask(v4masklen))),
+                 inet_ntoa(*(struct in_addr*)&mask),
                  mtu
                  );
         system(buf);
