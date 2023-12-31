@@ -160,7 +160,7 @@ static int scan_address (in_addr_t * v4addr,
     memset(buf, 0, sizeof(buf));
 
     strncpy(buf, start, sizeof(buf)-1); // ensure NULL term
-    if(inet_pton(AF_INET, buf, v4addr) != 1) {
+    if(inet_aton(buf, (struct in_addr *)v4addr) < 1) {
         return -1;
     }
 
