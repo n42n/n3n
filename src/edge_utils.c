@@ -3195,6 +3195,16 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->disable_pmtu_discovery = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
 
+#ifdef _WIN32
+    conf->tuntap_dev_name[0] = '\0';
+#else
+    strncpy(
+        conf->tuntap_dev_name,
+        N2N_EDGE_DEFAULT_DEV_NAME,
+        sizeof(conf->tuntap_dev_name)
+        );
+#endif
+
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
     conf->tuntap_v4masklen = N2N_EDGE_DEFAULT_V4MASKLEN;
 

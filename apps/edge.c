@@ -924,12 +924,6 @@ int main (int argc, char* argv[]) {
     }
 #endif
 
-#ifdef _WIN32
-    conf.tuntap_dev_name[0] = '\0';
-#else
-    snprintf(conf.tuntap_dev_name, sizeof(conf.tuntap_dev_name), N2N_EDGE_DEFAULT_DEV_NAME);
-#endif
-
     rc = n3n_config(argc, argv, "edge", &conf, &ec);
 
     // --- additional crypto setup; REVISIT: move to edge_init()?
