@@ -119,7 +119,7 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
  */
 int tuntap_open (tuntap_dev *device,
                  char *dev, /* user-definable interface name, eg. edge0 */
-                 const char *address_mode, /* static or dhcp */
+                 uint8_t address_mode, /* unused! */
                  char *device_ip,
                  uint32_t v4masklen,
                  const char * device_mac,

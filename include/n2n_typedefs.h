@@ -481,7 +481,6 @@ typedef struct n2n_edge_callbacks {
 } n2n_edge_callbacks_t;
 
 typedef struct n2n_tuntap_priv_config {
-    char ip_mode[N2N_IF_MODE_SIZE];
     dec_ip_str_t ip_addr;
 } n2n_tuntap_priv_config_t;
 
@@ -572,7 +571,6 @@ typedef struct n2n_edge_conf {
     he_context_t             *header_iv_ctx_dynamic; /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
     uint8_t transop_id;                              /**< The transop to use. */
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
-    uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
     bool allow_routing;                              /**< Accept packet no to interface address. */
     bool drop_multicast;                             /**< Multicast ethernet addresses. */
     bool disable_pmtu_discovery;                     /**< Disable the Path MTU discovery. */
@@ -598,6 +596,7 @@ typedef struct n2n_edge_conf {
     char device_mac[N2N_MACNAMSIZ];
     int mtu;
     devstr_t tuntap_dev_name;
+    uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
     uint32_t tuntap_v4masklen;
 } n2n_edge_conf_t;
 

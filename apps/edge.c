@@ -109,7 +109,7 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
  */
 static int scan_address (char * ip_addr, size_t addr_size,
                          uint32_t * v4masklen,
-                         char * ip_mode, size_t mode_size,
+                         uint8_t * ip_mode,
                          char * s) {
 
     int retval = -1;
@@ -130,8 +130,17 @@ static int scan_address (char * ip_addr, size_t addr_size,
     if(end) {
         // colon is present
         if(ip_mode) {
-            memset(ip_mode, 0, mode_size);
-            strncpy(ip_mode, start, (size_t)MIN(end - start, mode_size - 1));
+            char buf[10];
+            memset(buf, 0, sizeof(buf));
+            strncpy(buf, start, (size_t)MIN(end - start, sizeof(buf) - 1));
+
+            if(0 == strcmp("static", buf)) {
+                *ip_mode = TUNTAP_IP_MODE_STATIC;
+            } else if(0 == strcmp("dhcp", buf)) {
+                *ip_mode = TUNTAP_IP_MODE_DHCP;
+            } else {
+                *ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
+            }
         }
         start = end + 1;
     } else {
@@ -409,7 +418,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
         case 'a': /* IP address and mode of TUNTAP interface */ {
             scan_address(ec->ip_addr, N2N_NETMASK_STR_SIZE,
                          &conf->tuntap_v4masklen,
-                         ec->ip_mode, N2N_IF_MODE_SIZE,
+                         &conf->tuntap_ip_mode,
                          optargument);
             break;
         }
@@ -997,16 +1006,19 @@ int main (int argc, char* argv[]) {
 
     memcpy(&(eee->tuntap_priv_conf), &ec, sizeof(ec));
 
-    if((0 == strcmp("static", eee->tuntap_priv_conf.ip_mode)) ||
-       ((eee->tuntap_priv_conf.ip_mode[0] == '\0') && (eee->tuntap_priv_conf.ip_addr[0] != '\0'))) {
-        traceEvent(TRACE_NORMAL, "use manually set IP address");
-        eee->conf.tuntap_ip_mode = TUNTAP_IP_MODE_STATIC;
-    } else if(0 == strcmp("dhcp", eee->tuntap_priv_conf.ip_mode)) {
-        traceEvent(TRACE_NORMAL, "obtain IP from other edge DHCP services");
-        eee->conf.tuntap_ip_mode = TUNTAP_IP_MODE_DHCP;
-    } else {
-        traceEvent(TRACE_NORMAL, "automatically assign IP address by supernode");
-        eee->conf.tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
+    switch(eee->conf.tuntap_ip_mode) {
+        case TUNTAP_IP_MODE_SN_ASSIGN:
+            traceEvent(TRACE_NORMAL, "automatically assign IP address by supernode");
+            break;
+        case TUNTAP_IP_MODE_STATIC:
+            traceEvent(TRACE_NORMAL, "use manually set IP address");
+            break;
+        case TUNTAP_IP_MODE_DHCP:
+            traceEvent(TRACE_NORMAL, "obtain IP from other edge DHCP services");
+            break;
+        default:
+            traceEvent(TRACE_ERROR, "unknown ip_mode");
+            break;
     }
 
     // mini main loop for bootstrap, not using main loop code because some of its mechanisms do not fit in here
@@ -1105,7 +1117,7 @@ int main (int argc, char* argv[]) {
         }
 
         if(runlevel == 4) { /* configure the TUNTAP device, including routes */
-            if(tuntap_open(&tuntap, eee->conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode,
+            if(tuntap_open(&tuntap, eee->conf.tuntap_dev_name, eee->conf.tuntap_ip_mode,
                            eee->tuntap_priv_conf.ip_addr, eee->conf.tuntap_v4masklen,
                            eee->conf.device_mac, eee->conf.mtu,
                            eee->conf.metric) < 0)

@@ -35,7 +35,7 @@ void tun_close (tuntap_dev *device);
 
 int tuntap_open (tuntap_dev *device /* ignored */,
                  char *dev,
-                 const char *address_mode, /* static or dhcp */
+                 uint8_t address_mode, /* unused! */
                  char *device_ip,
                  uint32_t v4masklen,
                  const char * device_mac,

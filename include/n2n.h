@@ -104,7 +104,7 @@ int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
 #endif
 
 /* Tuntap API */
-int tuntap_open (struct tuntap_dev *device, char *dev, const char *address_mode, char *device_ip,
+int tuntap_open (struct tuntap_dev *device, char *dev, uint8_t address_mode, char *device_ip,
                  uint32_t v4masklen, const char * device_mac, int mtu, int metric);
 int tuntap_read (struct tuntap_dev *tuntap, unsigned char *buf, int len);
 int tuntap_write (struct tuntap_dev *tuntap, unsigned char *buf, int len);

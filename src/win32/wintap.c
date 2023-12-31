@@ -225,7 +225,7 @@ static int choose_adapter_callback (struct win_adapter_info *adapter, struct tun
 
 int open_wintap (struct tuntap_dev *device,
                  const char * devname,
-                 const char * address_mode, /* "static" or "dhcp" */
+                 uint8_t address_mode, /* "static" or "dhcp" */
                  char *device_ip,
                  uint32_t v4masklen,
                  const char *device_mac,
@@ -304,7 +304,7 @@ int open_wintap (struct tuntap_dev *device,
 
     /* ****************** */
 
-    if( 0 == strcmp("dhcp", address_mode) ) {
+    if(address_mode == TUNTAP_IP_MODE_DHCP) {
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" dhcp > nul",
                   device->ifName);
@@ -454,7 +454,7 @@ int tuntap_write (struct tuntap_dev *tuntap, unsigned char *buf, int len)
 
 int tuntap_open (struct tuntap_dev *device,
                  char *dev,
-                 const char *address_mode, /* static or dhcp */
+                 uint8_t address_mode, /* static or dhcp */
                  char *device_ip,
                  uint32_t v4masklen,
                  const char * device_mac,

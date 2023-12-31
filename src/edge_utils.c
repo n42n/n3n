@@ -2184,7 +2184,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
         sleep(3);
         tuntap_close(&(eee->device));
-        tuntap_open(&(eee->device), eee->conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode, eee->tuntap_priv_conf.ip_addr,
+        tuntap_open(&(eee->device), eee->conf.tuntap_dev_name, eee->conf.tuntap_ip_mode, eee->tuntap_priv_conf.ip_addr,
                     eee->conf.tuntap_v4masklen, eee->conf.device_mac, eee->conf.mtu,
                     eee->conf.metric
                     );
@@ -3194,8 +3194,8 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->allow_p2p = true;
     conf->disable_pmtu_discovery = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
-    conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
 
+    conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
     conf->tuntap_v4masklen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
     /* reserve possible last char as null terminator. */
@@ -3311,7 +3311,7 @@ int quick_edge_init (char *device_name, char *community_name,
         return(-1);
 
     /* Open the tuntap device */
-    if(tuntap_open(&tuntap, device_name, "static",
+    if(tuntap_open(&tuntap, device_name, TUNTAP_IP_MODE_STATIC,
                    local_ip_address, N2N_EDGE_DEFAULT_V4MASKLEN,
                    device_mac, DEFAULT_MTU,
                    0) < 0)

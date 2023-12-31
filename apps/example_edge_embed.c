@@ -55,7 +55,7 @@ int main () {
 
     if(tuntap_open(&tuntap,
                    "edge0",             // Name of the device to create
-                   "static",            // IP mode; static|dhcp
+                   TUNTAP_IP_MODE_STATIC, // IP mode; static|dhcp
                    "10.0.0.1",          // Set ip address
                    24,                  // Netmask to use
                    "DE:AD:BE:EF:01:10", // Set mac address
