@@ -18,14 +18,14 @@
  *
  */
 
+#ifdef __APPLE__
+
 
 #include <fcntl.h>
 #include <n3n/logging.h>  // for traceEvent
 #include <sys/socket.h>   // for in_addr_t
 #include "n2n.h"
 
-
-#ifdef __APPLE__
 
 
 #define N2N_OSX_TAPDEVICE_SIZE 32
@@ -37,7 +37,7 @@ void tun_close (tuntap_dev *device);
 int tuntap_open (tuntap_dev *device /* ignored */,
                  char *dev,
                  uint8_t address_mode, /* unused! */
-                 ip_addr_t v4addr,
+                 in_addr_t v4addr,
                  uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,
@@ -74,7 +74,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
         }
 
         in_addr_t addr = htonl(device->ip_addr);
-        ip_addr_t mask = htonl(bitlen2mask(v4masklen));
+        in_addr_t mask = htonl(bitlen2mask(v4masklen));
         char addr_buf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr, &addr_buf, sizeof(addr_buf));
 
