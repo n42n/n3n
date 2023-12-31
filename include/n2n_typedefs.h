@@ -210,7 +210,6 @@ typedef struct tuntap_dev {
     int if_idx;
     n2n_mac_t mac_addr;
     uint32_t ip_addr;
-    uint32_t device_mask;
     uint16_t mtu;
     devstr_t dev_name;
 } tuntap_dev;
@@ -484,7 +483,6 @@ typedef struct n2n_edge_callbacks {
 typedef struct n2n_tuntap_priv_config {
     char ip_mode[N2N_IF_MODE_SIZE];
     dec_ip_str_t ip_addr;
-    dec_ip_str_t netmask;
 } n2n_tuntap_priv_config_t;
 
 /* *************************************************** */
@@ -600,6 +598,7 @@ typedef struct n2n_edge_conf {
     char device_mac[N2N_MACNAMSIZ];
     int mtu;
     devstr_t tuntap_dev_name;
+    uint32_t tuntap_v4masklen;
 } n2n_edge_conf_t;
 
 

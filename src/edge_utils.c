@@ -1314,7 +1314,7 @@ void send_register_super (n2n_edge_t *eee) {
 
     reg.cookie = eee->curr_sn->last_cookie;
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
-    reg.dev_addr.net_bitlen = mask2bitlen(ntohl(eee->device.device_mask));
+    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4masklen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
     get_local_auth(eee, &(reg.auth));
 
@@ -1462,7 +1462,7 @@ static void send_register (n2n_edge_t * eee,
         encode_mac(reg.dstMac, &idx, peer_mac);
     }
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
-    reg.dev_addr.net_bitlen = mask2bitlen(ntohl(eee->device.device_mask));
+    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4masklen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
 
     idx = 0;
@@ -2185,7 +2185,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         sleep(3);
         tuntap_close(&(eee->device));
         tuntap_open(&(eee->device), eee->conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode, eee->tuntap_priv_conf.ip_addr,
-                    eee->tuntap_priv_conf.netmask, eee->conf.device_mac, eee->conf.mtu,
+                    eee->conf.tuntap_v4masklen, eee->conf.device_mac, eee->conf.mtu,
                     eee->conf.metric
                     );
     } else {
@@ -2579,11 +2579,7 @@ void process_udp (n2n_edge_t *eee, const struct sockaddr *sender_sock, const SOC
                             strncpy(eee->tuntap_priv_conf.ip_addr, ip_str, N2N_NETMASK_STR_SIZE);
                             eee->tuntap_priv_conf.ip_addr[N2N_NETMASK_STR_SIZE - 1] = '\0';
                         }
-                        net = htonl(bitlen2mask(ra.dev_addr.net_bitlen));
-                        if((ip_str = inet_ntoa(*(struct in_addr *) &net)) != NULL) {
-                            strncpy(eee->tuntap_priv_conf.netmask, ip_str, N2N_NETMASK_STR_SIZE);
-                            eee->tuntap_priv_conf.netmask[N2N_NETMASK_STR_SIZE - 1] = '\0';
-                        }
+                        eee->conf.tuntap_v4masklen = ra.dev_addr.net_bitlen;
                     }
                 }
 
@@ -3199,6 +3195,9 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->disable_pmtu_discovery = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
+
+    conf->tuntap_v4masklen = N2N_EDGE_DEFAULT_V4MASKLEN;
+
     /* reserve possible last char as null terminator. */
     gethostname((char*)conf->dev_desc, N2N_DESC_SIZE-1);
 
@@ -3313,7 +3312,7 @@ int quick_edge_init (char *device_name, char *community_name,
 
     /* Open the tuntap device */
     if(tuntap_open(&tuntap, device_name, "static",
-                   local_ip_address, "255.255.255.0",
+                   local_ip_address, N2N_EDGE_DEFAULT_V4MASKLEN,
                    device_mac, DEFAULT_MTU,
                    0) < 0)
         return(-2);

@@ -57,7 +57,7 @@ int main () {
                    "edge0",             // Name of the device to create
                    "static",            // IP mode; static|dhcp
                    "10.0.0.1",          // Set ip address
-                   "255.255.255.0",     // Netmask to use
+                   24,                  // Netmask to use
                    "DE:AD:BE:EF:01:10", // Set mac address
                    DEFAULT_MTU,         // MTU to use
                    0                    // Metric - unused in n2n on most OS

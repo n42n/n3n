@@ -108,21 +108,21 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
  *    return 0 on success and -1 on error
  */
 static int scan_address (char * ip_addr, size_t addr_size,
-                         char * netmask, size_t netmask_size,
+                         uint32_t * v4masklen,
                          char * ip_mode, size_t mode_size,
                          char * s) {
 
     int retval = -1;
     char * start;
     char * end;
-    int bitlen = N2N_EDGE_DEFAULT_CIDR_NM;
+    int bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
-    if((NULL == s) || (NULL == ip_addr) || (NULL == netmask)) {
+    if((NULL == s) || (NULL == ip_addr) || (NULL == v4masklen)) {
         return -1;
     }
 
     memset(ip_addr, 0, addr_size);
-    memset(netmask, 0, netmask_size);
+    *v4masklen = 0;
 
     start = s;
     end = strpbrk(s, ":");
@@ -152,7 +152,7 @@ static int scan_address (char * ip_addr, size_t addr_size,
     strncpy(ip_addr, start, (size_t)MIN(end - start, addr_size - 1)); // ensure NULL term
 
     bitlen = htobe32(bitlen2mask(bitlen));
-    inet_ntop(AF_INET, &bitlen, netmask, netmask_size);
+    *v4masklen = bitlen;
 
     return retval;
 }
@@ -408,7 +408,7 @@ static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *e
     switch(optkey) {
         case 'a': /* IP address and mode of TUNTAP interface */ {
             scan_address(ec->ip_addr, N2N_NETMASK_STR_SIZE,
-                         ec->netmask, N2N_NETMASK_STR_SIZE,
+                         &conf->tuntap_v4masklen,
                          ec->ip_mode, N2N_IF_MODE_SIZE,
                          optargument);
             break;
@@ -920,7 +920,6 @@ int main (int argc, char* argv[]) {
 #else
     snprintf(conf.tuntap_dev_name, sizeof(conf.tuntap_dev_name), N2N_EDGE_DEFAULT_DEV_NAME);
 #endif
-    snprintf(ec.netmask, sizeof(ec.netmask), N2N_EDGE_DEFAULT_NETMASK);
 
     rc = n3n_config(argc, argv, "edge", &conf, &ec);
 
@@ -1107,14 +1106,14 @@ int main (int argc, char* argv[]) {
 
         if(runlevel == 4) { /* configure the TUNTAP device, including routes */
             if(tuntap_open(&tuntap, eee->conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode,
-                           eee->tuntap_priv_conf.ip_addr, eee->tuntap_priv_conf.netmask,
+                           eee->tuntap_priv_conf.ip_addr, eee->conf.tuntap_v4masklen,
                            eee->conf.device_mac, eee->conf.mtu,
                            eee->conf.metric) < 0)
                 exit(1);
             memcpy(&eee->device, &tuntap, sizeof(tuntap));
-            traceEvent(TRACE_NORMAL, "created local tap device IP: %s, Mask: %s, MAC: %s",
+            traceEvent(TRACE_NORMAL, "created local tap device IPv4: %s/%u, MAC: %s",
                        eee->tuntap_priv_conf.ip_addr,
-                       eee->tuntap_priv_conf.netmask,
+                       eee->conf.tuntap_v4masklen,
                        macaddr_str(mac_buf, eee->device.mac_addr));
             runlevel = 5;
             // no more answers required

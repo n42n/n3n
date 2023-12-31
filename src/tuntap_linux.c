@@ -43,7 +43,7 @@
 
 
 static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
-                         const char *netmask, uint8_t *mac, int mtu) {
+                         uint32_t v4masklen, uint8_t *mac, int mtu) {
 
     struct ifreq ifr;
 
@@ -70,10 +70,10 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
     }
 
     // netmask
-    if(netmask && (((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr.s_addr != 0)) {
-        inet_pton(AF_INET, netmask, &((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr);
+    if(v4masklen && (((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr.s_addr != 0)) {
+        ((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr.s_addr = htonl(bitlen2mask(v4masklen));
         if(ioctl(fd, SIOCSIFNETMASK, &ifr) == -1) {
-            traceEvent(TRACE_ERROR, "ioctl(SIOCSIFNETMASK, %s) failed [%d]: %s", netmask, errno, strerror(errno));
+            traceEvent(TRACE_ERROR, "ioctl(SIOCSIFNETMASK, %u) failed [%d]: %s", v4masklen, errno, strerror(errno));
             return -3;
         }
     }
@@ -121,7 +121,7 @@ int tuntap_open (tuntap_dev *device,
                  char *dev, /* user-definable interface name, eg. edge0 */
                  const char *address_mode, /* static or dhcp */
                  char *device_ip,
-                 char *device_mask,
+                 uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,
                  int ignored) {
@@ -210,7 +210,7 @@ int tuntap_open (tuntap_dev *device,
         return -1;
     }
 
-    if(setup_ifname(ioctl_fd, device->dev_name, device_ip, device_mask, device->mac_addr, mtu) < 0) {
+    if(setup_ifname(ioctl_fd, device->dev_name, device_ip, v4masklen, device->mac_addr, mtu) < 0) {
         close(nl_fd);
         close(ioctl_fd);
         close(device->fd);
@@ -251,7 +251,6 @@ int tuntap_open (tuntap_dev *device,
     close(nl_fd);
 
     device->ip_addr = inet_addr(device_ip);
-    device->device_mask = inet_addr(device_mask);
     device->if_idx = if_nametoindex(dev);
 
     return device->fd;
