@@ -94,6 +94,16 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
 
 /* ***************************************************** */
 
+#ifdef _WIN32
+#ifndef _WIN64
+// Windows pre vista does not support inet_pton, so stub one out
+int inet_pton (int af, const char *restrict src, void *restrict dst) {
+    traceEvent(TRACE_WARNING, "No static IP parser on old windows (%s)\n", src);
+    return 0;
+}
+#endif
+#endif
+
 /** Find the address and IP mode for the tuntap device.
  *
  *    s is of the form:
@@ -158,8 +168,8 @@ static int scan_address (in_addr_t * v4addr,
 
     char buf[20];
     memset(buf, 0, sizeof(buf));
-
     strncpy(buf, start, sizeof(buf)-1); // ensure NULL term
+
     if(inet_pton(AF_INET, buf, v4addr) != 1) {
         return -1;
     }
