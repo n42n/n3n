@@ -41,7 +41,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
                  char *dev,
                  const char *address_mode, /* static or dhcp */
                  char *device_ip,
-                 char *device_mask,
+                 uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,
                  int ignored) {
@@ -83,10 +83,15 @@ int tuntap_open (tuntap_dev *device /* ignored */,
             system(cmd);
         }
 
-        snprintf(cmd, sizeof(cmd), "ifconfig %s %s netmask %s mtu %d up", tap_device, device_ip, device_mask, mtu);
+        snprintf(cmd, sizeof(cmd), "ifconfig %s %s netmask %s mtu %d up",
+                 tap_device,
+                 device_ip,
+                 inet_ntoa((struct in_addr)htonl(bitlen2mask(v4masklen))),
+                 mtu
+                 );
         system(cmd);
 
-        traceEvent(TRACE_NORMAL, "Interface %s up and running (%s/%s)", tap_device, device_ip, device_mask);
+        traceEvent(TRACE_NORMAL, "Interface %s up and running (%s/%u)", tap_device, device_ip, v4masklen);
 
         // read MAC address
         snprintf(cmd, sizeof(cmd), "ifconfig %s |grep address|cut -c 11-28", tap_device);

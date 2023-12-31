@@ -227,7 +227,7 @@ int open_wintap (struct tuntap_dev *device,
                  const char * devname,
                  const char * address_mode, /* "static" or "dhcp" */
                  char *device_ip,
-                 char *device_mask,
+                 uint32_t v4masklen,
                  const char *device_mac,
                  int mtu,
                  int metric) {
@@ -311,12 +311,14 @@ int open_wintap (struct tuntap_dev *device,
     }else {
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" static %s %s > nul",
-                  device->ifName, device_ip, device_mask);
+                  device->ifName,
+                  device_ip,
+                  inet_ntoa((struct in_addr)htonl(bitlen2mask(v4masklen))),
+                  );
     }
 
     if(system(cmd) == 0) {
         device->ip_addr = inet_addr(device_ip);
-        device->device_mask = inet_addr(device_mask);
     } else
         printf("WARNING: Unable to set device %s IP address [%s]\n",
                device->ifName, cmd);
@@ -453,11 +455,11 @@ int tuntap_open (struct tuntap_dev *device,
                  char *dev,
                  const char *address_mode, /* static or dhcp */
                  char *device_ip,
-                 char *device_mask,
+                 uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,
                  int metric) {
-    return(open_wintap(device, dev, address_mode, device_ip, device_mask, device_mac, mtu, metric));
+    return(open_wintap(device, dev, address_mode, device_ip, v4masklen, device_mac, mtu, metric));
 }
 
 /* ************************************************ */

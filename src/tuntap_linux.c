@@ -111,7 +111,7 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
  *  @param dev         - user-defined name for the new iface,
  *                       if NULL system will assign a name
  *  @param device_ip   - address of iface
- *  @param device_mask - netmask for device_ip
+ *  @param v4masklen   - netmask bitlength for device_ip
  *  @param mtu         - MTU for device_ip
  *
  *  @return - negative value on error
