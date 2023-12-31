@@ -293,11 +293,11 @@ int open_wintap (struct tuntap_dev *device,
     device->mtu = mtu;
 
     in_addr_t addr = htonl(device->ip_addr);
-    char buf[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &addr, &buf, sizeof(buf));
+    char addr_buf[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &addr, &addr_buf, sizeof(addr_buf));
 
     printf("Open device [name=%s][ip=%s][ifName=%s][MTU=%d][mac=%02X:%02X:%02X:%02X:%02X:%02X]\n",
-           device->device_name, buf, device->ifName, device->mtu,
+           device->device_name, addr_buf, device->ifName, device->mtu,
            device->mac_addr[0] & 0xFF,
            device->mac_addr[1] & 0xFF,
            device->mac_addr[2] & 0xFF,
@@ -317,7 +317,7 @@ int open_wintap (struct tuntap_dev *device,
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" static %s %s > nul",
                   device->ifName,
-                  buf,
+                  addr_buf,
                   inet_ntoa(*(struct in_addr*)&mask)
                   );
     }
