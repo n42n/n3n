@@ -226,7 +226,7 @@ static int choose_adapter_callback (struct win_adapter_info *adapter, struct tun
 int open_wintap (struct tuntap_dev *device,
                  const char * devname,
                  uint8_t address_mode, /* "static" or "dhcp" */
-                 ip_addr_t v4addr,
+                 in_addr_t v4addr,
                  uint32_t v4masklen,
                  const char *device_mac,
                  int mtu,
@@ -312,7 +312,7 @@ int open_wintap (struct tuntap_dev *device,
                   "netsh interface ip set address \"%s\" dhcp > nul",
                   device->ifName);
     }else {
-        ip_addr_t mask = htonl(bitlen2mask(v4masklen));
+        in_addr_t mask = htonl(bitlen2mask(v4masklen));
 
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" static %s %s > nul",
@@ -459,7 +459,7 @@ int tuntap_write (struct tuntap_dev *tuntap, unsigned char *buf, int len)
 int tuntap_open (struct tuntap_dev *device,
                  char *dev,
                  uint8_t address_mode, /* static or dhcp */
-                 ip_addr_t v4addr,
+                 in_addr_t v4addr,
                  uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,

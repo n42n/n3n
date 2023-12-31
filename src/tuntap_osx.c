@@ -21,6 +21,7 @@
 
 #include <fcntl.h>
 #include <n3n/logging.h>  // for traceEvent
+#include <sys/socket.h>   // for in_addr_t
 #include "n2n.h"
 
 
