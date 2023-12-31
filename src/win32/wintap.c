@@ -226,7 +226,7 @@ static int choose_adapter_callback (struct win_adapter_info *adapter, struct tun
 int open_wintap (struct tuntap_dev *device,
                  const char * devname,
                  uint8_t address_mode, /* "static" or "dhcp" */
-                 char *device_ip,
+                 ip_addr_t v4addr,
                  uint32_t v4masklen,
                  const char *device_mac,
                  int mtu,
@@ -240,7 +240,6 @@ int open_wintap (struct tuntap_dev *device,
     device->device_handle = INVALID_HANDLE_VALUE;
     device->device_name = devname[0] ? _strdup(devname) : NULL;
     device->ifName = NULL;
-    device->ip_addr = inet_addr(device_ip);
 
     iterate_win_network_adapters(choose_adapter_callback, device);
 
@@ -293,8 +292,12 @@ int open_wintap (struct tuntap_dev *device,
 
     device->mtu = mtu;
 
+    in_addr_t addr = htonl(device->ip_addr);
+    char buf[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &addr, &buf, sizeof(buf));
+
     printf("Open device [name=%s][ip=%s][ifName=%s][MTU=%d][mac=%02X:%02X:%02X:%02X:%02X:%02X]\n",
-           device->device_name, device_ip, device->ifName, device->mtu,
+           device->device_name, buf, device->ifName, device->mtu,
            device->mac_addr[0] & 0xFF,
            device->mac_addr[1] & 0xFF,
            device->mac_addr[2] & 0xFF,
@@ -309,17 +312,18 @@ int open_wintap (struct tuntap_dev *device,
                   "netsh interface ip set address \"%s\" dhcp > nul",
                   device->ifName);
     }else {
-        uint32_t mask = htonl(bitlen2mask(v4masklen));
+        ip_addr_t mask = htonl(bitlen2mask(v4masklen));
+
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" static %s %s > nul",
                   device->ifName,
-                  device_ip,
+                  buf,
                   inet_ntoa(*(struct in_addr*)&mask)
                   );
     }
 
     if(system(cmd) == 0) {
-        device->ip_addr = inet_addr(device_ip);
+        device->ip_addr = v4addr;
     } else
         printf("WARNING: Unable to set device %s IP address [%s]\n",
                device->ifName, cmd);
@@ -455,12 +459,12 @@ int tuntap_write (struct tuntap_dev *tuntap, unsigned char *buf, int len)
 int tuntap_open (struct tuntap_dev *device,
                  char *dev,
                  uint8_t address_mode, /* static or dhcp */
-                 char *device_ip,
+                 ip_addr_t v4addr,
                  uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,
                  int metric) {
-    return(open_wintap(device, dev, address_mode, device_ip, v4masklen, device_mac, mtu, metric));
+    return(open_wintap(device, dev, address_mode, v4addr, v4masklen, device_mac, mtu, metric));
 }
 
 /* ************************************************ */

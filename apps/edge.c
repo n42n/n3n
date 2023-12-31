@@ -107,21 +107,20 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
  *
  *    return 0 on success and -1 on error
  */
-static int scan_address (char * ip_addr, size_t addr_size,
+static int scan_address (in_addr_t * v4addr,
                          uint32_t * v4masklen,
                          uint8_t * ip_mode,
                          char * s) {
 
-    int retval = -1;
     char * start;
     char * end;
     int bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
-    if((NULL == s) || (NULL == ip_addr) || (NULL == v4masklen)) {
+    if((NULL == s) || (NULL == v4addr) || (NULL == v4masklen)) {
         return -1;
     }
 
-    memset(ip_addr, 0, addr_size);
+    *v4addr = 0;
     *v4masklen = 0;
 
     start = s;
@@ -147,7 +146,6 @@ static int scan_address (char * ip_addr, size_t addr_size,
         // colon is not present
     }
     // start now points to first address character
-    retval = 0; // we have got an address
 
     end = strpbrk(start, "/");
 
@@ -158,12 +156,18 @@ static int scan_address (char * ip_addr, size_t addr_size,
         // slash is present. now, handle the sub-network address
         sscanf(end + 1, "%u", &bitlen);
 
-    strncpy(ip_addr, start, (size_t)MIN(end - start, addr_size - 1)); // ensure NULL term
+    char buf[20];
+    memset(buf, 0, sizeof(buf));
+
+    strncpy(buf, start, sizeof(buf)-1); // ensure NULL term
+    if(inet_pton(AF_INET, buf, v4addr) != 1) {
+        return -1;
+    }
 
     bitlen = htobe32(bitlen2mask(bitlen));
     *v4masklen = bitlen;
 
-    return retval;
+    return 0;
 }
 
 /* *************************************************** */
@@ -410,13 +414,13 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
     traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
 }
 
-static int setOption (int optkey, char *optargument, n2n_tuntap_priv_config_t *ec, n2n_edge_conf_t *conf) {
+static int setOption (int optkey, char *optargument, n2n_edge_conf_t *conf) {
 
     /* traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optargument ? optargument : ""); */
 
     switch(optkey) {
         case 'a': /* IP address and mode of TUNTAP interface */ {
-            scan_address(ec->ip_addr, N2N_NETMASK_STR_SIZE,
+            scan_address(&conf->tuntap_v4addr,
                          &conf->tuntap_v4masklen,
                          &conf->tuntap_ip_mode,
                          optargument);
@@ -634,7 +638,7 @@ static const struct option long_options[] = {
 /* *************************************************** */
 
 /* read command line options */
-static int loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf, n2n_tuntap_priv_config_t *ec) {
+static int loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
 
     u_char c;
 
@@ -650,7 +654,7 @@ static int loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf, n2n_tunta
                            long_options, NULL)) != '?') {
 
         if(c == 255) break;
-        help(setOption(c, optarg, ec, conf));
+        help(setOption(c, optarg, conf));
 
     }
 
@@ -678,7 +682,7 @@ static char *trim (char *s) {
 /* *************************************************** */
 
 /* parse the configuration file */
-static int loadFromFile (const char *path, n2n_edge_conf_t *conf, n2n_tuntap_priv_config_t *ec) {
+static int loadFromFile (const char *path, n2n_edge_conf_t *conf) {
 
     char buffer[4096], *line;
     char *line_vec[3];
@@ -713,7 +717,7 @@ static int loadFromFile (const char *path, n2n_edge_conf_t *conf, n2n_tuntap_pri
         // not to duplicate the option parser code, call loadFromCLI and pretend we have no option read yet at all
         optind = 0;
         // if second token present (optional argument, not part of first), then announce 3 vector members
-        loadFromCLI(line_vec[2] ? 3 : 2, line_vec, conf, ec);
+        loadFromCLI(line_vec[2] ? 3 : 2, line_vec, conf);
     }
 
     fclose(fd);
@@ -724,7 +728,7 @@ static int loadFromFile (const char *path, n2n_edge_conf_t *conf, n2n_tuntap_pri
 
 }
 
-static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf, n2n_tuntap_priv_config_t *ec) {
+static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
 
     // A first pass through to reorder the argv
     while(1) {
@@ -774,7 +778,7 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
 #else
         snprintf(pathname, sizeof(pathname), "/etc/n3n/%s.conf", arg);
 #endif
-        loadFromFile(pathname, conf, ec);
+        loadFromFile(pathname, conf);
         // Ignore any error as it currently can only be "file not found"
     } else if(strncmp(cmd,"test",5)==0) {
         printf("Unimplemented\n");
@@ -792,7 +796,7 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
     optind = 1;
 
     // Update the loaded conf with any option args
-    int rc = loadFromCLI(argc, argv, conf, ec);
+    int rc = loadFromCLI(argc, argv, conf);
 
     return rc;
 }
@@ -885,10 +889,8 @@ BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
 int main (int argc, char* argv[]) {
 
     int rc;
-    tuntap_dev tuntap;            /* a tuntap device */
     n2n_edge_t *eee;              /* single instance for this program */
     n2n_edge_conf_t conf;         /* generic N2N edge config */
-    n2n_tuntap_priv_config_t ec;  /* config used for standalone program execution */
     uint8_t runlevel = 0;         /* bootstrap: runlevel */
     uint8_t seek_answer = 1;      /*            expecting answer from supernode */
     time_t now, last_action = 0;  /*            timeout */
@@ -913,7 +915,6 @@ int main (int argc, char* argv[]) {
 
     /* Defaults */
     edge_init_conf_defaults(&conf);
-    memset(&ec, 0, sizeof(ec));
 
 #ifndef _WIN32
     struct passwd *pw = NULL;
@@ -924,7 +925,7 @@ int main (int argc, char* argv[]) {
     }
 #endif
 
-    rc = n3n_config(argc, argv, "edge", &conf, &ec);
+    rc = n3n_config(argc, argv, "edge", &conf);
 
     // --- additional crypto setup; REVISIT: move to edge_init()?
     // payload
@@ -997,8 +998,6 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_ERROR, "failed in edge_init");
         exit(1);
     }
-
-    memcpy(&(eee->tuntap_priv_conf), &ec, sizeof(ec));
 
     switch(eee->conf.tuntap_ip_mode) {
         case TUNTAP_IP_MODE_SN_ASSIGN:
@@ -1111,14 +1110,18 @@ int main (int argc, char* argv[]) {
         }
 
         if(runlevel == 4) { /* configure the TUNTAP device, including routes */
-            if(tuntap_open(&tuntap, eee->conf.tuntap_dev_name, eee->conf.tuntap_ip_mode,
-                           eee->tuntap_priv_conf.ip_addr, eee->conf.tuntap_v4masklen,
-                           eee->conf.device_mac, eee->conf.mtu,
+            if(tuntap_open(&eee->device,
+                           eee->conf.tuntap_dev_name,
+                           eee->conf.tuntap_ip_mode,
+                           eee->conf.tuntap_v4addr,
+                           eee->conf.tuntap_v4masklen,
+                           eee->conf.device_mac,
+                           eee->conf.mtu,
                            eee->conf.metric) < 0)
                 exit(1);
-            memcpy(&eee->device, &tuntap, sizeof(tuntap));
+            in_addr_t addr = htonl(eee->conf.tuntap_v4addr);
             traceEvent(TRACE_NORMAL, "created local tap device IPv4: %s/%u, MAC: %s",
-                       eee->tuntap_priv_conf.ip_addr,
+                       inet_ntoa(*(struct in_addr*)&addr),
                        eee->conf.tuntap_v4masklen,
                        macaddr_str(mac_buf, eee->device.mac_addr));
             runlevel = 5;

@@ -2184,8 +2184,13 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
         sleep(3);
         tuntap_close(&(eee->device));
-        tuntap_open(&(eee->device), eee->conf.tuntap_dev_name, eee->conf.tuntap_ip_mode, eee->tuntap_priv_conf.ip_addr,
-                    eee->conf.tuntap_v4masklen, eee->conf.device_mac, eee->conf.mtu,
+        tuntap_open(&(eee->device),
+                    eee->conf.tuntap_dev_name,
+                    eee->conf.tuntap_ip_mode,
+                    eee->conf.tuntap_v4addr,
+                    eee->conf.tuntap_v4masklen,
+                    eee->conf.device_mac,
+                    eee->conf.mtu,
                     eee->conf.metric
                     );
     } else {
@@ -2479,8 +2484,6 @@ void process_udp (n2n_edge_t *eee, const struct sockaddr *sender_sock, const SOC
             }
 
             case MSG_TYPE_REGISTER_SUPER_ACK: {
-                in_addr_t net;
-                char * ip_str = NULL;
                 n2n_REGISTER_SUPER_ACK_t ra;
                 uint8_t tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
                 char ip_tmp[N2N_EDGE_SN_HOST_SIZE];
@@ -2574,11 +2577,7 @@ void process_udp (n2n_edge_t *eee, const struct sockaddr *sender_sock, const SOC
 
                 if(eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
                     if((ra.dev_addr.net_addr != 0) && (ra.dev_addr.net_bitlen != 0)) {
-                        net = htonl(ra.dev_addr.net_addr);
-                        if((ip_str = inet_ntoa(*(struct in_addr *) &net)) != NULL) {
-                            strncpy(eee->tuntap_priv_conf.ip_addr, ip_str, N2N_NETMASK_STR_SIZE);
-                            eee->tuntap_priv_conf.ip_addr[N2N_NETMASK_STR_SIZE - 1] = '\0';
-                        }
+                        eee->conf.tuntap_v4addr = ra.dev_addr.net_addr;
                         eee->conf.tuntap_v4masklen = ra.dev_addr.net_bitlen;
                     }
                 }
@@ -3299,7 +3298,7 @@ int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
 
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
-                     char *local_ip_address,
+                     in_addr_t local_ip_address,
                      char *supernode_ip_address_port,
                      bool *keep_on_running) {
 

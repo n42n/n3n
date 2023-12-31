@@ -104,8 +104,10 @@ int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
 #endif
 
 /* Tuntap API */
-int tuntap_open (struct tuntap_dev *device, char *dev, uint8_t address_mode, char *device_ip,
-                 uint32_t v4masklen, const char * device_mac, int mtu, int metric);
+int tuntap_open (struct tuntap_dev *device, char *dev, uint8_t address_mode,
+                 in_addr_t v4addr,
+                 uint32_t v4masklen, const char * device_mac, int mtu,
+                 int metric);
 int tuntap_read (struct tuntap_dev *tuntap, unsigned char *buf, int len);
 int tuntap_write (struct tuntap_dev *tuntap, unsigned char *buf, int len);
 void tuntap_close (struct tuntap_dev *tuntap);
@@ -164,7 +166,7 @@ int edge_get_management_socket (n2n_edge_t *eee);
 int run_edge_loop (n2n_edge_t *eee);
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
-                     char *local_ip_address,
+                     in_addr_t local_ip_address,
                      char *supernode_ip_address_port,
                      bool *keep_on_running);
 int comm_init (struct sn_community *comm, char *cmn);

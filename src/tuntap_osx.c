@@ -36,7 +36,7 @@ void tun_close (tuntap_dev *device);
 int tuntap_open (tuntap_dev *device /* ignored */,
                  char *dev,
                  uint8_t address_mode, /* unused! */
-                 char *device_ip,
+                 ip_addr_t v4addr,
                  uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,
@@ -63,7 +63,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
         char buf[256];
         FILE *fd;
 
-        device->ip_addr = inet_addr(device_ip);
+        device->ip_addr = v4addr;
 
         if(device_mac && device_mac[0] != '\0') {
             // FIXME - this is not tested. might be wrong syntax for OS X
@@ -72,16 +72,20 @@ int tuntap_open (tuntap_dev *device /* ignored */,
             system(buf);
         }
 
-        uint32_t mask = htonl(bitlen2mask(v4masklen));
+        in_addr_t addr = htonl(device->ip_addr);
+        ip_addr_t mask = htonl(bitlen2mask(v4masklen));
+        char buf[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &addr, &buf, sizeof(buf));
+
         snprintf(buf, sizeof(buf), "ifconfig tap%d %s netmask %s mtu %d up",
                  i,
-                 device_ip,
+                 buf,
                  inet_ntoa(*(struct in_addr*)&mask),
                  mtu
                  );
         system(buf);
 
-        traceEvent(TRACE_NORMAL, "Interface tap%d up and running (%s/%u)", i, device_ip, v4masklen);
+        traceEvent(TRACE_NORMAL, "Interface tap%d up and running (%s/%u)", i, buf, v4masklen);
 
         // read MAC address
         snprintf(buf, sizeof(buf), "ifconfig tap%d |grep ether|cut -c 8-24", i);

@@ -42,7 +42,7 @@
 #include "n2n.h"                      // for tuntap_dev, ...
 
 
-static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
+static int setup_ifname (int fd, const char *ifname, in_addr_t v4addr,
                          uint32_t v4masklen, uint8_t *mac, int mtu) {
 
     struct ifreq ifr;
@@ -63,7 +63,7 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
     ifr.ifr_addr.sa_family = AF_INET;
 
     // interface address
-    inet_pton(AF_INET, ipaddr, &((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr);
+    ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr = htonl(v4addr);
     if(ioctl(fd, SIOCSIFADDR, &ifr) == -1) {
         traceEvent(TRACE_ERROR, "ioctl(SIOCSIFADDR) failed [%d]: %s", errno, strerror(errno));
         return -2;
@@ -110,9 +110,9 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
  *  @param device      - [inout] a device info holder object
  *  @param dev         - user-defined name for the new iface,
  *                       if NULL system will assign a name
- *  @param device_ip   - address of iface
- *  @param v4masklen   - netmask bitlength for device_ip
- *  @param mtu         - MTU for device_ip
+ *  @param v4addr      - address of iface
+ *  @param v4masklen   - netmask bitlength for v4addr
+ *  @param mtu         - MTU for device
  *
  *  @return - negative value on error
  *          - non-negative file-descriptor on success
@@ -120,7 +120,7 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
 int tuntap_open (tuntap_dev *device,
                  char *dev, /* user-definable interface name, eg. edge0 */
                  uint8_t address_mode, /* unused! */
-                 char *device_ip,
+                 in_addr_t v4addr,
                  uint32_t v4masklen,
                  const char * device_mac,
                  int mtu,
@@ -210,7 +210,7 @@ int tuntap_open (tuntap_dev *device,
         return -1;
     }
 
-    if(setup_ifname(ioctl_fd, device->dev_name, device_ip, v4masklen, device->mac_addr, mtu) < 0) {
+    if(setup_ifname(ioctl_fd, device->dev_name, v4addr, v4masklen, device->mac_addr, mtu) < 0) {
         close(nl_fd);
         close(ioctl_fd);
         close(device->fd);
@@ -250,8 +250,7 @@ int tuntap_open (tuntap_dev *device,
 
     close(nl_fd);
 
-    device->ip_addr = inet_addr(device_ip);
-    device->if_idx = if_nametoindex(dev);
+    device->ip_addr = v4addr;
 
     return device->fd;
 }

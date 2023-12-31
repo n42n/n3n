@@ -207,9 +207,8 @@ typedef char devstr_t[N2N_IFNAMSIZ];
 #ifndef _WIN32
 typedef struct tuntap_dev {
     int fd;
-    int if_idx;
     n2n_mac_t mac_addr;
-    uint32_t ip_addr;
+    in_addr_t ip_addr;
     uint16_t mtu;
     devstr_t dev_name;
 } tuntap_dev;
@@ -480,10 +479,6 @@ typedef struct n2n_edge_callbacks {
     void (*sock_opened)(n2n_edge_t *eee);
 } n2n_edge_callbacks_t;
 
-typedef struct n2n_tuntap_priv_config {
-    dec_ip_str_t ip_addr;
-} n2n_tuntap_priv_config_t;
-
 /* *************************************************** */
 
 typedef enum n2n_transform {
@@ -597,6 +592,7 @@ typedef struct n2n_edge_conf {
     int mtu;
     devstr_t tuntap_dev_name;
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
+    in_addr_t tuntap_v4addr;
     uint32_t tuntap_v4masklen;
 } n2n_edge_conf_t;
 
@@ -659,8 +655,6 @@ struct n2n_edge {
 
     n2n_resolve_parameter_t          *resolve_parameter;                 /**< Pointer to name resolver's parameter block */
     uint8_t resolution_request;                                          /**< Flag an immediate DNS resolution request */
-
-    n2n_tuntap_priv_config_t tuntap_priv_conf;                           /**< Tuntap config */
 
     network_traffic_filter_t         *network_traffic_filter;
 };
