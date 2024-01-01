@@ -2576,7 +2576,7 @@ void process_udp (n2n_edge_t *eee, const struct sockaddr *sender_sock, const SOC
 
                 if(eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
                     if((ra.dev_addr.net_addr != 0) && (ra.dev_addr.net_bitlen != 0)) {
-                        eee->conf.tuntap_v4.net_addr = ra.dev_addr.net_addr;
+                        eee->conf.tuntap_v4.net_addr = htonl(ra.dev_addr.net_addr);
                         eee->conf.tuntap_v4.net_bitlen = ra.dev_addr.net_bitlen;
                     }
                 }
