@@ -271,7 +271,7 @@ typedef char n2n_version_t[N2N_VERSION_STRING_SIZE];
 
 
 typedef struct n2n_ip_subnet {
-    uint32_t net_addr;              /* Host order IP address. */
+    in_addr_t net_addr;             /* Host order IP address. */
     uint8_t net_bitlen;             /* Subnet prefix. */
 } n2n_ip_subnet_t;
 
