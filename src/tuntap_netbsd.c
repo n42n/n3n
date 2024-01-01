@@ -40,8 +40,7 @@ void tun_close (tuntap_dev *device);
 int tuntap_open (tuntap_dev *device /* ignored */,
                  char *dev,
                  uint8_t address_mode, /* unused! */
-                 in_addr_t v4addr,
-                 uint32_t v4masklen,
+                 struct n2n_ip_subnet v4subnet,
                  const char * device_mac,
                  int mtu,
                  int ignored) {
@@ -75,7 +74,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
 
         traceEvent(TRACE_NORMAL, "Succesfully open %s", tap_device);
 
-        device->ip_addr = v4addr;
+        device->ip_addr = ntohl(v4subnet.net_addr);
 
         if(device_mac && device_mac[0] != '\0') {
             // set the hw address before bringing the if up
@@ -84,7 +83,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
         }
 
         in_addr_t addr = htonl(device->ip_addr);
-        in_addr_t mask = htonl(bitlen2mask(v4masklen));
+        in_addr_t mask = htonl(bitlen2mask(v4subnet.net_bitlen));
         char addr_buf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr, &addr_buf, sizeof(addr_buf));
 
@@ -96,7 +95,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
                  );
         system(cmd);
 
-        traceEvent(TRACE_NORMAL, "Interface %s up and running (%s/%u)", tap_device, addr_buf, v4masklen);
+        traceEvent(TRACE_NORMAL, "Interface %s up and running (%s/%u)", tap_device, addr_buf, v4subnet.net_bitlen);
 
         // read MAC address
         snprintf(cmd, sizeof(cmd), "ifconfig %s |grep address|cut -c 11-28", tap_device);

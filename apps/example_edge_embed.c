@@ -53,11 +53,14 @@ int main () {
         return -1;
     }
 
+    struct n2n_ip_subnet subnet;
+    subnet.net_addr = htonl(0x0a000001);    // Set ip address 10.0.0.1
+    subnet.net_bitlen = 24;                 // Netmask to use
+
     if(tuntap_open(&tuntap,
                    "edge0",             // Name of the device to create
                    TUNTAP_IP_MODE_STATIC, // IP mode; static|dhcp
-                   0x0a000001,          // Set ip address 10.0.0.1
-                   24,                  // Netmask to use
+                   subnet,
                    "DE:AD:BE:EF:01:10", // Set mac address
                    DEFAULT_MTU,         // MTU to use
                    0                    // Metric - unused in n2n on most OS

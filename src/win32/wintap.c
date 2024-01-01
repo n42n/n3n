@@ -226,8 +226,7 @@ static int choose_adapter_callback (struct win_adapter_info *adapter, struct tun
 int open_wintap (struct tuntap_dev *device,
                  const char * devname,
                  uint8_t address_mode, /* "static" or "dhcp" */
-                 in_addr_t v4addr,
-                 uint32_t v4masklen,
+                 struct n2n_ip_subnet v4subnet,
                  const char *device_mac,
                  int mtu,
                  int metric) {
@@ -312,7 +311,7 @@ int open_wintap (struct tuntap_dev *device,
                   "netsh interface ip set address \"%s\" dhcp > nul",
                   device->ifName);
     }else {
-        in_addr_t mask = htonl(bitlen2mask(v4masklen));
+        in_addr_t mask = htonl(bitlen2mask(v4subnet.net_bitlen));
 
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" static %s %s > nul",
@@ -323,7 +322,7 @@ int open_wintap (struct tuntap_dev *device,
     }
 
     if(system(cmd) == 0) {
-        device->ip_addr = v4addr;
+        device->ip_addr = ntohl(v4subnet.net_addr);
     } else
         printf("WARNING: Unable to set device %s IP address [%s]\n",
                device->ifName, cmd);
@@ -459,12 +458,11 @@ int tuntap_write (struct tuntap_dev *tuntap, unsigned char *buf, int len)
 int tuntap_open (struct tuntap_dev *device,
                  char *dev,
                  uint8_t address_mode, /* static or dhcp */
-                 in_addr_t v4addr,
-                 uint32_t v4masklen,
+                 struct n2n_ip_subnet v4subnet,
                  const char * device_mac,
                  int mtu,
                  int metric) {
-    return(open_wintap(device, dev, address_mode, v4addr, v4masklen, device_mac, mtu, metric));
+    return(open_wintap(device, dev, address_mode, v4subnet, device_mac, mtu, metric));
 }
 
 /* ************************************************ */

@@ -1314,7 +1314,7 @@ void send_register_super (n2n_edge_t *eee) {
 
     reg.cookie = eee->curr_sn->last_cookie;
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
-    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4masklen;
+    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
     get_local_auth(eee, &(reg.auth));
 
@@ -1462,7 +1462,7 @@ static void send_register (n2n_edge_t * eee,
         encode_mac(reg.dstMac, &idx, peer_mac);
     }
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
-    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4masklen;
+    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
 
     idx = 0;
@@ -2187,8 +2187,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         tuntap_open(&(eee->device),
                     eee->conf.tuntap_dev_name,
                     eee->conf.tuntap_ip_mode,
-                    eee->conf.tuntap_v4addr,
-                    eee->conf.tuntap_v4masklen,
+                    eee->conf.tuntap_v4,
                     eee->conf.device_mac,
                     eee->conf.mtu,
                     eee->conf.metric
@@ -2577,8 +2576,8 @@ void process_udp (n2n_edge_t *eee, const struct sockaddr *sender_sock, const SOC
 
                 if(eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
                     if((ra.dev_addr.net_addr != 0) && (ra.dev_addr.net_bitlen != 0)) {
-                        eee->conf.tuntap_v4addr = ra.dev_addr.net_addr;
-                        eee->conf.tuntap_v4masklen = ra.dev_addr.net_bitlen;
+                        eee->conf.tuntap_v4.net_addr = ra.dev_addr.net_addr;
+                        eee->conf.tuntap_v4.net_bitlen = ra.dev_addr.net_bitlen;
                     }
                 }
 
@@ -3205,7 +3204,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 #endif
 
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
-    conf->tuntap_v4masklen = N2N_EDGE_DEFAULT_V4MASKLEN;
+    conf->tuntap_v4.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
     /* reserve possible last char as null terminator. */
     gethostname((char*)conf->dev_desc, N2N_DESC_SIZE-1);
@@ -3319,9 +3318,13 @@ int quick_edge_init (char *device_name, char *community_name,
     if(edge_verify_conf(&conf) != 0)
         return(-1);
 
+    struct n2n_ip_subnet subnet;
+    subnet.net_addr = htonl(local_ip_address);
+    subnet.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
+
     /* Open the tuntap device */
     if(tuntap_open(&tuntap, device_name, TUNTAP_IP_MODE_STATIC,
-                   local_ip_address, N2N_EDGE_DEFAULT_V4MASKLEN,
+                   subnet,
                    device_mac, DEFAULT_MTU,
                    0) < 0)
         return(-2);

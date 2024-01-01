@@ -117,39 +117,35 @@ int inet_pton (int af, const char *restrict src, void *restrict dst) {
  *
  *    return 0 on success and -1 on error
  */
-static int scan_address (in_addr_t * v4addr,
-                         uint32_t * v4masklen,
+static int scan_address (struct n2n_ip_subnet * v4subnet,
                          uint8_t * ip_mode,
                          char * s) {
 
     char * start;
     char * end;
-    int bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
-    if((NULL == s) || (NULL == v4addr) || (NULL == v4masklen)) {
+    if((NULL == s) || (NULL == v4subnet) || (NULL == ip_mode)) {
         return -1;
     }
 
-    *v4addr = 0;
-    *v4masklen = 0;
+    v4subnet->net_addr = 0;
+    v4subnet->net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
     start = s;
     end = strpbrk(s, ":");
 
     if(end) {
         // colon is present
-        if(ip_mode) {
-            char buf[10];
-            memset(buf, 0, sizeof(buf));
-            strncpy(buf, start, (size_t)MIN(end - start, sizeof(buf) - 1));
+        char buf[10];
+        memset(buf, 0, sizeof(buf));
+        strncpy(buf, start, (size_t)MIN(end - start, sizeof(buf) - 1));
 
-            if(0 == strcmp("static", buf)) {
-                *ip_mode = TUNTAP_IP_MODE_STATIC;
-            } else if(0 == strcmp("dhcp", buf)) {
-                *ip_mode = TUNTAP_IP_MODE_DHCP;
-            } else {
-                *ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
-            }
+        if(0 == strcmp("static", buf)) {
+            *ip_mode = TUNTAP_IP_MODE_STATIC;
+        } else if(0 == strcmp("dhcp", buf)) {
+            *ip_mode = TUNTAP_IP_MODE_DHCP;
+        } else {
+            *ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
         }
         start = end + 1;
     } else {
@@ -159,23 +155,26 @@ static int scan_address (in_addr_t * v4addr,
 
     end = strpbrk(start, "/");
 
-    if(!end)
+    if(!end) {
         // no slash present -- default end
         end = s + strlen(s);
-    else
+    } else {
         // slash is present. now, handle the sub-network address
-        sscanf(end + 1, "%u", &bitlen);
+        int tmp;
+        sscanf(end + 1, "%u", &tmp);
+        v4subnet->net_bitlen = tmp;
+
+        // Ensure the subnet len is separated from the ipaddr
+        *end = 0;
+    }
 
     char buf[20];
     memset(buf, 0, sizeof(buf));
     strncpy(buf, start, sizeof(buf)-1); // ensure NULL term
 
-    if(inet_pton(AF_INET, buf, v4addr) != 1) {
+    if(inet_pton(AF_INET, buf, &v4subnet->net_addr) != 1) {
         return -1;
     }
-
-    bitlen = htobe32(bitlen2mask(bitlen));
-    *v4masklen = bitlen;
 
     return 0;
 }
@@ -430,8 +429,7 @@ static int setOption (int optkey, char *optargument, n2n_edge_conf_t *conf) {
 
     switch(optkey) {
         case 'a': /* IP address and mode of TUNTAP interface */ {
-            scan_address(&conf->tuntap_v4addr,
-                         &conf->tuntap_v4masklen,
+            scan_address(&conf->tuntap_v4,
                          &conf->tuntap_ip_mode,
                          optargument);
             break;
@@ -1123,16 +1121,15 @@ int main (int argc, char* argv[]) {
             if(tuntap_open(&eee->device,
                            eee->conf.tuntap_dev_name,
                            eee->conf.tuntap_ip_mode,
-                           eee->conf.tuntap_v4addr,
-                           eee->conf.tuntap_v4masklen,
+                           eee->conf.tuntap_v4,
                            eee->conf.device_mac,
                            eee->conf.mtu,
                            eee->conf.metric) < 0)
                 exit(1);
-            in_addr_t addr = htonl(eee->conf.tuntap_v4addr);
+            in_addr_t addr = eee->conf.tuntap_v4.net_addr;
             traceEvent(TRACE_NORMAL, "created local tap device IPv4: %s/%u, MAC: %s",
                        inet_ntoa(*(struct in_addr*)&addr),
-                       eee->conf.tuntap_v4masklen,
+                       eee->conf.tuntap_v4.net_bitlen,
                        macaddr_str(mac_buf, eee->device.mac_addr));
             runlevel = 5;
             // no more answers required

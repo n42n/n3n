@@ -208,7 +208,7 @@ static void mgmt_edge_info (mgmt_req_t *req, strbuf_t *buf) {
                        PACKAGE_VERSION,
                        is_null_mac(req->eee->device.mac_addr) ? "" : macaddr_str(mac_buf, req->eee->device.mac_addr),
                        ip_address,
-                       req->eee->conf.tuntap_v4masklen,
+                       req->eee->conf.tuntap_v4.net_bitlen,
                        sock_to_cstr(sockbuf, &req->eee->conf.preferred_sock));
 
     send_reply(req, buf, msg_len);
