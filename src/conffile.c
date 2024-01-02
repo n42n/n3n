@@ -333,6 +333,47 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
 
             return 0;
         }
+        case n3n_conf_ip_subnet: {
+            struct n2n_ip_subnet *dst = (struct n2n_ip_subnet *)((char *)conf + p->offset);
+            struct n2n_ip_subnet tmp;
+            tmp.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
+
+            char *endptr;
+
+            char *bitlen_str = strchr(value, '/');
+            if(bitlen_str) {
+                // Found a subnet length, try to parse it
+                *bitlen_str++ = 0;
+                tmp.net_bitlen = strtoul(bitlen_str, &endptr, 10);
+                if(*endptr) {
+                    // there were non parsable chars in the string
+                    return -1;
+                }
+            }
+
+            if(inet_pton(AF_INET, value, &tmp.net_addr) != 1) {
+                // error parsing
+                return -1;
+            }
+
+            dst->net_addr = tmp.net_addr;
+            dst->net_bitlen = tmp.net_bitlen;
+            return 0;
+        }
+        case n3n_conf_ip_mode: {
+            uint8_t *dst = (uint8_t *)conf + p->offset;
+
+            if(0 == strcmp("static", value)) {
+                *dst = TUNTAP_IP_MODE_STATIC;
+            } else if(0 == strcmp("dhcp", value)) {
+                *dst = TUNTAP_IP_MODE_DHCP;
+            } else if(0 == strcmp("auto", value)) {
+                *dst = TUNTAP_IP_MODE_SN_ASSIGN;
+            } else {
+                return -1;
+            }
+            return 0;
+        }
     }
     return -1;
 }

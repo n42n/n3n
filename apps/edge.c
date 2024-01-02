@@ -92,93 +92,6 @@ int fetch_and_eventually_process_data (n2n_edge_t *eee, SOCKET sock,
                                        time_t now);
 int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, time_t now);
 
-/* ***************************************************** */
-
-#ifdef _WIN32
-#ifndef _WIN64
-// Windows pre vista does not support inet_pton, so stub one out
-int inet_pton (int af, const char *restrict src, void *restrict dst) {
-    traceEvent(TRACE_WARNING, "No static IP parser on old windows (%s)\n", src);
-    return 0;
-}
-#endif
-#endif
-
-/** Find the address and IP mode for the tuntap device.
- *
- *    s is of the form:
- *
- * ["static"|"dhcp",":"] (<host>|<ip>) [/<cidr subnet mask>]
- *
- * for example        static:192.168.8.5/24
- *
- * Fill the parts of the string into the fileds, ip_mode only if
- * present. All strings are NULL terminated.
- *
- *    return 0 on success and -1 on error
- */
-static int scan_address (struct n2n_ip_subnet * v4subnet,
-                         uint8_t * ip_mode,
-                         char * s) {
-
-    char * start;
-    char * end;
-
-    if((NULL == s) || (NULL == v4subnet) || (NULL == ip_mode)) {
-        return -1;
-    }
-
-    v4subnet->net_addr = 0;
-    v4subnet->net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
-
-    start = s;
-    end = strpbrk(s, ":");
-
-    if(end) {
-        // colon is present
-        char buf[10];
-        memset(buf, 0, sizeof(buf));
-        strncpy(buf, start, (size_t)MIN(end - start, sizeof(buf) - 1));
-
-        if(0 == strcmp("static", buf)) {
-            *ip_mode = TUNTAP_IP_MODE_STATIC;
-        } else if(0 == strcmp("dhcp", buf)) {
-            *ip_mode = TUNTAP_IP_MODE_DHCP;
-        } else {
-            *ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
-        }
-        start = end + 1;
-    } else {
-        // colon is not present
-    }
-    // start now points to first address character
-
-    end = strpbrk(start, "/");
-
-    if(!end) {
-        // no slash present -- default end
-        end = s + strlen(s);
-    } else {
-        // slash is present. now, handle the sub-network address
-        int tmp;
-        sscanf(end + 1, "%u", &tmp);
-        v4subnet->net_bitlen = tmp;
-
-        // Ensure the subnet len is separated from the ipaddr
-        *end = 0;
-    }
-
-    char buf[20];
-    memset(buf, 0, sizeof(buf));
-    strncpy(buf, start, sizeof(buf)-1); // ensure NULL term
-
-    if(inet_pton(AF_INET, buf, &v4subnet->net_addr) != 1) {
-        return -1;
-    }
-
-    return 0;
-}
-
 /* *************************************************** */
 
 static void help (int level) {
@@ -429,9 +342,25 @@ static int setOption (int optkey, char *optargument, n2n_edge_conf_t *conf) {
 
     switch(optkey) {
         case 'a': /* IP address and mode of TUNTAP interface */ {
-            scan_address(&conf->tuntap_v4,
-                         &conf->tuntap_ip_mode,
-                         optargument);
+            /*
+             * of the form:
+             *
+             * ["static:"|"dhcp:","auto:"] <ip> [/<cidr subnet mask>]
+             *
+             * for example        static:192.168.8.5/24
+             *
+             */
+            char *field2 = strchr(optargument, ':');
+            if(field2) {
+                // We have a field #1, extract it
+                *field2++ = 0;
+                set_option_wrap(conf, "tuntap", "address_mode", optargument);
+            } else {
+                set_option_wrap(conf, "tuntap", "address_mode", "static");
+                field2 = optargument;
+            }
+
+            set_option_wrap(conf, "tuntap", "address", field2);
             break;
         }
 

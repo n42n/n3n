@@ -24,6 +24,8 @@ enum n3n_conf_type {
     n3n_conf_sn_selection,
     n3n_conf_verbose,
     n3n_conf_filter_rule,
+    n3n_conf_ip_subnet,
+    n3n_conf_ip_mode,
 };
 
 struct n3n_conf_option {

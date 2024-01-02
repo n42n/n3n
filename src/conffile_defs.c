@@ -289,6 +289,28 @@ static struct n3n_conf_option section_management[] = {
 
 static struct n3n_conf_option section_tuntap[] = {
     {
+        .name = "address",
+        .type = n3n_conf_ip_subnet,
+        .offset = offsetof(n2n_edge_conf_t, tuntap_v4),
+        .desc = "Set the tuntap IP address",
+        .help = "By default, the supernode will assign an address. The "
+                "address defined here may be ignored depending on the value "
+                "of the address_mode setting. "
+                "The address can also contain an optional trailing '/' and "
+                "subnet size.",
+    },
+    {
+        .name = "address_mode",
+        .type = n3n_conf_ip_mode,
+        .offset = offsetof(n2n_edge_conf_t, tuntap_ip_mode),
+        .desc = "Define how the tuntap address is set",
+        .help = "By default, the 'auto' mode allows the supernode to issue "
+                "an IP address.  Other options are: 'static' - where the "
+                "address is statically configured; 'dhcp' - where no "
+                "address is set by the edge and an external process is "
+                "expected to set it.",
+    },
+    {
         .name = "macaddr",
         .type = n3n_conf_strncpy,
         .length = N2N_MACNAMSIZ,
