@@ -66,6 +66,7 @@ jobs:
             --with-zstd \
             CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
             LDFLAGS="--coverage"
+          make build-dep
           make test
 
       - name: Generate coverage reports
