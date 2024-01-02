@@ -64,8 +64,26 @@ jobs:
             --enable-pcap \
             --with-openssl \
             --with-zstd \
-            CFLAGS="-O3"
+            CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
+            LDFLAGS="--coverage"
           make test
+
+      - name: Generate coverage reports
+        run: |
+          make gcov
+          make cover COVERAGEDIR=coverage/ubuntu-latest
+        shell: bash
+
+      - name: Upload gcovr report artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage
+
+      - name: Upload data to codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 # TODO: Since windows has a bunch of build differences, it would be good to
 # have a smoketest for it, but it is about 5 times slower than the other
