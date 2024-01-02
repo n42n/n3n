@@ -10,32 +10,10 @@ config.status
 include/config.h
 include/config.h.in
 autom4te.cache
-edge
-example_edge_embed_quick_edge_init
-example_edge_embed
-example_sn_embed
-supernode
-tools/n3n-benchmark
-tools/n3n-decode
-tools/n3n-keygen
-tools/n3n-portfwd
-tools/n3n-route
-build
-.idea
-.vscode
-.vs
 packages/debian/debian/files
 *dSYM*
 
 __pycache__
-
-# Binaries built to run tests
-tools/tests-auth
-tools/tests-compress
-tools/tests-elliptic
-tools/tests-hashing
-tools/tests-transform
-tools/tests-wire
 
 # Files generated while running tests
 tests/*.out
