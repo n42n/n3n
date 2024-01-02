@@ -26,10 +26,16 @@ LDLIBS+=$(LDLIBS_EXTRA)
 
 all: $(APPS) $(EXAMPLES)
 
+$(APPS) $(EXAMPLES): ../libn3n.a
+
 .PHONY: install
 install: $(addsuffix $(EXE),$(APPS))
 	$(INSTALL_PROG) supernode$(EXE) $(SBINDIR)/
 	$(INSTALL_PROG) edge$(EXE) $(SBINDIR)/
+
+# See comments in the topdir Makefile about how to generate coverage data.
+gcov:
+	gcov $(APPS)
 
 clean:
 	rm -f $(APPS) $(EXAMPLES)

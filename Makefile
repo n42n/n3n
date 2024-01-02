@@ -212,6 +212,7 @@ cover:
 gcov:
 	gcov $(N2N_OBJS)
 	$(MAKE) -C tools gcov
+	$(MAKE) -C apps gcov
 
 # This is a convinent target to use during development or from a CI/CD system
 .PHONY: build-dep
