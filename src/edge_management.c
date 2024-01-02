@@ -188,14 +188,12 @@ static void mgmt_edges (mgmt_req_t *req, strbuf_t *buf) {
 static void mgmt_edge_info (mgmt_req_t *req, strbuf_t *buf) {
     size_t msg_len;
     macstr_t mac_buf;
-    struct in_addr ip_addr, ip_addr_mask;
-    ipstr_t ip_address, ip_address_mask;
+    struct in_addr ip_addr;
+    ipstr_t ip_address;
     n2n_sock_str_t sockbuf;
 
     ip_addr.s_addr = req->eee->device.ip_addr;
     inaddrtoa(ip_address, ip_addr);
-    ip_addr_mask.s_addr = req->eee->device.device_mask;
-    inaddrtoa(ip_address_mask, ip_addr_mask);
 
     msg_len = snprintf(buf->str, buf->size,
                        "{"
@@ -204,12 +202,13 @@ static void mgmt_edge_info (mgmt_req_t *req, strbuf_t *buf) {
                        "\"version\":\"%s\","
                        "\"macaddr\":\"%s\","
                        "\"ip4addr\":\"%s\","
-                       "\"ip4netmask\":\"%s\","
+                       "\"ip4masklen\":\"%ul\","
                        "\"sockaddr\":\"%s\"}\n",
                        req->tag,
                        PACKAGE_VERSION,
                        is_null_mac(req->eee->device.mac_addr) ? "" : macaddr_str(mac_buf, req->eee->device.mac_addr),
-                       ip_address, ip_address_mask,
+                       ip_address,
+                       req->eee->conf.tuntap_v4.net_bitlen,
                        sock_to_cstr(sockbuf, &req->eee->conf.preferred_sock));
 
     send_reply(req, buf, msg_len);
@@ -449,7 +448,7 @@ void readFromMgmtSocket (n2n_edge_t *eee) {
     req.eee = eee;
     req.mgmt_sock = eee->udp_mgmt_sock;
     req.keep_running = eee->keep_running;
-    req.mgmt_password_hash = eee->conf.mgmt_password_hash;
+    req.mgmt_password = eee->conf.mgmt_password;
     req.sock_len = sizeof(req.sas);
 
     recvlen = recvfrom(eee->udp_mgmt_sock, udp_buf, N2N_PKT_BUF_SIZE, 0 /*flags*/,

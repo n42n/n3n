@@ -29,8 +29,8 @@ struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
     if(!peer) {
         return NULL;
     }
-    peer->purgeable = true;
-    // TODO peer->last_valid_time_stamp = initial_time_stamp();
+
+    peer_info_init(peer, mac);
 
     return peer;
 }

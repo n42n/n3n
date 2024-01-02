@@ -34,14 +34,14 @@ int main () {
     int rc;
 
     edge_init_conf_defaults(&conf);
-    conf.allow_p2p = 1;                                                                      // Whether to allow peer-to-peer communication
-    conf.allow_routing = 1;                                                                  // Whether to allow the edge to route packets to other edges
+    conf.allow_p2p = true;                                                                   // Whether to allow peer-to-peer communication
+    conf.allow_routing = true;                                                               // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to
-    conf.disable_pmtu_discovery = 1;                                                         // Whether to disable the path MTU discovery
-    conf.drop_multicast = 0;                                                                 // Whether to disable multicast
+    conf.disable_pmtu_discovery = true;                                                      // Whether to disable the path MTU discovery
+    conf.drop_multicast = false;                                                             // Whether to disable multicast
     conf.tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;                                          // How to set the IP address
     conf.encrypt_key = "mysecret";                                                           // Secret to decrypt & encrypt with
-    conf.local_port = 0;                                                                     // What port to use (0 = any port)
+    // conf.bind_address = sockaddr; // can be used to bind to a local port
     conf.mgmt_port = N2N_EDGE_MGMT_PORT;                                                     // Edge management port (5644 by default)
     conf.register_interval = 1;                                                              // Interval for both UDP NAT hole punching and supernode registration
     conf.register_ttl = 1;                                                                   // Interval for UDP NAT hole punching through supernode
@@ -53,11 +53,14 @@ int main () {
         return -1;
     }
 
+    struct n2n_ip_subnet subnet;
+    subnet.net_addr = htonl(0x0a000001);    // Set ip address 10.0.0.1
+    subnet.net_bitlen = 24;                 // Netmask to use
+
     if(tuntap_open(&tuntap,
                    "edge0",             // Name of the device to create
-                   "static",            // IP mode; static|dhcp
-                   "10.0.0.1",          // Set ip address
-                   "255.255.255.0",     // Netmask to use
+                   TUNTAP_IP_MODE_STATIC, // IP mode; static|dhcp
+                   subnet,
                    "DE:AD:BE:EF:01:10", // Set mac address
                    DEFAULT_MTU,         // MTU to use
                    0                    // Metric - unused in n2n on most OS

@@ -290,7 +290,7 @@ int process_mgmt (n2n_sn_t *sss,
     req.sss = sss;
     req.mgmt_sock = sss->mgmt_sock;
     req.keep_running = sss->keep_running;
-    req.mgmt_password_hash = sss->mgmt_password_hash;
+    req.mgmt_password = sss->mgmt_password;
     memcpy(&req.sender_sock, sender_sock, sock_size);
     req.sock_len = sock_size;
 

@@ -285,7 +285,7 @@ int main (int argc, char* argv[]) {
     uint16_t port = 0, current_port = 0;
 
     // version
-    print_n2n_version();
+    print_n3n_version();
 
     // ensure prerequisites
 #ifndef HAVE_MINIUPNP

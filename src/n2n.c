@@ -48,10 +48,9 @@
 
 /* ************************************** */
 
-SOCKET open_socket (int local_port, in_addr_t address, int type /* 0 = UDP, TCP otherwise */) {
+SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type /* 0 = UDP, TCP otherwise */) {
 
     SOCKET sock_fd;
-    struct sockaddr_in local_address;
     int sockopt;
 
     if((int)(sock_fd = socket(PF_INET, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
@@ -67,13 +66,14 @@ SOCKET open_socket (int local_port, in_addr_t address, int type /* 0 = UDP, TCP 
     sockopt = 1;
     setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&sockopt, sizeof(sockopt));
 
-    memset(&local_address, 0, sizeof(local_address));
-    local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(local_port);
-    local_address.sin_addr.s_addr = htonl(address);
+    if(!local_address) {
+        // skip binding if we dont have the right details
+        return(sock_fd);
+    }
 
-    if(bind(sock_fd,(struct sockaddr*) &local_address, sizeof(local_address)) == -1) {
-        traceEvent(TRACE_ERROR, "Bind error on local port %u [%s]\n", local_port, strerror(errno));
+    if(bind(sock_fd,local_address, addrlen) == -1) {
+        traceEvent(TRACE_ERROR, "Bind error on local addr [%s]\n", strerror(errno));
+        // TODO: use a generic sockaddr stringify to show which bind failed
         return(-1);
     }
 
@@ -503,10 +503,9 @@ void hexdump (const uint8_t *buf, size_t len) {
 
 /* *********************************************** */
 
-void print_n2n_version () {
+void print_n3n_version () {
 
-    printf("Welcome to n3n v.%s\n"
-           "Built on %s\n"
+    printf("Welcome to n3n v%s Built on %s\n"
            "Copyright 2007-2022 - ntop.org and contributors\n"
            "Copyright (C) 2023 Hamish Coleman\n\n",
            PACKAGE_VERSION, PACKAGE_BUILDDATE);

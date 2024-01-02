@@ -68,7 +68,6 @@ typedef struct tuntap_dev {
     OVERLAPPED overlap_read, overlap_write;
     n2n_mac_t mac_addr;
     uint32_t ip_addr;
-    uint32_t device_mask;
     unsigned int mtu;
     unsigned int metric;
     unsigned int metric_original;

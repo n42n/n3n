@@ -18,13 +18,14 @@
  *
  */
 
+#ifdef __APPLE__
+
 
 #include <fcntl.h>
 #include <n3n/logging.h>  // for traceEvent
+#include <sys/socket.h>   // for in_addr_t
 #include "n2n.h"
 
-
-#ifdef __APPLE__
 
 
 #define N2N_OSX_TAPDEVICE_SIZE 32
@@ -35,9 +36,8 @@ void tun_close (tuntap_dev *device);
 
 int tuntap_open (tuntap_dev *device /* ignored */,
                  char *dev,
-                 const char *address_mode, /* static or dhcp */
-                 char *device_ip,
-                 char *device_mask,
+                 uint8_t address_mode, /* unused! */
+                 struct n2n_ip_subnet v4subnet,
                  const char * device_mac,
                  int mtu,
                  int ignored) {
@@ -63,7 +63,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
         char buf[256];
         FILE *fd;
 
-        device->ip_addr = inet_addr(device_ip);
+        device->ip_addr = ntohl(v4subnet.net_addr);
 
         if(device_mac && device_mac[0] != '\0') {
             // FIXME - this is not tested. might be wrong syntax for OS X
@@ -72,10 +72,20 @@ int tuntap_open (tuntap_dev *device /* ignored */,
             system(buf);
         }
 
-        snprintf(buf, sizeof(buf), "ifconfig tap%d %s netmask %s mtu %d up", i, device_ip, device_mask, mtu);
+        in_addr_t addr = htonl(device->ip_addr);
+        in_addr_t mask = htonl(bitlen2mask(v4subnet.net_bitlen));
+        char addr_buf[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &addr, &addr_buf, sizeof(addr_buf));
+
+        snprintf(buf, sizeof(buf), "ifconfig tap%d %s netmask %s mtu %d up",
+                 i,
+                 addr_buf,
+                 inet_ntoa(*(struct in_addr*)&mask),
+                 mtu
+                 );
         system(buf);
 
-        traceEvent(TRACE_NORMAL, "Interface tap%d up and running (%s/%s)", i, device_ip, device_mask);
+        traceEvent(TRACE_NORMAL, "Interface tap%d up and running (%s/%u)", i, addr_buf, v4subnet.net_bitlen);
 
         // read MAC address
         snprintf(buf, sizeof(buf), "ifconfig tap%d |grep ether|cut -c 8-24", i);

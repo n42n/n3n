@@ -818,7 +818,7 @@ int main (int argc, char* argv[]) {
     n2n_route_t *route, *tmp_route;
 
     // version
-    print_n2n_version();
+    print_n3n_version();
 
     // handle signals to properly end the tool
     set_term_handler(term_handler);

@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,20 +35,15 @@
 
 #define SN_MANUAL_MAC   /* allows supernode MAC address to be set manually */
 
-#define N2N_HAVE_DAEMON /* needs to be defined before it gets undefined */
 #define N2N_HAVE_TCP    /* needs to be defined before it gets undefined */
 #define HAVE_BRIDGING_SUPPORT
-
-/* #define N2N_CAN_NAME_IFACE */
 
 #include "config.h" /* Visual C++ */
 
 /* Moved here to define _CRT_SECURE_NO_WARNINGS before all the including takes place */
 #ifdef _WIN32
 #define N2N_CAN_NAME_IFACE 1
-#undef N2N_HAVE_DAEMON
 #undef N2N_HAVE_TCP           /* as explained on https://github.com/ntop/n2n/pull/627#issuecomment-782093706 */
-#undef N2N_HAVE_SETUID
 #endif /* _WIN32 */
 
 
@@ -108,8 +104,10 @@ int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
 #endif
 
 /* Tuntap API */
-int tuntap_open (struct tuntap_dev *device, char *dev, const char *address_mode, char *device_ip,
-                 char *device_mask, const char * device_mac, int mtu, int metric);
+int tuntap_open (struct tuntap_dev *device, char *dev, uint8_t address_mode,
+                 struct n2n_ip_subnet v4subnet,
+                 const char * device_mac, int mtu,
+                 int metric);
 int tuntap_read (struct tuntap_dev *tuntap, unsigned char *buf, int len);
 int tuntap_write (struct tuntap_dev *tuntap, unsigned char *buf, int len);
 void tuntap_close (struct tuntap_dev *tuntap);
@@ -128,7 +126,7 @@ uint8_t is_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_null_mac (const n2n_mac_t dest_mac);
 char* msg_type2str (uint16_t msg_type);
 void hexdump (const uint8_t * buf, size_t len);
-void print_n2n_version ();
+void print_n3n_version ();
 int is_empty_ip_address (const n2n_sock_t * sock);
 void print_edge_stats (const n2n_edge_t *eee);
 int memrnd (uint8_t *address, size_t len);
@@ -138,7 +136,7 @@ int memxor (uint8_t *destination, const uint8_t *source, size_t len);
 char* sock_to_cstr (n2n_sock_str_t out,
                     const n2n_sock_t * sock);
 char * ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr);
-SOCKET open_socket (int local_port, in_addr_t address, int type);
+SOCKET open_socket(struct sockaddr *, socklen_t, int type);
 int sock_equal (const n2n_sock_t * a,
                 const n2n_sock_t * b);
 
@@ -168,7 +166,7 @@ int edge_get_management_socket (n2n_edge_t *eee);
 int run_edge_loop (n2n_edge_t *eee);
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
-                     char *local_ip_address,
+                     in_addr_t local_ip_address,
                      char *supernode_ip_address_port,
                      bool *keep_on_running);
 int comm_init (struct sn_community *comm, char *cmn);

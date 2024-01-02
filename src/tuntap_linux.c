@@ -42,8 +42,9 @@
 #include "n2n.h"                      // for tuntap_dev, ...
 
 
-static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
-                         const char *netmask, uint8_t *mac, int mtu) {
+static int setup_ifname (int fd, const char *ifname,
+                         struct n2n_ip_subnet v4subnet,
+                         uint8_t *mac, int mtu) {
 
     struct ifreq ifr;
 
@@ -63,17 +64,17 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
     ifr.ifr_addr.sa_family = AF_INET;
 
     // interface address
-    inet_pton(AF_INET, ipaddr, &((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr);
+    ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr = v4subnet.net_addr;
     if(ioctl(fd, SIOCSIFADDR, &ifr) == -1) {
         traceEvent(TRACE_ERROR, "ioctl(SIOCSIFADDR) failed [%d]: %s", errno, strerror(errno));
         return -2;
     }
 
     // netmask
-    if(netmask && (((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr.s_addr != 0)) {
-        inet_pton(AF_INET, netmask, &((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr);
+    if(v4subnet.net_bitlen && (((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr.s_addr != 0)) {
+        ((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr.s_addr = htonl(bitlen2mask(v4subnet.net_bitlen));
         if(ioctl(fd, SIOCSIFNETMASK, &ifr) == -1) {
-            traceEvent(TRACE_ERROR, "ioctl(SIOCSIFNETMASK, %s) failed [%d]: %s", netmask, errno, strerror(errno));
+            traceEvent(TRACE_ERROR, "ioctl(SIOCSIFNETMASK, %u) failed [%d]: %s", v4subnet.net_bitlen, errno, strerror(errno));
             return -3;
         }
     }
@@ -110,18 +111,16 @@ static int setup_ifname (int fd, const char *ifname, const char *ipaddr,
  *  @param device      - [inout] a device info holder object
  *  @param dev         - user-defined name for the new iface,
  *                       if NULL system will assign a name
- *  @param device_ip   - address of iface
- *  @param device_mask - netmask for device_ip
- *  @param mtu         - MTU for device_ip
+ *  @param v4subnet    - address and netmask of iface
+ *  @param mtu         - MTU for device
  *
  *  @return - negative value on error
  *          - non-negative file-descriptor on success
  */
 int tuntap_open (tuntap_dev *device,
                  char *dev, /* user-definable interface name, eg. edge0 */
-                 const char *address_mode, /* static or dhcp */
-                 char *device_ip,
-                 char *device_mask,
+                 uint8_t address_mode, /* unused! */
+                 struct n2n_ip_subnet v4subnet,
                  const char * device_mac,
                  int mtu,
                  int ignored) {
@@ -210,7 +209,7 @@ int tuntap_open (tuntap_dev *device,
         return -1;
     }
 
-    if(setup_ifname(ioctl_fd, device->dev_name, device_ip, device_mask, device->mac_addr, mtu) < 0) {
+    if(setup_ifname(ioctl_fd, device->dev_name, v4subnet, device->mac_addr, mtu) < 0) {
         close(nl_fd);
         close(ioctl_fd);
         close(device->fd);
@@ -250,9 +249,7 @@ int tuntap_open (tuntap_dev *device,
 
     close(nl_fd);
 
-    device->ip_addr = inet_addr(device_ip);
-    device->device_mask = inet_addr(device_mask);
-    device->if_idx = if_nametoindex(dev);
+    device->ip_addr = ntohl(v4subnet.net_addr);
 
     return device->fd;
 }

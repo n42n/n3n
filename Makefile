@@ -65,11 +65,14 @@ N2N_OBJS=\
 	src/aes.o \
 	src/auth.o \
 	src/cc20.o \
+	src/conffile.o \
+	src/conffile_defs.o \
 	src/curve25519.o \
 	src/edge_management.o \
 	src/edge_utils.o \
 	src/header_encryption.o \
 	src/hexdump.o \
+	src/initfuncs.o \
 	src/json.o \
 	src/logging.o \
 	src/management.o \

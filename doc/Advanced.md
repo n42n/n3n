@@ -13,7 +13,7 @@ edge can also be run as a service instead of cli:
 2. Start the service: `sudo systemctl start edge`
 3. Optionally enable edge start on boot: `sudo systemctl enable edge`
 
-You can run multiple edge service instances by creating `/etc/n3n/edge-instance1.conf` and
+You can run multiple edge service instances by creating `/etc/n3n/instance1.conf` and
 starting it with `sudo systemctl start edge@instance1`.
 
 

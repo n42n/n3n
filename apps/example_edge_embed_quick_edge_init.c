@@ -36,7 +36,7 @@ int main (int argc, char* argv[]) {
     char *network_name   = (char*)"mynetwork";
     char *secret_key     = (char*)"mysecret";
     char *my_mac_address = (char*)"DE:AD:BE:EF:01:10";
-    char *my_ipv4_addr   = (char*)"1.2.3.4";
+    in_addr_t my_ipv4_addr = 0x01020304; // 1.2.3.4
     char *supernode      = (char*)"7.8.9.10:1234";
     bool keep_on_running = true;
 

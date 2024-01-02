@@ -65,7 +65,7 @@ static void help (int level) {
         return;
 
     printf("\n");
-    print_n2n_version();
+    print_n3n_version();
 
     if(level == 1) {
         /* short help */
@@ -105,9 +105,6 @@ static void help (int level) {
                "\n configuration             "
                "[-a <net ip>-<net ip>/<cidr suffix>] "
                "\n\n local options             "
-#if defined(N2N_HAVE_DAEMON)
-               "[-f] "
-#endif
                "[-t <management port>] "
                "\n                           "
                "[--management-password <pw>] "
@@ -120,7 +117,7 @@ static void help (int level) {
                "\n\n meaning of the            "
                "[-M]  disable MAC and IP address spoofing protection"
                "\n flag options              "
-#if defined(N2N_HAVE_DAEMON)
+#ifndef _WIN32
                "[-f]  do not fork but run in foreground"
                "\n                           "
 #endif
@@ -166,7 +163,7 @@ static void help (int level) {
         printf("\n");
         printf(" LOCAL OPTIONS\n");
         printf(" -------------\n\n");
-#if defined(N2N_HAVE_DAEMON)
+#ifndef _WIN32
         printf(" -f                | do not fork and run as a daemon, rather run in foreground\n");
 #endif
         printf(" -t <port>         | management UDP port, for multiple supernodes on a machine,\n"
@@ -375,15 +372,13 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
             break;
 
         case ']': /* password for management port */ {
-            sss->mgmt_password_hash = pearson_hash_64((uint8_t*)_optarg, strlen(_optarg));
+            sss->mgmt_password = strdup(_optarg);
 
             break;
         }
-#if defined(N2N_HAVE_DAEMON)
         case 'f': /* foreground */
-            sss->daemon = 0;
+            sss->daemon = false;
             break;
-#endif
         case 'h': /* quick reference */
             return 2;
 
@@ -407,9 +402,7 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
 
 static const struct option long_options[] = {
     {"communities",         required_argument, NULL, 'c'},
-#if defined(N2N_HAVE_DAEMON)
     {"foreground",          no_argument,       NULL, 'f'},
-#endif
     {"local-port",          required_argument, NULL, 'p'},
     {"mgmt-port",           required_argument, NULL, 't'},
     {"autoip",              required_argument, NULL, 'a'},
@@ -431,12 +424,8 @@ static int loadFromCLI (int argc, char * const argv[], n2n_sn_t *sss) {
 #ifdef SN_MANUAL_MAC
                            "m:"
 #endif
-#if defined(N2N_HAVE_DAEMON)
                            "f"
-#endif
-#ifndef _WIN32
                            "u:g:"
-#endif
                            ,
                            long_options, NULL)) != '?') {
         if(c == 255) {
@@ -638,7 +627,7 @@ int main (int argc, char * const argv[]) {
     if(sss_node.community_file)
         load_allowed_sn_community(&sss_node);
 
-#if defined(N2N_HAVE_DAEMON)
+#ifndef _WIN32
     if(sss_node.daemon) {
         setUseSyslog(1); /* traceEvent output now goes to syslog. */
 
@@ -647,7 +636,7 @@ int main (int argc, char * const argv[]) {
             exit(-5);
         }
     }
-#endif /* #if defined(N2N_HAVE_DAEMON) */
+#endif
 
     // warn on default federation name
     if(!strcmp(sss_node.federation->community, FEDERATION_NAME)) {
@@ -662,7 +651,17 @@ int main (int argc, char * const argv[]) {
 
     traceEvent(TRACE_DEBUG, "traceLevel is %d", getTraceLevel());
 
-    sss_node.sock = open_socket(sss_node.lport, sss_node.bind_address, 0 /* UDP */);
+    struct sockaddr_in local_address;
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(sss_node.lport);
+    local_address.sin_addr.s_addr = htonl(sss_node.bind_address);
+
+    sss_node.sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(-1 == sss_node.sock) {
         traceEvent(TRACE_ERROR, "failed to open main socket. %s", strerror(errno));
         exit(-2);
@@ -671,7 +670,11 @@ int main (int argc, char * const argv[]) {
     }
 
 #ifdef N2N_HAVE_TCP
-    sss_node.tcp_sock = open_socket(sss_node.lport, sss_node.bind_address, 1 /* TCP */);
+    sss_node.tcp_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        1 /* TCP */
+        );
     if(-1 == sss_node.tcp_sock) {
         traceEvent(TRACE_ERROR, "failed to open auxiliary TCP socket, %s", strerror(errno));
         exit(-2);
@@ -687,7 +690,16 @@ int main (int argc, char * const argv[]) {
     }
 #endif
 
-    sss_node.mgmt_sock = open_socket(sss_node.mport, INADDR_LOOPBACK, 0 /* UDP */);
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(sss_node.mport);
+    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    sss_node.mgmt_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(-1 == sss_node.mgmt_sock) {
         traceEvent(TRACE_ERROR, "failed to open management socket, %s", strerror(errno));
         exit(-2);

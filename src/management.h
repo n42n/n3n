@@ -40,14 +40,14 @@ enum n2n_mgmt_type {
  * - once eee and sss are merged, some fields should migrate back into it:
  *   - mgmt_sock
  *   - keep_running
- *   - mgmt_password_hash
+ *   - mgmt_password
  */
 typedef struct mgmt_req {
     n2n_sn_t *sss;
     n2n_edge_t *eee;
     int mgmt_sock;                  // socket replies come from
     bool *keep_running;
-    uint64_t mgmt_password_hash;
+    char *mgmt_password;
     enum n2n_mgmt_type type;
     char *argv0;
     char *argv;

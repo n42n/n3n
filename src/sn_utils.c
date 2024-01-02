@@ -769,8 +769,6 @@ int comm_init (struct sn_community *comm, char *cmn) {
 /** Initialise the supernode structure */
 int sn_init_defaults (n2n_sn_t *sss) {
 
-    char *tmp_string;
-
 #ifdef _WIN32
     initWin32();
 #endif
@@ -781,7 +779,7 @@ int sn_init_defaults (n2n_sn_t *sss) {
 
     strncpy(sss->version, PACKAGE_VERSION, sizeof(n2n_version_t));
     sss->version[sizeof(n2n_version_t) - 1] = '\0';
-    sss->daemon = 1; /* By defult run as a daemon. */
+    sss->daemon = true; /* By defult run as a daemon. */
     sss->bind_address = INADDR_ANY; /* any address */
     sss->lport = N2N_SN_LPORT_DEFAULT;
     sss->mport = N2N_SN_MGMT_PORT;
@@ -828,12 +826,7 @@ int sn_init_defaults (n2n_sn_t *sss) {
     sss->mac_addr[0] &= ~0x01; /* Clear multicast bit */
     sss->mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
-    tmp_string = calloc(1, strlen(N2N_MGMT_PASSWORD) + 1);
-    if(tmp_string) {
-        strncpy((char*)tmp_string, N2N_MGMT_PASSWORD, strlen(N2N_MGMT_PASSWORD) + 1);
-        sss->mgmt_password_hash = pearson_hash_64((uint8_t*)tmp_string, strlen(N2N_MGMT_PASSWORD));
-        free(tmp_string);
-    }
+    sss->mgmt_password = N2N_MGMT_PASSWORD;
 
     return 0; /* OK */
 }

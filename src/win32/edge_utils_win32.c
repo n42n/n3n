@@ -27,13 +27,13 @@
 #include "edge_utils_win32.h"
 
 /* ************************************** */
+// TODO: move these polyfill functions into their own source file
 
-#ifndef _WIN64
 /*
- * This function was not included in windows until after Windows XP
+ * The inet_ntop function was not included in windows until after Windows XP
  */
 
-const char *subst_inet_ntop (int af, const void *src, char *dst, int size) {
+const char *fill_inet_ntop (int af, const void *src, char *dst, int size) {
     if(af == AF_INET) {
         struct sockaddr_in in;
         memset(&in, 0, sizeof(in));
@@ -57,7 +57,30 @@ const char *subst_inet_ntop (int af, const void *src, char *dst, int size) {
     return NULL;
 }
 
-#endif /* _WIN64 */
+int fill_inet_pton (int af, const char *restrict src, void *restrict dst) {
+    if(af != AF_INET) {
+        // We simply dont support IPv6 on old Windows
+        return -1;
+    }
+    if((NULL == src) || (NULL == dst)) {
+        return -1;
+    }
+
+    struct addrinfo *result = NULL;
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_flags = AI_NUMERICHOST;
+    hints.ai_family = af;
+
+    if(getaddrinfo(src, NULL, &hints, &result) != 0) {
+        freeaddrinfo(result);
+        return -1;
+    }
+
+    struct sockaddr_in *sa = (struct sockaddr_in *)result->ai_addr;
+    *((uint32_t *)dst) = sa->sin_addr.s_addr;
+    return 1;
+}
 
 /* ************************************** */
 

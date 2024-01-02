@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Copyright (C) 2023 Hamish Coleman
 # SPDX-License-Identifier: GPL-3.0-only
@@ -13,16 +13,18 @@ AUTH=n3n
 [ -z "$BINDIR" ] && BINDIR=.
 
 docmd() {
-    echo "###"
+    echo "### test: $*"
     "$@"
+    local S=$?
     echo
+    return $S
 }
 
 # start a supernode
 docmd "${BINDIR}"/apps/supernode -v
 
 # Start the edge in the background
-docmd sudo "${BINDIR}"/apps/edge -l localhost:7654 -c test >/dev/null
+docmd sudo "${BINDIR}"/apps/edge start -l localhost:7654 -c test >/dev/null
 # TODO:
 # - send edge messages to stderr?
 
@@ -43,8 +45,11 @@ docmd "${TOPDIR}"/scripts/n3n-ctl edges --raw |grep -v "last_seen"
 #   - uptime
 
 docmd "${TOPDIR}"/scripts/n3n-ctl verbose
+
+# Test with bad auth
 docmd "${TOPDIR}"/scripts/n3n-ctl --write verbose 1 2>/dev/null
 echo $?
+
 docmd "${TOPDIR}"/scripts/n3n-ctl -k $AUTH --write verbose 1
 
 # looks strange, but we are querying the state of the "stop" verb

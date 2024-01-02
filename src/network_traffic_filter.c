@@ -20,12 +20,12 @@
 
 
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/network_traffic_filter.h>  // for create_network_traffic_filter
 #include <stdint.h>                  // for uint8_t, uint16_t, uint32_t
 #include <stdio.h>                   // for sprintf
 #include <stdlib.h>                  // for free, malloc, atoi
 #include <string.h>                  // for memcpy, strcpy, NULL, memset
 #include "n2n.h"                     // for filter_rule_t, filter_rule_pair_...
-#include "network_traffic_filter.h"  // for create_network_traffic_filter
 #include "uthash.h"                  // for UT_hash_handle, HASH_ITER, HASH_DEL
 
 #ifdef _WIN32

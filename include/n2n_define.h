@@ -68,7 +68,7 @@
 
 #define SORT_COMMUNITIES_INTERVAL        90 /* sec. until supernode sorts communities' hash list again */
 
-#define AF_INVALID                       -1 /* to mark a socket invalid by an invalid address family (do not use AF_UNSPEC, it could turn into auto-detect) */
+#define AF_INVALID                     0xff /* to mark a socket invalid by an invalid address family (do not use AF_UNSPEC, it could turn into auto-detect) */
 #define N2N_RESOLVE_INTERVAL            300 /* seconds until edge and supernode try to resolve supernode names again */
 #define N2N_RESOLVE_CHECK_INTERVAL       30 /* seconds until main loop checking in on changes from resolver thread */
 
@@ -144,11 +144,9 @@ enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
 
 #define N2N_NETMASK_STR_SIZE      16 /* dotted decimal 12 numbers + 3 dots */
 #define N2N_MACNAMSIZ             18 /* AA:BB:CC:DD:EE:FF + NULL*/
-#define N2N_IF_MODE_SIZE          16 /* static | dhcp */
 
 #define N2N_EDGE_DEFAULT_DEV_NAME    "edge0"
-#define N2N_EDGE_DEFAULT_NETMASK     "255.255.255.0"  /* default netmask for edge ip address... */
-#define N2N_EDGE_DEFAULT_CIDR_NM     24               /* ... also in cidr format  */
+#define N2N_EDGE_DEFAULT_V4MASKLEN   24               /* default netmask for edge ip address... */
 
 #define N2N_SN_LPORT_DEFAULT 7654
 #define N2N_SN_PKTBUF_SIZE   2048

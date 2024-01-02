@@ -1,6 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
  * Copyright (C) 2023 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +21,7 @@
 #ifndef _N2N_TYPEDEFS_H_
 #define _N2N_TYPEDEFS_H_
 
+#include <n3n/network_traffic_filter.h>
 #include <stdbool.h>
 #include <stdint.h>     // for uint8_t and friends
 #include <time.h>
@@ -51,8 +53,6 @@ typedef unsigned char uint8_t;
 #ifndef __MINGW32__
 typedef int ssize_t;
 #endif
-
-typedef unsigned long in_addr_t;
 
 #include "../src/win32/n2n_win32.h"
 // FIXME - continue untangling the build and includes - dont have a ".." here
@@ -188,33 +188,6 @@ struct n2n_udphdr {
 #endif
 
 
-typedef struct port_range {
-    uint16_t start_port; // range contain 'start_port' self
-    uint16_t end_port;   // range contain 'end_port' self
-} port_range_t;
-
-typedef struct filter_rule_key {
-    in_addr_t src_net_cidr;
-    uint8_t src_net_bit_len;
-    port_range_t src_port_range;
-    in_addr_t dst_net_cidr;
-    uint8_t dst_net_bit_len;
-    port_range_t dst_port_range;
-    uint8_t bool_tcp_configured;
-    uint8_t bool_udp_configured;
-    uint8_t bool_icmp_configured;
-} filter_rule_key_t;
-
-typedef struct filter_rule {
-    filter_rule_key_t key;
-
-    uint8_t bool_accept_icmp;
-    uint8_t bool_accept_udp;
-    uint8_t bool_accept_tcp;
-
-    UT_hash_handle hh;   /* makes this structure hashable */
-} filter_rule_t;
-
 
 /** Uncomment this to enable the MTU check, then try to ssh to generate a fragmented packet. */
 /** NOTE: see doc/MTU.md for an explanation on the 1400 value */
@@ -234,10 +207,8 @@ typedef char devstr_t[N2N_IFNAMSIZ];
 #ifndef _WIN32
 typedef struct tuntap_dev {
     int fd;
-    int if_idx;
     n2n_mac_t mac_addr;
-    uint32_t ip_addr;
-    uint32_t device_mask;
+    in_addr_t ip_addr;
     uint16_t mtu;
     devstr_t dev_name;
 } tuntap_dev;
@@ -300,12 +271,12 @@ typedef char n2n_version_t[N2N_VERSION_STRING_SIZE];
 
 
 typedef struct n2n_ip_subnet {
-    uint32_t net_addr;              /* Host order IP address. */
+    in_addr_t net_addr;             /* Host order IP address. */
     uint8_t net_bitlen;             /* Subnet prefix. */
 } n2n_ip_subnet_t;
 
 typedef struct n2n_sock {
-    uint8_t family;                   /* AF_INET, AF_INET6 or AF_INVALID (-1, a custom #define);
+    uint8_t family;                   /* AF_INET, AF_INET6 or AF_INVALID (0xff, a custom #define);
                                          mind that AF_UNSPEC (0) means auto IPv4 or IPv6 */
     uint8_t type;                     /* for later use, usually SOCK_STREAM (1) or SOCK_DGRAM (2) */
     uint16_t port;                    /* host order */
@@ -460,43 +431,12 @@ typedef struct n2n_edge n2n_edge_t;
 
 /* *************************************************** */
 
-typedef enum {
-    N2N_ACCEPT = 0,
-    N2N_DROP =   1
-} n2n_verdict;
-
-/* *************************************************** */
-
-typedef enum {
-    FPP_UNKNOWN = 0,
-    FPP_ARP =     1,
-    FPP_TCP =     2,
-    FPP_UDP =     3,
-    FPP_ICMP =    4,
-    FPP_IGMP =    5
-} filter_packet_proto;
-
-
-typedef struct packet_address_proto_info {
-    in_addr_t src_ip;
-    uint16_t src_port;
-    in_addr_t dst_ip;
-    uint16_t dst_port;
-    filter_packet_proto proto;
-}packet_address_proto_info_t;
-
-typedef struct filter_rule_pair_cache {
-    packet_address_proto_info_t key;
-
-    uint8_t bool_allow_traffic;
-    uint32_t active_count;
-
-    UT_hash_handle hh;                 /* makes this structure hashable */
-} filter_rule_pair_cache_t;
-
-struct network_traffic_filter;
-typedef struct network_traffic_filter network_traffic_filter_t;
-
+// FIXME: this definition belongs in n3n/network_traffic_filter.h but
+// it is tangled up.
+// TODO: determine the value of using function pointers for these two
+// definitions - this would allow untangling the definitions.  It would
+// make it harder to write a custom packet filter function in a user
+// application, but that might not be needed.
 struct network_traffic_filter {
     n2n_verdict (*filter_packet_from_peer)(network_traffic_filter_t* filter, n2n_edge_t *eee,
                                            const n2n_sock_t *peer, uint8_t *payload, uint16_t payload_size);
@@ -538,21 +478,6 @@ typedef struct n2n_edge_callbacks {
     /* Called when a new socket to supernode is created. */
     void (*sock_opened)(n2n_edge_t *eee);
 } n2n_edge_callbacks_t;
-
-typedef struct n2n_tuntap_priv_config {
-    devstr_t tuntap_dev_name;
-    char ip_mode[N2N_IF_MODE_SIZE];
-    dec_ip_str_t ip_addr;
-    dec_ip_str_t netmask;
-    char device_mac[N2N_MACNAMSIZ];
-    int mtu;
-    int metric;
-    uint8_t daemon;
-#ifndef _WIN32
-    uid_t userid;
-    gid_t groupid;
-#endif
-} n2n_tuntap_priv_config_t;
 
 /* *************************************************** */
 
@@ -639,30 +564,35 @@ typedef struct n2n_edge_conf {
     he_context_t     *header_encryption_ctx_dynamic; /**< Header encryption cipher context. */
     he_context_t             *header_iv_ctx_static;  /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
     he_context_t             *header_iv_ctx_dynamic; /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
-    n2n_transform_t transop_id;                      /**< The transop to use. */
+    uint8_t transop_id;                              /**< The transop to use. */
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
-    uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
-    uint8_t allow_routing;                           /**< Accept packet no to interface address. */
-    uint8_t drop_multicast;                          /**< Multicast ethernet addresses. */
-    uint8_t disable_pmtu_discovery;                  /**< Disable the Path MTU discovery. */
-    uint8_t allow_p2p;                               /**< Allow P2P connection */
+    bool allow_routing;                              /**< Accept packet no to interface address. */
+    bool drop_multicast;                             /**< Multicast ethernet addresses. */
+    bool disable_pmtu_discovery;                     /**< Disable the Path MTU discovery. */
+    bool allow_p2p;                                  /**< Allow P2P connection */
     uint8_t sn_num;                                  /**< Number of supernode addresses defined. */
-    uint8_t tos;                                     /** TOS for sent packets */
+    uint32_t tos;                                    /** TOS for sent packets */
     char                     *encrypt_key;
-    int register_interval;                           /**< Interval for supernode registration, also used for UDP NAT hole punching. */
-    int register_ttl;                                /**< TTL for registration packet when UDP NAT hole punching through supernode. */
-    in_addr_t bind_address;                          /**< The address to bind to if provided */
+    uint32_t register_interval;                      /**< Interval for supernode registration, also used for UDP NAT hole punching. */
+    uint32_t register_ttl;                           /**< TTL for registration packet when UDP NAT hole punching through supernode. */
+    struct sockaddr *bind_address;                   /**< The address to bind to if provided */
     n2n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
-    uint8_t preferred_sock_auto;                     /**< indicates desired auto detect for preferred sock */
-    int local_port;
-    int mgmt_port;
-    uint8_t connect_tcp;                             /** connection to supernode 0 = UDP; 1 = TCP */
+    uint16_t mgmt_port;
+    bool connect_tcp;                                /** connection to supernode 0 = UDP; 1 = TCP */
     n2n_auth_t auth;
     filter_rule_t            *network_traffic_filter_rules;
-    int metric;                                     /**< Network interface metric (Windows only). */
+    uint32_t metric;                                /**< Network interface metric (Windows only). */
     uint8_t sn_selection_strategy;                  /**< encodes currently chosen supernode selection strategy. */
     uint8_t number_max_sn_pings;                    /**< Number of maximum concurrently allowed supernode pings. */
-    uint64_t mgmt_password_hash;                    /**< contains hash of managament port password. */
+    char * mgmt_password;
+    uint32_t userid;
+    uint32_t groupid;
+    bool daemon;
+    char device_mac[N2N_MACNAMSIZ];
+    int mtu;
+    devstr_t tuntap_dev_name;
+    uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
+    struct n2n_ip_subnet tuntap_v4;
 } n2n_edge_conf_t;
 
 
@@ -724,8 +654,6 @@ struct n2n_edge {
 
     n2n_resolve_parameter_t          *resolve_parameter;                 /**< Pointer to name resolver's parameter block */
     uint8_t resolution_request;                                          /**< Flag an immediate DNS resolution request */
-
-    n2n_tuntap_priv_config_t tuntap_priv_conf;                           /**< Tuntap config */
 
     network_traffic_filter_t         *network_traffic_filter;
 };
@@ -812,7 +740,7 @@ typedef struct n2n_sn {
     time_t start_time;                                      /* Used to measure uptime. */
     n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
     sn_stats_t stats;
-    int daemon;                                             /* If non-zero then daemonise. */
+    bool daemon;                                            /* If non-zero then daemonise. */
     n2n_mac_t mac_addr;
     in_addr_t bind_address;                                 /* The address to bind to if provided */
     uint16_t lport;                                         /* Local UDP port to bind to. */
@@ -823,10 +751,8 @@ typedef struct n2n_sn {
     int mgmt_sock;                                          /* management socket. */
     n2n_ip_subnet_t min_auto_ip_net;                        /* Address range of auto_ip service. */
     n2n_ip_subnet_t max_auto_ip_net;                        /* Address range of auto_ip service. */
-#ifndef _WIN32
-    uid_t userid;
-    gid_t groupid;
-#endif
+    uint32_t userid;
+    uint32_t groupid;
     int lock_communities;                                    /* If true, only loaded and matching communities can be used. */
     char                                   *community_file;
     struct sn_community                    *communities;
@@ -837,7 +763,7 @@ typedef struct n2n_sn {
     uint32_t dynamic_key_time;                                /* UTC time of last dynamic key generation (second accuracy) */
     uint8_t override_spoofing_protection;                                /* set if overriding MAC/IP spoofing protection (cli option '-M') */
     n2n_resolve_parameter_t                *resolve_parameter;/*Pointer to name resolver's parameter block */
-    uint64_t mgmt_password_hash;                              /* contains hash of managament port password */
+    char *mgmt_password;
 } n2n_sn_t;
 
 

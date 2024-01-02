@@ -22,6 +22,7 @@
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t, uint32_t, uin...
 #include <stdio.h>                   // for snprintf, sprintf
@@ -36,7 +37,6 @@
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "n2n.h"                     // for n2n_edge_t, n2n_edge_...
 #include "n2n_wire.h"                // for encode_mac, fill_sockaddr, decod...
-#include "network_traffic_filter.h"  // for create_network_traffic_filter
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
 #include "random_numbers.h"          // for n2n_rand, n2n_rand_sqr
@@ -233,41 +233,64 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const n2n_edge_t* eee)
 
     struct sockaddr_in local_sock;
     struct sockaddr_in sn_sock;
-    socklen_t sock_len = sizeof(local_sock);
+    socklen_t sock_len;
     SOCKET probe_sock;
     int ret = 0;
 
     out_sock->family = AF_INVALID;
 
-    // always detetct local port even/especially if chosen by OS...
-    if((getsockname(eee->sock, (struct sockaddr *)&local_sock, &sock_len) == 0)
-       && (local_sock.sin_family == AF_INET)
-       && (sock_len == sizeof(local_sock)))
-        // remember the port number
-        out_sock->port = ntohs(local_sock.sin_port);
-    else
-        ret = -1;
+    // always detect local port even/especially if chosen by OS...
+    sock_len = sizeof(local_sock);
+    if(getsockname(eee->sock, (struct sockaddr *)&local_sock, &sock_len) != 0) {
+        return -1;
+    }
+
+    // TODO this whole function doesnt work with IPv6
+    if(local_sock.sin_family != AF_INET) {
+        return -1;
+    }
+
+    if(sock_len != sizeof(local_sock)) {
+        return -1;
+    }
+
+    // remember the port number
+    out_sock->port = ntohs(local_sock.sin_port);
 
     // probe for local IP address
     probe_sock = socket(PF_INET, SOCK_DGRAM, 0);
-    // connecting the UDP socket makes getsockname read the local address it uses to connect (to the sn in this case);
-    // we cannot do it with the real (eee->sock) socket because socket does not accept any conenction from elsewhere then,
-    // e.g. from another edge instead of the supernode; as re-connecting to AF_UNSPEC might not work to release the socket
+    if(probe_sock < 0) {
+        return -2;
+    }
+
+    // connecting the UDP socket makes getsockname read the local address it
+    // uses to connect (to the sn in this case);  we cannot do it with the
+    // real (eee->sock) socket because socket does not accept any conenction
+    // from elsewhere then, e.g. from another edge instead of the supernode;
+    // as re-connecting to AF_UNSPEC might not work to release the socket
     // on non-UNIXoids, we use a temporary socket
-    if((int)probe_sock >= 0) {
-        fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
-        if(connect(probe_sock, (struct sockaddr *)&sn_sock, sizeof(sn_sock)) == 0) {
-            if((getsockname(probe_sock, (struct sockaddr *)&local_sock, &sock_len) == 0)
-               && (local_sock.sin_family == AF_INET)
-               && (sock_len == sizeof(local_sock))) {
-                memcpy(&(out_sock->addr.v4), &(local_sock.sin_addr.s_addr), IPV4_SIZE);
-            } else
-                ret = -4;
-        } else
-            ret = -3;
-        closesocket(probe_sock);
-    } else
-        ret = -2;
+
+    fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
+    if(connect(probe_sock, (struct sockaddr *)&sn_sock, sizeof(sn_sock)) != 0) {
+        return -3;
+    }
+
+    sock_len = sizeof(local_sock);
+    if(getsockname(probe_sock, (struct sockaddr *)&local_sock, &sock_len) != 0) {
+        return -4;
+    }
+
+    if(local_sock.sin_family != AF_INET) {
+        return -4;
+    }
+
+    if(sock_len != sizeof(local_sock)) {
+        return -4;
+    }
+
+    memcpy(&(out_sock->addr.v4), &(local_sock.sin_addr.s_addr), IPV4_SIZE);
+
+    closesocket(probe_sock);
 
     out_sock->family = AF_INET;
 
@@ -291,17 +314,14 @@ int supernode_connect (n2n_edge_t *eee) {
 
     if(eee->sock < 0) {
 
-        if(eee->conf.local_port > 0)
-            traceEvent(TRACE_NORMAL, "binding to local port %d",
-                       (eee->conf.connect_tcp) ? 0 : eee->conf.local_port);
-
-        eee->sock = open_socket((eee->conf.connect_tcp) ?  0 : eee->conf.local_port,
-                                eee->conf.bind_address,
-                                eee->conf.connect_tcp);
+        eee->sock = open_socket(
+            eee->conf.bind_address,
+            sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
+            eee->conf.connect_tcp
+            );
 
         if(eee->sock < 0) {
-            traceEvent(TRACE_ERROR, "failed to bind main UDP port %u",
-                       (eee->conf.connect_tcp) ? 0 : eee->conf.local_port);
+            traceEvent(TRACE_ERROR, "failed to bind main UDP port");
             return -1;
         }
 
@@ -324,7 +344,14 @@ int supernode_connect (n2n_edge_t *eee) {
         }
 
         if(eee->conf.tos) {
-            /* https://www.tucny.com/Home/dscp-tos */
+            /*
+             * See https://www.tucny.com/Home/dscp-tos for a quick table of
+             * the intended functions of each TOS value
+             *
+             * Note that the tos value is a byte and the manpage for IP_TOS
+             * defines it as a byte, but we hand setsockopt() an int value.
+             * This does work on linux, but - TODO, check this on other OS
+             */
             sockopt = eee->conf.tos;
 
             if(setsockopt(eee->sock, IPPROTO_IP, IP_TOS, (char *)&sockopt, sizeof(sockopt)) == 0)
@@ -347,7 +374,7 @@ int supernode_connect (n2n_edge_t *eee) {
             // always overwrite local port even/especially if chosen by OS...
             eee->conf.preferred_sock.port = local_sock.port;
             // only if auto-detection mode, ...
-            if(eee->conf.preferred_sock_auto) {
+            if(eee->conf.preferred_sock.family != AF_INVALID) {
                 // ... overwrite IP address, too (whole socket struct here)
                 memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
                 traceEvent(TRACE_INFO, "determined local socket [%s]",
@@ -693,7 +720,7 @@ static void register_with_new_peer (n2n_edge_t *eee,
                 }
                 setsockopt(eee->sock, IPPROTO_IP, IP_TTL, (void *) (char *) &curTTL, sizeof(curTTL));
 #endif
-            } else { /* eee->conf.register_ttl <= 0 */
+            } else { /* eee->conf.register_ttl == 0 */
                 /* Normal STUN */
                 send_register(eee, &(scan->sock), mac, N2N_REGULAR_REG_COOKIE);
             }
@@ -1287,7 +1314,7 @@ void send_register_super (n2n_edge_t *eee) {
 
     reg.cookie = eee->curr_sn->last_cookie;
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
-    reg.dev_addr.net_bitlen = mask2bitlen(ntohl(eee->device.device_mask));
+    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
     get_local_auth(eee, &(reg.auth));
 
@@ -1435,7 +1462,7 @@ static void send_register (n2n_edge_t * eee,
         encode_mac(reg.dstMac, &idx, peer_mac);
     }
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
-    reg.dev_addr.net_bitlen = mask2bitlen(ntohl(eee->device.device_mask));
+    reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
 
     idx = 0;
@@ -1585,8 +1612,17 @@ void update_supernode_reg (n2n_edge_t * eee, time_t now) {
         // closing and re-opening the socket allows for re-establishing communication
         // this can only be done, if working on some unprivileged port and/or having sufficent
         // privileges. as we are not able to check for sufficent privileges here, we only do it
-        // if port is sufficently high or unset. uncovered: privileged port and sufficent privileges
-        if((eee->conf.local_port == 0) || (eee->conf.local_port > 1024)) {
+        // If bind_address is null then we definitely dont have a local port
+        // set.  Since we have converted to using a sockaddr struct for the
+        // bind details, it is not simple to check the local port.
+        //
+        // TODO:
+        // - probably should re-add checking for unprivileged port
+        // - count this condition in a metric so we can see how often it is
+        //   triggered
+        //
+
+        if(eee->conf.bind_address) {
             // do not explicitly disconnect every time as the condition described is rare, so ...
             // ... check that there are no external peers (indicating a working socket) ...
             HASH_ITER(hh, eee->known_peers, peer, tmp_peer)
@@ -2148,9 +2184,13 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
         sleep(3);
         tuntap_close(&(eee->device));
-        tuntap_open(&(eee->device), eee->tuntap_priv_conf.tuntap_dev_name, eee->tuntap_priv_conf.ip_mode, eee->tuntap_priv_conf.ip_addr,
-                    eee->tuntap_priv_conf.netmask, eee->tuntap_priv_conf.device_mac, eee->tuntap_priv_conf.mtu,
-                    eee->tuntap_priv_conf.metric
+        tuntap_open(&(eee->device),
+                    eee->conf.tuntap_dev_name,
+                    eee->conf.tuntap_ip_mode,
+                    eee->conf.tuntap_v4,
+                    eee->conf.device_mac,
+                    eee->conf.mtu,
+                    eee->conf.metric
                     );
     } else {
         const uint8_t * mac = eth_pkt;
@@ -2443,8 +2483,6 @@ void process_udp (n2n_edge_t *eee, const struct sockaddr *sender_sock, const SOC
             }
 
             case MSG_TYPE_REGISTER_SUPER_ACK: {
-                in_addr_t net;
-                char * ip_str = NULL;
                 n2n_REGISTER_SUPER_ACK_t ra;
                 uint8_t tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
                 char ip_tmp[N2N_EDGE_SN_HOST_SIZE];
@@ -2538,16 +2576,8 @@ void process_udp (n2n_edge_t *eee, const struct sockaddr *sender_sock, const SOC
 
                 if(eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
                     if((ra.dev_addr.net_addr != 0) && (ra.dev_addr.net_bitlen != 0)) {
-                        net = htonl(ra.dev_addr.net_addr);
-                        if((ip_str = inet_ntoa(*(struct in_addr *) &net)) != NULL) {
-                            strncpy(eee->tuntap_priv_conf.ip_addr, ip_str, N2N_NETMASK_STR_SIZE);
-                            eee->tuntap_priv_conf.ip_addr[N2N_NETMASK_STR_SIZE - 1] = '\0';
-                        }
-                        net = htonl(bitlen2mask(ra.dev_addr.net_bitlen));
-                        if((ip_str = inet_ntoa(*(struct in_addr *) &net)) != NULL) {
-                            strncpy(eee->tuntap_priv_conf.netmask, ip_str, N2N_NETMASK_STR_SIZE);
-                            eee->tuntap_priv_conf.netmask[N2N_NETMASK_STR_SIZE - 1] = '\0';
-                        }
+                        eee->conf.tuntap_v4.net_addr = htonl(ra.dev_addr.net_addr);
+                        eee->conf.tuntap_v4.net_bitlen = ra.dev_addr.net_bitlen;
                     }
                 }
 
@@ -3093,7 +3123,17 @@ static int edge_init_sockets (n2n_edge_t *eee) {
         closesocket(eee->udp_multicast_sock);
 #endif
 
-    eee->udp_mgmt_sock = open_socket(eee->conf.mgmt_port, INADDR_LOOPBACK, 0 /* UDP */);
+    struct sockaddr_in local_address;
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(eee->conf.mgmt_port);
+    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    eee->udp_mgmt_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(eee->udp_mgmt_sock < 0) {
         traceEvent(TRACE_ERROR, "failed to bind management UDP port %u", eee->conf.mgmt_port);
         return(-2);
@@ -3108,7 +3148,16 @@ static int edge_init_sockets (n2n_edge_t *eee) {
     eee->multicast_peer.addr.v4[2] = 0;
     eee->multicast_peer.addr.v4[3] = 68;
 
-    eee->udp_multicast_sock = open_socket(N2N_MULTICAST_PORT, INADDR_ANY, 0 /* UDP */);
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(N2N_MULTICAST_PORT);
+    local_address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    eee->udp_multicast_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(eee->udp_multicast_sock < 0)
         return(-3);
     else {
@@ -3131,22 +3180,32 @@ static int edge_init_sockets (n2n_edge_t *eee) {
 
 void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
-    char *tmp_string;
-
     memset(conf, 0, sizeof(*conf));
 
-    conf->bind_address = INADDR_ANY; /* any address */
-    conf->local_port = 0 /* any port */;
+    conf->bind_address = NULL;
     conf->preferred_sock.family = AF_INVALID;
     conf->mgmt_port = N2N_EDGE_MGMT_PORT; /* 5644 by default */
     conf->transop_id = N2N_TRANSFORM_ID_NULL;
     conf->header_encryption = HEADER_ENCRYPTION_NONE;
     conf->compression = N2N_COMPRESSION_ID_NONE;
-    conf->drop_multicast = 1;
-    conf->allow_p2p = 1;
-    conf->disable_pmtu_discovery = 1;
+    conf->drop_multicast = true;
+    conf->allow_p2p = true;
+    conf->disable_pmtu_discovery = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
+
+#ifdef _WIN32
+    conf->tuntap_dev_name[0] = '\0';
+#else
+    strncpy(
+        conf->tuntap_dev_name,
+        N2N_EDGE_DEFAULT_DEV_NAME,
+        sizeof(conf->tuntap_dev_name)
+        );
+#endif
+
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
+    conf->tuntap_v4.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
+
     /* reserve possible last char as null terminator. */
     gethostname((char*)conf->dev_desc, N2N_DESC_SIZE-1);
 
@@ -3164,15 +3223,12 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
             generate_private_key(*(conf->shared_secret), getenv("N2N_PASSWORD"));
     }
 
-    tmp_string = calloc(1, strlen(N2N_MGMT_PASSWORD) + 1);
-    if(tmp_string) {
-        strncpy((char*)tmp_string, N2N_MGMT_PASSWORD, strlen(N2N_MGMT_PASSWORD) + 1);
-        conf->mgmt_password_hash = pearson_hash_64((uint8_t*)tmp_string, strlen(N2N_MGMT_PASSWORD));
-        free(tmp_string);
-    }
+    conf->mgmt_password = N2N_MGMT_PASSWORD;
 
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
     conf->metric = 0;
+    conf->daemon = true;
+    conf->mtu = DEFAULT_MTU;
 }
 
 /* ************************************** */
@@ -3241,7 +3297,7 @@ int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
 
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
-                     char *local_ip_address,
+                     in_addr_t local_ip_address,
                      char *supernode_ip_address_port,
                      bool *keep_on_running) {
 
@@ -3262,9 +3318,13 @@ int quick_edge_init (char *device_name, char *community_name,
     if(edge_verify_conf(&conf) != 0)
         return(-1);
 
+    struct n2n_ip_subnet subnet;
+    subnet.net_addr = htonl(local_ip_address);
+    subnet.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
+
     /* Open the tuntap device */
-    if(tuntap_open(&tuntap, device_name, "static",
-                   local_ip_address, "255.255.255.0",
+    if(tuntap_open(&tuntap, device_name, TUNTAP_IP_MODE_STATIC,
+                   subnet,
                    device_mac, DEFAULT_MTU,
                    0) < 0)
         return(-2);

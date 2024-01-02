@@ -35,17 +35,36 @@ int main () {
 
     n2n_sn_t sss_node;
     int rc;
+    struct sockaddr_in local_address;
 
     sn_init_defaults(&sss_node);
-    sss_node.daemon = 0;   // Whether to daemonize
+    sss_node.daemon = false;   // Whether to daemonize
     sss_node.lport = 1234; // Main UDP listen port
 
-    sss_node.sock = open_socket(sss_node.lport, INADDR_ANY, 0 /* UDP */);
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(sss_node.lport);
+    local_address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    sss_node.sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        );
     if(-1 == sss_node.sock) {
         exit(-2);
     }
 
-    sss_node.mgmt_sock = open_socket(5645, INADDR_LOOPBACK, 0 /* UDP */); // Main UDP management port
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(5645);
+    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    sss_node.mgmt_sock = open_socket(
+        (struct sockaddr *)&local_address,
+        sizeof(local_address),
+        0 /* UDP */
+        ); // Main UDP management port
     if(-1 == sss_node.mgmt_sock) {
         exit(-2);
     }

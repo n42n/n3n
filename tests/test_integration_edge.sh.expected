@@ -1,16 +1,16 @@
-###
+### test: ./apps/supernode -v
 
-###
+### test: ./scripts/n3n-ctl communities
 [
     {
         "community": "test"
     }
 ]
 
-###
+### test: ./scripts/n3n-ctl packetstats
 [
     {
-        "rx_pkt": 2,
+        "rx_pkt": 0,
         "tx_pkt": 2,
         "type": "transop"
     },
@@ -20,75 +20,52 @@
         "type": "p2p"
     },
     {
-        "rx_pkt": 2,
+        "rx_pkt": 0,
         "tx_pkt": 2,
         "type": "super"
     },
     {
-        "rx_pkt": 2,
+        "rx_pkt": 0,
         "tx_pkt": 2,
         "type": "super_broadcast"
     }
 ]
 
-###
-[
-    {
-        "desc": "",
-        "ip4addr": "",
-        "last_p2p": 0,
-        "last_sent_query": 0,
-        "local": 0,
-        "macaddr": "",
-        "mode": "pSp",
-        "purgeable": 1,
-        "sockaddr": "127.0.0.1:7654"
-    },
-    {
-        "desc": "",
-        "ip4addr": "",
-        "last_p2p": 0,
-        "last_sent_query": 0,
-        "local": 0,
-        "macaddr": "",
-        "mode": "pSp",
-        "purgeable": 1,
-        "sockaddr": "127.0.0.1:7654"
-    }
-]
+### test: ./scripts/n3n-ctl edges --raw
+[]
 
-###
+### test: ./scripts/n3n-ctl verbose
 [
     {
         "traceLevel": 2
     }
 ]
 
-###
+### test: ./scripts/n3n-ctl --write verbose 1
 
-0
-###
+1
+### test: ./scripts/n3n-ctl -k n3n --write verbose 1
 [
     {
         "traceLevel": 1
     }
 ]
 
-###
+### test: ./scripts/n3n-ctl stop
 [
     {
         "keep_running": 1
     }
 ]
 
-###
+### test: ./scripts/n3n-ctl -k n3n --write stop
 [
     {
         "keep_running": 0
     }
 ]
 
-###
+### test: ./scripts/n3n-ctl -t 5645 -k n3n --write stop
 [
     {
         "keep_running": 0
