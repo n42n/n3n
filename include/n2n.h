@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -177,7 +177,6 @@ int supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);
 struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add);
 int run_sn_loop (n2n_sn_t *sss);
 int assign_one_ip_subnet (n2n_sn_t *sss, struct sn_community *comm);
-const char* compression_str (uint8_t cmpr);
 
 void readFromMgmtSocket (n2n_edge_t *eee);
 

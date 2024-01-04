@@ -93,6 +93,7 @@ N2N_OBJS=\
 	src/transform_aes.o \
 	src/transform_cc20.o \
 	src/transform_lzo.o \
+	src/transform_none.o \
 	src/transform_null.o \
 	src/transform_speck.o \
 	src/transform_tf.o \

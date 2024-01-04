@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -914,7 +914,7 @@ int main (int argc, char* argv[]) {
     traceEvent(TRACE_NORMAL, "using %s", OpenSSL_version(0));
 #endif
 
-    traceEvent(TRACE_NORMAL, "using compression: %s.", compression_str(conf.compression));
+    traceEvent(TRACE_NORMAL, "using compression: %s.", n3n_compression_id2str(conf.compression));
     traceEvent(TRACE_NORMAL, "using %s cipher.", n3n_transform_id2str(conf.transop_id));
 
     /* Random seed */

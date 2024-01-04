@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
+#include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t, uint32_t, uin...
 #include <stdio.h>                   // for snprintf, sprintf
@@ -143,18 +144,6 @@ int edge_get_n2n_socket (n2n_edge_t *eee) {
 int edge_get_management_socket (n2n_edge_t *eee) {
 
     return(eee->udp_mgmt_sock);
-}
-
-/* ************************************** */
-
-const char* compression_str (uint8_t cmpr) {
-
-    switch(cmpr) {
-        case N2N_COMPRESSION_ID_NONE:    return("none");
-        case N2N_COMPRESSION_ID_LZO:     return("lzo1x");
-        case N2N_COMPRESSION_ID_ZSTD:    return("zstd");
-        default:                         return("invalid");
-    };
 }
 
 /* ************************************** */
@@ -1744,14 +1733,15 @@ static int handle_PACKET (n2n_edge_t * eee,
                     break;
 #endif
                 default:
-                    traceEvent(TRACE_WARNING, "payload decompression failed: received packet indicating unsupported %s compression.",
-                               compression_str(rx_compression_id));
+                    traceEvent(TRACE_WARNING, "payload decompression failed: received packet indicating unsupported %i compression.",
+                               rx_compression_id);
                     return(-1); // cannot handle it
             }
 
             if(rx_compression_id != N2N_COMPRESSION_ID_NONE) {
                 traceEvent(TRACE_DEBUG, "payload decompression %s: deflated %u bytes to %u bytes",
-                           compression_str(rx_compression_id), eth_size, (int)deflate_len);
+                           n3n_compression_id2str(rx_compression_id),
+                           eth_size, (int)deflate_len);
                 eth_payload = deflate_buf;
                 eth_size = deflate_len;
             }
@@ -2115,7 +2105,8 @@ void edge_send_packet2net (n2n_edge_t * eee,
 
         if(pkt.compression != N2N_COMPRESSION_ID_NONE) {
             traceEvent(TRACE_DEBUG, "payload compression [%s]: compressed %u bytes to %u bytes\n",
-                       compression_str(pkt.compression), len, compression_len);
+                       n3n_compression_id2str(pkt.compression),
+                       len, compression_len);
             enc_src = compression_buf;
             enc_len = compression_len;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Handlers for configuration files
@@ -152,31 +152,12 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         }
         case n3n_conf_compression: {
             uint8_t *val = (uint8_t *)valvoid;
-            // TODO: in the future, we should lookup against a struct of
-            // registered compressions and prefer to use strings instead of
-            // numbers.
-            // For now, manually keep the max ids in sync with n2n_transform_t
 
-            char *endptr;
-            uint32_t i = strtoul(value, &endptr, 10);
-
-            if(*value && !*endptr) {
-                // "the entire string is valid"
-
-                switch(i) {
-                    case 0:
-                        *val = N2N_COMPRESSION_ID_NONE;
-                        return 0;
-                    case 1:
-                        *val = N2N_COMPRESSION_ID_LZO;
-                        return 0;
-#ifdef HAVE_ZSTD
-// FIXME: codebase has these defs wrong, they should be HAVE_LIBZSTD
-                    case 2:
-                        *val = N2N_COMPRESSION_ID_ZSTD;
-                        return 0;
-#endif
-                }
+            struct n3n_transform *transform;
+            transform = n3n_compression_lookup_name(value);
+            if(transform) {
+                *val = transform->id;
+                return 0;
             }
             return -1;
         }

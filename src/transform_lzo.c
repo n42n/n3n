@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>     // for uint8_t
 #include <stdlib.h>     // for size_t, calloc, free, NULL
 #include <string.h>     // for memset
@@ -138,4 +139,14 @@ int n2n_transop_lzo_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     }
 
     return 0;
+}
+
+static struct n3n_transform transform = {
+    .name = "lzo",
+    .id = N2N_COMPRESSION_ID_LZO,
+    .is_compress = true,
+};
+
+void n3n_initfuncs_transform_lzo () {
+    n3n_transform_register(&transform);
 }
