@@ -173,7 +173,6 @@ int comm_init (struct sn_community *comm, char *cmn);
 int sn_init_defaults (n2n_sn_t *sss);
 void sn_init (n2n_sn_t *sss);
 void sn_term (n2n_sn_t *sss);
-int supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);
 struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add);
 int run_sn_loop (n2n_sn_t *sss);
 int assign_one_ip_subnet (n2n_sn_t *sss, struct sn_community *comm);

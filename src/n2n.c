@@ -180,7 +180,6 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     n2n_sn_name_t addr;
     char *supernode_host;
     char *supernode_port;
-    int rv = 0;
     int nameerr;
     const struct addrinfo aihints = {0, PF_INET, 0, 0, 0, NULL, NULL, NULL};
     struct addrinfo * ainfo = NULL;
@@ -191,43 +190,67 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     memcpy(addr, addrIn, N2N_EDGE_SN_HOST_SIZE);
     supernode_host = strtok(addr, ":");
 
-    if(supernode_host) {
-        supernode_port = strtok(NULL, ":");
-        if(supernode_port) {
-            sn->port = atoi(supernode_port);
-            nameerr = getaddrinfo(supernode_host, NULL, &aihints, &ainfo);
-            if(0 == nameerr) {
-                /* ainfo s the head of a linked list if non-NULL. */
-                if(ainfo && (PF_INET == ainfo->ai_family)) {
-                    /* It is definitely and IPv4 address -> sockaddr_in */
-                    saddr = (struct sockaddr_in *)ainfo->ai_addr;
-                    memcpy(sn->addr.v4, &(saddr->sin_addr.s_addr), IPV4_SIZE);
-                    sn->family = AF_INET;
-                    traceEvent(TRACE_INFO, "supernode2sock successfully resolves supernode IPv4 address for %s", supernode_host);
-                    rv = 0;
-                } else {
-                    /* Should only return IPv4 addresses due to aihints. */
-                    traceEvent(TRACE_WARNING, "supernode2sock fails to resolve supernode IPv4 address for %s", supernode_host);
-                    rv = -1;
-                }
-                freeaddrinfo(ainfo); /* free everything allocated by getaddrinfo(). */
-            } else {
-                traceEvent(TRACE_WARNING, "supernode2sock fails to resolve supernode host %s, %d: %s", supernode_host, nameerr, gai_strerror(nameerr));
-                rv = -2;
-            }
-        } else {
-            traceEvent(TRACE_WARNING, "supernode2sock sees malformed supernode parameter (-l <host:port>) %s", addrIn);
-            rv = -3;
-        }
-    } else {
-        traceEvent(TRACE_WARNING, "supernode2sock sees malformed supernode parameter (-l <host:port>) %s",
-                   addrIn);
-        rv = -4;
+    if(!supernode_host) {
+        traceEvent(
+            TRACE_WARNING,
+            "supernode2sock sees malformed supernode parameter (-l <host:port>) %s",
+            addrIn
+            );
+        return -4;
     }
 
-    ainfo = NULL;
+    supernode_port = strtok(NULL, ":");
 
-    return rv;
+    if(!supernode_port) {
+        traceEvent(
+            TRACE_WARNING,
+            "supernode2sock sees malformed supernode parameter (-l <host:port>) %s",
+            addrIn
+            );
+        return -3;
+    }
+
+    sn->port = atoi(supernode_port);
+    nameerr = getaddrinfo(supernode_host, NULL, &aihints, &ainfo);
+
+    if(nameerr != 0) {
+        traceEvent(
+            TRACE_WARNING,
+            "supernode2sock fails to resolve supernode host %s, %d: %s",
+            supernode_host,
+            nameerr,
+            gai_strerror(nameerr)
+            );
+        return -2;
+    }
+
+    if(!ainfo) {
+        // shouldnt happen - if nameerr is zero, ainfo should not be null
+        traceEvent(TRACE_WARNING, "supernode2sock unexpected error");
+        return -1;
+    }
+
+    /* ainfo s the head of a linked list if non-NULL. */
+    if(PF_INET != ainfo->ai_family) {
+        /* Should only return IPv4 addresses due to aihints. */
+        traceEvent(
+            TRACE_WARNING,
+            "supernode2sock fails to resolve supernode IPv4 address for %s",
+            supernode_host
+            );
+        freeaddrinfo(ainfo);
+        return -1;
+    }
+
+    /* It is definitely and IPv4 address -> sockaddr_in */
+    saddr = (struct sockaddr_in *)ainfo->ai_addr;
+    memcpy(sn->addr.v4, &(saddr->sin_addr.s_addr), IPV4_SIZE);
+    sn->family = AF_INET;
+    traceEvent(TRACE_INFO, "supernode2sock successfully resolves supernode IPv4 address for %s", supernode_host);
+
+    freeaddrinfo(ainfo); /* free everything allocated by getaddrinfo(). */
+
+    return 0;
 }
 
 
