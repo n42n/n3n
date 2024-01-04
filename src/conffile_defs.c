@@ -35,9 +35,10 @@ static struct n3n_conf_option section_community[] = {
         .name = "cipher",
         .type = n3n_conf_transform,
         .offset = offsetof(n2n_edge_conf_t, transop_id),
-        .desc = "The cipher to use",
-        .help = "Choose a cipher for payload encryption (requires a key). "
-                "2=Twofish, 3=AES, 4=ChaCha20, 5=Speck-CTR.",
+        .desc = "The name of the cipher to use",
+        .help = "Choose from any of the registered ciphers for payload "
+                "encryption (requires a key). "
+                "(eg: Twofish, AES, ChaCha20, Speck-CTR).",
     },
     {
         .name = "compression",
@@ -347,7 +348,7 @@ static struct n3n_conf_option section_tuntap[] = {
     {.name = NULL},
 };
 
-void n3n_conffile_defs_init () {
+void n3n_initfuncs_conffile_defs () {
     // Note that by registering these in reverse sort order, the generated
     // dump output is in sorted order
     n3n_config_register_section("tuntap", section_tuntap);

@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
 #include <stdlib.h>          // for size_t, calloc, free
 #include <string.h>          // for memset, strlen
@@ -182,4 +183,13 @@ int n2n_transop_speck_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
     // setup the cipher and key
     return setup_speck_key(priv, encrypt_key, encrypt_key_len);
+}
+
+static struct n3n_transform transform = {
+    .name = "Speck",
+    .id = N2N_TRANSFORM_ID_SPECK,
+};
+
+void n3n_initfuncs_transform_speck () {
+    n3n_transform_register(&transform);
 }

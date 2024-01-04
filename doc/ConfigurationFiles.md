@@ -20,7 +20,7 @@ translates into the following `edge.conf` file:
 -a 192.168.100.1
 -f
 -l supernode.ntop.org:7777
--A5
+-ASpeck
 ```
 
 which can be loaded by
@@ -39,7 +39,7 @@ Comment lines starting with a hash '#' are ignored.
 -k    mysecretpass
 -a    192.168.100.1
 -f
--A5
+-ASpeck
 # --- supernode section ---
 -l    supernode.ntop.org:7777
 ```
@@ -51,7 +51,7 @@ Long options can be used as well. Please note the double minus/dash-character `-
 -k             mysecretpass
 -a             192.168.100.1
 -f
--A5
+-ASpeck
 -l             supernode.ntop.org:7777
 ```
 
@@ -72,7 +72,7 @@ Finally, the `.conf` file syntax also allows `=` between parameter and its optio
 -k=mysecretpass
 -a=192.168.100.1
 -f
--A5
+-ASpeck
 -l=supernode.ntop.org:7777
 ```
 

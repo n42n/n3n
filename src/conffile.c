@@ -7,6 +7,7 @@
 
 #include <n3n/conffile.h>
 #include <n3n/logging.h>        // for setTraceLevel
+#include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <n3n/network_traffic_filter.h>
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
@@ -24,7 +25,7 @@
 #include <n2n.h>                // for edge_conf_add_supernode
 #include <n2n_define.h>         // for HEADER_ENCRYPTION_UNKNOWN...
 
-static struct n3n_conf_section *registered_sections;
+static struct n3n_conf_section *registered_sections = NULL;
 
 void n3n_config_register_section (char *name, struct n3n_conf_option options[]) {
     struct n3n_conf_section *section;
@@ -125,24 +126,12 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         }
         case n3n_conf_transform: {
             uint8_t *val = (uint8_t *)valvoid;
-            // TODO: in the future, we should lookup against a struct of
-            // registered transforms and prefer to use strings instead of
-            // numbers.
-            // For now, manually keep the max ids in sync with n2n_transform_t
 
-            char *endptr;
-            uint32_t i = strtoul(value, &endptr, 10);
-
-            if(*value && !*endptr) {
-                // "the entire string is valid"
-
-                if(i>0 && i<6) {
-                    // N2N_TRANSFORM_ID_NULL = 1
-                    // ...
-                    // N2N_TRANSFORM_ID_SPECK = 5
-                    *val = i;
-                    return 0;
-                }
+            struct n3n_transform *transform;
+            transform = n3n_transform_lookup_name(value);
+            if(transform) {
+                *val = transform->id;
+                return 0;
             }
             return -1;
         }

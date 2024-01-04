@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
 #include <stdlib.h>          // for calloc, free
 #include <string.h>          // for memcpy, size_t, memset, memcmp, strlen
@@ -240,4 +241,13 @@ int n2n_transop_tf_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
     // setup the cipher and key
     return setup_tf_key(priv, encrypt_key, encrypt_key_len);
+}
+
+static struct n3n_transform transform = {
+    .name = "Twofish",
+    .id = N2N_TRANSFORM_ID_TWOFISH,
+};
+
+void n3n_initfuncs_transform_twofish () {
+    n3n_transform_register(&transform);
 }

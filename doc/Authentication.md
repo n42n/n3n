@@ -72,7 +72,11 @@ The edge takes the username with the already present, identifying command line p
 [user@host n3n]$ sudo ./edge -l <supernode:port> -c netleo -I logan -J 007 <your additional parameters>
 ```
 
-Note that header encryption already is enabled automatically as this authentication scheme heavily relies on it. Also, currently only the stream ciphers work with this authentication scheme reliably in terms of security. So, `-A4` for ChaCha20 or `-A5` for SPECK along with a key `-k <key>` are required as additional parameters.
+Note that header encryption already is enabled automatically as this
+authentication scheme heavily relies on it. Also, currently only the stream
+ciphers work with this authentication scheme reliably in terms of security. So,
+`-AChaCha20` or `-ASpeck` along with a key `-k <key>` are required as
+additional parameters.
 
 The edges need to know the public key of the supernode. By default, the edges assume the default federation name, or more specific, the corresponding public key. In case the supernode is given a custom federation name which is highly recommended, the supernode's public key is provided to the edges via command line parameter `-P <public key>`. It can be generated from the federation name by using the `tools/n3n-keygen` utility as well:
 
@@ -84,7 +88,7 @@ The edges need to know the public key of the supernode. By default, the edges as
 Considering all this, our example expands to
 
 ```
-[user@host n3n]$ sudo ./edge -l <supernode:port> -c netleo -I logan -J 007 -A5 -k mySecretKey -P opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
+[user@host n3n]$ sudo ./edge -l <supernode:port> -c netleo -I logan -J 007 -ASpeck -k mySecretKey -P opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
 ```
 
 You might want to consider the use of [`.conf` files](ConfigurationFiles.md) to accomodate all the command line parameters more easily. Alternatively, the `N2N_PASSWORD` environment variable can be used to set the password without having it show up as part of the command line.

@@ -147,20 +147,6 @@ int edge_get_management_socket (n2n_edge_t *eee) {
 
 /* ************************************** */
 
-const char* transop_str (enum n2n_transform tr) {
-
-    switch(tr) {
-        case N2N_TRANSFORM_ID_NULL:    return("null");
-        case N2N_TRANSFORM_ID_TWOFISH: return("Twofish");
-        case N2N_TRANSFORM_ID_AES:     return("AES");
-        case N2N_TRANSFORM_ID_CHACHA20: return("ChaCha20");
-        case N2N_TRANSFORM_ID_SPECK:   return("Speck");
-        default:                       return("invalid");
-    };
-}
-
-/* ************************************** */
-
 const char* compression_str (uint8_t cmpr) {
 
     switch(cmpr) {
@@ -1842,8 +1828,10 @@ static int handle_PACKET (n2n_edge_t * eee,
             }
         } else {
             traceEvent(TRACE_WARNING, "invalid transop ID: expected %s (%u), got %s (%u) from %s [%s]",
-                       transop_str(eee->conf.transop_id), eee->conf.transop_id,
-                       transop_str(rx_transop_id), rx_transop_id,
+                       n3n_transform_id2str(eee->conf.transop_id),
+                       eee->conf.transop_id,
+                       n3n_transform_id2str(rx_transop_id),
+                       rx_transop_id,
                        macaddr_str(mac_buf, pkt->srcMac),
                        sock_to_cstr(sockbuf, orig_sender));
         }

@@ -92,13 +92,10 @@ sets the encryption key from ASCII text (see also N2N_KEY in
 ENVIRONMENT). All edges communicating must use the same key and community
 name. If -k not specified then edge uses cleartext mode (no encryption).
 .TP
-\fB\-A1\fR
-disable payload encryption, do not use with key, defaults to AES then
-.TP
-\fB\-A2\fR ... \fB\-A5\fR
+\fB\-A \fR<\fIcipher\fR>
 choose a cipher for payload encryption, requires a key,
-\-A2 = Twofish, \-A3 = AES (default if key provided),
-\-A4 = ChaCha20, \-A5 = Speck-CTR
+Twofish, AES (default if key provided),
+ChaCha20, Speck
 .TP
 \fB\-H\fR
 use header encryption, supernode needs fixed community

@@ -5,8 +5,9 @@
  * Wrapper to call initfuncs
  */
 
-// prototype all the needed initfuncs
-void n3n_conffile_defs_init ();
+// prototype any internal (non-public) initfuncs
+void n3n_initfuncs_conffile_defs ();
+void n3n_initfuncs_transform ();
 
 void n3n_initfuncs () {
     // TODO:
@@ -14,5 +15,6 @@ void n3n_initfuncs () {
     //   constructors within their own object file, but we need to reference
     //   them externally or the linker will never link that object
 
-    n3n_conffile_defs_init();
+    n3n_initfuncs_conffile_defs();
+    n3n_initfuncs_transform();
 }

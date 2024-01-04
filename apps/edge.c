@@ -25,6 +25,7 @@
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/transform.h>           // for n3n_transform_lookup_id
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t
@@ -243,11 +244,9 @@ static void help (int level) {
         printf(" -L <reg_ttl>      | TTL for registration packet for NAT hole punching through\n"
                "                   | supernode (default 0 for not set)\n");
         printf(" -k <key>          | encryption key (ASCII) - also N2N_KEY=<key>\n");
-        printf(" -A1               | disable payload encryption, do not use with key, defaults\n"
-               "                   | to AES then\n");
-        printf(" -A2 ... -A5       | choose a cipher for payload encryption, requires a key,\n"
-               "                   | -A2 = Twofish, -A3 = AES (default if key provided),\n"
-               "                   | -A4 = ChaCha20, -A5 = Speck-CTR\n");
+        printf(" -A <cipher>       | choose a cipher for payload encryption, requires a key,\n"
+               "                   | Twofish, AES (default if key provided),\n"
+               "                   | ChaCha20, Speck\n");
         printf(" -H                | use header encryption, supernode needs fixed community\n");
         printf(" -z1 ... -z2       | compress outgoing data packets, -z1 = lzo1x,\n"
                "                   | "
@@ -916,7 +915,7 @@ int main (int argc, char* argv[]) {
 #endif
 
     traceEvent(TRACE_NORMAL, "using compression: %s.", compression_str(conf.compression));
-    traceEvent(TRACE_NORMAL, "using %s cipher.", transop_str(conf.transop_id));
+    traceEvent(TRACE_NORMAL, "using %s cipher.", n3n_transform_id2str(conf.transop_id));
 
     /* Random seed */
     n2n_srand(n2n_seed());
