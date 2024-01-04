@@ -78,51 +78,53 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         return -1;
     }
 
+    void *valvoid = (char *)conf + p->offset;
+
     switch(p->type) {
         case n3n_conf_strncpy: {
-            char *dst = (char *)conf + p->offset;
+            char *val = (char *)valvoid;
 
-            strncpy(dst, value, p->length);
-            dst[p->length -1] = 0;
+            strncpy(val, value, p->length);
+            val[p->length -1] = 0;
             return 0;
         }
         case n3n_conf_bool: {
-            bool *dst = (bool *)((char *)conf + p->offset);
+            bool *val = (bool *)valvoid;
 
             if(0==strcmp("true", value)) {
-                *dst = true;
+                *val = true;
             } else if(0==strcmp("false", value)) {
-                *dst = false;
+                *val = false;
             } else {
                 return -1;
             }
             return 0;
         }
         case n3n_conf_uint32: {
-            uint32_t *dst = (uint32_t *)((char *)conf + p->offset);
+            uint32_t *val = (uint32_t *)valvoid;
             char *endptr;
             uint32_t i = strtoul(value, &endptr, 0);
 
             if(*value && !*endptr) {
                 // "the entire string is valid"
-                *dst = i;
+                *val = i;
                 return 0;
             }
             return -1;
         }
         case n3n_conf_strdup: {
-            char **dst = (char **)((char *)conf + p->offset);
-            if(*dst) {
-                free(*dst);
+            char **val = (char **)valvoid;
+            if(*val) {
+                free(*val);
             }
-            *dst = strdup(value);
-            if(*dst) {
+            *val = strdup(value);
+            if(*val) {
                 return 0;
             }
             return -1;
         }
         case n3n_conf_transform: {
-            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            uint8_t *val = (uint8_t *)valvoid;
             // TODO: in the future, we should lookup against a struct of
             // registered transforms and prefer to use strings instead of
             // numbers.
@@ -138,29 +140,29 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
                     // N2N_TRANSFORM_ID_NULL = 1
                     // ...
                     // N2N_TRANSFORM_ID_SPECK = 5
-                    *dst = i;
+                    *val = i;
                     return 0;
                 }
             }
             return -1;
         }
         case n3n_conf_headerenc: {
-            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            uint8_t *val = (uint8_t *)valvoid;
             // TODO: this is a bit of an odd one out, since it is a tristate boolean
 
             if(0==strcmp("true", value)) {
-                *dst = HEADER_ENCRYPTION_ENABLED;
+                *val = HEADER_ENCRYPTION_ENABLED;
             } else if(0==strcmp("false", value)) {
-                *dst = HEADER_ENCRYPTION_NONE;
+                *val = HEADER_ENCRYPTION_NONE;
             } else if(0==strcmp("unknown", value)) {
-                *dst = HEADER_ENCRYPTION_UNKNOWN;
+                *val = HEADER_ENCRYPTION_UNKNOWN;
             } else {
                 return -1;
             }
             return 0;
         }
         case n3n_conf_compression: {
-            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            uint8_t *val = (uint8_t *)valvoid;
             // TODO: in the future, we should lookup against a struct of
             // registered compressions and prefer to use strings instead of
             // numbers.
@@ -174,15 +176,15 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
 
                 switch(i) {
                     case 0:
-                        *dst = N2N_COMPRESSION_ID_NONE;
+                        *val = N2N_COMPRESSION_ID_NONE;
                         return 0;
                     case 1:
-                        *dst = N2N_COMPRESSION_ID_LZO;
+                        *val = N2N_COMPRESSION_ID_LZO;
                         return 0;
 #ifdef HAVE_ZSTD
 // FIXME: codebase has these defs wrong, they should be HAVE_LIBZSTD
                     case 2:
-                        *dst = N2N_COMPRESSION_ID_ZSTD;
+                        *val = N2N_COMPRESSION_ID_ZSTD;
                         return 0;
 #endif
                 }
@@ -193,43 +195,43 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             return edge_conf_add_supernode(conf, value);
         }
         case n3n_conf_privatekey: {
-            n2n_private_public_key_t **dst = (n2n_private_public_key_t **)((char *)conf + p->offset);
-            if(*dst) {
-                free(*dst);
+            n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
+            if(*val) {
+                free(*val);
             }
-            *dst = malloc(sizeof(**dst));
-            if(!*dst) {
+            *val = malloc(sizeof(**val));
+            if(!*val) {
                 return -1;
             }
-            generate_private_key(**dst, value);
+            generate_private_key(**val, value);
             return 0;
         }
         case n3n_conf_publickey: {
+            n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
             if(strlen(value) >= ((N2N_PRIVATE_PUBLIC_KEY_SIZE * 8 + 5)/ 6 + 1)) {
                 return -1;
             }
-            n2n_private_public_key_t **dst = (n2n_private_public_key_t **)((char *)conf + p->offset);
-            if(*dst) {
-                free(*dst);
+            if(*val) {
+                free(*val);
             }
-            *dst = malloc(sizeof(**dst));
-            if(!*dst) {
+            *val = malloc(sizeof(**val));
+            if(!*val) {
                 return -1;
             }
-            ascii_to_bin(**dst, value);
+            ascii_to_bin(**val, value);
             return 0;
         }
         case n3n_conf_sockaddr: {
             // TODO: this currently only supports IPv4
-            struct sockaddr_in **dst = (struct sockaddr_in **)((char *)conf + p->offset);
-            if(*dst) {
-                free(*dst);
+            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            if(*val) {
+                free(*val);
             }
-            *dst = malloc(sizeof(**dst));
-            if(!*dst) {
+            *val = malloc(sizeof(**val));
+            if(!*val) {
                 return -1;
             }
-            struct sockaddr_in *sa = *dst;
+            struct sockaddr_in *sa = *val;
 
             memset(sa, 0, sizeof(*sa));
             sa->sin_family = AF_INET;
@@ -271,37 +273,37 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             return 0;
         }
         case n3n_conf_n2n_sock_addr: {
-            struct n2n_sock *dst = (struct n2n_sock *)((char *)conf + p->offset);
+            struct n2n_sock *val = (struct n2n_sock *)valvoid;
             if(!strcmp(value, "auto")) {
-                dst->family = AF_INVALID;
+                val->family = AF_INVALID;
                 return 0;
             }
 
             in_addr_t address_tmp = inet_addr(value);
             if(address_tmp == INADDR_NONE) {
-                dst->family = AF_INVALID;
+                val->family = AF_INVALID;
                 return -1;
             }
 
-            memcpy(&(dst->addr.v4), &(address_tmp), IPV4_SIZE);
-            dst->family = AF_INET;
+            memcpy(&(val->addr.v4), &(address_tmp), IPV4_SIZE);
+            val->family = AF_INET;
             return 0;
         }
         case n3n_conf_sn_selection: {
-            uint8_t *dst = ((uint8_t *)conf + p->offset);
+            uint8_t *val = (uint8_t *)valvoid;
             // TODO: in the future, we should lookup against a struct of
             // registered selection strategies
 
             if(!strcmp(value, "rtt")) {
-                *dst = SN_SELECTION_STRATEGY_RTT;
+                *val = SN_SELECTION_STRATEGY_RTT;
                 return 0;
             }
             if(!strcmp(value, "mac")) {
-                *dst = SN_SELECTION_STRATEGY_MAC;
+                *val = SN_SELECTION_STRATEGY_MAC;
                 return 0;
             }
             if(!strcmp(value, "load")) {
-                *dst = SN_SELECTION_STRATEGY_LOAD;
+                *val = SN_SELECTION_STRATEGY_LOAD;
                 return 0;
             }
 
@@ -319,13 +321,13 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             return -1;
         }
         case n3n_conf_filter_rule: {
-            filter_rule_t **dst = (filter_rule_t **)((char *)conf + p->offset);
+            filter_rule_t **val = (filter_rule_t **)valvoid;
 
             filter_rule_t *new_rule = malloc(sizeof(filter_rule_t));
             memset(new_rule, 0, sizeof(filter_rule_t));
 
             if(process_traffic_filter_rule_str(value, new_rule)) {
-                HASH_ADD(hh, *dst, key, sizeof(filter_rule_key_t), new_rule);
+                HASH_ADD(hh, *val, key, sizeof(filter_rule_key_t), new_rule);
             } else {
                 free(new_rule);
                 return -1;
@@ -334,7 +336,7 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             return 0;
         }
         case n3n_conf_ip_subnet: {
-            struct n2n_ip_subnet *dst = (struct n2n_ip_subnet *)((char *)conf + p->offset);
+            struct n2n_ip_subnet *val = (struct n2n_ip_subnet *)valvoid;
             struct n2n_ip_subnet tmp;
             tmp.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
@@ -356,19 +358,19 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
                 return -1;
             }
 
-            dst->net_addr = tmp.net_addr;
-            dst->net_bitlen = tmp.net_bitlen;
+            val->net_addr = tmp.net_addr;
+            val->net_bitlen = tmp.net_bitlen;
             return 0;
         }
         case n3n_conf_ip_mode: {
-            uint8_t *dst = (uint8_t *)conf + p->offset;
+            uint8_t *val = (uint8_t *)valvoid;
 
             if(0 == strcmp("static", value)) {
-                *dst = TUNTAP_IP_MODE_STATIC;
+                *val = TUNTAP_IP_MODE_STATIC;
             } else if(0 == strcmp("dhcp", value)) {
-                *dst = TUNTAP_IP_MODE_DHCP;
+                *val = TUNTAP_IP_MODE_DHCP;
             } else if(0 == strcmp("auto", value)) {
-                *dst = TUNTAP_IP_MODE_SN_ASSIGN;
+                *val = TUNTAP_IP_MODE_SN_ASSIGN;
             } else {
                 return -1;
             }
