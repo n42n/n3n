@@ -735,7 +735,11 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
             exit(1);
         }
         if(strcmp(subargv[1],"config_dump")==0) {
-            n3n_config_dump(conf, stdout, 4);
+            int level=1;
+            if(subargv[2]) {
+                level = atoi(subargv[2]);
+            }
+            n3n_config_dump(conf, stdout, level);
             exit(0);
         }
         // TODO: call other internal self tests here
