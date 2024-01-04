@@ -352,12 +352,44 @@ static struct n3n_conf_option section_tuntap[] = {
 void n3n_initfuncs_conffile_defs () {
     // Note that by registering these in reverse sort order, the generated
     // dump output is in sorted order
-    n3n_config_register_section("tuntap", section_tuntap);
-    n3n_config_register_section("management", section_management);
-    n3n_config_register_section("logging", section_logging);
-    n3n_config_register_section("filter", section_filter);
-    n3n_config_register_section("daemon", section_daemon);
-    n3n_config_register_section("connection", section_connection);
-    n3n_config_register_section("community", section_community);
-    n3n_config_register_section("auth", section_auth);
+    n3n_config_register_section(
+        "tuntap",
+        "Settings specific to the local tuntap device",
+        section_tuntap
+        );
+    n3n_config_register_section(
+        "management",
+        "Management interface controls",
+        section_management
+        );
+    n3n_config_register_section(
+        "logging",
+        "Log message controls",
+        section_logging
+        );
+    n3n_config_register_section(
+        "filter",
+        "VPN internal traffic filtering",
+        section_filter
+        );
+    n3n_config_register_section(
+        "daemon",
+        "Settings for running the service",
+        section_daemon
+        );
+    n3n_config_register_section(
+        "connection",
+        "VPN overlay traffic options",
+        section_connection
+        );
+    n3n_config_register_section(
+        "community",
+        "Settings that affect connecting to the network",
+        section_community
+        );
+    n3n_config_register_section(
+        "auth",
+        "When auth is used, details on client authentication",
+        section_auth
+        );
 }

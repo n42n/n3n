@@ -42,10 +42,11 @@ struct n3n_conf_option {
 struct n3n_conf_section {
     struct n3n_conf_section *next;
     char *name;                 // The name of this config section
+    char *help;                 // A description for this section
     struct n3n_conf_option *options;
 };
 
-void n3n_config_register_section (char *, struct n3n_conf_option[]);
+void n3n_config_register_section (char *, char *, struct n3n_conf_option[]);
 
 int n3n_config_set_option (void *, char *, char *, char *);
 
