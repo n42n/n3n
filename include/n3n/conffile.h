@@ -8,6 +8,8 @@
 #ifndef _N2N_CONFFILE_H_
 #define _N2N_CONFFILE_H_
 
+#include <stdio.h>
+
 enum n3n_conf_type {
     n3n_conf_strncpy,
     n3n_conf_bool,
@@ -46,6 +48,8 @@ struct n3n_conf_section {
 void n3n_config_register_section (char *, struct n3n_conf_option[]);
 
 int n3n_config_set_option (void *, char *, char *, char *);
+
+void n3n_config_dump (void *, FILE *, int);
 
 #endif
 

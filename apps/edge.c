@@ -687,6 +687,7 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
     }
 
     if(optind >= argc) {
+        // There is no sub-command
         help(1); /* short help */
     }
     // We now know there is a sub command on the commandline
@@ -694,9 +695,12 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
     // This is a quick and dirty subcommand processer - it would be better if
     // it was table driven
     //
-    char *cmd = argv[optind];
+    char **subargv = &argv[optind];
+    int subargc = argc - optind;
 
-    if(strncmp(cmd,"start",6)==0) {
+    // The start subcmd loads config, which then gets overwitten by any
+    // commandline args, so it gets done first
+    if(strncmp(subargv[0],"start",6)==0) {
         char *arg = argv[optind+1];
 
         if(!arg) {
@@ -716,23 +720,35 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
 #endif
         loadFromFile(pathname, conf);
         // Ignore any error as it currently can only be "file not found"
-    } else if(strncmp(cmd,"test",5)==0) {
-        printf("Unimplemented\n");
-        // TODO: call internal self tests here
+    }
+
+    // Update the loaded conf with any option args
+    optind = 1;
+    int rc = loadFromCLI(argc, argv, conf);
+
+    if(strncmp(subargv[0],"start",6)==0) {
+        // Avoid triggering the "Unknown sub command" path
+    } else if(strncmp(subargv[0],"test",5)==0) {
+        if(subargc == 1) {
+            printf("TODO: output list of tests here\n");
+            // This would be easy to do if the subcmd was table driven..
+            exit(1);
+        }
+        if(strcmp(subargv[1],"config_dump")==0) {
+            n3n_config_dump(conf, stdout, 4);
+            exit(0);
+        }
+        // TODO: call other internal self tests here
+        printf("Unknown test: %s\n", subargv[1]);
         exit(1);
-    } else if(strncmp(cmd,"config_help",5)==0) {
+    } else if(strncmp(subargv[0],"config_help",5)==0) {
         printf("Unimplemented\n");
         // TODO: show conffile help here
         exit(1);
     } else {
-        printf("Unknown sub command: %s\n", cmd);
+        printf("Unknown sub command: %s\n", subargv[0]);
         exit(1);
     }
-
-    optind = 1;
-
-    // Update the loaded conf with any option args
-    int rc = loadFromCLI(argc, argv, conf);
 
     return rc;
 }

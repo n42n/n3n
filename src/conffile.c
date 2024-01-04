@@ -14,6 +14,7 @@
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
+#include "peer_info.h"          // for struct peer_info
 
 #ifdef _WIN32
 #include "win32/defs.h"
@@ -348,4 +349,276 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         }
     }
     return -1;
+}
+
+static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
+    char *line_copy = strdup(line);
+
+    int column = 0;
+    column += fprintf(f, "%s", prefix);
+
+    char *tok = strtok(line_copy, " ");
+    while(tok) {
+        if((column + strlen(tok)) > width) {
+            fprintf(f, "\n");
+            column = 0;
+            column += fprintf(f, "%s", prefix);
+        }
+        column += fprintf(f, " %s", tok);
+        tok = strtok(NULL, " ");
+    }
+    fprintf(f, "\n");
+
+    free(line_copy);
+}
+
+static void fprintf_v4addr (FILE *f, void *v4addr) {
+    char buf[20];
+    buf[0]=0;
+    inet_ntop(AF_INET, v4addr, buf, sizeof(buf));
+    fprintf(f, "%s", buf);
+}
+
+static int dump_value (FILE *f, void *conf, struct n3n_conf_option *option) {
+    void *valvoid = (char *)conf + option->offset;
+
+    switch(option->type) {
+        case n3n_conf_strncpy: {
+            char *val = (char *)valvoid;
+
+            // Our setter routine ensures that the value is always NULL
+            // terminated, so this degrades into a simple printf
+            fprintf(f, "%s", val);
+            return 0;
+        }
+        case n3n_conf_bool: {
+            bool *val = (bool *)valvoid;
+
+            if(*val == false) {
+                fprintf(f, "false");
+                return 0;
+            }
+            if(*val == true) {
+                fprintf(f, "true");
+                return 0;
+            }
+
+            // TODO: other values are also "true"
+            // - output a "true"?
+            // - output a "unexpected value"?
+            // - dont return a falure?
+
+            return -1;
+        }
+        case n3n_conf_uint32: {
+            uint32_t *val = (uint32_t *)valvoid;
+
+            fprintf(f, "%u", *val);
+            return 0;
+        }
+        case n3n_conf_strdup: {
+            char **val = (char **)valvoid;
+            if(!*val) {
+                fprintf(f, "(null)");
+                return -1;
+            }
+            fprintf(f, "%s", *val);
+            return 0;
+        }
+        case n3n_conf_transform: {
+            uint8_t *val = (uint8_t *)valvoid;
+            fprintf(f, "%s", n3n_transform_id2str(*val));
+            return 0;
+        }
+        case n3n_conf_headerenc: {
+            uint8_t *val = (uint8_t *)valvoid;
+            // TODO: a tristate boolean is wierd
+
+            switch(*val) {
+                case HEADER_ENCRYPTION_ENABLED:
+                    fprintf(f, "true");
+                    return 0;
+                case HEADER_ENCRYPTION_NONE:
+                    fprintf(f, "false");
+                    return 0;
+                case HEADER_ENCRYPTION_UNKNOWN:
+                    fprintf(f, "unknown");
+                    return 0;
+            }
+            return -1;
+        }
+        case n3n_conf_compression: {
+            uint8_t *val = (uint8_t *)valvoid;
+            fprintf(f, "%s", n3n_compression_id2str(*val));
+            return 0;
+        }
+        case n3n_conf_supernode: {
+            // This is a multi-value item, so needs special handling to dump
+            return -1;
+        }
+        case n3n_conf_privatekey: {
+            // This uses a one-way hash, so cannot be dumped
+            return -1;
+        }
+        case n3n_conf_publickey: {
+            n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
+            if(!*val) {
+                return 0;
+            }
+            char buf[((N2N_PRIVATE_PUBLIC_KEY_SIZE * 8 + 5)/ 6 + 1)];
+
+            bin_to_ascii(buf, (void *)*val, sizeof(**val));
+            fprintf(f, "%s", buf);
+            return 0;
+        }
+        case n3n_conf_sockaddr: {
+            // TODO: this currently only supports IPv4
+            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            if(!*val) {
+                return 0;
+            }
+            struct sockaddr_in *sa = *val;
+
+            fprintf_v4addr(f, &sa->sin_addr.s_addr);
+            fprintf(f, ":%i", htons(sa->sin_port));
+            return 0;
+        }
+        case n3n_conf_n2n_sock_addr: {
+            struct n2n_sock *val = (struct n2n_sock *)valvoid;
+            if(val->family == AF_INVALID) {
+                fprintf(f, "auto");
+                return 0;
+            }
+
+            fprintf_v4addr(f, &val->addr.v4);
+            return 0;
+        }
+        case n3n_conf_sn_selection: {
+            uint8_t *val = (uint8_t *)valvoid;
+            // TODO: in the future, we should lookup against a struct of
+            // registered selection strategies
+
+            switch(*val) {
+                case SN_SELECTION_STRATEGY_RTT:
+                    fprintf(f, "rtt");
+                    return 0;
+                case SN_SELECTION_STRATEGY_MAC:
+                    fprintf(f, "mac");
+                    return 0;
+                case SN_SELECTION_STRATEGY_LOAD:
+                    fprintf(f, "load");
+                    return 0;
+            }
+            return -1;
+        }
+        case n3n_conf_verbose: {
+            fprintf(f, "%i", getTraceLevel());
+            return 0;
+        }
+        case n3n_conf_filter_rule: {
+            // This is a multi-value item, so needs special handling to dump
+            return -1;
+        }
+        case n3n_conf_ip_subnet: {
+            struct n2n_ip_subnet *val = (struct n2n_ip_subnet *)valvoid;
+            fprintf_v4addr(f, &val->net_addr);
+            fprintf(f, "/%i", val->net_bitlen);
+            return 0;
+        }
+        case n3n_conf_ip_mode: {
+            uint8_t *val = (uint8_t *)valvoid;
+
+            switch(*val) {
+                case TUNTAP_IP_MODE_STATIC:
+                    fprintf(f, "static");
+                    return 0;
+                case TUNTAP_IP_MODE_DHCP:
+                    fprintf(f, "dhcp");
+                    return 0;
+                case TUNTAP_IP_MODE_SN_ASSIGN:
+                    fprintf(f, "auto");
+                    return 0;
+            }
+            return -1;
+        }
+    }
+
+    fprintf(f, "%s", "?");
+    return -1;
+}
+
+/*
+ * Dump details about a single option.
+ * level specifies how much data to output:
+ * 0 = just the variable name
+ * 1 = name and current value
+ * 2 = name, value and short desc
+ * 3 = name, value, desc and schema (currently schema prints nothing)
+ * 4 = name, value, desc, schema and long help
+ *
+ */
+static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option *option) {
+    if(!option) {
+        return;
+    }
+    if(!option->name) {
+        return;
+    }
+
+    if(level >= 2) {
+        fprintf(f, "# %s\n", option->desc);
+    }
+    if(level >= 4) {
+        dump_wordwrap(f, "#", option->help, 78);
+    }
+
+    if(level >= 1) {
+        if(option->type == n3n_conf_supernode) {
+            // special case for a multi-value item
+            // TODO: this breaks layering, but I cannot think of a simple
+            // alternative
+            void *valvoid = (char *)conf + option->offset;
+            struct peer_info **supernodes = (struct peer_info **)valvoid;
+            struct peer_info *scan, *tmp;
+            HASH_ITER(hh, *supernodes, scan, tmp) {
+                fprintf(f, "%s=%s\n", option->name, scan->ip_addr);
+            }
+        } else {
+            fprintf(f, "%s=", option->name);
+            dump_value(f, conf, option);
+        }
+        // TODO: else if type == n3n_conf_filter_rule ...
+    } else {
+        fprintf(f, "%s=", option->name);
+    }
+#if 0
+    if(level >= 3) {
+        // TODO: render type / schema
+        fprintf(f, "\t# %s", "?");
+    }
+#endif
+    fprintf(f, "\n");
+
+
+    if(level > 1) {
+        fprintf(f, "\n");
+    }
+}
+
+void n3n_config_dump (void *conf, FILE *f, int level) {
+    struct n3n_conf_section *section = registered_sections;
+    struct n3n_conf_option *option;
+
+    fprintf(f, "# Autogenerated config dump\n");
+    while(section) {
+        fprintf(f, "[%s]\n", section->name);
+
+        option = section->options;
+        while(option->name) {
+            dump_option(f, conf, level, option);
+            option++;
+        }
+
+        section = section->next;
+    }
 }
