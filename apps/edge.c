@@ -574,7 +574,7 @@ static const struct option long_options[] = {
 /* *************************************************** */
 
 /* read command line options */
-static int loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
+static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
 
     u_char c;
 
@@ -593,8 +593,6 @@ static int loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
         help(setOption(c, optarg, conf));
 
     }
-
-    return 0;
 }
 
 /* *************************************************** */
@@ -664,7 +662,196 @@ static int loadFromFile (const char *path, n2n_edge_conf_t *conf) {
 
 }
 
-static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+/********************************************************************/
+// Sub command generic processor
+
+enum subcmd_type {
+    subcmd_type_nest = 1,
+    subcmd_type_fn
+};
+struct subcmd_def {
+    char *name;
+    char *help;
+    enum subcmd_type type;
+    union {
+        struct subcmd_def *nest;
+        void (*fn)(int argc, char **argv, char *, n2n_edge_conf_t *conf);
+    };
+};
+
+void subcmd_help (struct subcmd_def *p, int indent, bool recurse) {
+    while(p->name) {
+        printf(
+            "%*c%-10s",
+            indent,
+            ' ',
+            p->name
+            );
+        if(p->type == subcmd_type_nest) {
+            printf(" ->");
+        }
+        if(p->help) {
+            printf(" %s", p->help);
+        }
+        printf("\n");
+        if(recurse && p->type == subcmd_type_nest) {
+            subcmd_help(p->nest, indent +2, recurse);
+        }
+        p++;
+    }
+}
+
+static void subcmd_help_simple (struct subcmd_def *p) {
+    printf("Subcommand help:\n\n");
+    subcmd_help(p, 1, false);
+    exit(1);
+}
+
+void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+    struct subcmd_def *p = top;
+    while(p->name) {
+        if(argc < 1) {
+            // No subcmd to process
+            subcmd_help_simple(top);
+        }
+        if(!argv) {
+            // Null subcmd
+            subcmd_help_simple(top);
+        }
+
+        if(strcmp(p->name, argv[0])!=0) {
+            p++;
+            continue;
+        }
+
+        switch(p->type) {
+            case subcmd_type_nest:
+                argc--;
+                argv++;
+                top = p->nest;
+                p = top;
+                continue;
+            case subcmd_type_fn:
+                p->fn(argc, argv, defname, conf);
+                return;
+        }
+        printf("Internal Error subcmd->type: %i\n", p->type);
+        exit(1);
+    }
+    printf("Unknown subcmd: '%s'\n", argv[0]);
+    exit(1);
+}
+
+/********************************************************************/
+
+static struct subcmd_def cmd_top[]; // Forward define
+
+static void cmd_help_commands (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+    subcmd_help(cmd_top, 1, true);
+    exit(0);
+}
+
+static void cmd_help_config (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+    n3n_config_dump(conf, stdout, 4);
+    exit(0);
+}
+
+static void cmd_help_options (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+    // TODO: once we implement the optarg to option-name mapping table, we
+    // can print it out here
+    printf("Not implemented\n");
+    exit(1);
+}
+
+static void cmd_help_transform (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+    // TODO: add an interface to the registered transform lookups and print
+    // out the list
+    printf("Not implemented\n");
+    exit(1);
+}
+
+static void cmd_test_config_dump (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+    int level=1;
+    if(argv[1]) {
+        level = atoi(argv[1]);
+    }
+    n3n_config_dump(conf, stdout, level);
+    exit(0);
+}
+
+static void cmd_start (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+    // Simply avoid triggering the "Unknown sub com" message
+    return;
+}
+
+static struct subcmd_def cmd_help[] = {
+    {
+        .name = "commands",
+        .help = "Show all possible commandline commands",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_commands,
+    },
+    {
+        .name = "config",
+        .help = "All config file help text",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_config,
+    },
+    {
+        .name = "options",
+        .help = "Describe all commandline options ",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_options,
+    },
+    {
+        .name = "transform",
+        .help = "Show compiled encryption and compression modules",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_transform,
+    },
+    { .name = NULL }
+};
+
+static struct subcmd_def cmd_test_config[] = {
+    {
+        .name = "dump",
+        .help = "[level] - just dump the current config",
+        .type = subcmd_type_fn,
+        .fn = &cmd_test_config_dump,
+    },
+    { .name = NULL }
+};
+
+static struct subcmd_def cmd_test[] = {
+    {
+        .name = "config",
+        .type = subcmd_type_nest,
+        .nest = cmd_test_config,
+    },
+    { .name = NULL }
+};
+
+static struct subcmd_def cmd_top[] = {
+    {
+        .name = "help",
+        .type = subcmd_type_nest,
+        .nest = cmd_help,
+    },
+    {
+        .name = "start",
+        .help = "[sessionname] - starts daemon",
+        .type = subcmd_type_fn,
+        .fn = &cmd_start,
+    },
+    {
+        .name = "test",
+        .type = subcmd_type_nest,
+        .nest = cmd_test,
+    },
+    { .name = NULL }
+};
+
+static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
 
     // A first pass through to reorder the argv
     while(1) {
@@ -688,18 +875,16 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
 
     if(optind >= argc) {
         // There is no sub-command
-        help(1); /* short help */
+        subcmd_help_simple(cmd_top);
     }
     // We now know there is a sub command on the commandline
 
-    // This is a quick and dirty subcommand processer - it would be better if
-    // it was table driven
-    //
     char **subargv = &argv[optind];
     int subargc = argc - optind;
 
     // The start subcmd loads config, which then gets overwitten by any
     // commandline args, so it gets done first
+    // TODO: work out a nicer way to integrate this into the subcmd parser
     if(strncmp(subargv[0],"start",6)==0) {
         char *arg = argv[optind+1];
 
@@ -724,37 +909,9 @@ static int n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *co
 
     // Update the loaded conf with any option args
     optind = 1;
-    int rc = loadFromCLI(argc, argv, conf);
+    loadFromCLI(argc, argv, conf);
 
-    if(strncmp(subargv[0],"start",6)==0) {
-        // Avoid triggering the "Unknown sub command" path
-    } else if(strncmp(subargv[0],"test",5)==0) {
-        if(subargc == 1) {
-            printf("TODO: output list of tests here\n");
-            // This would be easy to do if the subcmd was table driven..
-            exit(1);
-        }
-        if(strcmp(subargv[1],"config_dump")==0) {
-            int level=1;
-            if(subargv[2]) {
-                level = atoi(subargv[2]);
-            }
-            n3n_config_dump(conf, stdout, level);
-            exit(0);
-        }
-        // TODO: call other internal self tests here
-        printf("Unknown test: %s\n", subargv[1]);
-        exit(1);
-    } else if(strncmp(subargv[0],"config_help",5)==0) {
-        printf("Unimplemented\n");
-        // TODO: show conffile help here
-        exit(1);
-    } else {
-        printf("Unknown sub command: %s\n", subargv[0]);
-        exit(1);
-    }
-
-    return rc;
+    subcmd_lookup(cmd_top, subargc, subargv, defname, conf);
 }
 
 /* ************************************** */
@@ -881,7 +1038,7 @@ int main (int argc, char* argv[]) {
     }
 #endif
 
-    rc = n3n_config(argc, argv, "edge", &conf);
+    n3n_config(argc, argv, "edge", &conf);
 
     // --- additional crypto setup; REVISIT: move to edge_init()?
     // payload
