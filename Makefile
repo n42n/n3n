@@ -1,3 +1,6 @@
+#
+# Copyright (C) 2023-24 Hamish Coleman
+#
 # Our default make target
 all:
 

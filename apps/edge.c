@@ -746,31 +746,31 @@ void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname
 
 static struct subcmd_def cmd_top[]; // Forward define
 
-static void cmd_help_commands (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+static void cmd_help_commands (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     subcmd_help(cmd_top, 1, true);
     exit(0);
 }
 
-static void cmd_help_config (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+static void cmd_help_config (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
 
-static void cmd_help_options (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     // TODO: once we implement the optarg to option-name mapping table, we
     // can print it out here
     printf("Not implemented\n");
     exit(1);
 }
 
-static void cmd_help_transform (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+static void cmd_help_transform (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     // TODO: add an interface to the registered transform lookups and print
     // out the list
     printf("Not implemented\n");
     exit(1);
 }
 
-static void cmd_test_config_dump (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     int level=1;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -779,7 +779,7 @@ static void cmd_test_config_dump (int argc, char **argv, char *, n2n_edge_conf_t
     exit(0);
 }
 
-static void cmd_start (int argc, char **argv, char *, n2n_edge_conf_t *conf) {
+static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
 }
