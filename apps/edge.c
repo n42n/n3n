@@ -579,7 +579,7 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
     u_char c;
 
     while((c = getopt_long(argc, argv,
-                           "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S::DL:z::A::Hn:R:e:"
+                           "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:"
 #ifdef __linux__
                            "T:"
 #endif
@@ -854,18 +854,19 @@ static struct subcmd_def cmd_top[] = {
 static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
 
     // A first pass through to reorder the argv
-    while(1) {
-        int c = getopt_long(argc, argv,
-                            // The superset of all possible short options
-                            "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S::DL:z::A::Hn:R:e:T:x:",
-                            long_options, NULL
-                            );
-        if(c==-1) {
-            // End of options
-            break;
-        }
+    int c = 0;
+    while(c != -1) {
+        c = getopt_long(
+            argc, argv,
+            // The superset of all possible short options
+            "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:",
+            long_options,
+            NULL
+            );
 
         switch(c) {
+            case '?': // An invalid arg, or a missing optarg
+                exit(1);
             case 'h': /* quick reference */
                 help(2);
             case '@': /* long help */
