@@ -373,14 +373,11 @@ static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
     free(line_copy);
 }
 
-static void fprintf_v4addr (FILE *f, void *v4addr) {
-    char buf[20];
-    buf[0]=0;
-    inet_ntop(AF_INET, v4addr, buf, sizeof(buf));
-    fprintf(f, "%s", buf);
-}
-
-static int dump_value (FILE *f, void *conf, struct n3n_conf_option *option) {
+// Stringifies the given option.  May use the provided buffer as temp space
+// for the string - or may return a static string.  A return of NULL means
+// that the option could not be rendered.
+// Buffer overflow is handled simplisticly by simply filling the buffer.
+static char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
     void *valvoid = (char *)conf + option->offset;
 
     switch(option->type) {
@@ -388,20 +385,17 @@ static int dump_value (FILE *f, void *conf, struct n3n_conf_option *option) {
             char *val = (char *)valvoid;
 
             // Our setter routine ensures that the value is always NULL
-            // terminated, so this degrades into a simple printf
-            fprintf(f, "%s", val);
-            return 0;
+            // so we can simply return it
+            return val;
         }
         case n3n_conf_bool: {
             bool *val = (bool *)valvoid;
 
             if(*val == false) {
-                fprintf(f, "false");
-                return 0;
+                return "false";
             }
             if(*val == true) {
-                fprintf(f, "true");
-                return 0;
+                return "true";
             }
 
             // TODO: other values are also "true"
@@ -409,27 +403,21 @@ static int dump_value (FILE *f, void *conf, struct n3n_conf_option *option) {
             // - output a "unexpected value"?
             // - dont return a falure?
 
-            return -1;
+            return NULL;
         }
         case n3n_conf_uint32: {
             uint32_t *val = (uint32_t *)valvoid;
 
-            fprintf(f, "%u", *val);
-            return 0;
+            snprintf(buf, buflen, "%u", *val);
+            return buf;
         }
         case n3n_conf_strdup: {
             char **val = (char **)valvoid;
-            if(!*val) {
-                fprintf(f, "(null)");
-                return -1;
-            }
-            fprintf(f, "%s", *val);
-            return 0;
+            return *val;
         }
         case n3n_conf_transform: {
             uint8_t *val = (uint8_t *)valvoid;
-            fprintf(f, "%s", n3n_transform_id2str(*val));
-            return 0;
+            return n3n_transform_id2str(*val);
         }
         case n3n_conf_headerenc: {
             uint8_t *val = (uint8_t *)valvoid;
@@ -437,62 +425,59 @@ static int dump_value (FILE *f, void *conf, struct n3n_conf_option *option) {
 
             switch(*val) {
                 case HEADER_ENCRYPTION_ENABLED:
-                    fprintf(f, "true");
-                    return 0;
+                    return "true";
                 case HEADER_ENCRYPTION_NONE:
-                    fprintf(f, "false");
-                    return 0;
+                    return "false";
                 case HEADER_ENCRYPTION_UNKNOWN:
-                    fprintf(f, "unknown");
-                    return 0;
+                    return "unknown";
             }
-            return -1;
+            return NULL;
         }
         case n3n_conf_compression: {
             uint8_t *val = (uint8_t *)valvoid;
-            fprintf(f, "%s", n3n_compression_id2str(*val));
-            return 0;
+            return n3n_compression_id2str(*val);
         }
         case n3n_conf_supernode: {
             // This is a multi-value item, so needs special handling to dump
-            return -1;
+            return NULL;
         }
         case n3n_conf_privatekey: {
             // This uses a one-way hash, so cannot be dumped
-            return -1;
+            return NULL;
         }
         case n3n_conf_publickey: {
             n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
             if(!*val) {
-                return 0;
+                return NULL;
             }
-            char buf[((N2N_PRIVATE_PUBLIC_KEY_SIZE * 8 + 5)/ 6 + 1)];
+            char localbuf[((N2N_PRIVATE_PUBLIC_KEY_SIZE * 8 + 5)/ 6 + 1)];
 
-            bin_to_ascii(buf, (void *)*val, sizeof(**val));
-            fprintf(f, "%s", buf);
-            return 0;
+            bin_to_ascii(localbuf, (void *)*val, sizeof(**val));
+            snprintf(buf, buflen, "%s", localbuf);
+            return buf;
         }
         case n3n_conf_sockaddr: {
             // TODO: this currently only supports IPv4
             struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
             if(!*val) {
-                return 0;
+                return NULL;
             }
             struct sockaddr_in *sa = *val;
 
-            fprintf_v4addr(f, &sa->sin_addr.s_addr);
-            fprintf(f, ":%i", htons(sa->sin_port));
-            return 0;
+            if(inet_ntop(AF_INET, &sa->sin_addr.s_addr, buf, buflen) == NULL) {
+                return NULL;
+            }
+            ssize_t used = strlen(buf);
+            snprintf(buf + used, buflen - used, ":%i", htons(sa->sin_port));
+            return buf;
         }
         case n3n_conf_n2n_sock_addr: {
             struct n2n_sock *val = (struct n2n_sock *)valvoid;
             if(val->family == AF_INVALID) {
-                fprintf(f, "auto");
-                return 0;
+                return "auto";
             }
 
-            fprintf_v4addr(f, &val->addr.v4);
-            return 0;
+            return (char *)inet_ntop(AF_INET, &val->addr.v4, buf, buflen);
         }
         case n3n_conf_sn_selection: {
             uint8_t *val = (uint8_t *)valvoid;
@@ -501,51 +486,48 @@ static int dump_value (FILE *f, void *conf, struct n3n_conf_option *option) {
 
             switch(*val) {
                 case SN_SELECTION_STRATEGY_RTT:
-                    fprintf(f, "rtt");
-                    return 0;
+                    return "rtt";
                 case SN_SELECTION_STRATEGY_MAC:
-                    fprintf(f, "mac");
-                    return 0;
+                    return "mac";
                 case SN_SELECTION_STRATEGY_LOAD:
-                    fprintf(f, "load");
-                    return 0;
+                    return "load";
             }
-            return -1;
+            return NULL;
         }
         case n3n_conf_verbose: {
-            fprintf(f, "%i", getTraceLevel());
-            return 0;
+            snprintf(buf, buflen, "%i", getTraceLevel());
+            return buf;
         }
         case n3n_conf_filter_rule: {
             // This is a multi-value item, so needs special handling to dump
-            return -1;
+            return NULL;
         }
         case n3n_conf_ip_subnet: {
             struct n2n_ip_subnet *val = (struct n2n_ip_subnet *)valvoid;
-            fprintf_v4addr(f, &val->net_addr);
-            fprintf(f, "/%i", val->net_bitlen);
-            return 0;
+
+            if(inet_ntop(AF_INET, &val->net_addr, buf, buflen) == NULL) {
+                return NULL;
+            }
+            ssize_t used = strlen(buf);
+            snprintf(buf + used, buflen - used, "/%i", val->net_bitlen);
+            return buf;
         }
         case n3n_conf_ip_mode: {
             uint8_t *val = (uint8_t *)valvoid;
 
             switch(*val) {
                 case TUNTAP_IP_MODE_STATIC:
-                    fprintf(f, "static");
-                    return 0;
+                    return "static";
                 case TUNTAP_IP_MODE_DHCP:
-                    fprintf(f, "dhcp");
-                    return 0;
+                    return "dhcp";
                 case TUNTAP_IP_MODE_SN_ASSIGN:
-                    fprintf(f, "auto");
-                    return 0;
+                    return "auto";
             }
-            return -1;
+            return NULL;
         }
     }
 
-    fprintf(f, "%s", "?");
-    return -1;
+    return NULL;
 }
 
 /*
@@ -566,16 +548,31 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
         return;
     }
 
+
+    if(level > 1) {
+        // ensure a gap between items when there is any help text
+        fprintf(f, "\n");
+    }
     if(level >= 2) {
+        // prefix with a short desc
         fprintf(f, "# %s\n", option->desc);
     }
+#if 0
+    if(level >= 3) {
+        // TODO: render type / schema
+        fprintf(f, "\t# %s", "?");
+    }
+#endif
     if(level >= 4) {
+        // also prefix with a long help
         dump_wordwrap(f, "#", option->help, 78);
     }
 
     if(level >= 1) {
+        // show both name and value
+
         if(option->type == n3n_conf_supernode) {
-            // special case for a multi-value item
+            // special case for this multi-value item
             // TODO: this breaks layering, but I cannot think of a simple
             // alternative
             void *valvoid = (char *)conf + option->offset;
@@ -584,26 +581,28 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
             HASH_ITER(hh, *supernodes, scan, tmp) {
                 fprintf(f, "%s=%s\n", option->name, scan->ip_addr);
             }
-        } else {
-            fprintf(f, "%s=", option->name);
-            dump_value(f, conf, option);
+            fprintf(f, "\n");
+            return;
         }
-        // TODO: else if type == n3n_conf_filter_rule ...
-    } else {
-        fprintf(f, "%s=", option->name);
-    }
-#if 0
-    if(level >= 3) {
-        // TODO: render type / schema
-        fprintf(f, "\t# %s", "?");
-    }
-#endif
-    fprintf(f, "\n");
+        // TODO: if type == n3n_conf_filter_rule ...
 
+        char buf[100];
+        char *p = stringify_option(conf, option, buf, sizeof(buf));
 
-    if(level > 1) {
-        fprintf(f, "\n");
+        if(!p) {
+            // couldnt stringify this, so comment it out
+            // TODO: at some levels, dont
+            fprintf(f, "#%s=\n", option->name);
+            return;
+        }
+
+        fprintf(f, "%s=%s\n", option->name, p);
+        return;
     }
+
+    // level must be <= 0
+    // just print the variable name
+    fprintf(f, "%s=\n", option->name);
 }
 
 void n3n_config_dump (void *conf, FILE *f, int level) {
@@ -612,11 +611,11 @@ void n3n_config_dump (void *conf, FILE *f, int level) {
 
     fprintf(f, "# Autogenerated config dump\n");
     while(section) {
-        fprintf(f, "\n[%s]\n", section->name);
+        fprintf(f, "\n");
         if(section->help && (level >= 2)) {
             dump_wordwrap(f, "#", section->help, 78);
-            fprintf(f, "\n");
         }
+        fprintf(f, "[%s]\n", section->name);
 
         option = section->options;
         while(option->name) {
