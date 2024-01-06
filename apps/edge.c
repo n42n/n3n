@@ -325,6 +325,41 @@ static void help (int level) {
 
 /* *************************************************** */
 
+static struct option_map_def {
+    int optkey;
+    char *section;
+    char *option;
+    char *value;    // if no optargument, then use this for the value
+} option_map[] = {
+    { 'A',  "community",    "cipher",           NULL },
+    { 'D',  "connection",   "disable_pmtu",     "false" },
+    { 'E',  "filter",       "drop_multicast",   "false" },
+    { 'H',  "community",    "header_encryption","true", },
+    { 'I',  "connection",   "description",      NULL },
+    { 'J',  "auth",         "password",         NULL },
+    { 'L',  "connection",   "register_ttl",     NULL },
+    { 'M',  "tuntap",       "mtu",              NULL },
+    { 'P',  "auth",         "pubkey",           NULL },
+    { 'R',  "filter",       "rule",             NULL },
+    { 'T',  "connection",   "tos",              NULL },
+    { 'c',  "community",    "name",             NULL },
+    { 'd',  "tuntap",       "name",             NULL },
+    { 'e',  "connection",   "advertise_addr",   NULL },
+    { 'f',  "daemon",       "background",       "false" },
+    { 'g',  "daemon",       "groupid",          NULL },
+    { 'i',  "connection",   "register_interval",NULL },
+    { 'k',  "community",    "key",              NULL },
+    { 'l',  "community",    "supernode",        NULL },
+    { 'm',  "tuntap",       "macaddr",          NULL },
+    { 'p',  "connection",   "bind",             NULL },
+    { 'r',  "filter",       "allow_routing",    "true" },
+    { 't',  "management",   "port",             NULL },
+    { 'u',  "daemon",       "userid",           NULL },
+    { 'x',  "tuntap",       "metric",           NULL },
+    { 'z',  "community",    "compression",      NULL },
+    { .optkey = 0 }
+};
+
 // little wrapper to show errors if the conffile parser has a problem
 static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option, char *value) {
     int i = n3n_config_set_option(conf, section, option, value);
@@ -333,6 +368,30 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
     }
 
     traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
+}
+
+static void set_from_option_map (n2n_edge_conf_t *conf, int optkey, char *optarg) {
+    struct option_map_def *p = option_map;
+    while(p->optkey) {
+        if(optkey != p->optkey) {
+            p++;
+            continue;
+        }
+
+        if(!optarg && !p->value) {
+            printf("Internal error with option_map for -%c\n", optkey);
+            exit(1);
+        }
+
+        if(!optarg) {
+            optarg = p->value;
+        }
+
+        set_option_wrap(conf, p->section, p->option, optarg);
+        return;
+    }
+
+    printf("unknown option -%c", (char)optkey);
 }
 
 static int setOption (int optkey, char *optargument, n2n_edge_conf_t *conf) {
@@ -360,130 +419,6 @@ static int setOption (int optkey, char *optargument, n2n_edge_conf_t *conf) {
             }
 
             set_option_wrap(conf, "tuntap", "address", field2);
-            break;
-        }
-
-        case 'c': /* community as a string */ {
-            set_option_wrap(conf, "community", "name", optargument);
-            break;
-        }
-
-        case 'E': /* multicast ethernet addresses accepted. */ {
-            set_option_wrap(conf, "filter", "drop_multicast", "false");
-            break;
-        }
-
-        case 'u': /* unprivileged uid */ {
-            set_option_wrap(conf, "daemon", "userid", optargument);
-            break;
-        }
-
-        case 'g': /* unprivileged uid */ {
-            set_option_wrap(conf, "daemon", "groupid", optargument);
-            break;
-        }
-
-        case 'f': /* do not fork as daemon */ {
-            set_option_wrap(conf, "daemon", "background", "false");
-            break;
-        }
-
-        case 'm': /* TUNTAP MAC address */ {
-            set_option_wrap(conf, "tuntap", "macaddr", optargument);
-            break;
-        }
-
-        case 'M': /* TUNTAP MTU */ {
-            set_option_wrap(conf, "tuntap", "mtu", optargument);
-            break;
-        }
-
-        case 'D': /* enable PMTU discovery */ {
-            set_option_wrap(conf, "connection", "disable_pmtu", "false");
-            break;
-        }
-
-        case 'k': /* encrypt key */ {
-            set_option_wrap(conf, "community", "key", optargument);
-            break;
-        }
-
-        case 'r': /* enable packet routing across n2n endpoints */ {
-            set_option_wrap(conf, "filter", "allow_routing", "true");
-            break;
-        }
-
-        case 'A': {
-            set_option_wrap(conf, "community", "cipher", optargument);
-            break;
-        }
-
-        case 'H': /* indicate header encryption */ {
-            /* we cannot be sure if this gets parsed before the community name is set.
-             * so, only an indicator is set, action is taken later*/
-            set_option_wrap(conf, "community", "header_encryption", "true");
-            break;
-        }
-
-        case 'z': {
-            set_option_wrap(conf, "community", "compression", optargument);
-            break;
-        }
-
-        case 'l': /* supernode-list */ {
-            set_option_wrap(conf, "community", "supernode", optargument);
-            break;
-        }
-
-        case 'i': /* supernode registration interval */
-            set_option_wrap(conf, "connection", "register_interval", optargument);
-            break;
-
-        case 'L': /* supernode registration interval */
-            set_option_wrap(conf, "connection", "register_ttl", optargument);
-            break;
-
-        case 'd': /* TUNTAP name */ {
-            set_option_wrap(conf, "tuntap", "name", optargument);
-            break;
-        }
-
-        case 'I': /* Device Description (hint) or username */ {
-            set_option_wrap(conf, "connection", "description", optargument);
-            break;
-        }
-
-        case 'J': /* password for user-password authentication */ {
-            set_option_wrap(conf, "auth", "password", optargument);
-
-            // the hash of the username (-I) gets xored into this key later,
-            // we can't be sure to already have it at this point
-            // also, the complete shared secret will be calculated then as we
-            // might still be missing the federation public key as well
-            break;
-        }
-
-        case 'P': /* federation public key for user-password authentication */ {
-            set_option_wrap(conf, "auth", "pubkey", optargument);
-            break;
-        }
-
-        case 'p': {
-            set_option_wrap(conf, "connection", "bind", optargument);
-            break;
-        }
-
-        case 'e': {
-            set_option_wrap(conf, "connection", "advertise_addr", optargument);
-            break;
-        }
-
-        case 't': {
-            set_option_wrap(conf, "management", "port", optargument);
-            break;
-        }
-        case 'T': {
-            set_option_wrap(conf, "connection", "tos", optargument);
             break;
         }
         case 'S': {
@@ -535,19 +470,8 @@ static int setOption (int optkey, char *optargument, n2n_edge_conf_t *conf) {
             break;
         }
 
-        case 'R': /* network traffic filter */ {
-            set_option_wrap(conf, "filter", "rule", optargument);
-            break;
-        }
-
-        case 'x': {
-            set_option_wrap(conf, "tuntap", "metric", optargument);
-            break;
-        }
-
         default: {
-            traceEvent(TRACE_WARNING, "unknown option -%c", (char)optkey);
-            return 2;
+            set_from_option_map(conf, optkey, optargument);
         }
     }
 
@@ -757,10 +681,43 @@ static void cmd_help_config (int argc, char **argv, char *_, n2n_edge_conf_t *co
 }
 
 static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
-    // TODO: once we implement the optarg to option-name mapping table, we
-    // can print it out here
-    printf("Not implemented\n");
-    exit(1);
+    struct option_map_def *p = option_map;
+    printf(" option    config\n");
+    while(p->optkey) {
+        if(isprint(p->optkey)) {
+            printf(" -%c ", p->optkey);
+            if(!p->value) {
+                // We are expecting an arg with this option
+                printf("<arg> ");
+            } else {
+                printf("      ");
+            }
+            printf(" %s.%s=", p->section, p->option);
+            if(!p->value) {
+                printf("<arg>");
+            } else {
+                printf("%s", p->value);
+            }
+            printf("\n");
+        }
+        p++;
+    }
+    printf("\n");
+    printf(" short  long\n");
+
+    struct option *lp = long_options;
+    while(lp->name) {
+        if(isprint(lp->val)) {
+            printf(" -%c     --%s", lp->val, lp->name);
+            if(lp->has_arg == required_argument) {
+                printf("=<arg>");
+            }
+            printf("\n");
+        }
+        lp++;
+    }
+
+    exit(0);
 }
 
 static void cmd_help_transform (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
