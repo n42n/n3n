@@ -189,7 +189,7 @@ test.integration: apps
 lint: lint.python lint.ccode lint.shell lint.yaml
 
 lint.python:
-	flake8 scripts/n3n-ctl scripts/n3n-httpd
+	flake8 scripts/n3n-ctl scripts/n3n-httpd scripts/n3n-convert_old_conf
 
 lint.ccode:
 	scripts/indent.sh -e '$(LINT_EXCLUDE)' $(LINT_CCODE)
