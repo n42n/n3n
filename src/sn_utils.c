@@ -769,10 +769,6 @@ int comm_init (struct sn_community *comm, char *cmn) {
 /** Initialise the supernode structure */
 int sn_init_defaults (n2n_sn_t *sss) {
 
-#ifdef _WIN32
-    initWin32();
-#endif
-
     pearson_hash_init();
 
     memset(sss, 0, sizeof(n2n_sn_t));

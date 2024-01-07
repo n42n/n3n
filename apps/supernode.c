@@ -600,6 +600,9 @@ int main (int argc, char * const argv[]) {
 #endif
     struct peer_info *scan, *tmp;
 
+#ifdef _WIN32
+    initWin32();
+#endif
 
     sn_init_defaults(&sss_node);
     add_federation_to_communities(&sss_node);

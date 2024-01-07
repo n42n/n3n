@@ -37,6 +37,10 @@ int main () {
     int rc;
     struct sockaddr_in local_address;
 
+#ifdef _WIN32
+    initWin32();
+#endif
+
     sn_init_defaults(&sss_node);
     sss_node.daemon = false;   // Whether to daemonize
     sss_node.lport = 1234; // Main UDP listen port
