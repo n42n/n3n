@@ -330,6 +330,7 @@ static const struct option_map_def {
     char *section;
     char *option;
     char *value;    // if no optargument, then use this for the value
+    char *help;
 } option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
     { 'D',  "connection",   "disable_pmtu",     "false" },
@@ -342,6 +343,7 @@ static const struct option_map_def {
     { 'P',  "auth",         "pubkey",           NULL },
     { 'R',  "filter",       "rule",             NULL },
     { 'T',  "connection",   "tos",              NULL },
+    { 'a', NULL, NULL, NULL, "<arg>  Set tuntap.address and tuntap.address_mode" },
     { 'c',  "community",    "name",             NULL },
     { 'd',  "tuntap",       "name",             NULL },
     { 'e',  "connection",   "advertise_addr",   NULL },
@@ -355,6 +357,7 @@ static const struct option_map_def {
     { 'r',  "filter",       "allow_routing",    "true" },
     { 't',  "management",   "port",             NULL },
     { 'u',  "daemon",       "userid",           NULL },
+    { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { 'x',  "tuntap",       "metric",           NULL },
     { 'z',  "community",    "compression",      NULL },
     { .optkey = 0 }
@@ -693,13 +696,20 @@ static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *c
     while(option_map[i].optkey) {
         if(isprint(option_map[i].optkey)) {
             printf(" -%c ", option_map[i].optkey);
+            if(option_map[i].help) {
+                // Dont generate any text, just use the help text
+                // (This is used for options that have no true mapping)
+                printf("%s\n", option_map[i].help);
+                i++;
+                continue;
+            }
             if(!option_map[i].value) {
                 // We are expecting an arg with this option
-                printf("<arg> ");
+                printf("<arg>");
             } else {
-                printf("      ");
+                printf("     ");
             }
-            printf(" %s.%s=", option_map[i].section, option_map[i].option);
+            printf("  %s.%s=", option_map[i].section, option_map[i].option);
             if(!option_map[i].value) {
                 printf("<arg>");
             } else {
