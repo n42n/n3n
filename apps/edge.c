@@ -325,7 +325,7 @@ static void help (int level) {
 
 /* *************************************************** */
 
-static struct option_map_def {
+static const struct option_map_def {
     int optkey;
     char *section;
     char *option;
@@ -371,23 +371,28 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
 }
 
 static void set_from_option_map (n2n_edge_conf_t *conf, int optkey, char *optarg) {
-    struct option_map_def *p = option_map;
-    while(p->optkey) {
-        if(optkey != p->optkey) {
-            p++;
+    int i = 0;
+    while(option_map[i].optkey) {
+        if(optkey != option_map[i].optkey) {
+            i++;
             continue;
         }
 
-        if(!optarg && !p->value) {
+        if((!optarg && !option_map[i].value) || !option_map[i].section || !option_map[i].option) {
             printf("Internal error with option_map for -%c\n", optkey);
             exit(1);
         }
 
         if(!optarg) {
-            optarg = p->value;
+            optarg = option_map[i].value;
         }
 
-        set_option_wrap(conf, p->section, p->option, optarg);
+        set_option_wrap(
+            conf,
+            option_map[i].section,
+            option_map[i].option,
+            optarg
+            );
         return;
     }
 
@@ -681,40 +686,42 @@ static void cmd_help_config (int argc, char **argv, char *_, n2n_edge_conf_t *co
 }
 
 static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
-    struct option_map_def *p = option_map;
+    int i;
+
     printf(" option    config\n");
-    while(p->optkey) {
-        if(isprint(p->optkey)) {
-            printf(" -%c ", p->optkey);
-            if(!p->value) {
+    i = 0;
+    while(option_map[i].optkey) {
+        if(isprint(option_map[i].optkey)) {
+            printf(" -%c ", option_map[i].optkey);
+            if(!option_map[i].value) {
                 // We are expecting an arg with this option
                 printf("<arg> ");
             } else {
                 printf("      ");
             }
-            printf(" %s.%s=", p->section, p->option);
-            if(!p->value) {
+            printf(" %s.%s=", option_map[i].section, option_map[i].option);
+            if(!option_map[i].value) {
                 printf("<arg>");
             } else {
-                printf("%s", p->value);
+                printf("%s", option_map[i].value);
             }
             printf("\n");
         }
-        p++;
+        i++;
     }
     printf("\n");
     printf(" short  long\n");
 
-    struct option *lp = long_options;
-    while(lp->name) {
-        if(isprint(lp->val)) {
-            printf(" -%c     --%s", lp->val, lp->name);
-            if(lp->has_arg == required_argument) {
+    i = 0;
+    while(long_options[i].name) {
+        if(isprint(long_options[i].val)) {
+            printf(" -%c     --%s", long_options[i].val, long_options[i].name);
+            if(long_options[i].has_arg == required_argument) {
                 printf("=<arg>");
             }
             printf("\n");
         }
-        lp++;
+        i++;
     }
 
     exit(0);
