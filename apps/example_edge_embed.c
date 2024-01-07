@@ -34,15 +34,11 @@ int main () {
     int rc;
 
     edge_init_conf_defaults(&conf);
-    conf.allow_p2p = true;                                                                   // Whether to allow peer-to-peer communication
     conf.allow_routing = true;                                                               // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to
-    conf.disable_pmtu_discovery = true;                                                      // Whether to disable the path MTU discovery
     conf.drop_multicast = false;                                                             // Whether to disable multicast
-    conf.tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;                                          // How to set the IP address
     conf.encrypt_key = "mysecret";                                                           // Secret to decrypt & encrypt with
     // conf.bind_address = sockaddr; // can be used to bind to a local port
-    conf.mgmt_port = N2N_EDGE_MGMT_PORT;                                                     // Edge management port (5644 by default)
     conf.register_interval = 1;                                                              // Interval for both UDP NAT hole punching and supernode registration
     conf.register_ttl = 1;                                                                   // Interval for UDP NAT hole punching through supernode
     edge_conf_add_supernode(&conf, "localhost:1234");                                        // Supernode to connect to
