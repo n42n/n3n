@@ -1004,15 +1004,6 @@ int main (int argc, char* argv[]) {
     /* Defaults */
     edge_init_conf_defaults(&conf);
 
-#ifndef _WIN32
-    struct passwd *pw = NULL;
-    if(((pw = getpwnam("n3n")) != NULL) ||
-       ((pw = getpwnam("nobody")) != NULL)) {
-        conf.userid = pw->pw_uid;
-        conf.groupid = pw->pw_gid;
-    }
-#endif
-
     n3n_config(argc, argv, "edge", &conf);
 
     // --- additional crypto setup; REVISIT: move to edge_init()?

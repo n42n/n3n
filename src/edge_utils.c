@@ -3208,6 +3208,20 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->metric = 0;
     conf->daemon = true;
     conf->mtu = DEFAULT_MTU;
+
+#ifndef _WIN32
+    struct passwd *pw = NULL;
+    // Search a couple of usernames for one to use
+    pw = getpwnam("n3n");
+    if(pw == NULL) {
+        pw = getpwnam("nobody");
+    }
+    if(pw != NULL) {
+        // If we find one, use that as our default
+        conf->userid = pw->pw_uid;
+        conf->groupid = pw->pw_gid;
+    }
+#endif
 }
 
 /* ************************************** */
