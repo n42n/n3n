@@ -52,5 +52,7 @@ int n3n_config_set_option (void *, char *, char *, char *);
 
 void n3n_config_dump (void *, FILE *, int);
 
+int n3n_config_load_env (void *);
+
 #endif
 

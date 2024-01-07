@@ -882,6 +882,12 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
         // Ignore any error as it currently can only be "file not found"
     }
 
+    // Update the loaded conf with the current environment
+    if(n3n_config_load_env(conf)!=0) {
+        printf("Error loading environment variables\n");
+        exit(1);
+    }
+
     // Update the loaded conf with any option args
     optind = 1;
     loadFromCLI(argc, argv, conf);

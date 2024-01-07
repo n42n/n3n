@@ -18,6 +18,7 @@
  */
 
 
+#include <n3n/conffile.h>
 #include <stdbool.h>
 #include <stdio.h>   // for snprintf, NULL
 #include <stdlib.h>  // for exit
@@ -34,6 +35,7 @@ int main () {
     int rc;
 
     edge_init_conf_defaults(&conf);
+    n3n_config_load_env(&conf);
     conf.allow_routing = true;                                                               // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to
     conf.drop_multicast = false;                                                             // Whether to disable multicast

@@ -21,6 +21,7 @@
 
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
+#include <n3n/conffile.h>            // for n3n_config_load_env
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
 #include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
@@ -3188,20 +3189,6 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     /* reserve possible last char as null terminator. */
     gethostname((char*)conf->dev_desc, N2N_DESC_SIZE-1);
 
-    if(getenv("N2N_KEY")) {
-        conf->encrypt_key = strdup(getenv("N2N_KEY"));
-        conf->transop_id = N2N_TRANSFORM_ID_AES;
-    }
-    if(getenv("N2N_COMMUNITY")) {
-        strncpy((char*)conf->community_name, getenv("N2N_COMMUNITY"), N2N_COMMUNITY_SIZE);
-        conf->community_name[N2N_COMMUNITY_SIZE - 1] = '\0';
-    }
-    if(getenv("N2N_PASSWORD")) {
-        conf->shared_secret = calloc(1, sizeof(n2n_private_public_key_t));
-        if(conf->shared_secret)
-            generate_private_key(*(conf->shared_secret), getenv("N2N_PASSWORD"));
-    }
-
     conf->mgmt_password = N2N_MGMT_PASSWORD;
 
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
@@ -3301,6 +3288,7 @@ int quick_edge_init (char *device_name, char *community_name,
 
     /* Setup the configuration */
     edge_init_conf_defaults(&conf);
+    n3n_config_load_env(&conf);
     conf.encrypt_key = encrypt_key;
     conf.transop_id = N2N_TRANSFORM_ID_AES;
     conf.compression = N2N_COMPRESSION_ID_NONE;
