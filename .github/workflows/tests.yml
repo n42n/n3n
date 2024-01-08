@@ -170,7 +170,7 @@ jobs:
         shell: bash
 
       - name: Run embedded unit tests
-        run: make test.units
+        run: make test
         shell: bash
 
       - if: ${{ failure() }}
