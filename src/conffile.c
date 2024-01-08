@@ -652,3 +652,78 @@ int n3n_config_load_env (void *conf) {
 
     return rc;
 }
+
+/*
+ * Find the right config file for a given session name.  Or return NULL
+ *
+ * If the session name is a simple name, then this just looks in the "correct"
+ * directory for the matching config file.
+ *
+ * If the session name starts with a "/" or "./" then it is assumed to be
+ * a filename, which is then used to open the config.
+ *
+ * If the session name is a filename, then it is modified in place to become
+ * an actual session name (basically, the basename with no extension is used)
+ *
+ */
+// FIXME: this is an internal function intended to be static, but is public
+// for testing - until the config file loader is written
+/*static*/ FILE *find_config (char *name) {
+    FILE *f;
+    if(!name) {
+        return NULL;
+    }
+
+    if((*name == '/') || (name[0] == '.' && name[1] == '/')) {
+        // Handle the case where the given "session name" is actually a
+        // pathname
+
+        f = fopen(name, "r");
+        if(!f) {
+            return NULL;
+        }
+
+        // Find the last path component (we know we at least start with one)
+        char *p = strrchr(name, '/');
+        p++;
+
+        char *dst = name;
+        // Replace the given name with the basename
+        while(*p) {
+            *dst++ = *p++;
+        }
+        *dst = 0;
+
+        // Remove any filename extension
+        p = strrchr(name, '.');
+        if(p) {
+            *p = 0;
+        }
+
+        return f;
+    }
+
+    // TODO: Are there other places that should be searched?
+    char *searchpath[] = {
+#ifndef _WIN32
+        "/etc/n3n",
+#endif
+#ifdef _WIN32
+        getenv("USERPROFILE"),
+#endif
+    };
+
+    for(int i=0; i < (sizeof(searchpath) / sizeof(searchpath[0])); i++) {
+        if(!searchpath[i]) {
+            continue;
+        }
+        char buf[1024];
+        snprintf(buf, sizeof(buf), "%s/%s.conf", searchpath[i], name);
+
+        f = fopen(buf, "r");
+        if(f) {
+            return f;
+        }
+    }
+    return NULL;
+}

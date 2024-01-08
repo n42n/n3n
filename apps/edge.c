@@ -548,18 +548,13 @@ static char *trim (char *s) {
 /* *************************************************** */
 
 /* parse the configuration file */
-static int loadFromFile (const char *path, n2n_edge_conf_t *conf) {
+static int loadFromFile (FILE *fd, n2n_edge_conf_t *conf) {
 
     char buffer[4096], *line;
     char *line_vec[3];
     int tmp;
 
-    FILE *fd;
-
-    fd = fopen(path, "r");
-
-    if(fd == NULL) {
-        traceEvent(TRACE_WARNING, "config file %s not found", path);
+    if(!fd) {
         return -1;
     }
 
@@ -860,25 +855,17 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
     // The start subcmd loads config, which then gets overwitten by any
     // commandline args, so it gets done first
     // TODO: work out a nicer way to integrate this into the subcmd parser
-    if(strncmp(subargv[0],"start",6)==0) {
-        char *arg = argv[optind+1];
+    if(strcmp(subargv[0],"start")==0) {
+        char *name = subargv[1];
 
-        if(!arg) {
+        if(!name) {
             // If no session name is specified, use the default
-            arg = defname;
+            name = defname;
         }
 
-        // TODO: want to have a searchpath for the conf file
-        // which would also allow avoiding the ifdef
+        FILE *f = find_config(name);
 
-        char pathname[1024];
-#ifdef _WIN32
-        // load from current directory
-        snprintf(pathname, sizeof(pathname), "%s.conf", arg);
-#else
-        snprintf(pathname, sizeof(pathname), "/etc/n3n/%s.conf", arg);
-#endif
-        loadFromFile(pathname, conf);
+        loadFromFile(f, conf);
         // Ignore any error as it currently can only be "file not found"
     }
 
