@@ -3189,7 +3189,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     /* reserve possible last char as null terminator. */
     gethostname((char*)conf->dev_desc, N2N_DESC_SIZE-1);
 
-    conf->mgmt_password = N2N_MGMT_PASSWORD;
+    conf->mgmt_password = strdup(N2N_MGMT_PASSWORD);
 
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
     conf->metric = 0;

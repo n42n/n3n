@@ -50,7 +50,7 @@ static struct n3n_transform *lookup_id (bool is_compress, int id) {
 static char *id2str (bool is_compress, int id) {
     struct n3n_transform *p = lookup_id(is_compress, id);
     if(!p) {
-        return "(null)";
+        return NULL;
     }
     return p->name;
 }

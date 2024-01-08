@@ -5,6 +5,7 @@
  * Handlers for configuration files
  */
 
+#include <ctype.h>              // for isprint and friends
 #include <n3n/conffile.h>
 #include <n3n/logging.h>        // for setTraceLevel
 #include <n3n/transform.h>      // for n3n_transform_lookup_
@@ -14,6 +15,7 @@
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
+#include <unistd.h>             // for access
 #include "peer_info.h"          // for struct peer_info
 
 #ifdef _WIN32
@@ -384,6 +386,11 @@ static char * stringify_option (void *conf, struct n3n_conf_option *option, char
         case n3n_conf_strncpy: {
             char *val = (char *)valvoid;
 
+            if(*val == 0) {
+                // Cannot display empty strings
+                return NULL;
+            }
+
             // Our setter routine ensures that the value is always NULL
             // so we can simply return it
             return val;
@@ -666,10 +673,7 @@ int n3n_config_load_env (void *conf) {
  * an actual session name (basically, the basename with no extension is used)
  *
  */
-// FIXME: this is an internal function intended to be static, but is public
-// for testing - until the config file loader is written
-/*static*/ FILE *find_config (char *name) {
-    FILE *f;
+static char *find_config (char *name) {
     if(!name) {
         return NULL;
     }
@@ -678,10 +682,10 @@ int n3n_config_load_env (void *conf) {
         // Handle the case where the given "session name" is actually a
         // pathname
 
-        f = fopen(name, "r");
-        if(!f) {
+        if(access(name, R_OK) != 0) {
             return NULL;
         }
+        char *filename = strdup(name);
 
         // Find the last path component (we know we at least start with one)
         char *p = strrchr(name, '/');
@@ -700,7 +704,7 @@ int n3n_config_load_env (void *conf) {
             *p = 0;
         }
 
-        return f;
+        return filename;
     }
 
     // TODO: Are there other places that should be searched?
@@ -720,10 +724,195 @@ int n3n_config_load_env (void *conf) {
         char buf[1024];
         snprintf(buf, sizeof(buf), "%s/%s.conf", searchpath[i], name);
 
-        f = fopen(buf, "r");
-        if(f) {
-            return f;
+        if(access(buf, R_OK) == 0) {
+            char *filename = strdup(buf);
+            return filename;
         }
     }
     return NULL;
+}
+
+// Input a line containing a section header definition.
+// return just the string with the section name
+char *extract_section (char *line) {
+    // Skip the open bracket
+    line++;
+    char *section = line;
+    bool closed = false;
+
+    while(*line) {
+        if(isspace(*line)) {
+            // Any space terminates the section name and introduces
+            // the (unused in this parser) instance name
+            *line++ = 0;
+            continue;
+        }
+        if(closed) {
+            if(*line == '#') {
+                // Dont care what comes after a comment start
+                break;
+            }
+            printf("Error: unexpected text trailing section name\n");
+            return NULL;
+        }
+        if(*line == ']') {
+            // Found the close bracket
+            *line++ = 0;
+            closed = true;
+            continue;
+        }
+        if(isalnum(*line)) {
+            // These are valid chars for a name
+            line++;
+            continue;
+        }
+        printf("Error: unexpected characters in section name\n");
+        return NULL;
+    }
+
+    if(!*section) {
+        printf("Error: empty section name\n");
+        return NULL;
+    }
+    if(!closed) {
+        printf("Error: unterminated section header\n");
+        return NULL;
+    }
+    return section;
+}
+
+int n3n_config_load_file (void *conf, char *name) {
+    int error = -1;
+    char *filename = find_config(name);
+    if(!filename) {
+        // Couldnt find a filename
+        return -1;
+    }
+    FILE *f = fopen(filename, "r");
+    if(!f) {
+        // Shouldnt happen, since find_config found a file
+        goto out;
+    }
+
+    char *section = NULL;
+
+    char buf[1024];
+    char *line;
+    int linenr = 0;
+
+    while((line = fgets(buf, sizeof(buf), f))) {
+        linenr++;
+        while(isspace(*line)) {
+            line++;
+        }
+        if(!*line || *line == '\r' ) {
+            // Skip lines that are empty
+            continue;
+        }
+        if(*line == '#') {
+            // Skip lines starting with a comment
+            continue;
+        }
+        if(*line == '[') {
+            // A section heading
+            free(section);
+            char *tmp_section = extract_section(line);
+            if(!tmp_section) {
+                goto out;
+            }
+            section = strdup(tmp_section);
+            if(!lookup_section(section)) {
+                printf("Warning: unknown section %s\n", section);
+            }
+            continue;
+        }
+
+        if(!section) {
+            printf(
+                "Error:%s:%i: options outside of a section\n",
+                filename,
+                linenr
+                );
+            goto out;
+        }
+
+        char *option = line;
+
+        while(*line) {
+            if(isalnum(*line) || (*line == '_')) {
+                // These are valid chars for a name
+                line++;
+                continue;
+            }
+            if(isspace(*line)) {
+                *line++ = 0;
+                break;
+            }
+            if(*line == '=') {
+                break;
+            }
+        }
+        if(!*line) {
+            printf("Error:%s:%i: unexpected end of line\n", filename, linenr);
+            goto out;
+        }
+
+        while(*line) {
+            if(isspace(*line)) {
+                *line++ = 0;
+                continue;
+            }
+            if(*line == '=') {
+                break;
+            }
+        }
+        if(*line != '=') {
+            printf("Error:%s:%i: expected equals\n", filename, linenr);
+            goto out;
+        }
+
+        // Skip the equals
+        *line++ = 0;
+
+        while(*line) {
+            if(isspace(*line)) {
+                line++;
+                continue;
+            }
+            break;
+        }
+        if(!*line) {
+            printf("Error:%s:%i: unexpected end of line\n", filename, linenr);
+            goto out;
+        }
+
+        char *comment = strchr(line, '#');
+        if(comment) {
+            *comment = 0;
+        }
+
+        // Strip trailing spaces
+        char *end = &line[strlen(line) - 1];
+        while(end > line && isspace(*end)) {
+            end--;
+        }
+        end[1] = 0;
+
+        if(n3n_config_set_option(conf, section, option, line)!=0) {
+            printf(
+                "Error:%s:%i: while setting %s.%s=%s\n",
+                filename,
+                linenr,
+                section,
+                option,
+                line
+                );
+        }
+    }
+    error = 0;
+
+out:
+    free(section);
+    free(filename);
+    return error;
 }

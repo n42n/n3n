@@ -54,6 +54,6 @@ void n3n_config_dump (void *, FILE *, int);
 
 int n3n_config_load_env (void *);
 
-FILE *find_config (char *name);
+int n3n_config_load_file (void *, char *);
 #endif
 

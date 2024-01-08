@@ -527,68 +527,6 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
     }
 }
 
-/* *************************************************** */
-
-static char *trim (char *s) {
-
-    char *end;
-
-    while(isspace(s[0]) || (s[0] == '"') || (s[0] == '\'')) s++;
-    if(s[0] == 0) return s;
-
-    end = &s[strlen(s) - 1];
-    while(end > s
-          && (isspace(end[0])|| (end[0] == '"') || (end[0] == '\'')))
-        end--;
-    end[1] = 0;
-
-    return s;
-}
-
-/* *************************************************** */
-
-/* parse the configuration file */
-static int loadFromFile (FILE *fd, n2n_edge_conf_t *conf) {
-
-    char buffer[4096], *line;
-    char *line_vec[3];
-    int tmp;
-
-    if(!fd) {
-        return -1;
-    }
-
-    // we mess around with optind, better save it
-    tmp = optind;
-
-    while((line = fgets(buffer, sizeof(buffer), fd)) != NULL) {
-        line = trim(line);
-
-        if(strlen(line) < 2 || line[0] == '#')
-            continue;
-
-        // executable, cannot be omitted, content can be anything
-        line_vec[0] = line;
-        // first token, e.g. `-p` or `-A3', eventually followed by a whitespace or '=' delimiter
-        line_vec[1] = strtok(line, "\t =");
-        // separate parameter option, if present
-        line_vec[2] = strtok(NULL, "");
-        if(line_vec[2])
-            line_vec[2] = trim(line_vec[2]);
-        // not to duplicate the option parser code, call loadFromCLI and pretend we have no option read yet at all
-        optind = 0;
-        // if second token present (optional argument, not part of first), then announce 3 vector members
-        loadFromCLI(line_vec[2] ? 3 : 2, line_vec, conf);
-    }
-
-    fclose(fd);
-    optind = tmp;
-
-    return 0;
-
-
-}
-
 /********************************************************************/
 // Sub command generic processor
 
@@ -748,6 +686,17 @@ static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_
     exit(0);
 }
 
+static void cmd_test_config_load_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    conf = malloc(sizeof(*conf));
+    memset(conf, 0, sizeof(*conf));
+    if(n3n_config_load_file(conf, argv[1]) != 0) {
+        printf("Error loading config file\n");
+        exit(1);
+    }
+    n3n_config_dump(conf, stdout, 1);
+    exit(0);
+}
+
 static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
@@ -787,6 +736,12 @@ static struct subcmd_def cmd_test_config[] = {
         .help = "[level] - just dump the current config",
         .type = subcmd_type_fn,
         .fn = &cmd_test_config_dump,
+    },
+    {
+        .name = "load_dump",
+        .help = "[sessionname] - load the config file and then dump it",
+        .type = subcmd_type_fn,
+        .fn = &cmd_test_config_load_dump,
     },
     { .name = NULL }
 };
@@ -863,10 +818,10 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             name = defname;
         }
 
-        FILE *f = find_config(name);
-
-        loadFromFile(f, conf);
-        // Ignore any error as it currently can only be "file not found"
+        if(n3n_config_load_file(conf, name) != 0) {
+            printf("Error loading config file\n");
+            exit(1);
+        }
     }
 
     // Update the loaded conf with the current environment
