@@ -71,7 +71,7 @@ int main (int argc, char * argv[]) {
     edge_init_conf_defaults(&conf);
 
     strncpy((char*)conf.community_name, "abc123def456", sizeof(conf.community_name));
-    conf.encrypt_key = "SoMEVer!S$cUREPassWORD";
+    conf.encrypt_key = strdup("SoMEVer!S$cUREPassWORD");
 
     pearson_hash_init();
 
@@ -116,6 +116,9 @@ int main (int argc, char * argv[]) {
 #ifdef HAVE_ZSTD
     transop_zstd.deinit(&transop_zstd);
 #endif
+
+    edge_term_conf(&conf);
+
     return 0;
 }
 

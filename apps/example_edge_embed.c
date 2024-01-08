@@ -39,7 +39,7 @@ int main () {
     conf.allow_routing = true;                                                               // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to
     conf.drop_multicast = false;                                                             // Whether to disable multicast
-    conf.encrypt_key = "mysecret";                                                           // Secret to decrypt & encrypt with
+    conf.encrypt_key = strdup("mysecret");                                                   // Secret to decrypt & encrypt with
     // conf.bind_address = sockaddr; // can be used to bind to a local port
     conf.register_interval = 1;                                                              // Interval for both UDP NAT hole punching and supernode registration
     conf.register_ttl = 1;                                                                   // Interval for UDP NAT hole punching through supernode
