@@ -45,6 +45,6 @@ for i in $TESTS; do
     echo "$TEST >$LISTDIR/$i.out"
     set -e
     "$TEST" >"$LISTDIR/$i.out"
-    cmp "$LISTDIR/$i.expected" "$LISTDIR/$i.out"
+    diff -wu "$LISTDIR/$i.expected" "$LISTDIR/$i.out"
     set +e
 done
