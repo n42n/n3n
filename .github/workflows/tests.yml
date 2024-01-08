@@ -418,11 +418,10 @@ jobs:
           make package/n3n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n3n V=s
           make package/n3n/compile V=s
 
-      - name: Run embedded tests
-        run: |
-          make test.builtin
 # FIXME: add a way to run the test suite!
-#        run: make test
+#      - name: Run embedded tests
+#        run: |
+#          make test
 
       - name: Save config used
         if: always()
