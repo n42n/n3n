@@ -3215,7 +3215,8 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
 void edge_term_conf (n2n_edge_conf_t *conf) {
 
-    if(conf->encrypt_key) free(conf->encrypt_key);
+    free(conf->encrypt_key);
+    free(conf->mgmt_password);
 
     if(conf->network_traffic_filter_rules) {
         filter_rule_t *el = 0, *tmp = 0;
