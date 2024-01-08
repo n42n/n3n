@@ -177,13 +177,16 @@ $(N2N_LIB): $(N2N_OBJS)
 #	$(RANLIB) $@
 
 .PHONY: test test.units test.integration
-test: test.units test.integration
+test: test.builtin test.units test.integration
 
 test.units: tools
 	scripts/test_harness.sh tests/tests_units.list
 
 test.integration: apps
 	scripts/test_harness.sh tests/tests_integration.list
+
+test.builtin: apps
+	scripts/test_harness.sh tests/tests_builtin.list
 
 .PHONY: lint lint.python lint.ccode lint.shell lint.yaml
 lint: lint.python lint.ccode lint.shell lint.yaml
