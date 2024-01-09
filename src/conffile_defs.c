@@ -139,9 +139,9 @@ static struct n3n_conf_option section_connection[] = {
                 "authentication is used",
     },
     {
-        .name = "disable_pmtu",
+        .name = "pmtu_discovery",
         .type = n3n_conf_bool,
-        .offset = offsetof(n2n_edge_conf_t, disable_pmtu_discovery),
+        .offset = offsetof(n2n_edge_conf_t, pmtu_discovery),
         .desc = "Control use of PMTU discovery for network packets",
         .help = "This can reduce fragmentation but causes connections to "
                 "stall if not properly supported by the network. "

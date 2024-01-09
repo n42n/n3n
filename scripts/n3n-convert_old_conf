@@ -89,7 +89,7 @@ def handle_shortopt_one(opt, arg):
     mapping = {
         "@": None,  # --help
         "A": ["community",    "cipher",           None],
-        "D": ["connection",   "disable_pmtu",     "false"],
+        "D": ["connection",   "pmtu_discovery",   "true"],
         "E": ["filter",       "drop_multicast",   "false"],
         "H": ["community",    "header_encryption", "true"],
         "I": ["connection",   "description",      None],

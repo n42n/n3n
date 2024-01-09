@@ -336,13 +336,33 @@ int supernode_connect (n2n_edge_t *eee) {
                 traceEvent(TRACE_WARNING, "could not set TOS 0x%x[%d]: %s", eee->conf.tos, errno, strerror(errno));
         }
 #ifdef IP_PMTUDISC_DO
-        sockopt = (eee->conf.disable_pmtu_discovery) ? IP_PMTUDISC_DONT : IP_PMTUDISC_DO;
+        if(eee->conf.pmtu_discovery) {
+            sockopt = IP_PMTUDISC_DO;
+        } else {
+            sockopt = IP_PMTUDISC_DONT;
+        }
+        traceEvent(
+            TRACE_INFO,
+            "Setting pmtu_discovery %s",
+            (eee->conf.pmtu_discovery) ? "true" : "false"
+            );
 
-        if(setsockopt(eee->sock, IPPROTO_IP, IP_MTU_DISCOVER, &sockopt, sizeof(sockopt)) < 0)
-            traceEvent(TRACE_WARNING, "could not %s PMTU discovery[%d]: %s",
-                       (eee->conf.disable_pmtu_discovery) ? "disable" : "enable", errno, strerror(errno));
-        else
-            traceEvent(TRACE_INFO, "PMTU discovery %s", (eee->conf.disable_pmtu_discovery) ? "disabled" : "enabled");
+        int i = setsockopt(
+            eee->sock,
+            IPPROTO_IP,
+            IP_MTU_DISCOVER,
+            &sockopt,
+            sizeof(sockopt)
+            );
+
+        if(i < 0) {
+            traceEvent(
+                TRACE_WARNING,
+                "Setting pmtu_discovery failed: %s(%d)",
+                strerror(errno),
+                errno
+                );
+        }
 #endif
 
         memset(&local_sock, 0, sizeof(n2n_sock_t));
@@ -3170,7 +3190,6 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->compression = N2N_COMPRESSION_ID_NONE;
     conf->drop_multicast = true;
     conf->allow_p2p = true;
-    conf->disable_pmtu_discovery = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
 
 #ifdef _WIN32

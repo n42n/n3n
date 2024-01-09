@@ -114,7 +114,7 @@ static const struct option_map_def {
     char *help;
 } option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
-    { 'D',  "connection",   "disable_pmtu",     "false" },
+    { 'D',  "connection",   "pmtu_discovery",   "true" },
     { 'E',  "filter",       "drop_multicast",   "false" },
     { 'H',  "community",    "header_encryption","true", },
     { 'I',  "connection",   "description",      NULL },
