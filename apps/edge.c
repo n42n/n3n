@@ -106,8 +106,6 @@ static const struct option long_options[] = {
     { "help",                no_argument,       NULL, 'h' },
     { "verbose",             no_argument,       NULL, 'v' },
     { "version",             no_argument,       NULL, 'V' },
-    { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
-    { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
     { NULL,                  0,                 NULL,  0  }
 };
 
@@ -253,16 +251,6 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
                     set_option_wrap(conf, "connection", "allow_p2p", "false");
                 if(solitude == 2)
                     set_option_wrap(conf, "connection", "connect_tcp", "true");
-                break;
-            }
-
-            case '[': /* round-trip-time-based supernode selection strategy */ {
-                set_option_wrap(conf, "connection", "supernode_selection", "rtt");
-                break;
-            }
-
-            case ']': /* mac-address-based supernode selection strategy */ {
-                set_option_wrap(conf, "connection", "supernode_selection", "mac");
                 break;
             }
 

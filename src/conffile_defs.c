@@ -183,10 +183,10 @@ static struct n3n_conf_option section_connection[] = {
         .offset = offsetof(n2n_edge_conf_t, sn_selection_strategy),
         .desc = "How to select a supernode",
         .help = "There are multiple strategies available for how to select "
-                "the current supernode. Default is to use the supernode's "
-                "reported load and choose the lowest (called 'load').  Also "
-                "available are 'rtt' to shoose the lowest measured round trip "
-                "time and 'mac' to shoose the lowest MAC address",
+                "the current supernode. Default is to select the supernode "
+                "with lowest reported load ('load').  Also "
+                "available are 'rtt' to select the lowest measured round trip "
+                "time and 'mac' to select the lowest MAC address",
     },
     {
         .name = "tos",
