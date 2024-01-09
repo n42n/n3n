@@ -244,6 +244,5 @@ affect the availability of the n3n networking.  Therefore the machine
 readable API include an authentication component.
 
 Currently, the only authentication is a simple password that the client
-must provide. It defaults to 'n3n' and can manually be set through the
-command line parameter `--management-password <pw>` – for edge as well
-as for supernode.
+must provide. It defaults to 'n3n' and can ehter be set in the config
+file or manually on the command line with `-Omanagement.password=$pw`

@@ -108,7 +108,6 @@ static const struct option long_options[] = {
     { "version",             no_argument,       NULL, 'V' },
     { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
     { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
-    { "management-password", required_argument, NULL, '{' }, /*                            '{'             management port password */
     { NULL,                  0,                 NULL,  0  }
 };
 
@@ -264,11 +263,6 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
 
             case ']': /* mac-address-based supernode selection strategy */ {
                 set_option_wrap(conf, "connection", "supernode_selection", "mac");
-                break;
-            }
-
-            case '{': /* password for management port */ {
-                set_option_wrap(conf, "management", "password", optarg);
                 break;
             }
 
