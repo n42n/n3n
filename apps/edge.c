@@ -99,8 +99,8 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
 
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
-    { "supernode-list",      required_argument, NULL, 'l' },
     { "help",                no_argument,       NULL, 'h' },
+    { "supernode-list",      required_argument, NULL, 'l' },
     { "verbose",             no_argument,       NULL, 'v' },
     { "version",             no_argument,       NULL, 'V' },
     { NULL,                  0,                 NULL,  0  }
