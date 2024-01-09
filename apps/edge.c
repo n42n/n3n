@@ -95,241 +95,11 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
 
 /* *************************************************** */
 
-static void help (int level) {
-
-    if(level == 0) return; /* no help required */
-
-    printf("\n");
-    print_n3n_version();
-
-    if(level == 1) {
-        /* short help */
-
-        printf("   basic usage:  edge start [sessionname]\n"
-               "\n  -h    shows a quick reference including all available options"
-               "\n --help gives a detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-
-    } else if(level == 2) {
-        /* quick reference */
-
-        printf(" general usage:  edge start [sessionname]\n"
-               "\n"
-               "Loads a config file named from the sessionname (default 'edge.conf')\n"
-               "Any commandline options override the config loaded\n"
-               "\n                      "
-               " -c <community name>"
-               " -l <supernode host:port>"
-               "\n                      "
-               "[-p [<local bind ip address>:]<local port>] "
-               "\n                      "
-
-#ifdef __linux__
-               "[-T <type of service>] "
-#endif
-#ifndef __APPLE__
-               "[-D] "
-#endif
-               "\n options for under-   "
-               "[-i <registration interval>] "
-               "[-L <registration ttl>] "
-               "\n lying connection     "
-               "[-k <key>] "
-               "[-A<cipher>] "
-               "[-H] "
-               "[-z<compression>] "
-               "\n                      "
-               "[-e <preferred local IP address>] [-S<level of solitude>]"
-               "\n                      "
-               "[--select-rtt] "
-#if defined(HAVE_MINIUPNP) || defined(HAVE_NATPMP)
-               "[--no-port-forwarding] "
-#endif // HAVE_MINIUPNP || HAVE_NATPMP
-               "\n\n tap device and       "
-               "[-a [static:|dhcp:]<tap IP address>[/<cidr suffix>]] "
-               "\n overlay network      "
-               "[-m <tap MAC address>] "
-#if defined(N2N_CAN_NAME_IFACE)
-               "[-d <tap device name>] "
-#endif
-               "\n configuration        "
-               "[-M <tap MTU>] "
-               "[-r] "
-               "[-E] "
-               "[-I <edge description>] "
-               "\n                      "
-               "[-J <password>] "
-               "[-P <public key>] "
-               "[-R <rule string>] "
-#ifdef _WIN32
-               "\n                      "
-               "[-x <metric>] "
-#endif
-               "\n\n local options        "
-#ifndef _WIN32
-               "[-f] "
-#endif
-               "[-t <management port>] "
-               "[--management-password <pw>] "
-               "\n                      "
-               "[-v] "
-               "[-V] "
-#ifndef _WIN32
-               "\n                      "
-               "[-u <numerical user id>] "
-               "[-g <numerical group id>] "
-#endif
-               "\n\n environment          "
-               "N2N_KEY         instead of [-k <key>]"
-               "\n variables            "
-               "N2N_COMMUNITY   instead of -c <community>"
-               "\n                      "
-               "N2N_PASSWORD    instead of [-J <password>]"
-               "\n                      "
-               "\n meaning of the       "
-#ifndef __APPLE__
-               "[-D]  enable PMTU discovery"
-#endif
-               "\n flag options         [-H]  enable header encryption"
-               "\n                      [-r]  enable packet forwarding through n3n community"
-               "\n                      [-E]  accept multicast MAC addresses"
-               "\n            [--select-rtt]  select supernode by round trip time"
-               "\n            [--select-mac]  select supernode by MAC address"
-#ifndef _WIN32
-               "\n                      [-f]  do not fork but run in foreground"
-#endif
-               "\n                      [-v]  make more verbose, repeat as required"
-               "\n                      [-V]  make less verbose, repeat as required"
-               "\n                      "
-
-               "\n  -h    shows this quick reference including all available options"
-               "\n --help gives a detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-
-    } else {
-        /* long help */
-
-        printf(" general usage:  edge start [sessionname]\n"
-               "\n"
-               "Loads a config file named from the sessionname (default 'edge.conf')\n"
-               "Any commandline options override the config loaded\n\n"
-               );
-        printf(" OPTIONS FOR THE UNDERLYING NETWORK CONNECTION\n");
-        printf(" ---------------------------------------------\n\n");
-        printf(" -c <community>    | n3n community name the edge belongs to\n");
-        printf(" -l <host:port>    | supernode ip address or name, and port\n");
-        printf(" -p [<ip>:]<port>  | fixed local UDP port and optionally bind to the\n"
-               "                   | sepcified local IP address only (any by default)\n");
-#ifdef __linux__
-        printf(" -T <tos>          | TOS for packets, e.g. 0x48 for SSH like priority\n");
-#endif
-#ifndef __APPLE__
-        printf(" -D                | enable PMTU discovery, it can reduce fragmentation but\n"
-               "                   | causes connections to stall if not properly supported\n");
-#endif
-        printf(" -e <local ip>     | advertises the provided local IP address as preferred,\n"
-               "                   | useful if multicast peer detection is not available,\n"
-               "                   | '-e auto' tries IP address auto-detection\n");
-        printf(" -S1 ... -S2       | do not connect p2p, always use the supernode,\n"
-               "                   | -S1 = via UDP"
-
-#ifdef N2N_HAVE_TCP
-               ", -S2 = via TCP"
-#endif
-               "\n");
-        printf(" -i <reg_interval> | registration interval, for NAT hole punching (default\n"
-               "                   | %u seconds)\n", REGISTER_SUPER_INTERVAL_DFL);
-        printf(" -L <reg_ttl>      | TTL for registration packet for NAT hole punching through\n"
-               "                   | supernode (default 0 for not set)\n");
-        printf(" -k <key>          | encryption key (ASCII) - also N2N_KEY=<key>\n");
-        printf(" -A <cipher>       | choose a cipher for payload encryption, requires a key,\n"
-               "                   | Twofish, AES (default if key provided),\n"
-               "                   | ChaCha20, Speck\n");
-        printf(" -H                | use header encryption, supernode needs fixed community\n");
-        printf(" -z1 ... -z2       | compress outgoing data packets, -z1 = lzo1x,\n"
-               "                   | "
-#ifdef HAVE_ZSTD
-               "-z2 = zstd, "
-#endif
-               "disabled by default\n");
-        printf("--select-rtt       | supernode selection based on round trip time\n"
-               "--select-mac       | supernode selection based on MAC address (default:\n"
-               "                   | by load)\n");
-        printf("\n");
-        printf(" TAP DEVICE AND OVERLAY NETWORK CONFIGURATION\n");
-        printf(" --------------------------------------------\n\n");
-        printf(" -a [mode]<ip>[/n] | interface address and optional CIDR subnet, default '/24',\n"
-               "                   | mode = [static|dhcp]:, for DHCP use '-r -a dhcp:0.0.0.0',\n"
-               "                   | edge draws IP address from supernode if no '-a ...' given\n");
-        printf(" -m <mac>          | fixed MAC address for the TAP interface, e.g.\n"
-               "                   | '-m 10:20:30:40:50:60', random otherwise\n");
-#if defined(N2N_CAN_NAME_IFACE)
-        printf(" -d <device>       | TAP device name\n");
-#endif
-        printf(" -M <mtu>          | specify n3n MTU of TAP interface, default %d\n", DEFAULT_MTU);
-        printf(" -r                | enable packet forwarding through n3n community,\n"
-               "                   | also required for bridging\n");
-        printf(" -E                | accept multicast MAC addresses, drop by default\n");
-        printf(" -I <description>  | annotate the edge's description used for easier\n"
-               "                   | identification in management port output or username\n");
-        printf(" -J <password>     | password for user-password edge authentication\n");
-        printf(" -P <public key>   | federation public key for user-password authentication\n");
-        printf(" -R <rule>         | drop or accept packets by rules, can be set multiple times\n");
-        printf("                   | rule format:    'src_ip/n:[s_port,e_port],...\n"
-               "                   |    |on same|  ...dst_ip/n:[s_port,e_port],...\n"
-               "                   |    | line  |  ...TCP+/-,UDP+/-,ICMP+/-'\n");
-#ifdef _WIN32
-        printf(" -x <metric>       | set TAP interface metric, defaults to 0 (auto),\n"
-               "                   | e.g. set to 1 for better multiplayer game detection\n");
-#endif
-        printf("\n");
-        printf(" LOCAL OPTIONS\n");
-        printf(" -------------\n\n");
-#ifndef _WIN32
-        printf(" -f                | do not fork and run as a daemon, rather run in foreground\n");
-#endif
-        printf(" -t <port>         | management UDP port, for multiple edges on a machine,\n"
-               "                   | defaults to %u\n", N2N_EDGE_MGMT_PORT);
-        printf(" --management_...  | management port password, defaults to '%s'\n"
-               " ...password <pw>  | \n", N2N_MGMT_PASSWORD);
-        printf(" -v                | make more verbose, repeat as required\n");
-        printf(" -V                | make less verbose, repeat as required\n");
-#ifndef _WIN32
-        printf(" -u <UID>          | numeric user ID to use when privileges are dropped\n");
-        printf(" -g <GID>          | numeric group ID to use when privileges are dropped\n");
-#endif
-        printf("\n");
-        printf(" ENVIRONMENT VARIABLES\n");
-        printf(" ---------------------\n\n");
-        printf(" N2N_KEY           | encryption key (ASCII), not with '-k ...'\n");
-        printf(" N2N_COMMUNITY     | community name (ASCII), overwritten by '-c ...'\n");
-        printf(" N2N_PASSWORD      | password (ASCII) for user-password authentication,\n"
-               "                   | overwritten by '-J ...'\n");
-#ifdef _WIN32
-        printf("\n");
-        printf(" AVAILABLE TAP ADAPTERS\n");
-        printf(" ----------------------\n\n");
-        win_print_available_adapters();
-#endif
-        printf("\n"
-               "\n  -h    shows a quick reference including all available options"
-               "\n --help gives this detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-    }
-
-    exit(0);
-}
-
-/* *************************************************** */
-
 static const struct option_map_def {
     int optkey;
     char *section;
     char *option;
-    char *value;    // if no optargument, then use this for the value
+    char *value;    // if no optarg, then use this for the value
     char *help;
 } option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
@@ -402,92 +172,7 @@ static void set_from_option_map (n2n_edge_conf_t *conf, int optkey, char *optarg
     printf("unknown option -%c", (char)optkey);
 }
 
-static int setOption (int optkey, char *optargument, n2n_edge_conf_t *conf) {
-
-    /* traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optargument ? optargument : ""); */
-
-    switch(optkey) {
-        case 'a': /* IP address and mode of TUNTAP interface */ {
-            /*
-             * of the form:
-             *
-             * ["static:"|"dhcp:","auto:"] <ip> [/<cidr subnet mask>]
-             *
-             * for example        static:192.168.8.5/24
-             *
-             */
-            char *field2 = strchr(optargument, ':');
-            if(field2) {
-                // We have a field #1, extract it
-                *field2++ = 0;
-                set_option_wrap(conf, "tuntap", "address_mode", optargument);
-            } else {
-                set_option_wrap(conf, "tuntap", "address_mode", "static");
-                field2 = optargument;
-            }
-
-            set_option_wrap(conf, "tuntap", "address", field2);
-            break;
-        }
-        case 'S': {
-            int solitude;
-            if(optargument) {
-                solitude = atoi(optargument);
-            } else {
-                traceEvent(TRACE_ERROR, "unknown -S value");
-                break;
-            }
-
-            // set the level
-            if(solitude >= 1)
-                set_option_wrap(conf, "connection", "allow_p2p", "false");
-            if(solitude == 2)
-                set_option_wrap(conf, "connection", "connect_tcp", "true");
-            break;
-        }
-
-        case '[': /* round-trip-time-based supernode selection strategy */ {
-            set_option_wrap(conf, "connection", "supernode_selection", "rtt");
-            break;
-        }
-
-        case ']': /* mac-address-based supernode selection strategy */ {
-            set_option_wrap(conf, "connection", "supernode_selection", "mac");
-            break;
-        }
-
-        case '{': /* password for management port */ {
-            set_option_wrap(conf, "management", "password", optargument);
-            break;
-        }
-
-        case 'h': /* quick reference */ {
-            return 2;
-        }
-
-        case '@': /* long help */ {
-            return 3;
-        }
-
-        case 'v': /* verbose */
-            setTraceLevel(getTraceLevel() + 1);
-            break;
-
-        case 'V': /* less verbose */ {
-            setTraceLevel(getTraceLevel() - 1);
-            break;
-        }
-
-        default: {
-            set_from_option_map(conf, optkey, optargument);
-        }
-    }
-
-    return 0;
-}
-
 /* *********************************************** */
-
 
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
@@ -495,8 +180,9 @@ static const struct option long_options[] = {
     { "tap-device",          required_argument, NULL, 'd' },
     { "euid",                required_argument, NULL, 'u' },
     { "egid",                required_argument, NULL, 'g' },
+    { "help",                no_argument,       NULL, 'h' },
     { "verbose",             no_argument,       NULL, 'v' },
-    { "help",                no_argument,       NULL, '@' }, /* internal special character '@' to identify long help case */
+    { "version",             no_argument,       NULL, 'V' },
     { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
     { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
     { "management-password", required_argument, NULL, '{' }, /*                            '{'             management port password */
@@ -508,22 +194,84 @@ static const struct option long_options[] = {
 /* read command line options */
 static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
 
-    u_char c;
+    int c = 0;
+    while(c != -1) {
+        c = getopt_long(
+            argc, argv,
+            // The superset of all possible short options
+            "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:",
+            long_options,
+            NULL
+            );
 
-    while((c = getopt_long(argc, argv,
-                           "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:"
-#ifdef __linux__
-                           "T:"
-#endif
-#ifdef _WIN32
-                           "x:"
-#endif
-                           ,
-                           long_options, NULL)) != '?') {
+        /* traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optarg ? optarg : ""); */
 
-        if(c == 255) break;
-        help(setOption(c, optarg, conf));
+        switch(c) {
+            case 'a': /* IP address and mode of TUNTAP interface */ {
+                /*
+                 * of the form:
+                 *
+                 * ["static:"|"dhcp:","auto:"] <ip> [/<cidr subnet mask>]
+                 *
+                 * for example        static:192.168.8.5/24
+                 *
+                 */
+                char *field2 = strchr(optarg, ':');
+                if(field2) {
+                    // We have a field #1, extract it
+                    *field2++ = 0;
+                    set_option_wrap(conf, "tuntap", "address_mode", optarg);
+                } else {
+                    set_option_wrap(conf, "tuntap", "address_mode", "static");
+                    field2 = optarg;
+                }
 
+                set_option_wrap(conf, "tuntap", "address", field2);
+                break;
+            }
+            case 'S': {
+                int solitude;
+                if(optarg) {
+                    solitude = atoi(optarg);
+                } else {
+                    traceEvent(TRACE_ERROR, "unknown -S value");
+                    break;
+                }
+
+                // set the level
+                if(solitude >= 1)
+                    set_option_wrap(conf, "connection", "allow_p2p", "false");
+                if(solitude == 2)
+                    set_option_wrap(conf, "connection", "connect_tcp", "true");
+                break;
+            }
+
+            case '[': /* round-trip-time-based supernode selection strategy */ {
+                set_option_wrap(conf, "connection", "supernode_selection", "rtt");
+                break;
+            }
+
+            case ']': /* mac-address-based supernode selection strategy */ {
+                set_option_wrap(conf, "connection", "supernode_selection", "mac");
+                break;
+            }
+
+            case '{': /* password for management port */ {
+                set_option_wrap(conf, "management", "password", optarg);
+                break;
+            }
+
+            case 'v': /* verbose */
+                setTraceLevel(getTraceLevel() + 1);
+                break;
+
+            case -1: // dont try to set from option map the end sentinal
+                break;
+
+            default: {
+                set_from_option_map(conf, c, optarg);
+            }
+        }
     }
 }
 
@@ -567,7 +315,13 @@ void subcmd_help (struct subcmd_def *p, int indent, bool recurse) {
 }
 
 static void subcmd_help_simple (struct subcmd_def *p) {
-    printf("Subcommand help:\n\n");
+    printf(
+        "\n"
+        "Try edge -h for help\n"
+        "\n"
+        "Main subcommands:\n"
+        "\n"
+        );
     subcmd_help(p, 1, false);
     exit(1);
 }
@@ -610,6 +364,26 @@ void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname
 /********************************************************************/
 
 static struct subcmd_def cmd_top[]; // Forward define
+
+static void cmd_help_about (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    printf("n3n - a peer to peer VPN for when you have noLAN\n"
+           "\n"
+           " usage: edge [options...] [command] [command args]\n"
+           "\n"
+           " e.g: edge start [sessionname]\n"
+           "\n"
+           "  Loads the config based on the sessionname (default 'edge.conf')\n"
+           "  Any commandline options override the config loaded\n"
+           "\n"
+           "Some commands for more help:\n"
+           "\n"
+           " edge help commands\n"
+           " edge help options\n"
+           " edge help\n"
+           "\n"
+           );
+    exit(0);
+}
 
 static void cmd_help_commands (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     subcmd_help(cmd_top, 1, true);
@@ -677,6 +451,11 @@ static void cmd_help_transform (int argc, char **argv, char *_, n2n_edge_conf_t 
     exit(1);
 }
 
+static void cmd_help_version (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    print_n3n_version();
+    exit(0);
+}
+
 static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     int level=1;
     if(argv[1]) {
@@ -704,6 +483,12 @@ static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
 
 static struct subcmd_def cmd_help[] = {
     {
+        .name = "about",
+        .help = "Basic command help",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_about,
+    },
+    {
         .name = "commands",
         .help = "Show all possible commandline commands",
         .type = subcmd_type_fn,
@@ -726,6 +511,12 @@ static struct subcmd_def cmd_help[] = {
         .help = "Show compiled encryption and compression modules",
         .type = subcmd_type_fn,
         .fn = cmd_help_transform,
+    },
+    {
+        .name = "version",
+        .help = "Show the version",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_version,
     },
     { .name = NULL }
 };
@@ -791,15 +582,15 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
         switch(c) {
             case '?': // An invalid arg, or a missing optarg
                 exit(1);
+            case 'V':
+                cmd_help_version(0, NULL, NULL, NULL);
             case 'h': /* quick reference */
-                help(2);
-            case '@': /* long help */
-                help(3);
+                cmd_help_about(0, NULL, NULL, NULL);
         }
     }
 
     if(optind >= argc) {
-        // There is no sub-command
+        // There is no sub-command provided
         subcmd_help_simple(cmd_top);
     }
     // We now know there is a sub command on the commandline
@@ -993,11 +784,8 @@ int main (int argc, char* argv[]) {
         }
     }
 
-    if(rc < 0)
-        help(1); /* short help */
-
     if(edge_verify_conf(&conf) != 0)
-        help(1); /* short help */
+        cmd_help_about(0, NULL, NULL, NULL);
 
     traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", PACKAGE_VERSION, PACKAGE_BUILDDATE);
 

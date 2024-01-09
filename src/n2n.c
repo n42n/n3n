@@ -528,7 +528,7 @@ void hexdump (const uint8_t *buf, size_t len) {
 
 void print_n3n_version () {
 
-    printf("Welcome to n3n v%s Built on %s\n"
+    printf("n3n v%s, configured %s\n"
            "Copyright 2007-2022 - ntop.org and contributors\n"
            "Copyright (C) 2023-24 Hamish Coleman\n\n",
            PACKAGE_VERSION, PACKAGE_BUILDDATE);
