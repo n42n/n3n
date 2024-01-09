@@ -239,15 +239,22 @@ build-dep-dpkg:
 build-dep-brew:
 	brew install automake gcovr
 
+.PHONY: clean.cov
+clean.cov:
+	rm -f \
+		src/*.gcno src/*.gcda \
+		apps/*.gcno apps/*.gcda \
+		tools/*.gcno tools/*.gcda
+
 .PHONY: clean
-clean:
+clean: clean.cov
 	rm -rf $(N2N_OBJS) $(N2N_LIB) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
-	rm -f tests/*.out src/*.gcno src/*.gcda
+	rm -f tests/*.out
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
 
 .PHONY: distclean
 distclean:
-	rm -f tests/*.out src/*.gcno src/*.gcda src/*.indent src/*.unc-backup*
+	rm -f tests/*.out src/*.indent src/*.unc-backup*
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
 	rm -f edge.8.gz n3n.7.gz supernode.1.gz
