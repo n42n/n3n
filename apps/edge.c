@@ -95,7 +95,7 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
 
 /* *************************************************** */
 
-#define GETOPTS "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:"
+#define GETOPTS "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:O:"
 
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
@@ -127,9 +127,11 @@ static const struct option_map_def {
     { 'J',  "auth",         "password",         NULL },
     { 'L',  "connection",   "register_ttl",     NULL },
     { 'M',  "tuntap",       "mtu",              NULL },
+    { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'P',  "auth",         "pubkey",           NULL },
     { 'R',  "filter",       "rule",             NULL },
     { 'T',  "connection",   "tos",              NULL },
+    { 'V', NULL, NULL, NULL, "       Show the version" },
     { 'a', NULL, NULL, NULL, "<arg>  Set tuntap.address and tuntap.address_mode" },
     { 'c',  "community",    "name",             NULL },
     { 'd',  "tuntap",       "name",             NULL },
@@ -209,6 +211,12 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
         /* traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optarg ? optarg : ""); */
 
         switch(c) {
+            case 'O': // Set any config option
+                char *section = strtok(optarg, ".");
+                char *option = strtok(NULL, "=");
+                char *value = strtok(NULL, "");
+                set_option_wrap(conf, section, option, value);
+                break;
             case 'a': /* IP address and mode of TUNTAP interface */ {
                 /*
                  * of the form:

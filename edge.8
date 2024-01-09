@@ -17,10 +17,19 @@ session name is "edge", which results in looking for a config file called "edge.
 in the "/etc/n3n" directory.  Any command line arguments will override those
 loaded from the config file.
 .PP
-The config file is similar to the command line, with one option per line.
+The config file is similar to an INI file, with multiple sections and one
+option per line.
 Lines starting with a "#" are ignored.
-An equal sign ('=') should be used between key and value. Example: -p=7777
+An equal sign ('=') should be used between option and value.
 .SH OPTIONS FOR THE UNDERLYING NETWORK CONNECTION
+Some of the most common options also have a shortcut version, you can see all
+these with:
+.PP
+.B edge help options
+.PP
+.TP
+\fB\-O \fR<\fIsection\fR>.<\fIoption\fR>=<\fIvalue\fR>
+Sets any config option value.
 .TP
 \fB\-c \fR<\fIcommunity\fR>, \fB\-\-community\fR=<\fIcommunity\fR>
 sets the n3n community name (see also N2N_COMMUNITY in ENVIRONMENT). All edges
