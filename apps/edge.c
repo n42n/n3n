@@ -95,6 +95,23 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
 
 /* *************************************************** */
 
+#define GETOPTS "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:"
+
+static const struct option long_options[] = {
+    { "community",           required_argument, NULL, 'c' },
+    { "supernode-list",      required_argument, NULL, 'l' },
+    { "tap-device",          required_argument, NULL, 'd' },
+    { "euid",                required_argument, NULL, 'u' },
+    { "egid",                required_argument, NULL, 'g' },
+    { "help",                no_argument,       NULL, 'h' },
+    { "verbose",             no_argument,       NULL, 'v' },
+    { "version",             no_argument,       NULL, 'V' },
+    { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
+    { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
+    { "management-password", required_argument, NULL, '{' }, /*                            '{'             management port password */
+    { NULL,                  0,                 NULL,  0  }
+};
+
 static const struct option_map_def {
     int optkey;
     char *section;
@@ -132,6 +149,8 @@ static const struct option_map_def {
     { 'z',  "community",    "compression",      NULL },
     { .optkey = 0 }
 };
+
+/* *********************************************** */
 
 // little wrapper to show errors if the conffile parser has a problem
 static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option, char *value) {
@@ -172,23 +191,6 @@ static void set_from_option_map (n2n_edge_conf_t *conf, int optkey, char *optarg
     printf("unknown option -%c", (char)optkey);
 }
 
-/* *********************************************** */
-
-static const struct option long_options[] = {
-    { "community",           required_argument, NULL, 'c' },
-    { "supernode-list",      required_argument, NULL, 'l' },
-    { "tap-device",          required_argument, NULL, 'd' },
-    { "euid",                required_argument, NULL, 'u' },
-    { "egid",                required_argument, NULL, 'g' },
-    { "help",                no_argument,       NULL, 'h' },
-    { "verbose",             no_argument,       NULL, 'v' },
-    { "version",             no_argument,       NULL, 'V' },
-    { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
-    { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
-    { "management-password", required_argument, NULL, '{' }, /*                            '{'             management port password */
-    { NULL,                  0,                 NULL,  0  }
-};
-
 /* *************************************************** */
 
 /* read command line options */
@@ -199,7 +201,7 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
         c = getopt_long(
             argc, argv,
             // The superset of all possible short options
-            "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:",
+            GETOPTS,
             long_options,
             NULL
             );
@@ -574,7 +576,7 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
         c = getopt_long(
             argc, argv,
             // The superset of all possible short options
-            "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:",
+            GETOPTS,
             long_options,
             NULL
             );
