@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,8 +21,10 @@
 
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
+#include <n3n/conffile.h>            // for n3n_config_load_env
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
+#include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t, uint32_t, uin...
 #include <stdio.h>                   // for snprintf, sprintf
@@ -143,32 +145,6 @@ int edge_get_n2n_socket (n2n_edge_t *eee) {
 int edge_get_management_socket (n2n_edge_t *eee) {
 
     return(eee->udp_mgmt_sock);
-}
-
-/* ************************************** */
-
-const char* transop_str (enum n2n_transform tr) {
-
-    switch(tr) {
-        case N2N_TRANSFORM_ID_NULL:    return("null");
-        case N2N_TRANSFORM_ID_TWOFISH: return("Twofish");
-        case N2N_TRANSFORM_ID_AES:     return("AES");
-        case N2N_TRANSFORM_ID_CHACHA20: return("ChaCha20");
-        case N2N_TRANSFORM_ID_SPECK:   return("Speck");
-        default:                       return("invalid");
-    };
-}
-
-/* ************************************** */
-
-const char* compression_str (uint8_t cmpr) {
-
-    switch(cmpr) {
-        case N2N_COMPRESSION_ID_NONE:    return("none");
-        case N2N_COMPRESSION_ID_LZO:     return("lzo1x");
-        case N2N_COMPRESSION_ID_ZSTD:    return("zstd");
-        default:                         return("invalid");
-    };
 }
 
 /* ************************************** */
@@ -1758,14 +1734,15 @@ static int handle_PACKET (n2n_edge_t * eee,
                     break;
 #endif
                 default:
-                    traceEvent(TRACE_WARNING, "payload decompression failed: received packet indicating unsupported %s compression.",
-                               compression_str(rx_compression_id));
+                    traceEvent(TRACE_WARNING, "payload decompression failed: received packet indicating unsupported %i compression.",
+                               rx_compression_id);
                     return(-1); // cannot handle it
             }
 
             if(rx_compression_id != N2N_COMPRESSION_ID_NONE) {
                 traceEvent(TRACE_DEBUG, "payload decompression %s: deflated %u bytes to %u bytes",
-                           compression_str(rx_compression_id), eth_size, (int)deflate_len);
+                           n3n_compression_id2str(rx_compression_id),
+                           eth_size, (int)deflate_len);
                 eth_payload = deflate_buf;
                 eth_size = deflate_len;
             }
@@ -1842,8 +1819,10 @@ static int handle_PACKET (n2n_edge_t * eee,
             }
         } else {
             traceEvent(TRACE_WARNING, "invalid transop ID: expected %s (%u), got %s (%u) from %s [%s]",
-                       transop_str(eee->conf.transop_id), eee->conf.transop_id,
-                       transop_str(rx_transop_id), rx_transop_id,
+                       n3n_transform_id2str(eee->conf.transop_id),
+                       eee->conf.transop_id,
+                       n3n_transform_id2str(rx_transop_id),
+                       rx_transop_id,
                        macaddr_str(mac_buf, pkt->srcMac),
                        sock_to_cstr(sockbuf, orig_sender));
         }
@@ -2127,7 +2106,8 @@ void edge_send_packet2net (n2n_edge_t * eee,
 
         if(pkt.compression != N2N_COMPRESSION_ID_NONE) {
             traceEvent(TRACE_DEBUG, "payload compression [%s]: compressed %u bytes to %u bytes\n",
-                       compression_str(pkt.compression), len, compression_len);
+                       n3n_compression_id2str(pkt.compression),
+                       len, compression_len);
             enc_src = compression_buf;
             enc_len = compression_len;
         }
@@ -3209,33 +3189,34 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     /* reserve possible last char as null terminator. */
     gethostname((char*)conf->dev_desc, N2N_DESC_SIZE-1);
 
-    if(getenv("N2N_KEY")) {
-        conf->encrypt_key = strdup(getenv("N2N_KEY"));
-        conf->transop_id = N2N_TRANSFORM_ID_AES;
-    }
-    if(getenv("N2N_COMMUNITY")) {
-        strncpy((char*)conf->community_name, getenv("N2N_COMMUNITY"), N2N_COMMUNITY_SIZE);
-        conf->community_name[N2N_COMMUNITY_SIZE - 1] = '\0';
-    }
-    if(getenv("N2N_PASSWORD")) {
-        conf->shared_secret = calloc(1, sizeof(n2n_private_public_key_t));
-        if(conf->shared_secret)
-            generate_private_key(*(conf->shared_secret), getenv("N2N_PASSWORD"));
-    }
-
-    conf->mgmt_password = N2N_MGMT_PASSWORD;
+    conf->mgmt_password = strdup(N2N_MGMT_PASSWORD);
 
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
     conf->metric = 0;
     conf->daemon = true;
     conf->mtu = DEFAULT_MTU;
+
+#ifndef _WIN32
+    struct passwd *pw = NULL;
+    // Search a couple of usernames for one to use
+    pw = getpwnam("n3n");
+    if(pw == NULL) {
+        pw = getpwnam("nobody");
+    }
+    if(pw != NULL) {
+        // If we find one, use that as our default
+        conf->userid = pw->pw_uid;
+        conf->groupid = pw->pw_gid;
+    }
+#endif
 }
 
 /* ************************************** */
 
 void edge_term_conf (n2n_edge_conf_t *conf) {
 
-    if(conf->encrypt_key) free(conf->encrypt_key);
+    free(conf->encrypt_key);
+    free(conf->mgmt_password);
 
     if(conf->network_traffic_filter_rules) {
         filter_rule_t *el = 0, *tmp = 0;
@@ -3308,6 +3289,7 @@ int quick_edge_init (char *device_name, char *community_name,
 
     /* Setup the configuration */
     edge_init_conf_defaults(&conf);
+    n3n_config_load_env(&conf);
     conf.encrypt_key = encrypt_key;
     conf.transop_id = N2N_TRANSFORM_ID_AES;
     conf.compression = N2N_COMPRESSION_ID_NONE;

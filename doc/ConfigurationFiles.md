@@ -1,79 +1,60 @@
 # Configuration Files
 
 To help deployment and better handle locally different configurations, n3n
-supports the optional use of configuration files for `edge` and `supernode`.
+supports the use of configuration files for `edge` and `supernode`.
 
-They are plain text files and contain the desired command line options, **one
-per line**.
+(Note that the `supernode` is using a legacy config file format that is
+not discussed here)
 
-The exemplary command line
+The daemon will attempt to locate a configuration file based on the
+"sessionname" - which defaults to "edge" for the edge daemon.  This would
+result in a config file called "edge.conf", which is located in "/etc/n3n" (or
+the %USERPROFILE% directory on Windows)
 
+They are plain text files formatted very similar to INI files.
+
+To generate the help documentation for all current options:
 ```bash
-sudo edge -c mynetwork -k mysecretpass -a 192.168.100.1 -f -l supernode.ntop.org:7777
+edge help config
 ```
 
-translates into the following `edge.conf` file:
+If you created the following `/etc/n3n/testing.conf` file:
 
 ```
--c mynetwork
--k mysecretpass
--a 192.168.100.1
--f
--l supernode.ntop.org:7777
--A5
+[community]
+cipher = Speck
+key = mysecretpass
+name = mynetwork
+supernode = supernode.ntop.org:7777
+
+[daemon]
+background = false
+
+[tuntap]
+address = 192.168.100.1
+address_mode = static
 ```
 
 which can be loaded by
 
 ```
-sudo ./edge start edge
+sudo ./edge start testing
 ```
 
-Comment lines starting with a hash '#' are ignored.
-
-```
-# automated edge configuration
-# created by bot7
-# on April 31, 2038 – 1800Z
--c    mynetwork
--k    mysecretpass
--a    192.168.100.1
--f
--A5
-# --- supernode section ---
--l    supernode.ntop.org:7777
-```
-
-Long options can be used as well. Please note the double minus/dash-character `--`, just like you would use them on the command line with long options:
-
-```
---community    mynetwork
--k             mysecretpass
--a             192.168.100.1
--f
--A5
--l             supernode.ntop.org:7777
-```
-
-The edge will attempt to locate a configuration file based on the "sessionname", which
-defaults to "edge".  This would result in a config file called "edge.conf", which is
-located in "/etc/n3n" (or the current directory on Windows)
+If needed, the settings from the config file can all be overridden using a
+command line parameter:
 
 If required, additional command line parameters can also be supplied:
 
 ```
-sudo edge edge.conf -z1 -I myComputer
+sudo edge start testing \
+    -Oconnection.description=myComputer \
+    -O community.compression=lzo
 ```
 
-Finally, the `.conf` file syntax also allows `=` between parameter and its option:
+Some of the most common options also have a shortcut version, you can see all
+these with:
 
 ```
--c=mynetwork
--k=mysecretpass
--a=192.168.100.1
--f
--A5
--l=supernode.ntop.org:7777
+edge help options
 ```
-
-When used with `=`, there is no whitespace allowed between parameter, delimiter (`=`), and option. So, do **not** put `-c = mynetwork` – it is required to be `-c=mynetwork`.

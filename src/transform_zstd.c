@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2024 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +24,7 @@
 
 #ifdef HAVE_ZSTD
 
+#include <n3n/transform.h>   // for n3n_transform_register
 
 #include "n2n.h"
 
@@ -147,5 +150,14 @@ int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     return 0;
 }
 
+static struct n3n_transform transform = {
+    .name = "zstd",
+    .id = N2N_COMPRESSION_ID_ZSTD,
+    .is_compress = true,
+};
+
+void n3n_initfuncs_transform_zstd () {
+    n3n_transform_register(&transform);
+}
 
 #endif // HAVE_ZSTD

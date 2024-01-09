@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
 #include <stdlib.h>          // for size_t, calloc, free
 #include <string.h>          // for memset, strlen
@@ -178,4 +179,13 @@ int n2n_transop_cc20_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
     // setup the cipher and key
     return setup_cc20_key(priv, encrypt_key, encrypt_key_len);
+}
+
+static struct n3n_transform transform = {
+    .name = "ChaCha20",
+    .id = N2N_TRANSFORM_ID_CHACHA20,
+};
+
+void n3n_initfuncs_transform_cc20 () {
+    n3n_transform_register(&transform);
 }

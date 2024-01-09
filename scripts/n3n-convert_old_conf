@@ -1,0 +1,248 @@
+#!/usr/bin/env python3
+"""Load an old N2N config file and convert it to the matching N3N config"""
+#
+# This helper script is not installed by any package as it is only needed
+# once by people converting from n2n to n3n
+#
+# Note that due to the unique way the old config parser was written, this
+# needs to be quite complicated in order to emulate all the valid ways of
+# specifying options.
+
+import argparse
+import sys
+
+config = {}
+
+
+def set_option(section, option, value):
+    if section not in config:
+        config[section] = {}
+    config[section][option] = value
+
+
+def render_config(file):
+    print(
+        "# Automatically generated from old config by conversion script",
+        file=file
+    )
+    print(file=file)
+    for sectionname in sorted(config.keys()):
+        section = config[sectionname]
+        print(f"[{sectionname}]", file=file)
+
+        for optionname in sorted(section.keys()):
+            print(optionname, "=", section[optionname], file=file)
+
+        print(file=file)
+
+
+def trim(s):
+    # Converted from trim() in the edge.c source code
+
+    s = s.lstrip()
+    s = s.lstrip('"')
+    s = s.lstrip("'")
+
+    s = s.rstrip()
+    s = s.rstrip('"')
+    s = s.rstrip("'")
+    return s
+
+
+def separate_optarg(s):
+    # basically simulate strtok(line, "\t =")
+
+    if "\t" in s:
+        return s.split("\t", maxsplit=1)
+    if " " in s:
+        return s.split(maxsplit=1)
+    if "=" in s:
+        return s.split("=", maxsplit=1)
+
+    return s, None
+
+
+def convert_longopt(s):
+    # Given a --longopt, convert it to the correct "-s" shortopt
+
+    longopt = {
+        "--community":           "-c",
+        "--supernode-list":      "-l",
+        "--tap-device":          "-d",
+        "--euid":                "-u",
+        "--egid":                "-g",
+        "--verbose":             "-v",
+        "--help":                "-@",
+        "--select-rtt":          "-[",
+        "--select-mac":          "-]",
+        "--management-password": "-{",
+    }
+    if s not in longopt:
+        print("Error: unknown long option ", s)
+        sys.exit(1)
+
+    return longopt[s]
+
+
+def handle_shortopt_one(opt, arg):
+
+    mapping = {
+        "@": None,  # --help
+        "A": ["community",    "cipher",           None],
+        "D": ["connection",   "disable_pmtu",     "false"],
+        "E": ["filter",       "drop_multicast",   "false"],
+        "H": ["community",    "header_encryption", "true"],
+        "I": ["connection",   "description",      None],
+        "J": ["auth",         "password",         None],
+        "L": ["connection",   "register_ttl",     None],
+        "M": ["tuntap",       "mtu",              None],
+        "P": ["auth",         "pubkey",           None],
+        "R": ["filter",       "rule",             None],
+        "T": ["connection",   "tos",              None],
+        "V": None,  # decrease verbosity
+        "[": ["connection",   "supernode_selection", "rtt"],
+        "]": ["connection",   "supernode_selection", "mac"],
+        "b": None,  # obsolete option
+        "c": ["community",    "name",             None],
+        "d": ["tuntap",       "name",             None],
+        "e": ["connection",   "advertise_addr",   None],
+        "f": ["daemon",       "background",       "false"],
+        "g": ["daemon",       "groupid",          None],
+        "h": None,  # short help
+        "i": ["connection",   "register_interval", None],
+        "k": ["community",    "key",              None],
+        "l": ["community",    "supernode",        None],
+        "m": ["tuntap",       "macaddr",          None],
+        "p": ["connection",   "bind",             None],
+        "r": ["filter",       "allow_routing",    "true"],
+        "t": ["management",   "port",             None],
+        "u": ["daemon",       "userid",           None],
+        "v": None,  # increase verbosity
+        "x": ["tuntap",       "metric",           None],
+        "z": ["community",    "compression",      None],
+        "{": ["management",   "password",         None],
+        # "S": handled with code
+        # "a": handled with code
+    }
+
+    # S, z and A have optional args with a default in the code
+    if arg is None:
+        if opt == "A":
+            arg = "3"
+        if opt == "S":
+            arg = "1"
+        if opt == "z":
+            arg = "1"
+
+    if opt == "S":
+        solitude = int(arg)
+        if solitude >= 1:
+            set_option("connection", "allow_p2p", "false")
+        if solitude == 2:
+            set_option("connection", "connect_tcp", "true")
+        return
+
+    if opt == "a":
+        if ":" not in arg:
+            address_mode = "static"
+            address = arg
+        else:
+            address_mode, address = arg.split(":")
+
+        set_option("tuntap", "address_mode", address_mode)
+        set_option("tuntap", "address", address)
+        return
+
+    if opt == "A":
+        map_encryption = {
+            "1": "null",
+            "2": "Twofish",
+            "3": "AES",
+            "4": "ChaCha20",
+            "5": "Speck",
+        }
+
+        arg = map_encryption[arg]
+
+    if opt == "z":
+        map_compression = {
+            "1": "lzo",
+            "2": "zstd",
+        }
+
+        arg = map_compression[arg]
+
+    if opt not in mapping:
+        print("Error: unknown option ", opt)
+        sys.exit(1)
+
+    if mapping[opt] is None:
+        # some options dont make sense to translate
+        return
+
+    section = mapping[opt][0]
+    option = mapping[opt][1]
+
+    if mapping[opt][2] is None and arg is None:
+        print("Error: missing required arg for option ", opt)
+        sys.exit(1)
+
+    if arg is None:
+        arg = mapping[opt][2]
+
+    set_option(section, option, arg)
+
+
+def handle_shortopt(opt, arg):
+    opt = opt.strip("-")
+
+    if opt[0] in ["D", "E", "H", "V", "f", "h", "r", "v"]:
+        # a getopt option with no arg can be followed by other options
+        handle_shortopt_one(opt[0], None)
+
+        if len(opt) > 1:
+            handle_shortopt(opt[1:], arg)
+        return
+
+    if len(opt) > 1:
+        # if an option has an immediate, that gets used instead of the arg
+        handle_shortopt_one(opt[0], opt[1:])
+        return
+
+    handle_shortopt_one(opt, arg)
+
+
+def handle_optarg(opt, arg):
+    if opt.startswith("--"):
+        opt = convert_longopt(opt)
+    if opt.startswith("-"):
+        handle_shortopt(opt, arg)
+
+
+def main():
+    ap = argparse.ArgumentParser(
+            description=__doc__)
+    ap.add_argument(
+            "infile", nargs='?', type=argparse.FileType('r'),
+            default=sys.stdin)
+    ap.add_argument(
+            "outfile", nargs='?', type=argparse.FileType('w'),
+            default=sys.stdout)
+    args = ap.parse_args()
+
+    for line in args.infile.readlines():
+        line = trim(line)
+        if len(line) < 2 or line.startswith("#"):
+            continue
+
+        opt, arg = separate_optarg(line)
+        if arg is not None:
+            arg = trim(arg)
+
+        handle_optarg(opt, arg)
+
+    render_config(args.outfile)
+
+
+if __name__ == '__main__':
+    main()

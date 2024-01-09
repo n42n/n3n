@@ -6,10 +6,10 @@
 
 Payload encryption currently comes in four different flavors using ciphers of different origins. Supported ciphers are enabled using the indicated command line option:
 
-- Twofish in CTS mode (`-A2`)
-- AES in CBC mode (`-A3`)
-- ChaCha20 (CTR) (`-A4`)
-- SPECK in CTR mode (`-A5`)
+- Twofish in CTS mode (`-ATwofish`)
+- AES in CBC mode (`-AAES`)
+- ChaCha20 (CTR) (`-AChaCha20`)
+- SPECK in CTR mode (`-ASpeck`)
 
 The following chart might help to make a quick comparison and decide what cipher to use:
 
@@ -28,7 +28,9 @@ The`-k <key>` command line parameter supplies the key. As even non-privileged us
 
 Providing `-k <key>` without specifying any cipher by `-A_` will default to AES encryption.
 
-To renounce encryption, `-A1` enables the so called `null_transform` transmitting all payload data unencryptedly. Omitting `-A_` and not providing a key through `-k <key>` shows the same effect.
+To renounce encryption, `-Anull` enables the so called `null_transform`
+transmitting all payload data unencryptedly. Omitting `-A_` and not providing a
+key through `-k <key>` shows the same effect.
 
 ### Twofish
 

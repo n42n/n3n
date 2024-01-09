@@ -98,7 +98,7 @@ jobs:
         shell: bash
 
       - name: Run embedded unit tests
-        run: make test.units
+        run: make test.builtin test.units
         shell: bash
 
       - if: ${{ failure() }}
@@ -106,6 +106,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p tests/${{ matrix.os }}
+          touch tests/dummy.out
           mv tests/*.out tests/${{ matrix.os }}
 
       - if: ${{ failure() }}
@@ -129,6 +130,8 @@ jobs:
 
       - name: Upload data to codecov
         uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test_macos:
     name: Test MacOS
@@ -168,7 +171,7 @@ jobs:
         shell: bash
 
       - name: Run embedded unit tests
-        run: make test.units
+        run: make test.builtin test.units
         shell: bash
 
       - if: ${{ failure() }}
@@ -176,6 +179,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p tests/${{ matrix.os }}
+          touch tests/dummy.out
           mv tests/*.out tests/${{ matrix.os }}
 
       - if: ${{ failure() }}
@@ -237,7 +241,7 @@ jobs:
         shell: bash
 
       - name: Run embedded unit tests
-        run: make test.units
+        run: make test.builtin test.units
         shell: bash
 
       - if: ${{ failure() }}
@@ -245,6 +249,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p tests/${{ matrix.os }}
+          touch tests/dummy.out
           mv tests/*.out tests/${{ matrix.os }}
 
       - if: ${{ failure() }}
@@ -418,7 +423,8 @@ jobs:
 
 # FIXME: add a way to run the test suite!
 #      - name: Run embedded tests
-#        run: make test
+#        run: |
+#          make test
 
       - name: Save config used
         if: always()

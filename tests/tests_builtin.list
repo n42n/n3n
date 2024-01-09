@@ -1,0 +1,4 @@
+#
+# Tests using builtin self tests in the apps
+
+test_builtin_edge.sh

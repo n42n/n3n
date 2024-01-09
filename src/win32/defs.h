@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2024 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
  * Basic definitions needed for any windows compile
  *
  */

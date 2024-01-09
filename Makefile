@@ -1,3 +1,6 @@
+#
+# Copyright (C) 2023-24 Hamish Coleman
+#
 # Our default make target
 all:
 
@@ -89,9 +92,11 @@ N2N_OBJS=\
 	src/sn_utils.o \
 	src/speck.o \
 	src/tf.o \
+	src/transform.o \
 	src/transform_aes.o \
 	src/transform_cc20.o \
 	src/transform_lzo.o \
+	src/transform_none.o \
 	src/transform_null.o \
 	src/transform_speck.o \
 	src/transform_tf.o \
@@ -172,7 +177,7 @@ $(N2N_LIB): $(N2N_OBJS)
 #	$(RANLIB) $@
 
 .PHONY: test test.units test.integration
-test: test.units test.integration
+test: test.builtin test.units test.integration
 
 test.units: tools
 	scripts/test_harness.sh tests/tests_units.list
@@ -180,11 +185,14 @@ test.units: tools
 test.integration: apps
 	scripts/test_harness.sh tests/tests_integration.list
 
+test.builtin: apps
+	scripts/test_harness.sh tests/tests_builtin.list
+
 .PHONY: lint lint.python lint.ccode lint.shell lint.yaml
 lint: lint.python lint.ccode lint.shell lint.yaml
 
 lint.python:
-	flake8 scripts/n3n-ctl scripts/n3n-httpd
+	flake8 scripts/n3n-ctl scripts/n3n-httpd scripts/n3n-convert_old_conf
 
 lint.ccode:
 	scripts/indent.sh -e '$(LINT_EXCLUDE)' $(LINT_CCODE)
@@ -212,6 +220,7 @@ cover:
 gcov:
 	gcov $(N2N_OBJS)
 	$(MAKE) -C tools gcov
+	$(MAKE) -C apps gcov
 
 # This is a convinent target to use during development or from a CI/CD system
 .PHONY: build-dep
@@ -230,15 +239,22 @@ build-dep-dpkg:
 build-dep-brew:
 	brew install automake gcovr
 
+.PHONY: clean.cov
+clean.cov:
+	rm -f \
+		src/*.gcno src/*.gcda \
+		apps/*.gcno apps/*.gcda \
+		tools/*.gcno tools/*.gcda
+
 .PHONY: clean
-clean:
+clean: clean.cov
 	rm -rf $(N2N_OBJS) $(N2N_LIB) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
-	rm -f tests/*.out src/*.gcno src/*.gcda
+	rm -f tests/*.out
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
 
 .PHONY: distclean
 distclean:
-	rm -f tests/*.out src/*.gcno src/*.gcda src/*.indent src/*.unc-backup*
+	rm -f tests/*.out src/*.indent src/*.unc-backup*
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
 	rm -f edge.8.gz n3n.7.gz supernode.1.gz

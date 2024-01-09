@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>     // for uint8_t
 #include <string.h>     // for memcpy, size_t, memset
 #include <sys/types.h>  // for time_t
@@ -94,4 +95,13 @@ int n2n_transop_null_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     ttt->rev           = transop_decode_null;
 
     return 0;
+}
+
+static struct n3n_transform transform = {
+    .name = "null",
+    .id = N2N_TRANSFORM_ID_NULL,
+};
+
+void n3n_initfuncs_transform_null () {
+    n3n_transform_register(&transform);
 }

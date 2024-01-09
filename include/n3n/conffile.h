@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Public API for configuration management
@@ -7,6 +7,8 @@
 
 #ifndef _N2N_CONFFILE_H_
 #define _N2N_CONFFILE_H_
+
+#include <stdio.h>
 
 enum n3n_conf_type {
     n3n_conf_strncpy,
@@ -40,12 +42,18 @@ struct n3n_conf_option {
 struct n3n_conf_section {
     struct n3n_conf_section *next;
     char *name;                 // The name of this config section
+    char *help;                 // A description for this section
     struct n3n_conf_option *options;
 };
 
-void n3n_config_register_section (char *, struct n3n_conf_option[]);
+void n3n_config_register_section (char *, char *, struct n3n_conf_option[]);
 
 int n3n_config_set_option (void *, char *, char *, char *);
 
+void n3n_config_dump (void *, FILE *, int);
+
+int n3n_config_load_env (void *);
+
+int n3n_config_load_file (void *, char *);
 #endif
 

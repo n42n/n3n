@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -768,10 +768,6 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
 /** Initialise the supernode structure */
 int sn_init_defaults (n2n_sn_t *sss) {
-
-#ifdef _WIN32
-    initWin32();
-#endif
 
     pearson_hash_init();
 

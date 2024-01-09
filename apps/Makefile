@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2023 Hamish Coleman
+# Copyright (C) 2023-24 Hamish Coleman
 #
 # This makefile shows how to build applications using the libn3n library.
 #
@@ -26,10 +26,16 @@ LDLIBS+=$(LDLIBS_EXTRA)
 
 all: $(APPS) $(EXAMPLES)
 
+$(APPS) $(EXAMPLES): ../libn3n.a
+
 .PHONY: install
 install: $(addsuffix $(EXE),$(APPS))
 	$(INSTALL_PROG) supernode$(EXE) $(SBINDIR)/
 	$(INSTALL_PROG) edge$(EXE) $(SBINDIR)/
+
+# See comments in the topdir Makefile about how to generate coverage data.
+gcov:
+	gcov $(APPS)
 
 clean:
 	rm -f $(APPS) $(EXAMPLES)
