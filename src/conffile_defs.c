@@ -205,14 +205,16 @@ static struct n3n_conf_option section_daemon[] = {
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, userid),
         .desc = "The user id",
-        .help = "Run the daemon with this user id (ignored on windows)",
+        .help = "numeric user ID to use when privileges are dropped "
+                "(ignored on windows)",
     },
     {
         .name = "groupid",
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, groupid),
         .desc = "The group id",
-        .help = "Run the daemon with this group id (ignored on windows)",
+        .help = "numeric group ID to use when privileges are dropped "
+                "(ignored on windows)",
     },
     {
         .name = "background",
