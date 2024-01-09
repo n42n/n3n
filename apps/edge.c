@@ -100,7 +100,6 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
     { "supernode-list",      required_argument, NULL, 'l' },
-    { "tap-device",          required_argument, NULL, 'd' },
     { "euid",                required_argument, NULL, 'u' },
     { "egid",                required_argument, NULL, 'g' },
     { "help",                no_argument,       NULL, 'h' },
