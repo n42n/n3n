@@ -1,41 +1,41 @@
 #
-#         The configuration file is similar to the command line, with one option per line. An equal
-#        sign '=' should be used between key and value. Example: -c=mynetwork or --community=mynetwork
-#        This file contains a basic configuration example, please refer to the help (-h) for the full
-#        list of available options.
+# The configuration file is basically an INI file, with multiple sections
+# and one option per line.  An equal sign '=' is used between the option
+# name and the value.
 #
-#       -d|--tun-device
-#        Specifies the name of the TUN interface. 
+# This file contains a basic configuration example, please refer to the
+# help (edge help config) for the full description of all options.
 #
--d=n3n0
+
+[tuntap]
+# Specifies the name of the TUN interface.
+name=n3n0
+
+# Specifies the MAC address for the TAP interface (random otherwise).
+macaddr=DE:AD:BE:EF:99:99
+
+# Sets the interface address.
 #
-#       -c|--community
-#        Specifies the n3n community name the edge belongs to.
-#
--c=mynetwork
-#
-#       -k
-#        Sets the encryption key (ASCII). The environment variable N2N_KEY=<key> can also be used. 
-#
--k=mypassword
-#
-#       -m
-#        Specified the MAC address for the TAP interface (random otherwise).
-#
-# -m=DE:AD:BE:EF:99:99
-#
-#       -a
-#        Sets the interface address. For DHCP use '-r -a dhcp:0.0.0.0'.
-#
--a=1.2.3.4
-#
-#       -p
-#        Sets the local UDP port to a fixed port.
-#
--p=50001
-#
-#       -l|--supernode-list
-#        Specifies the supernode IP and port.
-#
--l=7.8.9.0:7777
-#
+address=1.2.3.4
+
+# For DHCP use:
+#       address_mode=dhcp
+# and also
+#       [filter]
+#       allow_routing=true
+
+[community]
+# Specifies the n3n community name the edge belongs to.
+name=mynetwork
+
+# Sets the encryption key (ASCII). The environment variable N2N_KEY=<key>
+# can be used and will take precedence over the config file.
+key=mypassword
+
+
+# Specifies the supernode IP and port.
+supernode=7.8.9.0:7777
+
+[connection]
+# Sets the local UDP port to a fixed port.
+bind=50001
