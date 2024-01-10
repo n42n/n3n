@@ -285,6 +285,8 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
                        req->eee->stats.tx_sup_broadcast,
                        req->eee->stats.rx_sup_broadcast);
 
+    send_reply(req, buf, msg_len);
+
     msg_len = snprintf(buf->str, buf->size,
                        "{"
                        "\"_tag\":\"%s\","
