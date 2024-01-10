@@ -24,7 +24,7 @@ docmd() {
 docmd "${BINDIR}"/apps/supernode -v
 
 # Start the edge in the background
-docmd sudo "${BINDIR}"/apps/edge start /dev/null -l localhost:7654 -c test -E >/dev/null
+docmd sudo "${BINDIR}"/apps/edge start /dev/null -l localhost:7654 -c test >/dev/null
 # TODO:
 # - send edge messages to stderr?
 
@@ -33,7 +33,13 @@ docmd sudo "${BINDIR}"/apps/edge start /dev/null -l localhost:7654 -c test -E >/
 sleep 0.1
 
 docmd "${TOPDIR}"/scripts/n3n-ctl communities
-docmd "${TOPDIR}"/scripts/n3n-ctl packetstats
+
+echo "### test: ${TOPDIR}/scripts/n3n-ctl packetstats"
+"${TOPDIR}"/scripts/n3n-ctl packetstats |jq '.[0:4]'
+# this is filtering out the type=multicast_drop line as that has a changing
+# number of packets counted
+echo
+
 docmd "${TOPDIR}"/scripts/n3n-ctl edges --raw |grep -v "last_seen"
 
 # TODO:

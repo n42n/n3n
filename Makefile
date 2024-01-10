@@ -133,6 +133,7 @@ BUILD_DEP:=\
 	shellcheck \
 	uncrustify \
 	yamllint \
+	jq \
 
 SUBDIRS+=tools
 SUBDIRS+=apps
