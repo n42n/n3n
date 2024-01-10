@@ -228,6 +228,15 @@ static struct n3n_conf_option section_daemon[] = {
 
 static struct n3n_conf_option section_filter[] = {
     {
+        .name = "allow_multicast",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, allow_multicast),
+        .desc = "Optionally enable multicast traffic",
+        .help = "Amungst other things, multicast is used for IPv6 neighbour "
+                "discovery.  If drop is true then these multicast packets "
+                "are discarded.",
+    },
+    {
         .name = "allow_routing",
         .type = n3n_conf_bool,
         .offset = offsetof(n2n_edge_conf_t, allow_routing),
@@ -235,15 +244,6 @@ static struct n3n_conf_option section_filter[] = {
         .help = "Without this option, IP packets arriving over n2n are "
                 "dropped if they are not for the IP address of the edge "
                 "interface.  This setting is also used to enable bridging.",
-    },
-    {
-        .name = "drop_multicast",
-        .type = n3n_conf_bool,
-        .offset = offsetof(n2n_edge_conf_t, drop_multicast),
-        .desc = "Optionally filter multicast traffic",
-        .help = "Amungst other things, multicast is used for IPv6 neighbour "
-                "discovery.  If drop is true then these multicast packets "
-                "are discarded.",
     },
     {
         .name = "rule",

@@ -567,7 +567,7 @@ typedef struct n2n_edge_conf {
     uint8_t transop_id;                              /**< The transop to use. */
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
     bool allow_routing;                              /**< Accept packet no to interface address. */
-    bool drop_multicast;                             /**< Multicast ethernet addresses. */
+    bool allow_multicast;                            /**< Multicast ethernet addresses. */
     bool pmtu_discovery;                             /**< Enable the Path MTU discovery. */
     bool allow_p2p;                                  /**< Allow P2P connection */
     uint8_t sn_num;                                  /**< Number of supernode addresses defined. */

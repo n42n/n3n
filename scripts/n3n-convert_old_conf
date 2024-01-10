@@ -90,7 +90,7 @@ def handle_shortopt_one(opt, arg):
         "@": None,  # --help
         "A": ["community",    "cipher",           None],
         "D": ["connection",   "pmtu_discovery",   "true"],
-        "E": ["filter",       "drop_multicast",   "false"],
+        "E": ["filter",       "allow_multicast",  "true"],
         "H": ["community",    "header_encryption", "true"],
         "I": ["connection",   "description",      None],
         "J": ["auth",         "password",         None],

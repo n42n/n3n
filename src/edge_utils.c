@@ -1772,7 +1772,7 @@ static int handle_PACKET (n2n_edge_t * eee,
 
             is_multicast = (is_ip6_discovery(eth_payload, eth_size) || is_ethMulticast(eth_payload, eth_size));
 
-            if(eee->conf.drop_multicast && is_multicast) {
+            if(!eee->conf.allow_multicast && is_multicast) {
                 traceEvent(TRACE_INFO, "dropping RX multicast");
                 eee->stats.rx_multicast_drop++;
                 return(-1);
@@ -2200,7 +2200,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
         traceEvent(TRACE_DEBUG, "Rx TAP packet (%4d) for %s",
                    (signed int)len, macaddr_str(mac_buf, mac));
 
-        if(eee->conf.drop_multicast &&
+        if(!eee->conf.allow_multicast &&
            (is_ip6_discovery(eth_pkt, len) ||
             is_ethMulticast(eth_pkt, len))) {
             traceEvent(TRACE_INFO, "dropping Tx multicast");
@@ -3192,7 +3192,6 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->transop_id = N2N_TRANSFORM_ID_NULL;
     conf->header_encryption = HEADER_ENCRYPTION_NONE;
     conf->compression = N2N_COMPRESSION_ID_NONE;
-    conf->drop_multicast = true;
     conf->allow_p2p = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
 

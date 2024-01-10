@@ -115,7 +115,7 @@ static const struct option_map_def {
 } option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
     { 'D',  "connection",   "pmtu_discovery",   "true" },
-    { 'E',  "filter",       "drop_multicast",   "false" },
+    { 'E',  "filter",       "allow_multicast",  "true" },
     { 'H',  "community",    "header_encryption","true", },
     { 'I',  "connection",   "description",      NULL },
     { 'J',  "auth",         "password",         NULL },

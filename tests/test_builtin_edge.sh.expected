@@ -27,8 +27,8 @@ background=false
 
 ####################
 [filter]
+allow_multicast=false
 allow_routing=false
-drop_multicast=false
 
 ####################
 [logging]
