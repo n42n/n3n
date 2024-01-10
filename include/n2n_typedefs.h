@@ -603,6 +603,8 @@ struct n2n_edge_stats {
     uint32_t rx_sup;
     uint32_t tx_sup_broadcast;
     uint32_t rx_sup_broadcast;
+    uint32_t tx_multicast_drop;
+    uint32_t rx_multicast_drop;
 };
 
 struct n2n_edge {

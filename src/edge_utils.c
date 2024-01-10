@@ -1774,6 +1774,7 @@ static int handle_PACKET (n2n_edge_t * eee,
 
             if(eee->conf.drop_multicast && is_multicast) {
                 traceEvent(TRACE_INFO, "dropping RX multicast");
+                eee->stats.rx_multicast_drop++;
                 return(-1);
             } else if((!eee->conf.allow_routing) && (!is_multicast)) {
                 /* Check if it is a routed packet */
@@ -2203,6 +2204,7 @@ void edge_read_from_tap (n2n_edge_t * eee) {
            (is_ip6_discovery(eth_pkt, len) ||
             is_ethMulticast(eth_pkt, len))) {
             traceEvent(TRACE_INFO, "dropping Tx multicast");
+            eee->stats.tx_multicast_drop++;
         } else {
             if(!eee->last_sup) {
                 // drop packets before first registration with supernode
