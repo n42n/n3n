@@ -1765,18 +1765,26 @@ static int handle_PACKET (n2n_edge_t * eee,
             break;
 #endif
         default:
-            traceEvent(TRACE_WARNING, "payload decompression failed: received packet indicating unsupported %i compression.",
-                       rx_compression_id);
+            traceEvent(
+                TRACE_WARNING,
+                "decompression: failed: unsupported %i",
+                rx_compression_id
+                );
             return(-1); // cannot handle it
     }
 
     if(rx_compression_id != N2N_COMPRESSION_ID_NONE) {
-        traceEvent(TRACE_DEBUG, "payload decompression %s: deflated %u bytes to %u bytes",
-                   n3n_compression_id2str(rx_compression_id),
-                   eth_size, (int)deflate_len);
+        traceEvent(
+            TRACE_DEBUG,
+            "decompression: %i: deflated %u bytes to %u bytes",
+            rx_compression_id,
+            eth_size,
+            deflate_len
+            );
         eth_payload = deflate_buf;
         eth_size = deflate_len;
     }
+
     eh = (ether_hdr_t*)eth_payload;
 
     is_multicast = (is_ip6_discovery(eth_payload, eth_size) || is_ethMulticast(eth_payload, eth_size));
