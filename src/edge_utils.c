@@ -2182,9 +2182,16 @@ void edge_read_from_tap (n2n_edge_t * eee) {
 
     len = tuntap_read( &(eee->device), eth_pkt, N2N_PKT_BUF_SIZE );
     if((len <= 0) || (len > N2N_PKT_BUF_SIZE)) {
-        traceEvent(TRACE_WARNING, "read()=%d [%d/%s]",
-                   (signed int)len, errno, strerror(errno));
+        traceEvent(
+            TRACE_WARNING,
+            "read()=%d [%d/%s]",
+            len,
+            errno,
+            strerror(errno)
+            );
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
+        eee->stats.tx_tuntap_error++;
+
         sleep(3);
         tuntap_close(&(eee->device));
         tuntap_open(&(eee->device),
@@ -2195,42 +2202,44 @@ void edge_read_from_tap (n2n_edge_t * eee) {
                     eee->conf.mtu,
                     eee->conf.metric
                     );
-    } else {
-        const uint8_t * mac = eth_pkt;
-        traceEvent(TRACE_DEBUG, "Rx TAP packet (%4d) for %s",
-                   (signed int)len, macaddr_str(mac_buf, mac));
+        return;
 
-        if(!eee->conf.allow_multicast &&
-           (is_ip6_discovery(eth_pkt, len) ||
-            is_ethMulticast(eth_pkt, len))) {
-            traceEvent(TRACE_INFO, "dropping Tx multicast");
-            eee->stats.tx_multicast_drop++;
-        } else {
-            if(!eee->last_sup) {
-                // drop packets before first registration with supernode
-                traceEvent(TRACE_DEBUG, "DROP packet before first registration with supernode");
+    }
+
+    const uint8_t * mac = eth_pkt;
+    traceEvent(TRACE_DEBUG, "Rx TAP packet (%4d) for %s",
+               (signed int)len, macaddr_str(mac_buf, mac));
+
+    if(!eee->conf.allow_multicast &&
+       (is_ip6_discovery(eth_pkt, len) ||
+        is_ethMulticast(eth_pkt, len))) {
+        traceEvent(TRACE_INFO, "dropping Tx multicast");
+        eee->stats.tx_multicast_drop++;
+    } else {
+        if(!eee->last_sup) {
+            // drop packets before first registration with supernode
+            traceEvent(TRACE_DEBUG, "DROP packet before first registration with supernode");
+            return;
+        }
+
+        if(eee->network_traffic_filter) {
+            if(eee->network_traffic_filter->filter_packet_from_tap(eee->network_traffic_filter, eee, eth_pkt,
+                                                                   len) == N2N_DROP) {
+                traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)len);
                 return;
             }
-
-            if(eee->network_traffic_filter) {
-                if(eee->network_traffic_filter->filter_packet_from_tap(eee->network_traffic_filter, eee, eth_pkt,
-                                                                       len) == N2N_DROP) {
-                    traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)len);
-                    return;
-                }
-            }
-
-            if(eee->cb.packet_from_tap) {
-                uint16_t tmp_len = len;
-                if(eee->cb.packet_from_tap(eee, eth_pkt, &tmp_len) == N2N_DROP) {
-                    traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)len);
-                    return;
-                }
-                len = tmp_len;
-            }
-
-            edge_send_packet2net(eee, eth_pkt, len);
         }
+
+        if(eee->cb.packet_from_tap) {
+            uint16_t tmp_len = len;
+            if(eee->cb.packet_from_tap(eee, eth_pkt, &tmp_len) == N2N_DROP) {
+                traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)len);
+                return;
+            }
+            len = tmp_len;
+        }
+
+        edge_send_packet2net(eee, eth_pkt, len);
     }
 }
 

@@ -35,7 +35,7 @@ sleep 0.1
 docmd "${TOPDIR}"/scripts/n3n-ctl communities
 
 echo "### test: ${TOPDIR}/scripts/n3n-ctl packetstats"
-"${TOPDIR}"/scripts/n3n-ctl packetstats |jq '.[0:4]'
+"${TOPDIR}"/scripts/n3n-ctl packetstats |jq '.[0:5]'
 # this is filtering out the type=multicast_drop line as that has a changing
 # number of packets counted
 echo

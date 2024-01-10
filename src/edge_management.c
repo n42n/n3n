@@ -291,6 +291,19 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
                        "{"
                        "\"_tag\":\"%s\","
                        "\"_type\":\"row\","
+                       "\"type\":\"tuntap_error\","
+                       "\"tx_pkt\":%u,"
+                       "\"rx_pkt\":%u}\n",
+                       req->tag,
+                       req->eee->stats.tx_tuntap_error,
+                       req->eee->stats.rx_tuntap_error);
+
+    send_reply(req, buf, msg_len);
+
+    msg_len = snprintf(buf->str, buf->size,
+                       "{"
+                       "\"_tag\":\"%s\","
+                       "\"_type\":\"row\","
                        "\"type\":\"multicast_drop\","
                        "\"tx_pkt\":%u,"
                        "\"rx_pkt\":%u}\n",
