@@ -1825,15 +1825,14 @@ static int handle_PACKET (n2n_edge_t * eee,
 
         HASH_FIND(hh, eee->known_hosts, eh->shost, sizeof(n2n_mac_t), host);
         if(host == NULL) {
-            struct host_info *host = calloc(1, sizeof(struct host_info));
+            host = calloc(1, sizeof(struct host_info));
+            // TODO: alloc() on the packet path can cause bad latency
+
             memcpy(host->mac_addr, eh->shost, sizeof(n2n_mac_t));
-            memcpy(host->edge_addr, pkt->srcMac, sizeof(n2n_mac_t));
-            host->last_seen = now;
             HASH_ADD(hh, eee->known_hosts, mac_addr, sizeof(n2n_mac_t), host);
-        } else {
-            memcpy(host->edge_addr, pkt->srcMac, sizeof(n2n_mac_t));
-            host->last_seen = now;
         }
+        memcpy(host->edge_addr, pkt->srcMac, sizeof(n2n_mac_t));
+        host->last_seen = now;
     }
 #endif
 
