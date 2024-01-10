@@ -1793,7 +1793,9 @@ static int handle_PACKET (n2n_edge_t * eee,
         traceEvent(TRACE_INFO, "dropping RX multicast");
         eee->stats.rx_multicast_drop++;
         return(-1);
-    } else if((!eee->conf.allow_routing) && (!is_multicast)) {
+    }
+
+    if((!eee->conf.allow_routing) && (!is_multicast)) {
         /* Check if it is a routed packet */
 
         if((ntohs(eh->type) == 0x0800) && (eth_size >= ETH_FRAMESIZE + IP4_MIN_SIZE)) {
@@ -1810,10 +1812,10 @@ static int handle_PACKET (n2n_edge_t * eee,
                 traceEvent(TRACE_INFO, "discarding routed packet destined to [%s]",
                            intoa(ntohl(*dst), ip_buf, sizeof(ip_buf)));
                 return(-1);
-            } else {
-                /* This packet is directed to us */
-                /* traceEvent(TRACE_INFO, "Sending non-routed packet"); */
             }
+
+            /* This packet is directed to us */
+            /* traceEvent(TRACE_INFO, "Sending non-routed packet"); */
         }
     }
 
