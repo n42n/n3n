@@ -28,7 +28,12 @@
         "rx_pkt": 0,
         "tx_pkt": 2,
         "type": "super_broadcast"
-    }
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "multicast_drop"
+     }
 ]
 
 ### test: ./scripts/n3n-ctl edges --raw

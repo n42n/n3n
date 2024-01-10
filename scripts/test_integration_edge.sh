@@ -24,7 +24,7 @@ docmd() {
 docmd "${BINDIR}"/apps/supernode -v
 
 # Start the edge in the background
-docmd sudo "${BINDIR}"/apps/edge start /dev/null -l localhost:7654 -c test >/dev/null
+docmd sudo "${BINDIR}"/apps/edge start /dev/null -l localhost:7654 -c test -E >/dev/null
 # TODO:
 # - send edge messages to stderr?
 
