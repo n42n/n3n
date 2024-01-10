@@ -363,6 +363,8 @@ int supernode_connect (n2n_edge_t *eee) {
                 errno
                 );
         }
+#else
+        traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
 #endif
 
         memset(&local_sock, 0, sizeof(n2n_sock_t));
