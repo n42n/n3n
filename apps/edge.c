@@ -431,6 +431,74 @@ static void cmd_test_config_load_dump (int argc, char **argv, char *_, n2n_edge_
     exit(0);
 }
 
+static void cmd_tools_keygen (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    if(argc == 1) {
+        printf(
+            "n3n keygen tool\n"
+            "\n"
+            "  usage: edge tools keygen <username> <password>\n"
+            "\n"
+            "     or  edge tools keygen <federation name>\n"
+            "\n"
+            "   outputs a line to insert at supernode's community file for\n"
+            "   user-and-password authentication or the config option\n"
+            "   value with the public federation key for use in the edge's\n"
+            "   config, please refer to the doc/Authentication.md document\n"
+            "   for more details\n"
+            "\n"
+            );
+        exit(1);
+    }
+
+    char *private;
+    n2n_private_public_key_t prv;  // 32 bytes private key
+    n2n_private_public_key_t bin;  // 32 bytes public key binary output buffer
+    char asc[44];   // 43 bytes + 0-terminator ascii string output
+    bool fed;
+
+    switch(argc) {
+        case 3:
+            private = argv[2];
+            fed = false;
+            break;
+        case 2:
+            private = argv[1];
+            fed = true;
+            break;
+        default:
+            printf("Unexpected number of args\n");
+            exit(1);
+    }
+
+    // derive private key from username and password:
+    // hash username once, hash password twice (so password is bound
+    // to username but username and password are not interchangeable),
+    // finally xor the result
+    // in federation mode: only hash federation name, twice
+    generate_private_key(prv, private);
+
+    if(!fed) {
+        // hash user name only if required
+        bind_private_key_to_username(prv, argv[1]);
+    }
+
+    // calculate the public key into binary output buffer
+    generate_public_key(bin, prv);
+
+    // clear out the private key
+    memset(prv, 0, sizeof(prv));
+
+    // convert binary output to 6-bit-ascii string output
+    bin_to_ascii(asc, bin, sizeof(bin));
+
+    if(!fed) {
+        printf("%c %s %s\n", N2N_USER_KEY_LINE_STARTER, argv[1], asc);
+    } else {
+        printf("auth.pubkey=%s\n", asc);
+    }
+    exit(0);
+}
+
 static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
@@ -492,6 +560,16 @@ static struct subcmd_def cmd_test_config[] = {
     { .name = NULL }
 };
 
+static struct subcmd_def cmd_tools[] = {
+    {
+        .name = "keygen",
+        .help = "generate public keys",
+        .type = subcmd_type_fn,
+        .fn = &cmd_tools_keygen,
+    },
+    { .name = NULL }
+};
+
 static struct subcmd_def cmd_test[] = {
     {
         .name = "config",
@@ -512,6 +590,11 @@ static struct subcmd_def cmd_top[] = {
         .help = "[sessionname] - starts daemon",
         .type = subcmd_type_fn,
         .fn = &cmd_start,
+    },
+    {
+        .name = "tools",
+        .type = subcmd_type_nest,
+        .nest = cmd_tools,
     },
     {
         .name = "test",

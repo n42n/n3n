@@ -2,12 +2,10 @@
 # Tools
 n3n-benchmark
 n3n-decode
-n3n-keygen
 n3n-portfwd
 n3n-route
 n3n-benchmark.exe
 n3n-decode.exe
-n3n-keygen.exe
 n3n-portfwd.exe
 n3n-route.exe
 

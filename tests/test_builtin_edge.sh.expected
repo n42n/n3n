@@ -45,3 +45,9 @@ address_mode=auto
 metric=0
 mtu=0
 
+### test: ./apps/edge tools keygen logan 007
+* logan nHWum+r42k1qDXdIeH-WFKeylK5UyLStRzxofRNAgpG
+
+### test: ./apps/edge tools keygen secretFed
+auth.pubkey=opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
+
