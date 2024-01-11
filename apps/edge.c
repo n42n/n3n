@@ -25,6 +25,7 @@
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/tests.h>               // for test_hashing
 #include <n3n/transform.h>           // for n3n_transform_lookup_id
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
@@ -431,6 +432,18 @@ static void cmd_test_config_load_dump (int argc, char **argv, char *_, n2n_edge_
     exit(0);
 }
 
+static void cmd_test_hashing (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    int level=0;
+    if(argv[1]) {
+        level = atoi(argv[1]);
+    }
+    int errors = test_hashing(level);
+    if(!errors) {
+        printf("OK\n");
+    }
+    exit(errors);
+}
+
 static void cmd_tools_keygen (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     if(argc == 1) {
         printf(
@@ -575,6 +588,12 @@ static struct subcmd_def cmd_test[] = {
         .name = "config",
         .type = subcmd_type_nest,
         .nest = cmd_test_config,
+    },
+    {
+        .name = "hashing",
+        .help = "test hashing functions",
+        .type = subcmd_type_fn,
+        .fn = &cmd_test_hashing,
     },
     { .name = NULL }
 };

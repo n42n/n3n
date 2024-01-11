@@ -13,12 +13,10 @@ n3n-route.exe
 tests-auth
 tests-compress
 tests-elliptic
-tests-hashing
 tests-transform
 tests-wire
 tests-auth.exe
 tests-compress.exe
 tests-elliptic.exe
-tests-hashing.exe
 tests-transform.exe
 tests-wire.exe

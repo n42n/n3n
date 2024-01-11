@@ -18,7 +18,6 @@ TOOLS+=n3n-decode
 
 TESTS=tests-compress
 TESTS+=tests-elliptic
-TESTS+=tests-hashing
 TESTS+=tests-transform
 TESTS+=tests-wire
 TESTS+=tests-auth
