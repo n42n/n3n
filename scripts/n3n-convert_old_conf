@@ -94,7 +94,7 @@ def handle_shortopt_one(opt, arg):
         "H": ["community",    "header_encryption", "true"],
         "I": ["connection",   "description",      None],
         "J": ["auth",         "password",         None],
-        "L": ["connection",   "register_ttl",     None],
+        "L": ["connection",   "register_pkt_ttl", None],
         "M": ["tuntap",       "mtu",              None],
         "P": ["auth",         "pubkey",           None],
         "R": ["filter",       "rule",             None],

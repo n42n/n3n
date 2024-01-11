@@ -41,59 +41,6 @@ Community name is 16 bytes in length. A name smaller than this is padded with
 sets the n3n supernode IP address and port to register to. Multiple supernodes
 can be specified.
 .TP
-\fB\-p \fR[<\fIlocal_ip_address\fR>:]<\fIlocal_port\fR>
-binds edge to the given UDP port. Useful for keeping the same external socket
-across restarts of edge. This allows peer edges which know the edge socket to
-continue p2p operation without going back to the supernode. Also, home router's
-port forwarding feature can refer to that fixed port.
-Optionally, the edge can bind to the provided local ip address only. This is
-useful in case restriction to a certain LAN or WiFi interface is desired.
-By default, the edge binds to any interface.
-.TP
-\fB\-T \fR<\fItos\fR>
-TOS for packets, e.g. 0x48 for SSH like priority
-.TP
-\fB\-D\fR
-enable PMTU discovery, it can reduce fragmentation but
-causes connections to stall if not properly supported
-.TP
-\fB\-e \fR<\fIlocal_ip_address\fR>
-advertises the provided local IP address as preferred,
-useful if multicast peer detection is not available, e.g.
-disabled on routers. \fB\-e auto\fR tries auto-detection of
-local IP address.
-.TP
-\fB\-S1\fR ... \fB\-S2\fR
-do not connect p2p, always use the supernode,
-\-S1 = via UDP, \-S2 = via TCP
-.TP
-\fB\-i \fR<\fIreg_interval\fR>
-Supernode registration interval. It specifies the interval in seconds
-between consecutive REGISTER_SUPER packets and it's used to keep NAT hole
-open via the UDP NAT hole punching technique. This only works for asymmetric
-NATs and allows for P2P communication.
-.TP
-\fB\-L \fR<\fIreg_ttl\fR>
-set the TTL for the hole punching packet. This is an advanced flag to make
-sure that the registration packet is dropped immediately when it goes out of
-local nat so that it will not trigger some firewall behavior on target peer.
-Actually, the registration packet is only expected to make local nat UDP hole
-and is not expected to reach the target peer, see
-https://tools.ietf.org/html/rfc5389. To achieve this, the flag should be set as
-nat level + 1. For example, if we have 2 layer nat in local, we should set -L 3.
-Usually we know exactly how much nat layers in local.
-If we are not sure how much nat layers in local, we can use traceroute on
-Linux to check. The following example shows a local single layer nat because on
-second jump it shows a public ip address. In this case it should set -L 2.
-
-$ /usr/sbin/traceroute -w1 8.8.8.8
-.br
-traceroute to 8.8.8.8 (8.8.8.8), 30 hops max, 60 byte packets
- 1  192.168.3.1 (192.168.3.1)  0.464 ms  0.587 ms  0.719 ms
- 2  112.65.17.217 (112.65.17.217)  5.269 ms  7.031 ms  8.666 ms
-
-But this method does not always work due to various local network device policy.
-.TP
 \fB\-k \fR<\fIkey\fR>
 encryption key (ASCII) - also N2N_KEY=<key>
 \-k <keystring>
@@ -106,11 +53,9 @@ choose a cipher for payload encryption, requires a key,
 Twofish, AES (default if key provided),
 ChaCha20, Speck
 .TP
-\fB\-H\fR
-use header encryption, supernode needs fixed community
-.TP
-\fB\-z1\fR ... \fB\-z2\fR
-compress outgoing data packets, -z1 = lzo1x, disabled by default
+\fB\-z \fR<\fIcompresion\fR>
+compress outgoing data packets. One of -z lzo, -z none
+or -z zstd (if supported)
 .TP
 .SH TAP DEVICE AND OVERLAY NETWORK CONFIGURATION
 .TP
@@ -119,98 +64,26 @@ interface address and optional CIDR subnet, default '/24',
 mode = [static|dhcp]:, for DHCP use '\-r -a dhcp:0.0.0.0',
 edge draws IP address from supernode if no '\-a ...' given
 .TP
-\fB\-m \fR<\fImac\fR>
-start the TAP interface with the given MAC address. This is highly recommended
-as it means the same address will be used if edge stops and restarts. If this is
-not done, the ARP caches of all peers will be wrong and packets will not flow to
-this edge until the next ARP refresh.
-e.g.  '\-m 10:20:30:40:50:60', by default a random MAC address is used.
-.TP
-\fB\-d \fR<\fIdevice\fR>, \fB\-\-device\fR=<\fIdevice\fR>
-TAP device name
-.TP
-\fB\-M \fR<\fImtu\fR>
-specify n3n MTU of TAP interface, default 1290
-.TP
 \fB\-r\fR
 enable IP packet forwarding/routing through the n3n virtual LAN. Without this
 option, IP packets arriving over n3n are dropped if not for the -a <addr> (or
 DHCP assigned) IP address of the edge interface. This option is also required
 to allow n3n device being used in network bridging, e.g. with brctl.
-.TP
-\fB\-E\fR
-accept packets destined for multicast ethernet MAC addresses. These addresses
-are used in multicast ethernet and IPv6 neighbour discovery. If this option is
-not present these multicast packets are discarded as most users do not need or
-understand them.
-.TP
-\fB\-I \fR<\fIdescription\fR>
-annotate the edge's description used for easier
-identification in management port output or username
-.TP
-\fB\-J \fR<\fIpassword\fR>
-password for user-password edge authentication (see also N2N_PASSWORD in ENVIRONMENT)
-.TP
-\fB\-P \fR<\fIpublic key\fR>
-federation public key for user-password authentication
-.TP
-\fB\-R \fR<\fIrule_str\fR>
-Add rule to drop or accept specific packet transmit over edge network interface.
--R rule_str can be used multiple times to add multiple rules. Each -R rule_str add
-one rule.
-
-rule_str format:"src_ip/len:[b_port,e_port],dst_ip/len:[s_port,e_port],TCP+/-,UDP+/-,ICMP+/-".
-
-ip/len indicate a cidr block, len can be ignore, means single ip(not cidr block)
-will be use in filter rule.
-
-+,- after TCP,UDP,ICMP proto type indicate allow or drop packet of that proto.
-if any of above three proto missed, the rule will not take effect for that proto.
-
-Ports range [s_port,e_port] can be instead by single port number. If not specify, [0,65535]
-will be used. Ports range include start_port and end_port. If multiple rules matching packet's
-ips and ports, the rule with smaller cidr block(smaller address space) will be selected. That
-means rules with larger len value has higher priority.
-
-Packets that cannot match any rule will be accepted by default. Users can add rules to
-block traffics. This behavior can be change by add the rule : `0.0.0.0/0:[0,65535],0.0.0.0/0:
-[0,65535],TCP-,UDP-,ICMP-`. Then all traffic will be dropped, users need add rules to allow
-traffics.
-
-for example : `-R 0.0.0.0/0,0.0.0.0/0,TCP-,UDP-,ICMP- -R 192.168.100.0/24,192.168.100.0/24,ICMP+`,
-.TP
-\fB\-x \fR<\fImetric\fR>
-set TAP interface metric, defaults to 0 (auto),
-e.g. set to 1 for better multiplayer game detection.
-.br
-(Windows only)
 .SH LOCAL OPTIONS
 .TP
 \fB\-f\fR
 do not fork and run as a daemon, rather run in foreground
 .TP
-\fB\-t \fR<\fIport\fR>
-binds the edge management system to the given UDP port. Default 5644. Use this
-if you need to run multiple instance of edge; or something is bound to that
-port.
-.TP
 \fB\-v\fR, \fB\-\-verbose\fR
 make more verbose, repeat as required
-.TP
-\fB\-V\fR
-make less verbose, repeat as required
-.TP
-\fB\-u \fR<\fIUID\fR>
-numeric user ID to use when privileges are dropped
-.TP
-\fB\-g \fR<\fIGID\fR>
-numeric group ID to use when privileges are dropped
 .TP
 \fb\-h\fr
 write usage then exit.
 .TP
 \fb\--help\fr
 shows detailed parameter description
+.SH CONFIG FILE
+Blah
 .SH ENVIRONMENT
 .TP
 .B N2N_KEY
@@ -223,7 +96,7 @@ set the community name so it is not visible at the command line
 set the password for user-password authentication so it is not visible at the command line
 .SH EXAMPLES
 .TP
-.B edge \-d n3n0 \-c mynetwork \-k encryptme \-u 99 \-g 99 \-m DE:AD:BE:EF:01:23 \-a 192.168.254.7 \-p 50001 \-l 123.121.120.119:7654
+.B edge \-Otuntap.name=n3n0 \-c mynetwork \-k encryptme \-Odaemon.userid=99 \-Odaemon.groupid=99 \Otuntap.macaddr=DE:AD:BE:EF:01:23 \-a 192.168.254.7 \-Oconnection.bind=50001 \-l 123.121.120.119:7654
 
 Start edge with TAP device n3n0 on community "mynetwork" with community
 supernode at 123.121.120.119 UDP port 7654 and bind the locally used UDP port to
@@ -235,12 +108,12 @@ Add the -f option to stop edge running as a daemon.
 .PP
 Somewhere else setup another edge with similar parameters, eg.
 
-.B edge \-d n3n0 \-c mynetwork \-k encryptme \-u 99 \-g 99 \-m DE:AD:BE:EF:01:21 \-a 192.168.254.5 \-p 50001 \-l 123.121.120.119:7654
+.B edge \-Otuntap.name=n3n0 \-c mynetwork \-k encryptme \-Odaemon.userid=99 \-Odaemon.groupid=99 \Otuntap.macaddr=DE:AD:BE:EF:01:21 \-a 192.168.254.5 \-Oconnection.bind=50001 \-l 123.121.120.119:7654
 .PP
 Now you can ping from 192.168.254.5 to 192.168.254.7.
 .PP
-The MAC address (-m <MAC>) and virtual IP address (-a <addr>) must be different
-on all edges in the same community.
+The MAC address (tuntap.macaddr) and virtual IP address (-a <addr>) must be
+different on all edges in the same community.
 
 .SH CLEARTEXT MODE
 If

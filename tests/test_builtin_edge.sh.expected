@@ -16,7 +16,7 @@ allow_p2p=false
 connect_tcp=false
 pmtu_discovery=false
 register_interval=0
-register_ttl=0
+register_pkt_ttl=0
 tos=0
 
 ####################

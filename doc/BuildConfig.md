@@ -21,11 +21,12 @@ the (re-)configuration and before building (again) using `make`.
 
 ZSTD Compression Support
 
-In addition to the built-in LZO1x for payload compression (`-z1` at the edge's
-commandline), n3n optionally supports [ZSTD](https://github.com/facebook/zstd).
-As of 2020, it is considered cutting edge and [praised](https://en.wikipedia.org/wiki/Zstandard)
-for reaching the currently technologically possible Pareto frontier in terms
-of CPU power versus compression ratio.
+In addition to the built-in LZO1x for payload compression (`-zlzo` at the
+edge's commandline), n3n optionally supports
+[ZSTD](https://github.com/facebook/zstd).  As of 2020, it is considered cutting
+edge and [praised](https://en.wikipedia.org/wiki/Zstandard) for reaching the
+currently technologically possible Pareto frontier in terms of CPU power versus
+compression ratio.
 
 #### Makefile
 
@@ -33,7 +34,8 @@ ZSTD support can be configured using
 
 `./configure --with-zstd`
 
-which then will include ZSTD. It will be available via `-z2` at the edges. Of course, it can be combined with the other optimisation features:
+which then will include ZSTD. It will be available via `-zzstd` at the edges.
+Of course, it can be combined with the other optimisation features:
 
 `./configure --with-zstd --with-openssl CFLAGS="-O3 -march=native"`
 

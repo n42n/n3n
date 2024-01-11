@@ -40,4 +40,7 @@ Also, n3n supports [Bridging](Bridging.md) of LANs, e.g. to connect otherwise un
 
 ## Traffic Restrictions
 
-It is possible to drop or accept specific packet transmit over edge network interface by rules. Rules can be specify by (`-R rule_str`) multiple times. Details can be found in the [Traffic Restrictions](TrafficRestrictions.md).
+It is possible to drop or accept specific packet transmit over edge network
+interface by rules. Rules can be specified in the config with the `filter.rule`
+option - multiple times if needed. Details can be found in the [Traffic
+Restrictions](TrafficRestrictions.md).

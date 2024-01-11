@@ -116,7 +116,11 @@ static struct n3n_conf_option section_connection[] = {
         .type = n3n_conf_sockaddr,
         .offset = offsetof(n2n_edge_conf_t, bind_address),
         .desc = "bind to a local address and/or port",
-        .help = "[address]:[port] to bind.",
+        .help = "[address]:[port] to bind. This can be useful to allow home "
+                "router's port forwarding to point to a known port, or when "
+                "coupled with a local ip address can help with restriction to "
+                "a certain LAN or WiFi interface.  By default, the edge binds "
+                "to any interface.",
     },
     {
         .name = "connect_tcp",
@@ -160,7 +164,7 @@ static struct n3n_conf_option section_connection[] = {
                 "communication.",
     },
     {
-        .name = "register_ttl",
+        .name = "register_pkt_ttl",
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, register_ttl),
         .desc = "The TTL for the hole punching packet.",
@@ -233,7 +237,7 @@ static struct n3n_conf_option section_filter[] = {
         .offset = offsetof(n2n_edge_conf_t, allow_multicast),
         .desc = "Optionally enable multicast traffic",
         .help = "Amungst other things, multicast is used for IPv6 neighbour "
-                "discovery.  If drop is true then these multicast packets "
+                "discovery.  If not allowed, then these multicast packets "
                 "are discarded.",
     },
     {

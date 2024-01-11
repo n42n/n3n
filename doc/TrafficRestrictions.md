@@ -1,6 +1,8 @@
 # Traffic Restrictions
 
-It is possible to drop or accept specific packet transmit over edge network interface by rules. Rules can be specify by (`-R rule_str`) multiple times.
+It is possible to drop or accept specific packet transmit over edge network
+interface by rules. Rules can be specify with the `filter.ruel` option multiple
+times.
 
 ## Rule String Format
 
@@ -19,9 +21,23 @@ examples:
 
 ## Multiple Rules
 
-`-R rule_str` can be used multiple times to add multiple rules. Each `-R rule_str` add one rule. for example:
+The `filter.rule` option can be used multiple times to add multiple rules. Each
+`filter.rule` definition adds one rule. for example:
 
-`edge -c xxxx -k xxxx -a 192.168.100.5 -l xxx.xxx.xxx.xxx:1234 -r -R 192.168.1.5/32:[0,65535],192.168.0.0/24:[8081,65535],TCP-,UDP-,ICMP+ -R 192.168.1.5:[0,65535],192.168.0.0/24:8000,ICMP+ -R 192.168.1.5,192.168.0.7,TCP-`
+```
+edge \
+    -c xxxx \
+    -k xxxx \
+    -a 192.168.100.5 \
+    -l xxx.xxx.xxx.xxx:1234 \
+    -r \
+    -Ofilter.rule=192.168.1.5/32:[0,65535],192.168.0.0/24:[8081,65535],TCP-,UDP-,ICMP+ \
+    -Ofilter.rule=192.168.1.5:[0,65535],192.168.0.0/24:8000,ICMP+ \
+    -Ofilter.rule=192.168.1.5,192.168.0.7,TCP-
+```
+
+Obviously this gets quite verbose, so adding the filter rules to a config file
+is recommended.
 
 ## Matching Rules Priority
 
@@ -35,7 +51,11 @@ Packets that cannot match any rule will be accepted by default. Users can add ru
 
 This behavior can be change by add the rule : `0.0.0.0/0:[0,65535],0.0.0.0/0:[0,65535],TCP-,UDP-,ICMP-`. Then all traffic will be dropped, users need add rules to allow traffics. 
 
-for example, `-R 0.0.0.0/0,0.0.0.0/0,TCP-,UDP-,ICMP- -R 192.168.100.0/24,192.168.100.0/24,ICMP+` dropped all traffic, except ICMP traffics inside `192.168.100.0/24`.
+for example:
+```
+-Ofilter.rule=0.0.0.0/0,0.0.0.0/0,TCP-,UDP-,ICMP- -Ofilter.rule=192.168.100.0/24,192.168.100.0/24,ICMP+
+```
+drops all traffic, except ICMP traffics inside `192.168.100.0/24`.
 
 More complex behavior can be set with the feature of `Matching Rules Priority`.
 

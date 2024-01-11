@@ -114,34 +114,15 @@ static const struct option_map_def {
     char *help;
 } option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
-    { 'D',  "connection",   "pmtu_discovery",   "true" },
-    { 'E',  "filter",       "allow_multicast",  "true" },
-    { 'H',  "community",    "header_encryption","true", },
-    { 'I',  "connection",   "description",      NULL },
-    { 'J',  "auth",         "password",         NULL },
-    { 'L',  "connection",   "register_ttl",     NULL },
-    { 'M',  "tuntap",       "mtu",              NULL },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
-    { 'P',  "auth",         "pubkey",           NULL },
-    { 'R',  "filter",       "rule",             NULL },
-    { 'T',  "connection",   "tos",              NULL },
     { 'V', NULL, NULL, NULL, "       Show the version" },
     { 'a', NULL, NULL, NULL, "<arg>  Set tuntap.address and tuntap.address_mode" },
     { 'c',  "community",    "name",             NULL },
-    { 'd',  "tuntap",       "name",             NULL },
-    { 'e',  "connection",   "advertise_addr",   NULL },
     { 'f',  "daemon",       "background",       "false" },
-    { 'g',  "daemon",       "groupid",          NULL },
-    { 'i',  "connection",   "register_interval",NULL },
     { 'k',  "community",    "key",              NULL },
     { 'l',  "community",    "supernode",        NULL },
-    { 'm',  "tuntap",       "macaddr",          NULL },
-    { 'p',  "connection",   "bind",             NULL },
     { 'r',  "filter",       "allow_routing",    "true" },
-    { 't',  "management",   "port",             NULL },
-    { 'u',  "daemon",       "userid",           NULL },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
-    { 'x',  "tuntap",       "metric",           NULL },
     { 'z',  "community",    "compression",      NULL },
     { .optkey = 0 }
 };
@@ -232,22 +213,6 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
                 }
 
                 set_option_wrap(conf, "tuntap", "address", field2);
-                break;
-            }
-            case 'S': {
-                int solitude;
-                if(optarg) {
-                    solitude = atoi(optarg);
-                } else {
-                    traceEvent(TRACE_ERROR, "unknown -S value");
-                    break;
-                }
-
-                // set the level
-                if(solitude >= 1)
-                    set_option_wrap(conf, "connection", "allow_p2p", "false");
-                if(solitude == 2)
-                    set_option_wrap(conf, "connection", "connect_tcp", "true");
                 break;
             }
 
@@ -750,7 +715,12 @@ int main (int argc, char* argv[]) {
         if(!conf.federation_public_key) {
             conf.federation_public_key = calloc(1, sizeof(n2n_private_public_key_t));
             if(conf.federation_public_key) {
-                traceEvent(TRACE_WARNING, "using default federation public key; FOR TESTING ONLY, usage of a custom federation name and key (-P) is highly recommended!");
+                traceEvent(
+                    TRACE_WARNING,
+                    "using default federation public key; "
+                    "FOR TESTING ONLY, usage of a custom federation name and "
+                    "key (auth.pubkey) is highly recommended!"
+                    );
                 generate_private_key(*(conf.federation_public_key), &FEDERATION_NAME[1]);
                 generate_public_key(*(conf.federation_public_key), *(conf.federation_public_key));
             }

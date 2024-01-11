@@ -14,7 +14,9 @@ We do not explicitly release Windows binaries, but the automated test workflow c
 
 Please think of the community-name as password and start the supernode with the `-c <community file>` parameter where the `<community file>` is the path to a simple text file containing a single line with the name of your secret community. It will be the only community allowed. Only edge nodes from that community can join (`-c <community name>` at the edge).
 
-If you additionally want to prevent open transmission of your secret community name via the network, **all** edge nodes should use `-H` command line option for header encryption.
+If you additionally want to prevent open transmission of your secret community
+name via the network, **all** edge nodes should use
+`community.header_encryption=true` config option for header encryption.
 
 Also, please see the `community.list` file coming with n3n for advanced use of that file.
 
@@ -48,9 +50,15 @@ This command line can be put down as additional `ExecStartPost=` line (without `
 
 This error message means that the supernode is not able to identify a packet as unencrypted. It does check for a sane packet format. If it fails the header is assumed encrypted (thus, "_seemingly_ encrypted header") and the supernode tries all communities that would make a key (some have already been ruled out as they definitely are unenecrypted). If no matching community is found, the error occurs.
 
-If all edges use the same `-H` setting (all edges either with it or without it) and restarting the supernode does not help, most probably one of the components (an edge or the supernode) is outdated, i.e. uses a different packet format – from time to time, a lot of changes happen to the packet format in a very short period of time, especially in _dev_ branch.
+If all edges use the same `community.header_encryption` setting (all edges
+either with it or without it) and restarting the supernode does not help, most
+probably one of the components (an edge or the supernode) is outdated, i.e.
+uses a different packet format – from time to time, a lot of changes happen to
+the packet format in a very short period of time, especially in branches or
+main for unreleased versions.
 
-So, please make sure that all edges **and** the supernode have the exact same built version, e.g. all from current _dev_.
+So, please make sure that all edges **and** the supernode have the exact same
+built version.
 
 
 ## Edge
@@ -60,7 +68,9 @@ So, please make sure that all edges **and** the supernode have the exact same bu
 
 The edge also offers a local udp management port at which it provides some information about connected _peers_ allowing a peer-to-peer connection, and _pending peers_ whose connections are forwarded through the supernode.
 
-The edge's management port defaults to 5644 and can be changed using edge's `-t` command line option. Connecting using the following command (localhost only)
+The edge's management port defaults to 5644 and can be changed using edge's
+`management.port` config option. Connecting using the following command
+(localhost only)
 
 `netcat -u localhost 5644`
 

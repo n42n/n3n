@@ -40,7 +40,7 @@ int main (int argc, char * argv[]) {
                 "     or   n3n-keygen -F <federation name>\n\n"
                 "          outputs a line to insert at supernode's community file for user-and-\n"
                 "          password authentication or a command line parameter with the public\n"
-                "          federation key for use at edge's command line, please refer to the\n"
+                "          federation key for use in the edge's config, please refer to the\n"
                 "          doc/Authentication.md document or the man pages for more details\n\n");
         return 1;
     }
@@ -72,7 +72,7 @@ int main (int argc, char * argv[]) {
 
     // output
     if(fed)
-        fprintf(stdout, "-P %s\n", asc);
+        fprintf(stdout, "auth.pubkey=%s\n", asc);
     else
         fprintf(stdout, "%c %s %s\n", N2N_USER_KEY_LINE_STARTER, argv[1], asc);
 

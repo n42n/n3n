@@ -66,10 +66,19 @@ With a view to the detailed explanations below, your supernode(s) should have a 
 
 #### Edge
 
-The edge takes the username with the already present, identifying command line parameter `-I <username>`. The password goes into `-J <password>`. Continuing the given example, the edge is invoked by
+The edge uses the `connection.description` option as the username.  This option
+defaults to the local host name, which may not be the right value for your
+environment.  The password is set with the `auth.password` options.
+
+Continuing the given example, the edge could be invoked by:
 
 ```
-[user@host n3n]$ sudo ./edge -l <supernode:port> -c netleo -I logan -J 007 <your additional parameters>
+[user@host n3n]$ sudo ./edge \
+    -l <supernode:port> \
+    -c netleo \
+    -Oconnection.description=logan \
+    -Oauth.password=007 \
+    <any additional parameters>
 ```
 
 Note that header encryption already is enabled automatically as this
@@ -78,17 +87,29 @@ ciphers work with this authentication scheme reliably in terms of security. So,
 `-AChaCha20` or `-ASpeck` along with a key `-k <key>` are required as
 additional parameters.
 
-The edges need to know the public key of the supernode. By default, the edges assume the default federation name, or more specific, the corresponding public key. In case the supernode is given a custom federation name which is highly recommended, the supernode's public key is provided to the edges via command line parameter `-P <public key>`. It can be generated from the federation name by using the `tools/n3n-keygen` utility as well:
+The edges need to know the public key of the supernode. By default, the edges
+assume the default federation name, or more specific, the corresponding public
+key. In case the supernode is given a custom federation name which is highly
+recommended, the supernode's public key is provided to the edges via the
+`auth.pubkey` config option. It can be generated from the federation name by
+using the `tools/n3n-keygen` utility as well:
 
 ```bash
 [user@host n3n]$ tools/n3n-keygen -F secretFed
--P opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
+auth.pubkey=opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
 ```
 
-Considering all this, our example expands to
+Considering all this, our example expands to:
 
 ```
-[user@host n3n]$ sudo ./edge -l <supernode:port> -c netleo -I logan -J 007 -ASpeck -k mySecretKey -P opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
+[user@host n3n]$ sudo ./edge \
+    -l <supernode:port> \
+    -c netleo \
+    -Oconnection.description=logan \
+    -Oauth.password=007 \
+    -Oauth.pubkey=opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4 \
+    -ASpeck \
+    -k mySecretKey
 ```
 
 You might want to consider the use of [`.conf` files](ConfigurationFiles.md) to accomodate all the command line parameters more easily. Alternatively, the `N2N_PASSWORD` environment variable can be used to set the password without having it show up as part of the command line.
