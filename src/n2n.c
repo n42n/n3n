@@ -504,28 +504,6 @@ char* msg_type2str (uint16_t msg_type) {
 
 /* *********************************************** */
 
-void hexdump (const uint8_t *buf, size_t len) {
-
-    size_t i;
-
-    if(0 == len) {
-        return;
-    }
-
-    printf("-----------------------------------------------\n");
-    for(i = 0; i < len; i++) {
-        if((i > 0) && ((i % 16) == 0)) {
-            printf("\n");
-        }
-        printf("%02X ", buf[i] & 0xFF);
-    }
-    printf("\n");
-    printf("-----------------------------------------------\n");
-}
-
-
-/* *********************************************** */
-
 void print_n3n_version () {
 
     printf("n3n v%s, configured %s\n"

@@ -1701,7 +1701,6 @@ static int handle_PACKET (n2n_edge_t * eee,
 
     traceEvent(TRACE_DEBUG, "handle_PACKET size %u transform %u",
                (unsigned int)psize, (unsigned int)pkt->transform);
-    /* hexdump(payload, psize); */
 
     if(from_supernode) {
         if(is_multi_broadcast(pkt->dstMac))
@@ -2001,8 +2000,6 @@ static int send_packet (n2n_edge_t * eee,
     n2n_sock_t destination;
     macstr_t mac_buf;
     struct peer_info *peer, *tmp_peer;
-
-    /* hexdump(pktbuf, pktlen); */
 
     is_p2p = find_peer_destination(eee, dstMac, &destination);
 

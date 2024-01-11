@@ -139,7 +139,6 @@ int get_best_interface_ip (n2n_edge_t * eee, dec_ip_str_t *ip_addr){
     }
 
     dwRetVal = GetAdaptersInfo(pAdapterInfo, &ulOutBufLen);
-//    hexdump((uint8_t*)pAdapterInfo, ulOutBufLen);
     if(dwRetVal == NO_ERROR) {
         for(pAdapter = pAdapterInfo; pAdapter != NULL; pAdapter = pAdapter->Next) {
             if(pAdapter->Index != interface_index) continue;
