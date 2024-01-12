@@ -2922,7 +2922,6 @@ int run_edge_loop (n2n_edge_t *eee) {
 
         int rc, max_sock = 0;
         fd_set socket_mask;
-        struct timeval wait_time;
         time_t now;
 
         FD_ZERO(&socket_mask);
@@ -2947,6 +2946,7 @@ int run_edge_loop (n2n_edge_t *eee) {
         max_sock = max(max_sock, eee->device.fd);
 #endif
 
+        struct timeval wait_time;
         wait_time.tv_sec = (eee->sn_wait) ? (SOCKET_TIMEOUT_INTERVAL_SECS / 10 + 1) : (SOCKET_TIMEOUT_INTERVAL_SECS);
         wait_time.tv_usec = 0;
         rc = select(max_sock + 1, &socket_mask, NULL, NULL, &wait_time);
@@ -2956,12 +2956,16 @@ int run_edge_loop (n2n_edge_t *eee) {
             // any or all of the FDs could have input; check them all
 
             // external
-            if((eee->sock >= 0) && FD_ISSET(eee->sock, &socket_mask)) {
-                if(0 != fetch_and_eventually_process_data(eee, eee->sock,
-                                                          pktbuf, &expected, &position,
-                                                          now)) {
+            if(FD_ISSET(eee->sock, &socket_mask)) {
+                if(0 != fetch_and_eventually_process_data(
+                       eee,
+                       eee->sock,
+                       pktbuf,
+                       &expected,
+                       &position,
+                       now
+                       )) {
                     *eee->keep_running = false;
-                    break;
                 }
                 if(eee->conf.connect_tcp) {
                     if((expected >= N2N_PKT_BUF_SIZE) || (position >= N2N_PKT_BUF_SIZE)) {
@@ -2978,11 +2982,15 @@ int run_edge_loop (n2n_edge_t *eee) {
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
             if(FD_ISSET(eee->udp_multicast_sock, &socket_mask)) {
-                if(0 != fetch_and_eventually_process_data(eee, eee->udp_multicast_sock,
-                                                          pktbuf, &expected, &position,
-                                                          now)) {
+                if(0 != fetch_and_eventually_process_data(
+                       eee,
+                       eee->udp_multicast_sock,
+                       pktbuf,
+                       &expected,
+                       &position,
+                       now
+                       )) {
                     *eee->keep_running = false;
-                    break;
                 }
             }
 #endif
@@ -2990,9 +2998,6 @@ int run_edge_loop (n2n_edge_t *eee) {
             if(FD_ISSET(eee->udp_mgmt_sock, &socket_mask)) {
                 // read from the management port socket
                 readFromMgmtSocket(eee);
-
-                if(!(*eee->keep_running))
-                    break;
             }
 
 #ifndef _WIN32
@@ -3002,6 +3007,10 @@ int run_edge_loop (n2n_edge_t *eee) {
             }
 #endif
         }
+
+        // If anything we recieved caused us to stop..
+        if(!(*eee->keep_running))
+            break;
 
         // finished processing select data
         update_supernode_reg(eee, now);
@@ -3019,10 +3028,13 @@ int run_edge_loop (n2n_edge_t *eee) {
                                          PURGE_REGISTRATION_FREQUENCY, REGISTRATION_TIMEOUT);
 
         if(numPurged > 0) {
-            traceEvent(TRACE_INFO, "%u peers removed. now: pending=%u, operational=%u",
-                       numPurged,
-                       HASH_COUNT(eee->pending_peers),
-                       HASH_COUNT(eee->known_peers));
+            traceEvent(
+                TRACE_INFO,
+                "%u peers removed. now: pending=%u, operational=%u",
+                numPurged,
+                HASH_COUNT(eee->pending_peers),
+                HASH_COUNT(eee->known_peers)
+                );
         }
 
 #ifdef HAVE_BRIDGING_SUPPORT
@@ -3052,7 +3064,11 @@ int run_edge_loop (n2n_edge_t *eee) {
 
         sort_supernodes(eee, now);
 
-        eee->resolution_request = resolve_check(eee->resolve_parameter, eee->resolution_request, now);
+        eee->resolution_request = resolve_check(
+            eee->resolve_parameter,
+            eee->resolution_request,
+            now
+            );
 
         if(eee->cb.main_loop_period)
             eee->cb.main_loop_period(eee, now);
