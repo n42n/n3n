@@ -153,12 +153,6 @@ static int setup_speck_key (transop_speck_t *priv, const uint8_t *key, ssize_t k
 }
 
 
-static void transop_tick_speck (n2n_trans_op_t *arg, time_t now) {
-
-    // no tick action
-}
-
-
 // Speck initialization function
 int n2n_transop_speck_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
@@ -169,7 +163,6 @@ int n2n_transop_speck_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     memset(ttt, 0, sizeof(*ttt));
     ttt->transform_id = N2N_TRANSFORM_ID_SPECK;
 
-    ttt->tick         = transop_tick_speck;
     ttt->deinit       = transop_deinit_speck;
     ttt->fwd          = transop_encode_speck;
     ttt->rev          = transop_decode_speck;

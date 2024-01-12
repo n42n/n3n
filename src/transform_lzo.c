@@ -107,12 +107,6 @@ static int transop_decode_lzo (n2n_trans_op_t *arg,
 }
 
 
-static void transop_tick_lzo (n2n_trans_op_t *arg, time_t now) {
-
-    // no tick action
-}
-
-
 // lzo initialization function
 int n2n_transop_lzo_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
@@ -121,7 +115,6 @@ int n2n_transop_lzo_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     memset(ttt, 0, sizeof(*ttt));
     ttt->transform_id = N2N_COMPRESSION_ID_LZO;
 
-    ttt->tick         = transop_tick_lzo;
     ttt->deinit       = transop_deinit_lzo;
     ttt->fwd          = transop_encode_lzo;
     ttt->rev          = transop_decode_lzo;

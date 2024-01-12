@@ -493,7 +493,6 @@ typedef enum n2n_transform {
 struct n2n_trans_op; /* Circular definition */
 
 typedef int (*n2n_transdeinit_f)(struct n2n_trans_op * arg);
-typedef void (*n2n_transtick_f)(struct n2n_trans_op * arg, time_t now);
 typedef int (*n2n_transform_f)(struct n2n_trans_op * arg,
                                uint8_t * outbuf,
                                size_t out_len,
@@ -514,7 +513,6 @@ typedef struct n2n_trans_op {
     size_t rx_cnt;
 
     n2n_transdeinit_f deinit;         /* destructor function */
-    n2n_transtick_f tick;             /* periodic maintenance */
     n2n_transform_f fwd;              /* encode a payload */
     n2n_transform_f rev;              /* decode a payload */
 } n2n_trans_op_t;

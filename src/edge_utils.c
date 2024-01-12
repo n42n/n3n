@@ -2892,7 +2892,6 @@ int run_edge_loop (n2n_edge_t *eee) {
 
     size_t numPurged;
     time_t lastIfaceCheck = 0;
-    time_t lastTransop = 0;
     time_t last_purge_known = 0;
     time_t last_purge_pending = 0;
 #ifdef HAVE_BRIDGING_SUPPORT
@@ -2952,13 +2951,6 @@ int run_edge_loop (n2n_edge_t *eee) {
         wait_time.tv_usec = 0;
         rc = select(max_sock + 1, &socket_mask, NULL, NULL, &wait_time);
         now = time(NULL);
-
-        // make sure ciphers are updated before the packet is treated
-        if((now - lastTransop) > TRANSOP_TICK_INTERVAL) {
-            lastTransop = now;
-
-            eee->transop.tick(&eee->transop, now);
-        }
 
         if(rc > 0) {
             // any or all of the FDs could have input; check them all

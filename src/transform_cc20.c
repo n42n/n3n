@@ -149,12 +149,6 @@ static int setup_cc20_key (transop_cc20_t *priv, const uint8_t *password, ssize_
 }
 
 
-static void transop_tick_cc20 (n2n_trans_op_t *arg, time_t now) {
-
-    // no tick action
-}
-
-
 // ChaCha20 initialization function
 int n2n_transop_cc20_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
@@ -165,7 +159,6 @@ int n2n_transop_cc20_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     memset(ttt, 0, sizeof(*ttt));
     ttt->transform_id = N2N_TRANSFORM_ID_CHACHA20;
 
-    ttt->tick         = transop_tick_cc20;
     ttt->deinit       = transop_deinit_cc20;
     ttt->fwd          = transop_encode_cc20;
     ttt->rev          = transop_decode_cc20;
