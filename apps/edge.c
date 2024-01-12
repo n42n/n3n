@@ -666,10 +666,17 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             name = defname;
         }
 
-        if(n3n_config_load_file(conf, name) != 0) {
+        int r = n3n_config_load_file(conf, name);
+        if(r == -1) {
             printf("Error loading config file\n");
             exit(1);
         }
+        if(r == -2) {
+            printf("Warning: no config file found for session '%s'\n", name);
+        }
+
+        // Save the session name for later
+        conf->sessionname = name;
     }
 
     // Update the loaded conf with the current environment

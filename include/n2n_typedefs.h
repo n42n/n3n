@@ -593,6 +593,7 @@ typedef struct n2n_edge_conf {
     devstr_t tuntap_dev_name;
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
     struct n2n_ip_subnet tuntap_v4;
+    char *sessionname;
 } n2n_edge_conf_t;
 
 
