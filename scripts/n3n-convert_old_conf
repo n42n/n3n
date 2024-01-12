@@ -17,7 +17,22 @@ config = {}
 def set_option(section, option, value):
     if section not in config:
         config[section] = {}
-    config[section][option] = value
+
+    append = False
+    # special handling for array values
+    if section == "community" and option == "supernode":
+        append = True
+    elif section == "filter" and option == "rule":
+        append = True
+
+    if not append:
+        config[section][option] = value
+        return
+
+    if option not in config[section]:
+        config[section][option] = list()
+
+    config[section][option].append(value)
 
 
 def render_config(file):
@@ -31,7 +46,14 @@ def render_config(file):
         print(f"[{sectionname}]", file=file)
 
         for optionname in sorted(section.keys()):
-            print(optionname, "=", section[optionname], file=file)
+            if isinstance(section[optionname], str):
+                print(optionname, "=", section[optionname], file=file)
+            elif isinstance(section[optionname], list):
+                for value in section[optionname]:
+                    print(optionname, "=", value, file=file)
+
+            else:
+                raise ValueError
 
         print(file=file)
 
