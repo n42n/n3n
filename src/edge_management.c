@@ -286,6 +286,32 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
                        req->eee->stats.rx_sup_broadcast);
 
     send_reply(req, buf, msg_len);
+
+    msg_len = snprintf(buf->str, buf->size,
+                       "{"
+                       "\"_tag\":\"%s\","
+                       "\"_type\":\"row\","
+                       "\"type\":\"tuntap_error\","
+                       "\"tx_pkt\":%u,"
+                       "\"rx_pkt\":%u}\n",
+                       req->tag,
+                       req->eee->stats.tx_tuntap_error,
+                       req->eee->stats.rx_tuntap_error);
+
+    send_reply(req, buf, msg_len);
+
+    msg_len = snprintf(buf->str, buf->size,
+                       "{"
+                       "\"_tag\":\"%s\","
+                       "\"_type\":\"row\","
+                       "\"type\":\"multicast_drop\","
+                       "\"tx_pkt\":%u,"
+                       "\"rx_pkt\":%u}\n",
+                       req->tag,
+                       req->eee->stats.tx_multicast_drop,
+                       req->eee->stats.rx_multicast_drop);
+
+    send_reply(req, buf, msg_len);
 }
 
 static void mgmt_post_test (mgmt_req_t *req, strbuf_t *buf) {

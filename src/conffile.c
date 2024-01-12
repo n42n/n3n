@@ -786,7 +786,7 @@ int n3n_config_load_file (void *conf, char *name) {
     char *filename = find_config(name);
     if(!filename) {
         // Couldnt find a filename
-        return -1;
+        return -2;
     }
     FILE *f = fopen(filename, "r");
     if(!f) {

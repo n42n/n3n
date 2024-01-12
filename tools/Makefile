@@ -12,14 +12,12 @@ LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)
 
 TOOLS+=n3n-benchmark
-TOOLS+=n3n-keygen
 TOOLS+=n3n-route
 TOOLS+=n3n-portfwd
 TOOLS+=n3n-decode
 
 TESTS=tests-compress
 TESTS+=tests-elliptic
-TESTS+=tests-hashing
 TESTS+=tests-transform
 TESTS+=tests-wire
 TESTS+=tests-auth

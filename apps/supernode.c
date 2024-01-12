@@ -647,7 +647,12 @@ int main (int argc, char * const argv[]) {
     }
 
     if(sss_node.override_spoofing_protection) {
-        traceEvent(TRACE_WARNING, "disabled MAC and IP address spoofing protection; FOR TESTING ONLY, usage of user-password authentication (-I, -J, -P) recommended instead!");
+        traceEvent(
+            TRACE_WARNING,
+            "disabled MAC and IP address spoofing protection; "
+            "FOR TESTING ONLY, usage of user-password authentication options "
+            "is recommended instead!"
+            );
     }
 
     calculate_shared_secrets(&sss_node);

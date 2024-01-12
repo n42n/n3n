@@ -12,7 +12,11 @@ One exception applies to Windows: As the installed TAP driver(s) come with fixed
 
 ## MAC
 
-Even virtual ethernet devices have a MAC address. As in real networks, it should be unique as it is used to identify the different participants and transport packets accordingly. The MAC address can optionally be specified by using the `-m <MAC address>` command line parameter, e.g. `-m 01:02:03:04:05:06`. If omitted, n3n tries to assign a random MAC address.
+Even virtual ethernet devices have a MAC address. As in real networks, it
+should be unique as it is used to identify the different participants and
+transport packets accordingly. The MAC address can optionally be specified by
+using the `tuntap.macaddr` config option. If omitted, n3n tries to assign a
+random MAC address.
 
 ## IP Address
 
@@ -112,30 +116,39 @@ has been provided:
 - A value of 1290 bytes is used instead of 1500 bytes as reference value for the internet interface MTU.
   This essentially avoids fragmentation if the PMTU is greater or equal than 1400 bytes.
 
-This is a conservative solution which should make n3n work by default. The user can manually
-specify the MTU (`-M <mtu>`) and re-enable PMTU discovery (`-D`) via the command-line interface options.
+This is a conservative solution which should make n3n work by default. The user
+can manually change these options with these configuration settings:
+- specify the MTU (`tuntap.mtu`)
+- enable PMTU discovery (`connection.pmtu_discovery=true`)
 
 ## Interface Metric and Broadcasts
 
-On Windows, broadcasts are sent out to the network interface with the lowest metric only. This usually is the
-WAN interface with its default metric of `25`. The `-x <metric>` option could be used to configure the TAP with a
-lower interface metric and hence facilitate service and online game server detection over n3n.
+On Windows, broadcasts are sent out to the network interface with the lowest
+metric only. This usually is the WAN interface with its default metric of `25`.
+The `tuntap.metric` option could be used to configure the TAP with a lower
+interface metric and hence facilitate service and online game server detection
+over n3n.
 
-Linux and others do not require this feature as broadcasts are sent to all network interfaces by default, also to the
+Linux and others do not require this feature as broadcasts are sent to all
+network interfaces by default, also to the
 virtual ones.
 
 ## Multicast
 
-n3n does not transmit multicast packets by default. It can be enabled by edge's `-E` command-line parameter.
+n3n does not transmit multicast packets by default. It can be enabled by
+using the `filter.allow_multicast=true` config option.
 
 ## Edge Description
 
-To keep edge's and supernode's management port output well arranged and understandable, each edge can have a plain text description
-fed to the edge by the optional `-I <edge description>` command-line parameter. If not provided, n3n uses the
+To keep edge's and supernode's management port output well arranged and
+understandable, each edge can have a plain text description fed to the edge by
+the `connection.description` config option. If not provided, n3n uses the
 hostname by default.
 
-A description field's hash value is used to choose an auto IP address. So, just be aware that changing the hostname
-can lead to assigning a different auto IP address on next edge start-up – if auto IP address is used.
+When 'auto' address mode is used to allow the supernode to issue an IP address,
+a hash of the description field is used by the supernode to choose an auto IP
+address. So, just be aware that changing the hostname can lead to assigning a
+different auto IP address on next edge start-up – if auto IP address is used.
 
 ## Routing
 
@@ -144,8 +157,9 @@ explaining it all in detail.
 
 ## Traffic Filter
 
-Setting up the integrated traffic filter permits to define exactly the kind of allowed traffic or deny 
-other on edge's TAP interface. It helps to keep unwanted traffic out of the n3n network for
-bandwidth and security reasons. The traffic filter is disabled by default and gets activated by providing
-as many `-R <rule>`-rules as required through edge's command-line. Specifics are written down in the
-[Traffic Restrictions](TrafficRestricitons.md) documentation.
+Setting up the integrated traffic filter permits to define exactly the kind of
+allowed traffic or deny other on edge's TAP interface. It helps to keep
+unwanted traffic out of the n3n network for bandwidth and security reasons. The
+traffic filter is disabled by default and gets activated by providing as many
+`filter.rule` options as required to the edge. Specifics are written down in
+the [Traffic Restrictions](TrafficRestricitons.md) documentation.

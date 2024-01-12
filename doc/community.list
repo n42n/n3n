@@ -16,7 +16,8 @@ ntop[0-1][0-9]
 #      . * + ? [ ] \
 #      as otherwise, they are interpreted as regular expression
 #
-#   *  Only fixed-name communities are supported for header encryption (-H)
+#   *  Only fixed-name communities are supported for header encryption (using
+#      the edge config `community.header_encryption=true`)
 #
 #   *  Regular expression support the following placeholders
 #      '.'        Dot, matches any character

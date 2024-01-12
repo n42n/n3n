@@ -567,8 +567,8 @@ typedef struct n2n_edge_conf {
     uint8_t transop_id;                              /**< The transop to use. */
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
     bool allow_routing;                              /**< Accept packet no to interface address. */
-    bool drop_multicast;                             /**< Multicast ethernet addresses. */
-    bool disable_pmtu_discovery;                     /**< Disable the Path MTU discovery. */
+    bool allow_multicast;                            /**< Multicast ethernet addresses. */
+    bool pmtu_discovery;                             /**< Enable the Path MTU discovery. */
     bool allow_p2p;                                  /**< Allow P2P connection */
     uint8_t sn_num;                                  /**< Number of supernode addresses defined. */
     uint32_t tos;                                    /** TOS for sent packets */
@@ -593,6 +593,7 @@ typedef struct n2n_edge_conf {
     devstr_t tuntap_dev_name;
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
     struct n2n_ip_subnet tuntap_v4;
+    char *sessionname;
 } n2n_edge_conf_t;
 
 
@@ -603,6 +604,10 @@ struct n2n_edge_stats {
     uint32_t rx_sup;
     uint32_t tx_sup_broadcast;
     uint32_t rx_sup_broadcast;
+    uint32_t tx_multicast_drop;
+    uint32_t rx_multicast_drop;
+    uint32_t tx_tuntap_error;
+    uint32_t rx_tuntap_error;
 };
 
 struct n2n_edge {

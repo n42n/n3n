@@ -336,13 +336,35 @@ int supernode_connect (n2n_edge_t *eee) {
                 traceEvent(TRACE_WARNING, "could not set TOS 0x%x[%d]: %s", eee->conf.tos, errno, strerror(errno));
         }
 #ifdef IP_PMTUDISC_DO
-        sockopt = (eee->conf.disable_pmtu_discovery) ? IP_PMTUDISC_DONT : IP_PMTUDISC_DO;
+        if(eee->conf.pmtu_discovery) {
+            sockopt = IP_PMTUDISC_DO;
+        } else {
+            sockopt = IP_PMTUDISC_DONT;
+        }
+        traceEvent(
+            TRACE_INFO,
+            "Setting pmtu_discovery %s",
+            (eee->conf.pmtu_discovery) ? "true" : "false"
+            );
 
-        if(setsockopt(eee->sock, IPPROTO_IP, IP_MTU_DISCOVER, &sockopt, sizeof(sockopt)) < 0)
-            traceEvent(TRACE_WARNING, "could not %s PMTU discovery[%d]: %s",
-                       (eee->conf.disable_pmtu_discovery) ? "disable" : "enable", errno, strerror(errno));
-        else
-            traceEvent(TRACE_INFO, "PMTU discovery %s", (eee->conf.disable_pmtu_discovery) ? "disabled" : "enabled");
+        int i = setsockopt(
+            eee->sock,
+            IPPROTO_IP,
+            IP_MTU_DISCOVER,
+            &sockopt,
+            sizeof(sockopt)
+            );
+
+        if(i < 0) {
+            traceEvent(
+                TRACE_WARNING,
+                "Setting pmtu_discovery failed: %s(%d)",
+                strerror(errno),
+                errno
+                );
+        }
+#else
+        traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
 #endif
 
         memset(&local_sock, 0, sizeof(n2n_sock_t));
@@ -1669,7 +1691,6 @@ static int handle_PACKET (n2n_edge_t * eee,
 
     ssize_t data_sent_len;
     uint8_t *                 eth_payload = NULL;
-    int retval = -1;
     time_t now;
     ether_hdr_t *             eh;
     ipstr_t ip_buf;
@@ -1680,7 +1701,6 @@ static int handle_PACKET (n2n_edge_t * eee,
 
     traceEvent(TRACE_DEBUG, "handle_PACKET size %u transform %u",
                (unsigned int)psize, (unsigned int)pkt->transform);
-    /* hexdump(payload, psize); */
 
     if(from_supernode) {
         if(is_multi_broadcast(pkt->dstMac))
@@ -1694,141 +1714,151 @@ static int handle_PACKET (n2n_edge_t * eee,
     }
 
     /* Handle transform. */
-    {
-        uint8_t decode_buf[N2N_PKT_BUF_SIZE];
-        uint8_t deflate_buf[N2N_PKT_BUF_SIZE];
-        size_t eth_size;
-        n2n_transform_t rx_transop_id;
-        uint8_t rx_compression_id;
+    uint8_t decode_buf[N2N_PKT_BUF_SIZE];
+    uint8_t deflate_buf[N2N_PKT_BUF_SIZE];
+    size_t eth_size;
 
-        rx_transop_id = (n2n_transform_t)pkt->transform;
-        rx_compression_id = pkt->compression;
+    n2n_transform_t rx_transop_id = (n2n_transform_t)pkt->transform;
+    uint8_t rx_compression_id = pkt->compression;
 
-        if(rx_transop_id == eee->conf.transop_id) {
-            uint8_t is_multicast;
-            // decrypt
-            eth_payload = decode_buf;
-            eth_size = eee->transop.rev(&eee->transop,
-                                        eth_payload, N2N_PKT_BUF_SIZE,
-                                        payload, psize, pkt->srcMac);
-            ++(eee->transop.rx_cnt); /* stats */
+    if(rx_transop_id != eee->conf.transop_id) {
+        traceEvent(
+            TRACE_WARNING,
+            "invalid transop ID: expected %s (%u), got %s (%u) from %s [%s]",
+            n3n_transform_id2str(eee->conf.transop_id),
+            eee->conf.transop_id,
+            n3n_transform_id2str(rx_transop_id),
+            rx_transop_id,
+            macaddr_str(mac_buf, pkt->srcMac),
+            sock_to_cstr(sockbuf, orig_sender)
+            );
+        return -1;
+    }
 
-            /* decompress if necessary */
-            size_t deflate_len;
+    uint8_t is_multicast;
+    // decrypt
+    eth_payload = decode_buf;
+    eth_size = eee->transop.rev(&eee->transop,
+                                eth_payload, N2N_PKT_BUF_SIZE,
+                                payload, psize, pkt->srcMac);
+    ++(eee->transop.rx_cnt); /* stats */
 
-            switch(rx_compression_id) {
-                case N2N_COMPRESSION_ID_NONE:
-                    break; // continue afterwards
+    /* decompress if necessary */
+    size_t deflate_len;
 
-                case N2N_COMPRESSION_ID_LZO:
-                    deflate_len = eee->transop_lzo.rev(&eee->transop_lzo,
-                                                       deflate_buf, N2N_PKT_BUF_SIZE,
-                                                       decode_buf, eth_size, pkt->srcMac);
-                    break;
+    switch(rx_compression_id) {
+        case N2N_COMPRESSION_ID_NONE:
+            break; // continue afterwards
+
+        case N2N_COMPRESSION_ID_LZO:
+            deflate_len = eee->transop_lzo.rev(&eee->transop_lzo,
+                                               deflate_buf, N2N_PKT_BUF_SIZE,
+                                               decode_buf, eth_size, pkt->srcMac);
+            break;
 
 #ifdef HAVE_ZSTD
-                case N2N_COMPRESSION_ID_ZSTD:
-                    deflate_len = eee->transop_zstd.rev(&eee->transop_zstd,
-                                                        deflate_buf, N2N_PKT_BUF_SIZE,
-                                                        decode_buf, eth_size, pkt->srcMac);
-                    break;
+        case N2N_COMPRESSION_ID_ZSTD:
+            deflate_len = eee->transop_zstd.rev(&eee->transop_zstd,
+                                                deflate_buf, N2N_PKT_BUF_SIZE,
+                                                decode_buf, eth_size, pkt->srcMac);
+            break;
 #endif
-                default:
-                    traceEvent(TRACE_WARNING, "payload decompression failed: received packet indicating unsupported %i compression.",
-                               rx_compression_id);
-                    return(-1); // cannot handle it
-            }
+        default:
+            traceEvent(
+                TRACE_WARNING,
+                "decompression: failed: unsupported %i",
+                rx_compression_id
+                );
+            return(-1); // cannot handle it
+    }
 
-            if(rx_compression_id != N2N_COMPRESSION_ID_NONE) {
-                traceEvent(TRACE_DEBUG, "payload decompression %s: deflated %u bytes to %u bytes",
-                           n3n_compression_id2str(rx_compression_id),
-                           eth_size, (int)deflate_len);
-                eth_payload = deflate_buf;
-                eth_size = deflate_len;
-            }
-            eh = (ether_hdr_t*)eth_payload;
+    if(rx_compression_id != N2N_COMPRESSION_ID_NONE) {
+        traceEvent(
+            TRACE_DEBUG,
+            "decompression: %i: deflated %u bytes to %u bytes",
+            rx_compression_id,
+            eth_size,
+            deflate_len
+            );
+        eth_payload = deflate_buf;
+        eth_size = deflate_len;
+    }
 
-            is_multicast = (is_ip6_discovery(eth_payload, eth_size) || is_ethMulticast(eth_payload, eth_size));
+    eh = (ether_hdr_t*)eth_payload;
 
-            if(eee->conf.drop_multicast && is_multicast) {
-                traceEvent(TRACE_INFO, "dropping RX multicast");
+    is_multicast = (is_ip6_discovery(eth_payload, eth_size) || is_ethMulticast(eth_payload, eth_size));
+
+    if(!eee->conf.allow_multicast && is_multicast) {
+        traceEvent(TRACE_INFO, "dropping RX multicast");
+        eee->stats.rx_multicast_drop++;
+        return(-1);
+    }
+
+    if((!eee->conf.allow_routing) && (!is_multicast)) {
+        /* Check if it is a routed packet */
+
+        if((ntohs(eh->type) == 0x0800) && (eth_size >= ETH_FRAMESIZE + IP4_MIN_SIZE)) {
+
+            uint32_t *dst = (uint32_t*)&eth_payload[ETH_FRAMESIZE + IP4_DSTOFFSET];
+            uint8_t *dst_mac = (uint8_t*)eth_payload;
+
+            /* Note: all elements of the_ip are in network order */
+            if(!memcmp(dst_mac, broadcast_mac, N2N_MAC_SIZE))
+                traceEvent(TRACE_DEBUG, "RX broadcast packet destined to [%s]",
+                           intoa(ntohl(*dst), ip_buf, sizeof(ip_buf)));
+            else if((*dst != eee->device.ip_addr)) {
+                /* This is a packet that needs to be routed */
+                traceEvent(TRACE_INFO, "discarding routed packet destined to [%s]",
+                           intoa(ntohl(*dst), ip_buf, sizeof(ip_buf)));
                 return(-1);
-            } else if((!eee->conf.allow_routing) && (!is_multicast)) {
-                /* Check if it is a routed packet */
-
-                if((ntohs(eh->type) == 0x0800) && (eth_size >= ETH_FRAMESIZE + IP4_MIN_SIZE)) {
-
-                    uint32_t *dst = (uint32_t*)&eth_payload[ETH_FRAMESIZE + IP4_DSTOFFSET];
-                    uint8_t *dst_mac = (uint8_t*)eth_payload;
-
-                    /* Note: all elements of the_ip are in network order */
-                    if(!memcmp(dst_mac, broadcast_mac, N2N_MAC_SIZE))
-                        traceEvent(TRACE_DEBUG, "RX broadcast packet destined to [%s]",
-                                   intoa(ntohl(*dst), ip_buf, sizeof(ip_buf)));
-                    else if((*dst != eee->device.ip_addr)) {
-                        /* This is a packet that needs to be routed */
-                        traceEvent(TRACE_INFO, "discarding routed packet destined to [%s]",
-                                   intoa(ntohl(*dst), ip_buf, sizeof(ip_buf)));
-                        return(-1);
-                    } else {
-                        /* This packet is directed to us */
-                        /* traceEvent(TRACE_INFO, "Sending non-routed packet"); */
-                    }
-                }
             }
 
-#ifdef HAVE_BRIDGING_SUPPORT
-            if((eee->conf.allow_routing) && (!is_multi_broadcast(eh->shost))) {
-                struct host_info *host = NULL;
-
-                HASH_FIND(hh, eee->known_hosts, eh->shost, sizeof(n2n_mac_t), host);
-                if(host == NULL) {
-                    struct host_info *host = calloc(1, sizeof(struct host_info));
-                    memcpy(host->mac_addr, eh->shost, sizeof(n2n_mac_t));
-                    memcpy(host->edge_addr, pkt->srcMac, sizeof(n2n_mac_t));
-                    host->last_seen = now;
-                    HASH_ADD(hh, eee->known_hosts, mac_addr, sizeof(n2n_mac_t), host);
-                } else {
-                    memcpy(host->edge_addr, pkt->srcMac, sizeof(n2n_mac_t));
-                    host->last_seen = now;
-                }
-            }
-#endif
-
-            if(eee->network_traffic_filter->filter_packet_from_peer(eee->network_traffic_filter, eee, orig_sender,
-                                                                    eth_payload, eth_size) == N2N_DROP) {
-                traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)eth_size);
-                return(0);
-            }
-
-            if(eee->cb.packet_from_peer) {
-                uint16_t tmp_eth_size = eth_size;
-                if(eee->cb.packet_from_peer(eee, orig_sender, eth_payload, &tmp_eth_size) == N2N_DROP) {
-                    traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)eth_size);
-                    return(0);
-                }
-                eth_size = tmp_eth_size;
-            }
-
-            /* Write ethernet packet to tap device. */
-            traceEvent(TRACE_DEBUG, "sending data of size %u to TAP", (unsigned int)eth_size);
-            data_sent_len = tuntap_write(&(eee->device), eth_payload, eth_size);
-
-            if(data_sent_len == eth_size) {
-                retval = 0;
-            }
-        } else {
-            traceEvent(TRACE_WARNING, "invalid transop ID: expected %s (%u), got %s (%u) from %s [%s]",
-                       n3n_transform_id2str(eee->conf.transop_id),
-                       eee->conf.transop_id,
-                       n3n_transform_id2str(rx_transop_id),
-                       rx_transop_id,
-                       macaddr_str(mac_buf, pkt->srcMac),
-                       sock_to_cstr(sockbuf, orig_sender));
+            /* This packet is directed to us */
+            /* traceEvent(TRACE_INFO, "Sending non-routed packet"); */
         }
     }
 
-    return retval;
+#ifdef HAVE_BRIDGING_SUPPORT
+    if((eee->conf.allow_routing) && (!is_multi_broadcast(eh->shost))) {
+        struct host_info *host = NULL;
+
+        HASH_FIND(hh, eee->known_hosts, eh->shost, sizeof(n2n_mac_t), host);
+        if(host == NULL) {
+            host = calloc(1, sizeof(struct host_info));
+            // TODO: alloc() on the packet path can cause bad latency
+
+            memcpy(host->mac_addr, eh->shost, sizeof(n2n_mac_t));
+            HASH_ADD(hh, eee->known_hosts, mac_addr, sizeof(n2n_mac_t), host);
+        }
+        memcpy(host->edge_addr, pkt->srcMac, sizeof(n2n_mac_t));
+        host->last_seen = now;
+    }
+#endif
+
+    if(eee->network_traffic_filter->filter_packet_from_peer(eee->network_traffic_filter, eee, orig_sender,
+                                                            eth_payload, eth_size) == N2N_DROP) {
+        traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)eth_size);
+        return(0);
+    }
+
+    if(eee->cb.packet_from_peer) {
+        uint16_t tmp_eth_size = eth_size;
+        if(eee->cb.packet_from_peer(eee, orig_sender, eth_payload, &tmp_eth_size) == N2N_DROP) {
+            traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)eth_size);
+            return(0);
+        }
+        eth_size = tmp_eth_size;
+    }
+
+    /* Write ethernet packet to tap device. */
+    traceEvent(TRACE_DEBUG, "sending data of size %u to TAP", (unsigned int)eth_size);
+    data_sent_len = tuntap_write(&(eee->device), eth_payload, eth_size);
+
+    if(data_sent_len == eth_size) {
+        return 0;
+    }
+
+    return -1;
 }
 
 /* ************************************** */
@@ -1970,8 +2000,6 @@ static int send_packet (n2n_edge_t * eee,
     n2n_sock_t destination;
     macstr_t mac_buf;
     struct peer_info *peer, *tmp_peer;
-
-    /* hexdump(pktbuf, pktlen); */
 
     is_p2p = find_peer_destination(eee, dstMac, &destination);
 
@@ -2159,9 +2187,16 @@ void edge_read_from_tap (n2n_edge_t * eee) {
 
     len = tuntap_read( &(eee->device), eth_pkt, N2N_PKT_BUF_SIZE );
     if((len <= 0) || (len > N2N_PKT_BUF_SIZE)) {
-        traceEvent(TRACE_WARNING, "read()=%d [%d/%s]",
-                   (signed int)len, errno, strerror(errno));
+        traceEvent(
+            TRACE_WARNING,
+            "read()=%d [%d/%s]",
+            len,
+            errno,
+            strerror(errno)
+            );
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
+        eee->stats.tx_tuntap_error++;
+
         sleep(3);
         tuntap_close(&(eee->device));
         tuntap_open(&(eee->device),
@@ -2172,42 +2207,46 @@ void edge_read_from_tap (n2n_edge_t * eee) {
                     eee->conf.mtu,
                     eee->conf.metric
                     );
-    } else {
-        const uint8_t * mac = eth_pkt;
-        traceEvent(TRACE_DEBUG, "Rx TAP packet (%4d) for %s",
-                   (signed int)len, macaddr_str(mac_buf, mac));
+        return;
 
-        if(eee->conf.drop_multicast &&
-           (is_ip6_discovery(eth_pkt, len) ||
-            is_ethMulticast(eth_pkt, len))) {
-            traceEvent(TRACE_INFO, "dropping Tx multicast");
-        } else {
-            if(!eee->last_sup) {
-                // drop packets before first registration with supernode
-                traceEvent(TRACE_DEBUG, "DROP packet before first registration with supernode");
-                return;
-            }
+    }
 
-            if(eee->network_traffic_filter) {
-                if(eee->network_traffic_filter->filter_packet_from_tap(eee->network_traffic_filter, eee, eth_pkt,
-                                                                       len) == N2N_DROP) {
-                    traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)len);
-                    return;
-                }
-            }
+    const uint8_t * mac = eth_pkt;
+    traceEvent(TRACE_DEBUG, "Rx TAP packet (%4d) for %s",
+               (signed int)len, macaddr_str(mac_buf, mac));
 
-            if(eee->cb.packet_from_tap) {
-                uint16_t tmp_len = len;
-                if(eee->cb.packet_from_tap(eee, eth_pkt, &tmp_len) == N2N_DROP) {
-                    traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)len);
-                    return;
-                }
-                len = tmp_len;
-            }
+    if(!eee->conf.allow_multicast &&
+       (is_ip6_discovery(eth_pkt, len) ||
+        is_ethMulticast(eth_pkt, len))) {
+        traceEvent(TRACE_INFO, "dropping Tx multicast");
+        eee->stats.tx_multicast_drop++;
+        return;
+    }
 
-            edge_send_packet2net(eee, eth_pkt, len);
+    if(!eee->last_sup) {
+        // drop packets before first registration with supernode
+        traceEvent(TRACE_DEBUG, "DROP packet before first registration with supernode");
+        return;
+    }
+
+    if(eee->network_traffic_filter) {
+        if(eee->network_traffic_filter->filter_packet_from_tap(eee->network_traffic_filter, eee, eth_pkt,
+                                                               len) == N2N_DROP) {
+            traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)len);
+            return;
         }
     }
+
+    if(eee->cb.packet_from_tap) {
+        uint16_t tmp_len = len;
+        if(eee->cb.packet_from_tap(eee, eth_pkt, &tmp_len) == N2N_DROP) {
+            traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)len);
+            return;
+        }
+        len = tmp_len;
+    }
+
+    edge_send_packet2net(eee, eth_pkt, len);
 }
 
 
@@ -3168,9 +3207,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->transop_id = N2N_TRANSFORM_ID_NULL;
     conf->header_encryption = HEADER_ENCRYPTION_NONE;
     conf->compression = N2N_COMPRESSION_ID_NONE;
-    conf->drop_multicast = true;
     conf->allow_p2p = true;
-    conf->disable_pmtu_discovery = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
 
 #ifdef _WIN32

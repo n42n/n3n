@@ -25,6 +25,7 @@
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/tests.h>               // for test_hashing
 #include <n3n/transform.h>           // for n3n_transform_lookup_id
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
@@ -99,16 +100,10 @@ int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, t
 
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
-    { "supernode-list",      required_argument, NULL, 'l' },
-    { "tap-device",          required_argument, NULL, 'd' },
-    { "euid",                required_argument, NULL, 'u' },
-    { "egid",                required_argument, NULL, 'g' },
     { "help",                no_argument,       NULL, 'h' },
+    { "supernode-list",      required_argument, NULL, 'l' },
     { "verbose",             no_argument,       NULL, 'v' },
     { "version",             no_argument,       NULL, 'V' },
-    { "select-rtt",          no_argument,       NULL, '[' }, /*                            '['             rtt selection strategy */
-    { "select-mac",          no_argument,       NULL, ']' }, /*                            ']'             mac selection strategy */
-    { "management-password", required_argument, NULL, '{' }, /*                            '{'             management port password */
     { NULL,                  0,                 NULL,  0  }
 };
 
@@ -120,34 +115,15 @@ static const struct option_map_def {
     char *help;
 } option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
-    { 'D',  "connection",   "disable_pmtu",     "false" },
-    { 'E',  "filter",       "drop_multicast",   "false" },
-    { 'H',  "community",    "header_encryption","true", },
-    { 'I',  "connection",   "description",      NULL },
-    { 'J',  "auth",         "password",         NULL },
-    { 'L',  "connection",   "register_ttl",     NULL },
-    { 'M',  "tuntap",       "mtu",              NULL },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
-    { 'P',  "auth",         "pubkey",           NULL },
-    { 'R',  "filter",       "rule",             NULL },
-    { 'T',  "connection",   "tos",              NULL },
     { 'V', NULL, NULL, NULL, "       Show the version" },
     { 'a', NULL, NULL, NULL, "<arg>  Set tuntap.address and tuntap.address_mode" },
     { 'c',  "community",    "name",             NULL },
-    { 'd',  "tuntap",       "name",             NULL },
-    { 'e',  "connection",   "advertise_addr",   NULL },
     { 'f',  "daemon",       "background",       "false" },
-    { 'g',  "daemon",       "groupid",          NULL },
-    { 'i',  "connection",   "register_interval",NULL },
     { 'k',  "community",    "key",              NULL },
     { 'l',  "community",    "supernode",        NULL },
-    { 'm',  "tuntap",       "macaddr",          NULL },
-    { 'p',  "connection",   "bind",             NULL },
     { 'r',  "filter",       "allow_routing",    "true" },
-    { 't',  "management",   "port",             NULL },
-    { 'u',  "daemon",       "userid",           NULL },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
-    { 'x',  "tuntap",       "metric",           NULL },
     { 'z',  "community",    "compression",      NULL },
     { .optkey = 0 }
 };
@@ -238,37 +214,6 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
                 }
 
                 set_option_wrap(conf, "tuntap", "address", field2);
-                break;
-            }
-            case 'S': {
-                int solitude;
-                if(optarg) {
-                    solitude = atoi(optarg);
-                } else {
-                    traceEvent(TRACE_ERROR, "unknown -S value");
-                    break;
-                }
-
-                // set the level
-                if(solitude >= 1)
-                    set_option_wrap(conf, "connection", "allow_p2p", "false");
-                if(solitude == 2)
-                    set_option_wrap(conf, "connection", "connect_tcp", "true");
-                break;
-            }
-
-            case '[': /* round-trip-time-based supernode selection strategy */ {
-                set_option_wrap(conf, "connection", "supernode_selection", "rtt");
-                break;
-            }
-
-            case ']': /* mac-address-based supernode selection strategy */ {
-                set_option_wrap(conf, "connection", "supernode_selection", "mac");
-                break;
-            }
-
-            case '{': /* password for management port */ {
-                set_option_wrap(conf, "management", "password", optarg);
                 break;
             }
 
@@ -487,6 +432,86 @@ static void cmd_test_config_load_dump (int argc, char **argv, char *_, n2n_edge_
     exit(0);
 }
 
+static void cmd_test_hashing (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    int level=0;
+    if(argv[1]) {
+        level = atoi(argv[1]);
+    }
+    int errors = test_hashing(level);
+    if(!errors) {
+        printf("OK\n");
+    }
+    exit(errors);
+}
+
+static void cmd_tools_keygen (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    if(argc == 1) {
+        printf(
+            "n3n keygen tool\n"
+            "\n"
+            "  usage: edge tools keygen <username> <password>\n"
+            "\n"
+            "     or  edge tools keygen <federation name>\n"
+            "\n"
+            "   outputs a line to insert at supernode's community file for\n"
+            "   user-and-password authentication or the config option\n"
+            "   value with the public federation key for use in the edge's\n"
+            "   config, please refer to the doc/Authentication.md document\n"
+            "   for more details\n"
+            "\n"
+            );
+        exit(1);
+    }
+
+    char *private;
+    n2n_private_public_key_t prv;  // 32 bytes private key
+    n2n_private_public_key_t bin;  // 32 bytes public key binary output buffer
+    char asc[44];   // 43 bytes + 0-terminator ascii string output
+    bool fed;
+
+    switch(argc) {
+        case 3:
+            private = argv[2];
+            fed = false;
+            break;
+        case 2:
+            private = argv[1];
+            fed = true;
+            break;
+        default:
+            printf("Unexpected number of args\n");
+            exit(1);
+    }
+
+    // derive private key from username and password:
+    // hash username once, hash password twice (so password is bound
+    // to username but username and password are not interchangeable),
+    // finally xor the result
+    // in federation mode: only hash federation name, twice
+    generate_private_key(prv, private);
+
+    if(!fed) {
+        // hash user name only if required
+        bind_private_key_to_username(prv, argv[1]);
+    }
+
+    // calculate the public key into binary output buffer
+    generate_public_key(bin, prv);
+
+    // clear out the private key
+    memset(prv, 0, sizeof(prv));
+
+    // convert binary output to 6-bit-ascii string output
+    bin_to_ascii(asc, bin, sizeof(bin));
+
+    if(!fed) {
+        printf("%c %s %s\n", N2N_USER_KEY_LINE_STARTER, argv[1], asc);
+    } else {
+        printf("auth.pubkey=%s\n", asc);
+    }
+    exit(0);
+}
+
 static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
@@ -548,11 +573,27 @@ static struct subcmd_def cmd_test_config[] = {
     { .name = NULL }
 };
 
+static struct subcmd_def cmd_tools[] = {
+    {
+        .name = "keygen",
+        .help = "generate public keys",
+        .type = subcmd_type_fn,
+        .fn = &cmd_tools_keygen,
+    },
+    { .name = NULL }
+};
+
 static struct subcmd_def cmd_test[] = {
     {
         .name = "config",
         .type = subcmd_type_nest,
         .nest = cmd_test_config,
+    },
+    {
+        .name = "hashing",
+        .help = "test hashing functions",
+        .type = subcmd_type_fn,
+        .fn = &cmd_test_hashing,
     },
     { .name = NULL }
 };
@@ -568,6 +609,11 @@ static struct subcmd_def cmd_top[] = {
         .help = "[sessionname] - starts daemon",
         .type = subcmd_type_fn,
         .fn = &cmd_start,
+    },
+    {
+        .name = "tools",
+        .type = subcmd_type_nest,
+        .nest = cmd_tools,
     },
     {
         .name = "test",
@@ -620,10 +666,17 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             name = defname;
         }
 
-        if(n3n_config_load_file(conf, name) != 0) {
+        int r = n3n_config_load_file(conf, name);
+        if(r == -1) {
             printf("Error loading config file\n");
             exit(1);
         }
+        if(r == -2) {
+            printf("Warning: no config file found for session '%s'\n", name);
+        }
+
+        // Save the session name for later
+        conf->sessionname = name;
     }
 
     // Update the loaded conf with the current environment
@@ -771,7 +824,12 @@ int main (int argc, char* argv[]) {
         if(!conf.federation_public_key) {
             conf.federation_public_key = calloc(1, sizeof(n2n_private_public_key_t));
             if(conf.federation_public_key) {
-                traceEvent(TRACE_WARNING, "using default federation public key; FOR TESTING ONLY, usage of a custom federation name and key (-P) is highly recommended!");
+                traceEvent(
+                    TRACE_WARNING,
+                    "using default federation public key; "
+                    "FOR TESTING ONLY, usage of a custom federation name and "
+                    "key (auth.pubkey) is highly recommended!"
+                    );
                 generate_private_key(*(conf.federation_public_key), &FEDERATION_NAME[1]);
                 generate_public_key(*(conf.federation_public_key), *(conf.federation_public_key));
             }

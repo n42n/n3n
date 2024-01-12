@@ -89,12 +89,12 @@ def handle_shortopt_one(opt, arg):
     mapping = {
         "@": None,  # --help
         "A": ["community",    "cipher",           None],
-        "D": ["connection",   "disable_pmtu",     "false"],
-        "E": ["filter",       "drop_multicast",   "false"],
+        "D": ["connection",   "pmtu_discovery",   "true"],
+        "E": ["filter",       "allow_multicast",  "true"],
         "H": ["community",    "header_encryption", "true"],
         "I": ["connection",   "description",      None],
         "J": ["auth",         "password",         None],
-        "L": ["connection",   "register_ttl",     None],
+        "L": ["connection",   "register_pkt_ttl", None],
         "M": ["tuntap",       "mtu",              None],
         "P": ["auth",         "pubkey",           None],
         "R": ["filter",       "rule",             None],

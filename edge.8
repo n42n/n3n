@@ -3,36 +3,44 @@
 edge \- n3n edge node daemon
 .SH SYNOPSIS
 .B edge
-start [options..] [command] [command args]
+[\fIoptions..\fR] [command] [\fIcommand args\fR]
 .br
-    [\-c <community>] [\-l <supernode host:port>] [further options]...
+.B edge start
+[\fIsessionname\fR] [\fB\-c \fR<\fIcommunity\fR>] [\fB\-l \fR<\fIsupernode host:port\fR>]
+.br
+.B edge --help
 .SH DESCRIPTION
-N3N is a peer-to-peer VPN system. Edge is the edge node daemon for n3n which
-creates a TAP interface to expose the n3n virtual LAN. On startup n3n creates
-the TAP interface and configures it then registers with the supernode so it can
+N3N is a peer-to-peer VPN system - it is the LAN you have when you have noLAN.
+
+Edge is the edge node daemon for n3n which creates a TAP interface to expose
+the n3n virtual LAN. On startup the edge will load any config file, then any
+environment variables and then load the settings from the command line.
+
+Once it has the full config loaded, it will registers with the supernode and
+create and setup the TAP interface so it can
 begin to find other nodes in the community.
-.PP
-The name of the config file is constructed from the sessionname.  The default
-session name is "edge", which results in looking for a config file called "edge.conf"
-in the "/etc/n3n" directory.  Any command line arguments will override those
-loaded from the config file.
-.PP
-The config file is similar to an INI file, with multiple sections and one
-option per line.
-Lines starting with a "#" are ignored.
-An equal sign ('=') should be used between option and value.
-.SH OPTIONS FOR THE UNDERLYING NETWORK CONNECTION
-Some of the most common options also have a shortcut version, you can see all
-these with:
-.PP
+
+See the CONFIG and EXAMPLE sections for the use of the config file.
+
+.SH OPTIONS
+Some of the most common options also have a shortcut version and you can see
+all of them with:
+
+.RS
 .B edge help options
-.PP
+.RE
+.TP
+.SH Generic Options
 .TP
 \fB\-O \fR<\fIsection\fR>.<\fIoption\fR>=<\fIvalue\fR>
 Sets any config option value.
 .TP
+\fB\-h\fR, \fB\--help\fR
+Show some quick usage notes.
+Options related to the network community being joined.
+.TP
 \fB\-c \fR<\fIcommunity\fR>, \fB\-\-community\fR=<\fIcommunity\fR>
-sets the n3n community name (see also N2N_COMMUNITY in ENVIRONMENT). All edges
+sets the n3n community name (see also the ENVIRONMENT section). All edges
 within the same community appear on the same LAN (layer 2 network segment).
 Community name is 16 bytes in length. A name smaller than this is padded with
 0x00 bytes and a name longer than this is truncated to take the first 16 bytes.
@@ -41,103 +49,28 @@ Community name is 16 bytes in length. A name smaller than this is padded with
 sets the n3n supernode IP address and port to register to. Multiple supernodes
 can be specified.
 .TP
-\fB\-p \fR[<\fIlocal_ip_address\fR>:]<\fIlocal_port\fR>
-binds edge to the given UDP port. Useful for keeping the same external socket
-across restarts of edge. This allows peer edges which know the edge socket to
-continue p2p operation without going back to the supernode. Also, home router's
-port forwarding feature can refer to that fixed port.
-Optionally, the edge can bind to the provided local ip address only. This is
-useful in case restriction to a certain LAN or WiFi interface is desired.
-By default, the edge binds to any interface.
-.TP
-\fB\-T \fR<\fItos\fR>
-TOS for packets, e.g. 0x48 for SSH like priority
-.TP
-\fB\-D\fR
-enable PMTU discovery, it can reduce fragmentation but
-causes connections to stall if not properly supported
-.TP
-\fB\-e \fR<\fIlocal_ip_address\fR>
-advertises the provided local IP address as preferred,
-useful if multicast peer detection is not available, e.g.
-disabled on routers. \fB\-e auto\fR tries auto-detection of
-local IP address.
-.TP
-\fB\-S1\fR ... \fB\-S2\fR
-do not connect p2p, always use the supernode,
-\-S1 = via UDP, \-S2 = via TCP
-.TP
-\fB\-i \fR<\fIreg_interval\fR>
-Supernode registration interval. It specifies the interval in seconds
-between consecutive REGISTER_SUPER packets and it's used to keep NAT hole
-open via the UDP NAT hole punching technique. This only works for asymmetric
-NATs and allows for P2P communication.
-.TP
-\fB\-L \fR<\fIreg_ttl\fR>
-set the TTL for the hole punching packet. This is an advanced flag to make
-sure that the registration packet is dropped immediately when it goes out of
-local nat so that it will not trigger some firewall behavior on target peer.
-Actually, the registration packet is only expected to make local nat UDP hole
-and is not expected to reach the target peer, see
-https://tools.ietf.org/html/rfc5389. To achieve this, the flag should be set as
-nat level + 1. For example, if we have 2 layer nat in local, we should set -L 3.
-Usually we know exactly how much nat layers in local.
-If we are not sure how much nat layers in local, we can use traceroute on
-Linux to check. The following example shows a local single layer nat because on
-second jump it shows a public ip address. In this case it should set -L 2.
-
-$ /usr/sbin/traceroute -w1 8.8.8.8
-.br
-traceroute to 8.8.8.8 (8.8.8.8), 30 hops max, 60 byte packets
- 1  192.168.3.1 (192.168.3.1)  0.464 ms  0.587 ms  0.719 ms
- 2  112.65.17.217 (112.65.17.217)  5.269 ms  7.031 ms  8.666 ms
-
-But this method does not always work due to various local network device policy.
-.TP
 \fB\-k \fR<\fIkey\fR>
-encryption key (ASCII) - also N2N_KEY=<key>
-\-k <keystring>
-sets the encryption key from ASCII text (see also N2N_KEY in
-ENVIRONMENT). All edges communicating must use the same key and community
-name. If -k not specified then edge uses cleartext mode (no encryption).
+sets the encryption key from ASCII text (see also the ENVIRONMENT section). All
+edges communicating must use the same key and community name. If a key is not
+specified then edge uses cleartext mode (no encryption).
 .TP
 \fB\-A \fR<\fIcipher\fR>
 choose a cipher for payload encryption, requires a key,
 Twofish, AES (default if key provided),
 ChaCha20, Speck
 .TP
-\fB\-H\fR
-use header encryption, supernode needs fixed community
+\fB\-z \fR<\fIcompresion\fR>
+compress outgoing data packets. One of -z lzo, -z none
+or -z zstd (if supported)
 .TP
-\fB\-z1\fR ... \fB\-z2\fR
-compress outgoing data packets, -z1 = lzo1x, disabled by default
-.TP
-\fB\-\-select-rtt\fR
-select supernode by round trip time if several to choose from (federation),
-defaults to load-based selection strategy if not provided.
-.TP
-\fB\-\-select-mac\fR
-select supernode by MAC address if several to choose from (federation),
-lowest MAC address first.
-.SH TAP DEVICE AND OVERLAY NETWORK CONFIGURATION
+.SH TUNTAP Options
 .TP
 \fB\-a \fR[\fImode\fR]<\fIip\fR>[\fI/n\fR]
 interface address and optional CIDR subnet, default '/24',
-mode = [static|dhcp]:, for DHCP use '\-r -a dhcp:0.0.0.0',
+mode = [auto|static|dhcp]:, for DHCP use '\-r -a dhcp:0.0.0.0',
 edge draws IP address from supernode if no '\-a ...' given
 .TP
-\fB\-m \fR<\fImac\fR>
-start the TAP interface with the given MAC address. This is highly recommended
-as it means the same address will be used if edge stops and restarts. If this is
-not done, the ARP caches of all peers will be wrong and packets will not flow to
-this edge until the next ARP refresh.
-e.g.  '\-m 10:20:30:40:50:60', by default a random MAC address is used.
-.TP
-\fB\-d \fR<\fIdevice\fR>, \fB\-\-device\fR=<\fIdevice\fR>
-TAP device name
-.TP
-\fB\-M \fR<\fImtu\fR>
-specify n3n MTU of TAP interface, default 1290
+.SH FILTER Options
 .TP
 \fB\-r\fR
 enable IP packet forwarding/routing through the n3n virtual LAN. Without this
@@ -145,114 +78,118 @@ option, IP packets arriving over n3n are dropped if not for the -a <addr> (or
 DHCP assigned) IP address of the edge interface. This option is also required
 to allow n3n device being used in network bridging, e.g. with brctl.
 .TP
-\fB\-E\fR
-accept packets destined for multicast ethernet MAC addresses. These addresses
-are used in multicast ethernet and IPv6 neighbour discovery. If this option is
-not present these multicast packets are discarded as most users do not need or
-understand them.
-.TP
-\fB\-I \fR<\fIdescription\fR>
-annotate the edge's description used for easier
-identification in management port output or username
-.TP
-\fB\-J \fR<\fIpassword\fR>
-password for user-password edge authentication (see also N2N_PASSWORD in ENVIRONMENT)
-.TP
-\fB\-P \fR<\fIpublic key\fR>
-federation public key for user-password authentication
-.TP
-\fB\-R \fR<\fIrule_str\fR>
-Add rule to drop or accept specific packet transmit over edge network interface.
--R rule_str can be used multiple times to add multiple rules. Each -R rule_str add
-one rule.
-
-rule_str format:"src_ip/len:[b_port,e_port],dst_ip/len:[s_port,e_port],TCP+/-,UDP+/-,ICMP+/-".
-
-ip/len indicate a cidr block, len can be ignore, means single ip(not cidr block)
-will be use in filter rule.
-
-+,- after TCP,UDP,ICMP proto type indicate allow or drop packet of that proto.
-if any of above three proto missed, the rule will not take effect for that proto.
-
-Ports range [s_port,e_port] can be instead by single port number. If not specify, [0,65535]
-will be used. Ports range include start_port and end_port. If multiple rules matching packet's
-ips and ports, the rule with smaller cidr block(smaller address space) will be selected. That
-means rules with larger len value has higher priority.
-
-Packets that cannot match any rule will be accepted by default. Users can add rules to
-block traffics. This behavior can be change by add the rule : `0.0.0.0/0:[0,65535],0.0.0.0/0:
-[0,65535],TCP-,UDP-,ICMP-`. Then all traffic will be dropped, users need add rules to allow
-traffics.
-
-for example : `-R 0.0.0.0/0,0.0.0.0/0,TCP-,UDP-,ICMP- -R 192.168.100.0/24,192.168.100.0/24,ICMP+`,
-.TP
-\fB\-x \fR<\fImetric\fR>
-set TAP interface metric, defaults to 0 (auto),
-e.g. set to 1 for better multiplayer game detection.
-.br
-(Windows only)
-.SH LOCAL OPTIONS
+.SH DAEMON Options
 .TP
 \fB\-f\fR
 do not fork and run as a daemon, rather run in foreground
 .TP
-\fB\-t \fR<\fIport\fR>
-binds the edge management system to the given UDP port. Default 5644. Use this
-if you need to run multiple instance of edge; or something is bound to that
-port.
-.TP
-\fB\-\-management-password \fR<\fIpassword\fR>
-sets the password for access to JSON API at the management port, defaults to 'n3n'. The password
-has to be provided when using 'scripts/n3n-ctl', 'scripts/n3n-httpd' or for any other relevant
-access to JSON API at the management port.
-.TP
 \fB\-v\fR, \fB\-\-verbose\fR
 make more verbose, repeat as required
-.TP
-\fB\-V\fR
-make less verbose, repeat as required
-.TP
-\fB\-u \fR<\fIUID\fR>, \fB\-\-euid\fR=<\fIUID\fR>
-numeric user ID to use when privileges are dropped
-.TP
-\fB\-g \fR<\fIGID\fR>, \fB\-\-egid\fR=<\fIGID\fR>
-numeric group ID to use when privileges are dropped
-.TP
-\fb\-h\fr
-write usage then exit.
-.TP
-\fb\--help\fr
-shows detailed parameter description
+.SH CONFIG FILE
+When running the \fBstart\fR command, the edge will use the given sessionname
+(Or "edge" if none is given) to search for a config file:
+
+.RS
+/etc/n3n/\fB<sessionname>\fR.conf
+
+\fI%USERPROFILE%\fR\\\fB<sessionname>\fR.conf (On Windows)
+.RE
+
+This file is an INI style file and a full description of the options is
+available with the commandline:
+
+.RS
+.B edge help config
+.RE
 .SH ENVIRONMENT
+After loading any config file, some settings are loaded from the environment.
+(They can still be replaced by additional options from the commandline)
+
+The environment variables are used so that the value is not not visible at the
+command line.  It is expected that a config file will be better for most users.
 .TP
 .B N2N_KEY
-set the encryption key so it is not visible at the command line
+set the encryption key (Equivalent to community.key, or -k)
 .TP
 .B N2N_COMMUNITY
-set the community name so it is not visible at the command line
+set the community name (Equivalent to community.name, or -c)
 .TP
 .B N2N_PASSWORD
-set the password for user-password authentication so it is not visible at the command line
+set the password for user-password authentication (Equivalent to auth.password)
 .SH EXAMPLES
 .TP
-.B edge \-d n3n0 \-c mynetwork \-k encryptme \-u 99 \-g 99 \-m DE:AD:BE:EF:01:23 \-a 192.168.254.7 \-p 50001 \-l 123.121.120.119:7654
+.SH Simplest example
+.RE
 
-Start edge with TAP device n3n0 on community "mynetwork" with community
+For the simplest testing, without any encryption:
+
+.RS
+.B edge start -c mynetwork -l supernode.ntop.org:7777
+.RE
+.TP
+.SH Config file exmple
+.RE
+
+Create a file \fB/etc/n3n/mynetwork.conf\fR with these contents:
+
+.nf
+.RS
+[community]
+name=mynetwork
+key=mypassword
+supernode=supernode.ntop.org:7777
+.RE
+.fi
+
+Then start the daemon in the foreground:
+
+.RS
+.B edge start mynetwork -f
+.RE
+
+.TP
+.SH Complex example
+
+.nf
+.B edge start \\\\
+    \-O tuntap.name=n3n0 \\
+    \-c mynetwork \\
+    \-k encryptme \\
+    \-O daemon.userid=99 \\
+    \-O daemon.groupid=99 \\
+    \-O tuntap.macaddr=DE:AD:BE:EF:01:23 \\
+    \-a 192.168.254.7 \\
+    \-O connection.bind=50001 \\
+    \-l 123.121.120.119:7654
+.fi
+
+Starts edge with TAP device n3n0 on community "mynetwork" with community
 supernode at 123.121.120.119 UDP port 7654 and bind the locally used UDP port to
 50001. Use "encryptme" as the single permanent shared encryption key. Assign MAC
 address DE:AD:BE:EF:01:23 to the n3n interface and drop to user=99 and group=99
 after the TAP device is successfully configured.
-.PP
-Add the -f option to stop edge running as a daemon.
-.PP
-Somewhere else setup another edge with similar parameters, eg.
 
-.B edge \-d n3n0 \-c mynetwork \-k encryptme \-u 99 \-g 99 \-m DE:AD:BE:EF:01:21 \-a 192.168.254.5 \-p 50001 \-l 123.121.120.119:7654
-.PP
+(Add the -f option to stop edge running as a daemon)
+
+On a second computer setup another edge with similar parameters, eg:
+
+.nf
+.B edge \\\\
+    \-O tuntap.name=n3n0 \\
+    \-c mynetwork \\
+    \-k encryptme \\
+    \-O daemon.userid=99 \\
+    \-O daemon.groupid=99 \\
+    \-O tuntap.macaddr=DE:AD:BE:EF:01:21 \\
+    \-a 192.168.254.5 \\
+    \-O connection.bind=50001 \\
+    \-l 123.121.120.119:7654
+.fi
+
 Now you can ping from 192.168.254.5 to 192.168.254.7.
-.PP
-The MAC address (-m <MAC>) and virtual IP address (-a <addr>) must be different
-on all edges in the same community.
+
+The MAC address (tuntap.macaddr) and virtual IP address (-a <addr>) must be
+different on all edges in the same community.
 
 .SH CLEARTEXT MODE
 If
@@ -272,7 +209,8 @@ Edge provides a very simple management system on UDP port 5644. See the docs/Man
 for details.
 
 .SH EXIT STATUS
-edge is a daemon and any exit is an error.
+When edge is run as a daemon, any exit is an error.  In other cases, the exit
+status will be 0 for no issues found.
 .SH AUTHORS
 .TP
 Hamish Coleman

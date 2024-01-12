@@ -126,7 +126,13 @@ In case of a PACKET-type, it is succeeded by the fields depicted below:
 
 ### Encryption
 
-If enabled (`-H`), all fields but the payload (which is handled separately as outlined above) get encrypted using SPECK in CTR mode. As packet headers need to be decryptable by the supernode and we do not want to add another key (to keep it a simple interface), the community name serves as key (keep it secret!) because it is already known to the supernode. The community name consists of up to 20 characters (well, 19 + `0x00`), so key size of 128 bit is a reasonable choice here.
+If enabled (`community.header_encryption=true`), all fields but the payload
+(which is handled separately as outlined above) get encrypted using SPECK in
+CTR mode. As packet headers need to be decryptable by the supernode and we do
+not want to add another key (to keep it a simple interface), the community name
+serves as key (keep it secret!) because it is already known to the supernode.
+The community name consists of up to 20 characters (well, 19 + `0x00`), so key
+size of 128 bit is a reasonable choice here.
 
 The scheme applied tries to maintain compatibility with current packet format and works as follows:
 

@@ -1,13 +1,13 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Public API for logging
  */
 
-#ifndef _N2N_LOGGING_H_
-#define _N2N_LOGGING_H_
+#ifndef _N3N_LOGGING_H_
+#define _N3N_LOGGING_H_
 
 #include <stdio.h>  // for FILE
 

@@ -125,7 +125,6 @@ uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_null_mac (const n2n_mac_t dest_mac);
 char* msg_type2str (uint16_t msg_type);
-void hexdump (const uint8_t * buf, size_t len);
 void print_n3n_version ();
 int is_empty_ip_address (const n2n_sock_t * sock);
 void print_edge_stats (const n2n_edge_t *eee);

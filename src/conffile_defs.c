@@ -116,7 +116,11 @@ static struct n3n_conf_option section_connection[] = {
         .type = n3n_conf_sockaddr,
         .offset = offsetof(n2n_edge_conf_t, bind_address),
         .desc = "bind to a local address and/or port",
-        .help = "[address]:[port] to bind.",
+        .help = "[address]:[port] to bind. This can be useful to allow home "
+                "router's port forwarding to point to a known port, or when "
+                "coupled with a local ip address can help with restriction to "
+                "a certain LAN or WiFi interface.  By default, the edge binds "
+                "to any interface.",
     },
     {
         .name = "connect_tcp",
@@ -139,9 +143,9 @@ static struct n3n_conf_option section_connection[] = {
                 "authentication is used",
     },
     {
-        .name = "disable_pmtu",
+        .name = "pmtu_discovery",
         .type = n3n_conf_bool,
-        .offset = offsetof(n2n_edge_conf_t, disable_pmtu_discovery),
+        .offset = offsetof(n2n_edge_conf_t, pmtu_discovery),
         .desc = "Control use of PMTU discovery for network packets",
         .help = "This can reduce fragmentation but causes connections to "
                 "stall if not properly supported by the network. "
@@ -160,7 +164,7 @@ static struct n3n_conf_option section_connection[] = {
                 "communication.",
     },
     {
-        .name = "register_ttl",
+        .name = "register_pkt_ttl",
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, register_ttl),
         .desc = "The TTL for the hole punching packet.",
@@ -183,10 +187,10 @@ static struct n3n_conf_option section_connection[] = {
         .offset = offsetof(n2n_edge_conf_t, sn_selection_strategy),
         .desc = "How to select a supernode",
         .help = "There are multiple strategies available for how to select "
-                "the current supernode. Default is to use the supernode's "
-                "reported load and choose the lowest (called 'load').  Also "
-                "available are 'rtt' to shoose the lowest measured round trip "
-                "time and 'mac' to shoose the lowest MAC address",
+                "the current supernode. Default is to select the supernode "
+                "with lowest reported load ('load').  Also "
+                "available are 'rtt' to select the lowest measured round trip "
+                "time and 'mac' to select the lowest MAC address",
     },
     {
         .name = "tos",
@@ -205,14 +209,16 @@ static struct n3n_conf_option section_daemon[] = {
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, userid),
         .desc = "The user id",
-        .help = "Run the daemon with this user id (ignored on windows)",
+        .help = "numeric user ID to use when privileges are dropped "
+                "(ignored on windows)",
     },
     {
         .name = "groupid",
         .type = n3n_conf_uint32,
         .offset = offsetof(n2n_edge_conf_t, groupid),
         .desc = "The group id",
-        .help = "Run the daemon with this group id (ignored on windows)",
+        .help = "numeric group ID to use when privileges are dropped "
+                "(ignored on windows)",
     },
     {
         .name = "background",
@@ -226,6 +232,15 @@ static struct n3n_conf_option section_daemon[] = {
 
 static struct n3n_conf_option section_filter[] = {
     {
+        .name = "allow_multicast",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, allow_multicast),
+        .desc = "Optionally enable multicast traffic",
+        .help = "Amungst other things, multicast is used for IPv6 neighbour "
+                "discovery.  If not allowed, then these multicast packets "
+                "are discarded.",
+    },
+    {
         .name = "allow_routing",
         .type = n3n_conf_bool,
         .offset = offsetof(n2n_edge_conf_t, allow_routing),
@@ -233,15 +248,6 @@ static struct n3n_conf_option section_filter[] = {
         .help = "Without this option, IP packets arriving over n2n are "
                 "dropped if they are not for the IP address of the edge "
                 "interface.  This setting is also used to enable bridging.",
-    },
-    {
-        .name = "drop_multicast",
-        .type = n3n_conf_bool,
-        .offset = offsetof(n2n_edge_conf_t, drop_multicast),
-        .desc = "Optionally filter multicast traffic",
-        .help = "Amungst other things, multicast is used for IPv6 neighbour "
-                "discovery.  If drop is true then these multicast packets "
-                "are discarded.",
     },
     {
         .name = "rule",
