@@ -3137,11 +3137,6 @@ static int edge_init_sockets (n2n_edge_t *eee) {
     if(eee->udp_mgmt_sock >= 0)
         closesocket(eee->udp_mgmt_sock);
 
-#ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if(eee->udp_multicast_sock >= 0)
-        closesocket(eee->udp_multicast_sock);
-#endif
-
     struct sockaddr_in local_address;
     memset(&local_address, 0, sizeof(local_address));
     local_address.sin_family = AF_INET;
@@ -3159,6 +3154,9 @@ static int edge_init_sockets (n2n_edge_t *eee) {
     }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
+    if(eee->udp_multicast_sock >= 0)
+        closesocket(eee->udp_multicast_sock);
+
     /* Populate the multicast group for local edge */
     eee->multicast_peer.family     = AF_INET;
     eee->multicast_peer.port       = N2N_MULTICAST_PORT;
@@ -3177,17 +3175,18 @@ static int edge_init_sockets (n2n_edge_t *eee) {
         sizeof(local_address),
         0 /* UDP */
         );
-    if(eee->udp_multicast_sock < 0)
+    if(eee->udp_multicast_sock < 0) {
         return(-3);
-    else {
-        u_int enable_reuse = 1;
-
-        /* allow multiple sockets to use the same PORT number */
-        setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
-#ifdef SO_REUSEPORT /* no SO_REUSEPORT in Windows / old linux versions */
-        setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
-#endif
     }
+
+    u_int enable_reuse = 1;
+
+    /* allow multiple sockets to use the same PORT number */
+    setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
+#ifdef SO_REUSEPORT /* no SO_REUSEPORT in Windows / old linux versions */
+    setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
+#endif
+
 #endif
 
     return(0);
