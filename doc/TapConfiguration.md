@@ -118,7 +118,7 @@ has been provided:
 
 This is a conservative solution which should make n3n work by default. The user
 can manually change these options with these configuration settings:
-- specify the MTU (`tuntap.mtu`) 
+- specify the MTU (`tuntap.mtu`)
 - enable PMTU discovery (`connection.pmtu_discovery=true`)
 
 ## Interface Metric and Broadcasts
