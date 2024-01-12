@@ -791,7 +791,7 @@ int n3n_config_load_file (void *conf, char *name) {
     FILE *f = fopen(filename, "r");
     if(!f) {
         // Shouldnt happen, since find_config found a file
-        goto out;
+        goto out1;
     }
 
     char *section = NULL;
@@ -912,6 +912,8 @@ int n3n_config_load_file (void *conf, char *name) {
     error = 0;
 
 out:
+    fclose(f);
+out1:
     free(section);
     free(filename);
     return error;
