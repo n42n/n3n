@@ -206,8 +206,8 @@ typedef char devstr_t[N2N_IFNAMSIZ];
 
 typedef struct tuntap_dev {
     int fd;
-    n2n_mac_t mac_addr;
     in_addr_t ip_addr;
+    n2n_mac_t mac_addr;
     uint16_t mtu;
     devstr_t dev_name;
 #ifdef _WIN32
