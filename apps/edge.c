@@ -241,11 +241,11 @@ enum subcmd_type {
 struct subcmd_def {
     char *name;
     char *help;
-    enum subcmd_type type;
     union {
         struct subcmd_def *nest;
         void (*fn)(int argc, char **argv, char *, n2n_edge_conf_t *conf);
     };
+    enum subcmd_type type;
 };
 
 void subcmd_help (struct subcmd_def *p, int indent, bool recurse) {

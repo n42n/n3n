@@ -516,14 +516,15 @@ typedef int (*n2n_transform_f)(struct n2n_trans_op * arg,
  */
 typedef struct n2n_trans_op {
     void *             priv;          /* opaque data. Key schedule goes here. */
-    uint8_t no_encryption;            /* 1 if this transop does not perform encryption */
-    n2n_transform_t transform_id;
     size_t tx_cnt;
     size_t rx_cnt;
 
     n2n_transdeinit_f deinit;         /* destructor function */
     n2n_transform_f fwd;              /* encode a payload */
     n2n_transform_f rev;              /* decode a payload */
+
+    n2n_transform_t transform_id;
+    uint8_t no_encryption;            /* 1 if this transop does not perform encryption */
 } n2n_trans_op_t;
 
 
@@ -543,15 +544,15 @@ typedef struct n2n_resolve_ip_sock {
 // structure to hold resolver thread's parameters
 typedef struct n2n_resolve_parameter {
     n2n_resolve_ip_sock_t   *list;         /* pointer to list of to be resolved nodes */
+    time_t check_interval;                 /* interval to checik resolover results */
+    time_t last_checked;                   /* last time the resolver results were cheked */
+    time_t last_resolved;                  /* last time the resolver completed */
     uint8_t changed;                       /* indicates a change */
+    uint8_t request;                       /* flags main thread's need for intermediate resolution */
 #ifdef HAVE_LIBPTHREAD
     pthread_t id;                          /* thread id */
     pthread_mutex_t access;                /* mutex for shared access */
 #endif
-    uint8_t request;                       /* flags main thread's need for intermediate resolution */
-    time_t check_interval;                 /* interval to checik resolover results */
-    time_t last_checked;                   /* last time the resolver results were cheked */
-    time_t last_resolved;                  /* last time the resolver completed */
 } n2n_resolve_parameter_t;
 
 
@@ -562,21 +563,21 @@ typedef struct n2n_edge_conf {
     struct peer_info         *supernodes;            /**< List of supernodes */
     n2n_community_t community_name;                  /**< The community. 16 full octets. */
     n2n_desc_t dev_desc;                             /**< The device description (hint) */
-    n2n_private_public_key_t *public_key;            /**< edge's public key (for user/password based authentication) */
-    n2n_private_public_key_t *shared_secret;         /**< shared secret derived from federation public key, username and password */
-    he_context_t             *shared_secret_ctx;     /**< context holding the roundkeys derived from shared secret */
-    n2n_private_public_key_t *federation_public_key; /**< federation public key provided by command line */
-    uint8_t header_encryption;                       /**< Header encryption indicator. */
-    he_context_t     *header_encryption_ctx_static;  /**< Header encryption cipher context. */
-    he_context_t     *header_encryption_ctx_dynamic; /**< Header encryption cipher context. */
-    he_context_t             *header_iv_ctx_static;  /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
-    he_context_t             *header_iv_ctx_dynamic; /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
-    uint8_t transop_id;                              /**< The transop to use. */
-    uint8_t compression;                             /**< Compress outgoing data packets before encryption */
     bool allow_routing;                              /**< Accept packet no to interface address. */
     bool allow_multicast;                            /**< Multicast ethernet addresses. */
     bool pmtu_discovery;                             /**< Enable the Path MTU discovery. */
     bool allow_p2p;                                  /**< Allow P2P connection */
+    n2n_private_public_key_t *public_key;            /**< edge's public key (for user/password based authentication) */
+    n2n_private_public_key_t *shared_secret;         /**< shared secret derived from federation public key, username and password */
+    he_context_t             *shared_secret_ctx;     /**< context holding the roundkeys derived from shared secret */
+    n2n_private_public_key_t *federation_public_key; /**< federation public key provided by command line */
+    he_context_t     *header_encryption_ctx_static;  /**< Header encryption cipher context. */
+    he_context_t     *header_encryption_ctx_dynamic; /**< Header encryption cipher context. */
+    he_context_t             *header_iv_ctx_static;  /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
+    he_context_t             *header_iv_ctx_dynamic; /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
+    uint8_t header_encryption;                       /**< Header encryption indicator. */
+    uint8_t transop_id;                              /**< The transop to use. */
+    uint8_t compression;                             /**< Compress outgoing data packets before encryption */
     uint8_t sn_num;                                  /**< Number of supernode addresses defined. */
     uint32_t tos;                                    /** TOS for sent packets */
     char                     *encrypt_key;
@@ -586,21 +587,21 @@ typedef struct n2n_edge_conf {
     n2n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
     uint16_t mgmt_port;
     bool connect_tcp;                                /** connection to supernode 0 = UDP; 1 = TCP */
-    n2n_auth_t auth;
-    filter_rule_t            *network_traffic_filter_rules;
-    uint32_t metric;                                /**< Network interface metric (Windows only). */
     uint8_t sn_selection_strategy;                  /**< encodes currently chosen supernode selection strategy. */
-    uint8_t number_max_sn_pings;                    /**< Number of maximum concurrently allowed supernode pings. */
+    n2n_auth_t auth;
+    uint32_t metric;                                /**< Network interface metric (Windows only). */
+    filter_rule_t            *network_traffic_filter_rules;
     char * mgmt_password;
     uint32_t userid;
     uint32_t groupid;
     bool daemon;
+    uint8_t number_max_sn_pings;                    /**< Number of maximum concurrently allowed supernode pings. */
     char device_mac[N2N_MACNAMSIZ];
     int mtu;
     devstr_t tuntap_dev_name;
-    uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
     struct n2n_ip_subnet tuntap_v4;
     char *sessionname;
+    uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
 } n2n_edge_conf_t;
 
 
@@ -625,6 +626,8 @@ struct n2n_edge {
     struct peer_info                 *curr_sn;                           /**< Currently active supernode. */
     uint8_t sn_wait;                                                     /**< Whether we are waiting for a supernode response. */
     uint8_t sn_pong;                                                     /**< Whether we have seen a PONG since last time reset. */
+    uint8_t resolution_request;                                          /**< Flag an immediate DNS resolution request */
+    int close_socket_counter;                                            /**< counter for close-event before re-opening */
     size_t sup_attempts;                                                 /**< Number of remaining attempts to this supernode. */
     tuntap_dev device;                                                   /**< All about the TUNTAP device */
     n2n_trans_op_t transop;                                              /**< The transop to use when encoding */
@@ -639,7 +642,6 @@ struct n2n_edge {
     /* Sockets */
     /* supernode socket is in        eee->curr_sn->sock (of type n2n_sock_t) */
     int sock;
-    int close_socket_counter;                                            /**< counter for close-event before re-opening */
     int udp_mgmt_sock;                                                   /**< socket for status info. */
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
@@ -665,7 +667,6 @@ struct n2n_edge {
     struct n2n_edge_stats stats;                                         /**< Statistics */
 
     n2n_resolve_parameter_t          *resolve_parameter;                 /**< Pointer to name resolver's parameter block */
-    uint8_t resolution_request;                                          /**< Flag an immediate DNS resolution request */
 
     network_traffic_filter_t         *network_traffic_filter;
 };

@@ -12,6 +12,8 @@
 
 struct peer_info {
     n2n_mac_t mac_addr;
+    bool purgeable;
+    uint8_t local;
     n2n_ip_subnet_t dev_addr;
     n2n_desc_t dev_desc;
     n2n_sock_t sock;
@@ -20,14 +22,12 @@ struct peer_info {
     n2n_cookie_t last_cookie;
     n2n_auth_t auth;
     int timeout;
-    bool purgeable;
     time_t last_seen;
     time_t last_p2p;
     time_t last_sent_query;
     SN_SELECTION_CRITERION_DATA_TYPE selection_criterion;
     uint64_t last_valid_time_stamp;
     char                             *ip_addr;
-    uint8_t local;
     time_t uptime;
     n2n_version_t version;
 
