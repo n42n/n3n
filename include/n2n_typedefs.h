@@ -59,57 +59,6 @@ typedef int ssize_t;
 
 #endif /* #if defined(_MSC_VER) || defined(__MINGW32__) */
 
-#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-#include <machine/endian.h>
-#endif
-
-#ifdef __OpenBSD__
-#include <endian.h>
-#define __BYTE_ORDER BYTE_ORDER
-#if BYTE_ORDER == LITTLE_ENDIAN
-#ifndef __LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__
-#endif /* __LITTLE_ENDIAN__ */
-#else
-#define __BIG_ENDIAN__
-#endif/* BYTE_ORDER */
-#endif/* __OPENBSD__ */
-
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-#ifndef __LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__
-#endif
-#else
-#ifndef __BIG_ENDIAN__
-#define __BIG_ENDIAN__
-#endif
-#endif
-
-#ifdef _WIN32
-#ifndef __LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__ 1
-#endif
-#endif
-
-#if !(defined(__LITTLE_ENDIAN__) || defined(__BIG_ENDIAN__))
-#if defined(__mips__)
-#undef __LITTLE_ENDIAN__
-#undef __LITTLE_ENDIAN
-#define __BIG_ENDIAN__
-#endif
-
-/* Everything else */
-#if (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__))
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__
-#else
-#define __BIG_ENDIAN__
-#endif
-#endif
-
-#endif
-
 /* *************************************** */
 
 #ifdef __GNUC__
@@ -140,53 +89,11 @@ struct ether_hdr {
 typedef struct ether_hdr ether_hdr_t;
 
 
-struct n2n_iphdr {
-#if defined(__LITTLE_ENDIAN__)
-    uint8_t ihl : 4, version : 4;
-#elif defined(__BIG_ENDIAN__)
-    uint8_t version : 4, ihl : 4;
-#else
-# error "Byte order must be defined"
-#endif
-    uint8_t tos;
-    uint16_t tot_len;
-    uint16_t id;
-    uint16_t frag_off;
-    uint8_t ttl;
-    uint8_t protocol;
-    uint16_t check;
-    uint32_t saddr;
-    uint32_t daddr;
-} PACK_STRUCT;
-
-struct n2n_tcphdr {
-    uint16_t source;
-    uint16_t dest;
-    uint32_t seq;
-    uint32_t ack_seq;
-#if defined(__LITTLE_ENDIAN__)
-    uint16_t res1 : 4, doff : 4, fin : 1, syn : 1, rst : 1, psh : 1, ack : 1, urg : 1, ece : 1, cwr : 1;
-#elif defined(__BIG_ENDIAN__)
-    uint16_t doff : 4, res1 : 4, cwr : 1, ece : 1, urg : 1, ack : 1, psh : 1, rst : 1, syn : 1, fin : 1;
-#else
-# error "Byte order must be defined"
-#endif
-    uint16_t window;
-    uint16_t check;
-    uint16_t urg_ptr;
-} PACK_STRUCT;
-
-struct n2n_udphdr {
-    uint16_t source;
-    uint16_t dest;
-    uint16_t len;
-    uint16_t check;
-} PACK_STRUCT;
-
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #pragma pack(pop)
 #endif
 
+#undef PACK_STRUCT
 
 
 /** Uncomment this to enable the MTU check, then try to ssh to generate a fragmented packet. */

@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 #ifndef _N3N_NETWORK_TRAFFIC_FILTER_H_
 #define _N3N_NETWORK_TRAFFIC_FILTER_H_
 
+#include <n3n/endian.h> // for __LITTLE_ENDIAN__, __BIG_ENDIAN__
 #include <stdint.h>     // for uint8_t and friends
 #include <uthash.h>
 
@@ -37,10 +38,69 @@ typedef unsigned long in_addr_t;
 #include <arpa/inet.h>  // for in_addr_t
 #endif
 
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#pragma pack(push,1)
+#endif
+
+#ifdef __GNUC__
+#define PACK_STRUCT __attribute__((__packed__))
+#else
+#define PACK_STRUCT
+#endif
+
+struct n2n_iphdr {
+#if defined(__LITTLE_ENDIAN__)
+    uint8_t ihl : 4, version : 4;
+#elif defined(__BIG_ENDIAN__)
+    uint8_t version : 4, ihl : 4;
+#else
+# error "Byte order must be defined"
+#endif
+    uint8_t tos;
+    uint16_t tot_len;
+    uint16_t id;
+    uint16_t frag_off;
+    uint8_t ttl;
+    uint8_t protocol;
+    uint16_t check;
+    uint32_t saddr;
+    uint32_t daddr;
+} PACK_STRUCT;
+
+struct n2n_tcphdr {
+    uint16_t source;
+    uint16_t dest;
+    uint32_t seq;
+    uint32_t ack_seq;
+#if defined(__LITTLE_ENDIAN__)
+    uint16_t res1 : 4, doff : 4, fin : 1, syn : 1, rst : 1, psh : 1, ack : 1, urg : 1, ece : 1, cwr : 1;
+#elif defined(__BIG_ENDIAN__)
+    uint16_t doff : 4, res1 : 4, cwr : 1, ece : 1, urg : 1, ack : 1, psh : 1, rst : 1, syn : 1, fin : 1;
+#else
+# error "Byte order must be defined"
+#endif
+    uint16_t window;
+    uint16_t check;
+    uint16_t urg_ptr;
+} PACK_STRUCT;
+
+struct n2n_udphdr {
+    uint16_t source;
+    uint16_t dest;
+    uint16_t len;
+    uint16_t check;
+} PACK_STRUCT;
+
 typedef struct port_range {
     uint16_t start_port; // range contain 'start_port' self
     uint16_t end_port;   // range contain 'end_port' self
 } port_range_t;
+
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#pragma pack(pop)
+#endif
+
+#undef PACK_STRUCT
 
 typedef struct filter_rule_key {
     in_addr_t src_net_cidr;
