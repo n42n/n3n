@@ -204,19 +204,28 @@ typedef char dec_ip_bit_str_t[N2N_NETMASK_STR_SIZE + 4];
 typedef char devstr_t[N2N_IFNAMSIZ];
 
 
-#ifndef _WIN32
 typedef struct tuntap_dev {
     int fd;
     n2n_mac_t mac_addr;
     in_addr_t ip_addr;
     uint16_t mtu;
     devstr_t dev_name;
+#ifdef _WIN32
+    HANDLE device_handle;
+    char            *device_name;
+    char            *ifName;
+    int if_idx;
+    OVERLAPPED overlap_read, overlap_write;
+    unsigned int metric;
+    unsigned int metric_original;
+#endif
 } tuntap_dev;
 
-#define SOCKET int
-#else /* #ifndef _WIN32 */
+#ifdef _WIN32
 typedef u_short sa_family_t;
-#endif /* #ifndef _WIN32 */
+#else
+#define SOCKET int
+#endif
 
 
 typedef struct speck_context_t he_context_t;

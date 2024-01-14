@@ -60,22 +60,6 @@ struct ip {
 /* ************************************* */
 
 
-typedef struct tuntap_dev {
-    HANDLE device_handle;
-    char            *device_name;
-    char            *ifName;
-    int if_idx;
-    OVERLAPPED overlap_read, overlap_write;
-    n2n_mac_t mac_addr;
-    uint32_t ip_addr;
-    unsigned int mtu;
-    unsigned int metric;
-    unsigned int metric_original;
-} tuntap_dev;
-
-
-/* ************************************* */
-
 
 #define index(a, b) strchr(a, b)
 #define sleep(x) Sleep(x * 1000)
