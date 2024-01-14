@@ -9,7 +9,7 @@
 
 # These two vars should be set to the location of the n3n compiled setup
 # (EG: With a system installed libn3n, these would point to that installation)
-LIBDIR?=..
+LIBDIR?=../src
 INCDIR?=../include
 
 APPS+=edge
@@ -26,7 +26,8 @@ LDLIBS+=$(LDLIBS_EXTRA)
 
 all: $(APPS) $(EXAMPLES)
 
-$(APPS) $(EXAMPLES): ../libn3n.a
+# TODO: a better path for this lib
+$(APPS) $(EXAMPLES): ../src/libn3n.a
 
 .PHONY: install
 install: $(addsuffix $(EXE),$(APPS))

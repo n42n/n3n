@@ -63,7 +63,6 @@ MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
 
-N2N_LIB=libn3n.a
 N2N_OBJS=\
 	src/aes.o \
 	src/auth.o \
@@ -153,7 +152,7 @@ version:
 	@echo -n "Build for version: "
 	@scripts/version.sh
 
-apps tools: $(N2N_LIB)
+apps tools: src/libn3n.a
 	$(MAKE) -C $@
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
@@ -177,9 +176,9 @@ $(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
 %.gz : %
 	gzip -n -c $< > $@
 
-$(N2N_LIB): $(N2N_OBJS)
-	@echo "  AR      $(N2N_LIB)"
-	@$(AR) rcs $(N2N_LIB) $(N2N_OBJS)
+src/libn3n.a: $(N2N_OBJS)
+	@echo "  AR      $@"
+	@$(AR) rcs $@ $^
 
 .PHONY: test test.units test.integration
 test: test.builtin test.units test.integration
@@ -253,7 +252,7 @@ clean.cov:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(N2N_OBJS) $(N2N_LIB) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(N2N_OBJS) src/libn3n.a $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
 
@@ -263,7 +262,6 @@ distclean:
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
 	rm -f edge.8.gz n3n.7.gz supernode.1.gz
-	rm -f libn3n.a
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status

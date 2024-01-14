@@ -7,7 +7,7 @@ DEBUG?=-g3
 CFLAGS+=$(DEBUG)
 
 CFLAGS+=-I../include
-LDFLAGS+=-L..
+LDFLAGS+=-L../src
 LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)
 
