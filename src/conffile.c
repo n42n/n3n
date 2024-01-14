@@ -783,6 +783,8 @@ char *extract_section (char *line) {
 
 int n3n_config_load_file (void *conf, char *name) {
     int error = -1;
+    char *section = NULL;
+
     char *filename = find_config(name);
     if(!filename) {
         // Couldnt find a filename
@@ -793,8 +795,6 @@ int n3n_config_load_file (void *conf, char *name) {
         // Shouldnt happen, since find_config found a file
         goto out1;
     }
-
-    char *section = NULL;
 
     char buf[1024];
     char *line;
