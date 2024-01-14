@@ -7,10 +7,12 @@
 # embedded service within other software.
 #
 
-# These two vars should be set to the location of the n3n compiled setup
-# (EG: With a system installed libn3n, these would point to that installation)
-LIBDIR?=../src
-INCDIR?=../include
+# If using this makefile outside of the n3n build environment, you will
+# need to setup the correct include paths.
+#
+# eg:
+# CFLAGS+=-I../include
+# LDFLAGS+=-L../src
 
 APPS+=edge
 APPS+=supernode
@@ -19,14 +21,13 @@ EXAMPLES+=example_edge_embed_quick_edge_init
 EXAMPLES+=example_edge_embed
 EXAMPLES+=example_sn_embed
 
-CFLAGS+=-I$(INCDIR)
-LDFLAGS+=-L$(LIBDIR)
 LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_EXTRA)
 
 all: $(APPS) $(EXAMPLES)
 
-# TODO: a better path for this lib
+# TODO: a better path for this lib, as it would need to change to use this
+# makefile outside the build environment
 $(APPS) $(EXAMPLES): ../src/libn3n.a
 
 .PHONY: install

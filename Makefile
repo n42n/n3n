@@ -20,8 +20,8 @@ ifndef CONFIG_HOST
 $(error Please run ./configure)
 endif
 
-CFLAGS+=-I./include
-LDFLAGS+=-L.
+CFLAGS+=-I$(abspath include)
+LDFLAGS+=-L$(abspath src)
 
 #Ultrasparc64 users experiencing SIGBUS should try the following gcc options
 #(thanks to Robert Gibbon)
