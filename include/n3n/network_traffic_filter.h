@@ -104,11 +104,11 @@ typedef struct port_range {
 
 typedef struct filter_rule_key {
     in_addr_t src_net_cidr;
-    uint8_t src_net_bit_len;
-    port_range_t src_port_range;
     in_addr_t dst_net_cidr;
-    uint8_t dst_net_bit_len;
+    port_range_t src_port_range;
     port_range_t dst_port_range;
+    uint8_t src_net_bit_len;
+    uint8_t dst_net_bit_len;
     uint8_t bool_tcp_configured;
     uint8_t bool_udp_configured;
     uint8_t bool_icmp_configured;
@@ -144,8 +144,8 @@ typedef enum {
 
 typedef struct packet_address_proto_info {
     in_addr_t src_ip;
-    uint16_t src_port;
     in_addr_t dst_ip;
+    uint16_t src_port;
     uint16_t dst_port;
     filter_packet_proto proto;
 }packet_address_proto_info_t;
@@ -153,8 +153,8 @@ typedef struct packet_address_proto_info {
 typedef struct filter_rule_pair_cache {
     packet_address_proto_info_t key;
 
-    uint8_t bool_allow_traffic;
     uint32_t active_count;
+    uint8_t bool_allow_traffic;
 
     UT_hash_handle hh;                 /* makes this structure hashable */
 } filter_rule_pair_cache_t;
