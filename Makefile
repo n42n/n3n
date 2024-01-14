@@ -168,15 +168,18 @@ src/win32/edge.rc: src/win32/edge.manifest
 src/win32/edge_rc.o: src/win32/edge.rc
 	$(WINDRES) $< -O coff -o $@
 
-%: src/%
-	cp $< $@
+# Remember to keep the two CC lines in sync
+$(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
+%.o: %.c
+	@echo "  CC      $@"
+	@$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 %.gz : %
 	gzip -n -c $< > $@
 
 $(N2N_LIB): $(N2N_OBJS)
-	$(AR) rcs $(N2N_LIB) $(N2N_OBJS)
-#	$(RANLIB) $@
+	@echo "  AR      $(N2N_LIB)"
+	@$(AR) rcs $(N2N_LIB) $(N2N_OBJS)
 
 .PHONY: test test.units test.integration
 test: test.builtin test.units test.integration
