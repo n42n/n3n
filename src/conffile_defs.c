@@ -265,6 +265,7 @@ static struct n3n_conf_option section_logging[] = {
     {
         .name = "verbose",
         .type = n3n_conf_verbose,
+        .offset = -1,
         .desc = "Set the logging verbosity",
         .help = "This is a number between 0 and 4, defaulting to 2 for "
                 "normal amounts of logging."

@@ -83,7 +83,13 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         return -1;
     }
 
-    void *valvoid = (char *)conf + p->offset;
+    void *valvoid = NULL;
+
+    // Entries that cannot be set via a pointer are marked with
+    // a negative offset
+    if(p->offset >= 0) {
+        valvoid = (char *)conf + p->offset;
+    }
 
     switch(p->type) {
         case n3n_conf_strncpy: {
@@ -380,7 +386,13 @@ static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
 // that the option could not be rendered.
 // Buffer overflow is handled simplisticly by simply filling the buffer.
 static char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
-    void *valvoid = (char *)conf + option->offset;
+    void *valvoid = NULL;
+
+    // Entries that cannot be set via a pointer are marked with
+    // a negative offset
+    if(option->offset >= 0) {
+        valvoid = (char *)conf + option->offset;
+    }
 
     switch(option->type) {
         case n3n_conf_strncpy: {
@@ -720,12 +732,26 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
                 option++;
                 continue;
             }
-            void *valvoid = (char *)conf + option->offset;
+            void *first = NULL;
+            void *last = NULL;
+
+            // Entries that cannot be set via a pointer are marked with
+            // a negative offset
+            if(option->offset >= 0) {
+                first = (char *)conf + option->offset;
+            }
+
+            int size = option_storagesize(option);
+            if(size > 0) {
+                last = first + (size-1);
+            }
+
             fprintf(
                 f,
-                "%p / %i == %s.%s (%i)\n",
-                valvoid,
-                option_storagesize(option),
+                "%p..%p / %i == %s.%s (%i)\n",
+                first,
+                last,
+                size,
                 section->name,
                 option->name,
                 option->type
