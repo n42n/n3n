@@ -412,7 +412,7 @@ static void cmd_help_version (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(0);
 }
 
-static void cmd_test_config_debug_addr (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_addr (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     n3n_config_debug_addr(conf, stdout);
     exit(0);
 }
@@ -426,11 +426,9 @@ static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_
     exit(0);
 }
 
-static void cmd_test_config_load_dump (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
-    // Load the config just like a real run would
-    // (NOTE: doesnt load command line args)
-
-    edge_init_conf_defaults(conf);
+static void cmd_test_config_roundtrip (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+    conf = malloc(sizeof(*conf));
+    memset(conf, 0, sizeof(*conf));
 
     char *name = argv[1];
     if(!name) {
@@ -449,14 +447,6 @@ static void cmd_test_config_load_dump (int argc, char **argv, char *defname, n2n
 
     // Save the session name for later
     conf->sessionname = name;
-
-    // Update the loaded conf with the current environment
-    if(n3n_config_load_env(conf)!=0) {
-        printf("Error loading environment variables\n");
-        exit(1);
-    }
-
-    // TODO: we could load the CLI args, but would need the global argv
 
     // Then dump it out
     n3n_config_dump(conf, stdout, 1);
@@ -548,6 +538,31 @@ static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     return;
 }
 
+static struct subcmd_def cmd_debug_config[] = {
+    {
+        .name = "addr",
+        .help = "show internal config addresses and sizes",
+        .type = subcmd_type_fn,
+        .fn = &cmd_debug_config_addr,
+    },
+    { .name = NULL }
+};
+
+static struct subcmd_def cmd_debug[] = {
+    {
+        .name = "config",
+        .type = subcmd_type_nest,
+        .nest = cmd_debug_config,
+    },
+    {
+        .name = "dump",
+        .help = "[level] - just dump the current config",
+        .type = subcmd_type_fn,
+        .fn = &cmd_test_config_dump,
+    },
+    { .name = NULL }
+};
+
 static struct subcmd_def cmd_help[] = {
     {
         .name = "about",
@@ -590,22 +605,10 @@ static struct subcmd_def cmd_help[] = {
 
 static struct subcmd_def cmd_test_config[] = {
     {
-        .name = "debug_addr",
-        .help = "dump the internal config addresses for debugging",
-        .type = subcmd_type_fn,
-        .fn = &cmd_test_config_debug_addr,
-    },
-    {
-        .name = "dump",
-        .help = "[level] - just dump the current config",
-        .type = subcmd_type_fn,
-        .fn = &cmd_test_config_dump,
-    },
-    {
-        .name = "load_dump",
+        .name = "roundtrip",
         .help = "[sessionname] - load the config file and then dump it",
         .type = subcmd_type_fn,
-        .fn = &cmd_test_config_load_dump,
+        .fn = &cmd_test_config_roundtrip,
     },
     { .name = NULL }
 };
@@ -636,6 +639,11 @@ static struct subcmd_def cmd_test[] = {
 };
 
 static struct subcmd_def cmd_top[] = {
+    {
+        .name = "debug",
+        .type = subcmd_type_nest,
+        .nest = cmd_debug,
+    },
     {
         .name = "help",
         .type = subcmd_type_nest,
