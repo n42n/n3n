@@ -243,7 +243,7 @@ struct subcmd_def {
     char *help;
     union {
         struct subcmd_def *nest;
-        void (*fn)(int argc, char **argv, char *, n2n_edge_conf_t *conf);
+        void (*fn)(int argc, char **argv, n2n_edge_conf_t *conf);
     };
     enum subcmd_type type;
     bool session_arg;   // is the next arg a session name to load?
@@ -336,7 +336,7 @@ struct subcmd_result subcmd_lookup (struct subcmd_def *top, int argc, char **arg
 
 static struct subcmd_def cmd_top[]; // Forward define
 
-static void cmd_help_about (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
     printf("n3n - a peer to peer VPN for when you have noLAN\n"
            "\n"
            " usage: edge [options...] [command] [command args]\n"
@@ -356,17 +356,17 @@ static void cmd_help_about (int argc, char **argv, char *_, n2n_edge_conf_t *con
     exit(0);
 }
 
-static void cmd_help_commands (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_commands (int argc, char **argv, n2n_edge_conf_t *conf) {
     subcmd_help(cmd_top, 1, true);
     exit(0);
 }
 
-static void cmd_help_config (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_config (int argc, char **argv, n2n_edge_conf_t *conf) {
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
 
-static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_options (int argc, char **argv, n2n_edge_conf_t *conf) {
     int i;
 
     printf(" option    config\n");
@@ -415,24 +415,24 @@ static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(0);
 }
 
-static void cmd_help_transform (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_transform (int argc, char **argv, n2n_edge_conf_t *conf) {
     // TODO: add an interface to the registered transform lookups and print
     // out the list
     printf("Not implemented\n");
     exit(1);
 }
 
-static void cmd_help_version (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_version (int argc, char **argv, n2n_edge_conf_t *conf) {
     print_n3n_version();
     exit(0);
 }
 
-static void cmd_debug_config_addr (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_addr (int argc, char **argv, n2n_edge_conf_t *conf) {
     n3n_config_debug_addr(conf, stdout);
     exit(0);
 }
 
-static void cmd_debug_config_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
     int level=1;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -441,12 +441,12 @@ static void cmd_debug_config_dump (int argc, char **argv, char *_, n2n_edge_conf
     exit(0);
 }
 
-static void cmd_debug_config_load_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_load_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
     n3n_config_dump(conf, stdout, 1);
     exit(0);
 }
 
-static void cmd_test_config_roundtrip (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *conf) {
     if(!argv[1]) {
         printf("No session name given\n");
         exit(1);
@@ -473,7 +473,7 @@ static void cmd_test_config_roundtrip (int argc, char **argv, char *defname, n2n
     exit(0);
 }
 
-static void cmd_test_hashing (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_test_hashing (int argc, char **argv, n2n_edge_conf_t *conf) {
     int level=0;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -485,7 +485,7 @@ static void cmd_test_hashing (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(errors);
 }
 
-static void cmd_tools_keygen (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_tools_keygen (int argc, char **argv, n2n_edge_conf_t *conf) {
     if(argc == 1) {
         printf(
             "n3n keygen tool\n"
@@ -553,7 +553,7 @@ static void cmd_tools_keygen (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(0);
 }
 
-static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_start (int argc, char **argv, n2n_edge_conf_t *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
 }
@@ -713,9 +713,9 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             case '?': // An invalid arg, or a missing optarg
                 exit(1);
             case 'V':
-                cmd_help_version(0, NULL, NULL, NULL);
+                cmd_help_version(0, NULL, NULL);
             case 'h': /* quick reference */
-                cmd_help_about(0, NULL, NULL, NULL);
+                cmd_help_about(0, NULL, NULL);
         }
     }
 
@@ -769,7 +769,7 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
     }
 
     // Do the selected subcmd
-    cmd.subcmd->fn(cmd.argc, cmd.argv, defname, conf);
+    cmd.subcmd->fn(cmd.argc, cmd.argv, conf);
 }
 
 /* ************************************** */
@@ -931,7 +931,7 @@ int main (int argc, char* argv[]) {
     }
 
     if(edge_verify_conf(&conf) != 0)
-        cmd_help_about(0, NULL, NULL, NULL);
+        cmd_help_about(0, NULL, NULL);
 
     traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", PACKAGE_VERSION, PACKAGE_BUILDDATE);
 
