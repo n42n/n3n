@@ -246,6 +246,13 @@ struct subcmd_def {
         void (*fn)(int argc, char **argv, char *, n2n_edge_conf_t *conf);
     };
     enum subcmd_type type;
+    bool session_arg;   // is the next arg a session name to load?
+};
+struct subcmd_result {
+    int argc;
+    char **argv;
+    char *sessionname;
+    struct subcmd_def *subcmd;
 };
 
 void subcmd_help (struct subcmd_def *p, int indent, bool recurse) {
@@ -275,14 +282,15 @@ static void subcmd_help_simple (struct subcmd_def *p) {
         "\n"
         "Try edge -h for help\n"
         "\n"
-        "Main subcommands:\n"
+        "or add a subcommand:\n"
         "\n"
         );
     subcmd_help(p, 1, false);
     exit(1);
 }
 
-void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+struct subcmd_result subcmd_lookup (struct subcmd_def *top, int argc, char **argv) {
+    struct subcmd_result r;
     struct subcmd_def *p = top;
     while(p->name) {
         if(argc < 1) {
@@ -307,8 +315,15 @@ void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname
                 p = top;
                 continue;
             case subcmd_type_fn:
-                p->fn(argc, argv, defname, conf);
-                return;
+                if(p->session_arg) {
+                    r.sessionname = argv[1];
+                } else {
+                    r.sessionname = NULL;
+                }
+                r.argc = argc;
+                r.argv = argv;
+                r.subcmd = p;
+                return r;
         }
         printf("Internal Error subcmd->type: %i\n", p->type);
         exit(1);
@@ -417,7 +432,7 @@ static void cmd_debug_config_addr (int argc, char **argv, char *_, n2n_edge_conf
     exit(0);
 }
 
-static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     int level=1;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -426,27 +441,32 @@ static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_
     exit(0);
 }
 
+static void cmd_debug_config_load_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    n3n_config_dump(conf, stdout, 1);
+    exit(0);
+}
+
 static void cmd_test_config_roundtrip (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+    if(!argv[1]) {
+        printf("No session name given\n");
+        exit(1);
+    }
+
+    // Because we want this test to be deterministic, we dont use the defaults
+    // or load the normal way, we start with a zeroed out conf
     conf = malloc(sizeof(*conf));
     memset(conf, 0, sizeof(*conf));
 
-    char *name = argv[1];
-    if(!name) {
-        // If no session name is specified, use the default
-        name = defname;
-    }
-
-    int r = n3n_config_load_file(conf, name);
-    if(r == -2) {
-        printf("Warning: no config file found for session '%s'\n", name);
-    }
+    int r = n3n_config_load_file(conf, argv[1]);
     if(r != 0) {
         printf("Error loading config file (%i)\n", r);
         exit(1);
     }
 
+    printf("# Loaded config file for session name: '%s'\n", argv[1]);
+
     // Save the session name for later
-    conf->sessionname = name;
+    conf->sessionname = argv[1];
 
     // Then dump it out
     n3n_config_dump(conf, stdout, 1);
@@ -545,6 +565,19 @@ static struct subcmd_def cmd_debug_config[] = {
         .type = subcmd_type_fn,
         .fn = &cmd_debug_config_addr,
     },
+    {
+        .name = "dump",
+        .help = "[level] - just dump the default config",
+        .type = subcmd_type_fn,
+        .fn = &cmd_debug_config_dump,
+    },
+    {
+        .name = "load_dump",
+        .help = "[sessionname] - load from all normal sources, then dump",
+        .type = subcmd_type_fn,
+        .fn = &cmd_debug_config_load_dump,
+        .session_arg = true,
+    },
     { .name = NULL }
 };
 
@@ -553,12 +586,6 @@ static struct subcmd_def cmd_debug[] = {
         .name = "config",
         .type = subcmd_type_nest,
         .nest = cmd_debug_config,
-    },
-    {
-        .name = "dump",
-        .help = "[level] - just dump the current config",
-        .type = subcmd_type_fn,
-        .fn = &cmd_test_config_dump,
     },
     { .name = NULL }
 };
@@ -606,7 +633,7 @@ static struct subcmd_def cmd_help[] = {
 static struct subcmd_def cmd_test_config[] = {
     {
         .name = "roundtrip",
-        .help = "[sessionname] - load the config file and then dump it",
+        .help = "<sessionname> - load only the config file and then dump it",
         .type = subcmd_type_fn,
         .fn = &cmd_test_config_roundtrip,
     },
@@ -654,6 +681,7 @@ static struct subcmd_def cmd_top[] = {
         .help = "[sessionname] - starts daemon",
         .type = subcmd_type_fn,
         .fn = &cmd_start,
+        .session_arg = true,
     },
     {
         .name = "tools",
@@ -697,47 +725,51 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
     }
     // We now know there is a sub command on the commandline
 
+    struct subcmd_result cmd = subcmd_lookup(
+        cmd_top,
+        argc - optind,
+        &argv[optind]
+        );
+
+    // If no session name has been found, use the default
+    if(!cmd.sessionname) {
+        cmd.sessionname = defname;
+    }
+
     // Now that we might need it, setup some default config
     edge_init_conf_defaults(conf);
 
-    char **subargv = &argv[optind];
-    int subargc = argc - optind;
+    if(cmd.subcmd->session_arg) {
+        // the cmd structure can request the normal loading of config
 
-    // The start subcmd loads config, which then gets overwitten by any
-    // commandline args, so it gets done first
-    // TODO: work out a nicer way to integrate this into the subcmd parser
-    if(strcmp(subargv[0],"start")==0) {
-        char *name = subargv[1];
-
-        if(!name) {
-            // If no session name is specified, use the default
-            name = defname;
-        }
-
-        int r = n3n_config_load_file(conf, name);
+        int r = n3n_config_load_file(conf, cmd.sessionname);
         if(r == -1) {
             printf("Error loading config file\n");
             exit(1);
         }
         if(r == -2) {
-            printf("Warning: no config file found for session '%s'\n", name);
+            printf(
+                "Warning: no config file found for session '%s'\n",
+                cmd.sessionname
+                );
         }
 
-        // Save the session name for later
-        conf->sessionname = name;
+        // Update the loaded conf with the current environment
+        if(n3n_config_load_env(conf)!=0) {
+            printf("Error loading environment variables\n");
+            exit(1);
+        }
+
+        // Update the loaded conf with any option args
+        optind = 1;
+        loadFromCLI(argc, argv, conf);
+
+        // Record the session name we used
+        conf->sessionname = cmd.sessionname;
     }
 
-    // Update the loaded conf with the current environment
-    if(n3n_config_load_env(conf)!=0) {
-        printf("Error loading environment variables\n");
-        exit(1);
-    }
-
-    // Update the loaded conf with any option args
-    optind = 1;
-    loadFromCLI(argc, argv, conf);
-
-    subcmd_lookup(cmd_top, subargc, subargv, defname, conf);
+    // Do the selected subcmd
+    cmd.subcmd->fn(cmd.argc, cmd.argv, defname, conf);
 }
 
 /* ************************************** */
