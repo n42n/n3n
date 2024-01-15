@@ -823,7 +823,6 @@ static void daemonize () {
 
 static bool keep_on_running = true;
 
-#if defined(__linux__) || defined(_WIN32)
 static void term_handler (int sig) {
     static int called = 0;
 
@@ -837,7 +836,6 @@ static void term_handler (int sig) {
 
     keep_on_running = false;
 }
-#endif /* defined(__linux__) || defined(_WIN32) */
 
 #ifdef _WIN32
 BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
@@ -1162,7 +1160,7 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_WARNING, "running as root is discouraged, check out the -u/-g options");
 #endif /* _WIN32 */
 
-#ifdef __linux__
+#ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
     signal(SIGTERM, term_handler);
     signal(SIGINT,  term_handler);
