@@ -463,7 +463,7 @@ static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *c
         exit(1);
     }
 
-    printf("# Loaded config file for session name: '%s'\n", argv[1]);
+    fprintf(stderr, "Loaded config file for session name: '%s'\n", argv[1]);
 
     // Save the session name for later
     conf->sessionname = argv[1];
