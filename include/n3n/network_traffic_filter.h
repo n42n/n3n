@@ -33,7 +33,7 @@
 
 #ifdef _WIN32
 // FIXME: I dont even
-typedef unsigned long in_addr_t;
+typedef unsigned int in_addr_t;
 #else
 #include <arpa/inet.h>  // for in_addr_t
 #endif
