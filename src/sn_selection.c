@@ -114,7 +114,11 @@ int sn_selection_criterion_calculate (n2n_edge_t *eee, peer_info_t *peer, SN_SEL
 
         default: {
             // this should never happen
-            traceEvent(TRACE_ERROR, "selection_criterion unknown selection strategy configuration");
+            traceEvent(
+                TRACE_ERROR,
+                "sn_selection_strategy unknown %i",
+                eee->conf.sn_selection_strategy
+                );
             break;
         }
     }
@@ -151,7 +155,11 @@ int sn_selection_criterion_common_data_default (n2n_edge_t *eee) {
 
         default: {
             // this should never happen
-            traceEvent(TRACE_ERROR, "selection_criterion unknown selection strategy configuration");
+            traceEvent(
+                TRACE_ERROR,
+                "sn_selection_strategy unknown %i",
+                eee->conf.sn_selection_strategy
+                );
             break;
         }
     }
@@ -249,7 +257,11 @@ extern char * sn_selection_criterion_str (n2n_edge_t *eee, selection_criterion_s
 
             default: {
                 // this should never happen
-                traceEvent(TRACE_ERROR, "selection_criterion unknown selection strategy configuration");
+                traceEvent(
+                    TRACE_ERROR,
+                    "sn_selection_strategy unknown %i",
+                    eee->conf.sn_selection_strategy
+                    );
                 break;
             }
         }
