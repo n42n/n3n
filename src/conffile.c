@@ -537,6 +537,77 @@ static char * stringify_option (void *conf, struct n3n_conf_option *option, char
     return NULL;
 }
 
+static int option_storagesize(struct n3n_conf_option *option) {
+    void *valvoid = NULL;
+    switch(option->type) {
+        case n3n_conf_strncpy: {
+            return option->length;
+        }
+        case n3n_conf_bool: {
+            bool *val = (bool *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_uint32: {
+            uint32_t *val = (uint32_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_strdup: {
+            char **val = (char **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_transform: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_headerenc: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_compression: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_supernode: {
+            return -1;
+        }
+        case n3n_conf_privatekey: {
+            n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_publickey: {
+            n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_sockaddr: {
+            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_n2n_sock_addr: {
+            struct n2n_sock *val = (struct n2n_sock *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_sn_selection: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_verbose: {
+            return -1;
+        }
+        case n3n_conf_filter_rule: {
+            return -1;
+        }
+        case n3n_conf_ip_subnet: {
+            struct n2n_ip_subnet *val = (struct n2n_ip_subnet *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_ip_mode: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+    }
+    return -1;
+}
+
 /*
  * Dump details about a single option.
  * level specifies how much data to output:
@@ -630,6 +701,36 @@ void n3n_config_dump (void *conf, FILE *f, int level) {
         option = section->options;
         while(option->name) {
             dump_option(f, conf, level, option);
+            option++;
+        }
+
+        section = section->next;
+    }
+}
+
+void n3n_config_debug_addr (void *conf, FILE *f) {
+    struct n3n_conf_section *section = registered_sections;
+    struct n3n_conf_option *option;
+
+    fprintf(f, "# Internal Address consistancy checks\n");
+    while(section) {
+        fprintf(f, "[%s]\n", section->name);
+
+        option = section->options;
+        while(option->name) {
+            if(option->type == n3n_conf_supernode) {
+                continue;
+            }
+            void *valvoid = (char *)conf + option->offset;
+            fprintf(
+                f,
+                "%s.%s(%i) == %i @ 0x%p\n",
+                section->name,
+                option->name,
+                option->type,
+                option_storagesize(option),
+                valvoid
+                );
             option++;
         }
 

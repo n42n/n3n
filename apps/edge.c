@@ -412,6 +412,11 @@ static void cmd_help_version (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(0);
 }
 
+static void cmd_test_config_debug_addr (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+    n3n_config_debug_addr(conf, stdout);
+    exit(0);
+}
+
 static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     int level=1;
     if(argv[1]) {
@@ -421,14 +426,39 @@ static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_
     exit(0);
 }
 
-static void cmd_test_config_load_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
-    conf = malloc(sizeof(*conf));
-    memset(conf, 0, sizeof(*conf));
-    int i = n3n_config_load_file(conf, argv[1]);
-    if(i != 0) {
-        printf("Error loading config file (%i)\n", i);
+static void cmd_test_config_load_dump (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+    // Load the config just like a real run would
+    // (NOTE: doesnt load command line args)
+
+    edge_init_conf_defaults(conf);
+
+    char *name = argv[1];
+    if(!name) {
+        // If no session name is specified, use the default
+        name = defname;
+    }
+
+    int r = n3n_config_load_file(conf, name);
+    if(r == -2) {
+        printf("Warning: no config file found for session '%s'\n", name);
+    }
+    if(r != 0) {
+        printf("Error loading config file (%i)\n", r);
         exit(1);
     }
+
+    // Save the session name for later
+    conf->sessionname = name;
+
+    // Update the loaded conf with the current environment
+    if(n3n_config_load_env(conf)!=0) {
+        printf("Error loading environment variables\n");
+        exit(1);
+    }
+
+    // TODO: we could load the CLI args, but would need the global argv
+
+    // Then dump it out
     n3n_config_dump(conf, stdout, 1);
     exit(0);
 }
@@ -560,6 +590,12 @@ static struct subcmd_def cmd_help[] = {
 
 static struct subcmd_def cmd_test_config[] = {
     {
+        .name = "debug_addr",
+        .help = "dump the internal config addresses for debugging",
+        .type = subcmd_type_fn,
+        .fn = &cmd_test_config_debug_addr,
+    },
+    {
         .name = "dump",
         .help = "[level] - just dump the current config",
         .type = subcmd_type_fn,
@@ -652,6 +688,9 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
         subcmd_help_simple(cmd_top);
     }
     // We now know there is a sub command on the commandline
+
+    // Now that we might need it, setup some default config
+    edge_init_conf_defaults(conf);
 
     char **subargv = &argv[optind];
     int subargc = argc - optind;
@@ -804,9 +843,6 @@ int main (int argc, char* argv[]) {
 
     // Do this early to register all internals
     n3n_initfuncs();
-
-    /* Defaults */
-    edge_init_conf_defaults(&conf);
 
     n3n_config(argc, argv, "edge", &conf);
 
