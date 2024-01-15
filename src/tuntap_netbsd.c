@@ -74,7 +74,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
 
         traceEvent(TRACE_NORMAL, "Succesfully open %s", tap_device);
 
-        device->ip_addr = ntohl(v4subnet.net_addr);
+        device->ip_addr = v4subnet.net_addr;
 
         if(device_mac && device_mac[0] != '\0') {
             // set the hw address before bringing the if up

@@ -322,7 +322,7 @@ int open_wintap (struct tuntap_dev *device,
     }
 
     if(system(cmd) == 0) {
-        device->ip_addr = ntohl(v4subnet.net_addr);
+        device->ip_addr = v4subnet.net_addr;
     } else
         printf("WARNING: Unable to set device %s IP address [%s]\n",
                device->ifName, cmd);
