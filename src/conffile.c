@@ -714,22 +714,21 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
 
     fprintf(f, "# Internal Address consistancy checks\n");
     while(section) {
-        fprintf(f, "[%s]\n", section->name);
-
         option = section->options;
         while(option->name) {
             if(option->type == n3n_conf_supernode) {
+                option++;
                 continue;
             }
             void *valvoid = (char *)conf + option->offset;
             fprintf(
                 f,
-                "%s.%s(%i) == %i @ 0x%p\n",
+                "%p / %i == %s.%s (%i)\n",
+                valvoid,
+                option_storagesize(option),
                 section->name,
                 option->name,
-                option->type,
-                option_storagesize(option),
-                valvoid
+                option->type
                 );
             option++;
         }
