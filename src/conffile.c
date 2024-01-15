@@ -793,6 +793,7 @@ int n3n_config_load_file (void *conf, char *name) {
     FILE *f = fopen(filename, "r");
     if(!f) {
         // Shouldnt happen, since find_config found a file
+        printf("Unexpected error opening %s\n", filename);
         goto out1;
     }
 
@@ -818,6 +819,11 @@ int n3n_config_load_file (void *conf, char *name) {
             free(section);
             char *tmp_section = extract_section(line);
             if(!tmp_section) {
+                printf(
+                    "Error:%s:%i: could not extract section\n",
+                    filename,
+                    linenr
+                    );
                 goto out;
             }
             section = strdup(tmp_section);

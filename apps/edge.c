@@ -424,8 +424,9 @@ static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_
 static void cmd_test_config_load_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
     conf = malloc(sizeof(*conf));
     memset(conf, 0, sizeof(*conf));
-    if(n3n_config_load_file(conf, argv[1]) != 0) {
-        printf("Error loading config file\n");
+    int i = n3n_config_load_file(conf, argv[1]);
+    if(i != 0) {
+        printf("Error loading config file (%i)\n", i);
         exit(1);
     }
     n3n_config_dump(conf, stdout, 1);
