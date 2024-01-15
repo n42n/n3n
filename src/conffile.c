@@ -549,7 +549,7 @@ static char * stringify_option (void *conf, struct n3n_conf_option *option, char
     return NULL;
 }
 
-static int option_storagesize(struct n3n_conf_option *option) {
+static int option_storagesize (struct n3n_conf_option *option) {
     void *valvoid = NULL;
     switch(option->type) {
         case n3n_conf_strncpy: {
