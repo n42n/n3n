@@ -3078,7 +3078,7 @@ int run_edge_loop (n2n_edge_t *eee) {
     send_unregister_super(eee);
 
 #ifdef _WIN32
-    // No, I dont want to wait for the thread to recieve a tap packet
+    // No, I dont want to wait for the thread to receive a tap packet
     // and unblock to read it.  So I kill it.  The MSDN warns against
     // using this function, but we are on the way to exit the program,
     // so I believe that the risk is low
