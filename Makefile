@@ -143,7 +143,7 @@ COVERAGEDIR?=coverage
 .PHONY: $(SUBDIRS)
 
 .PHONY: all
-all: version apps $(DOCS) $(SUBDIRS)
+all: version $(DOCS) $(SUBDIRS) apps
 
 # This allows breaking the build if the version.sh script discovers
 # any inconsistancies
