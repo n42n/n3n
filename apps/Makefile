@@ -22,6 +22,7 @@ EXAMPLES+=example_edge_embed
 EXAMPLES+=example_sn_embed
 
 LDLIBS+=-ln3n
+LDLIBS+=$(LDLIBS_LOCAL)
 LDLIBS+=$(LDLIBS_EXTRA)
 
 all: $(APPS) $(EXAMPLES)

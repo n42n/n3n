@@ -9,6 +9,7 @@ export AR
 export EXE
 export CFLAGS
 export LDFLAGS
+export LDLIBS_LOCAL
 export LDLIBS_EXTRA
 export CONFIG_HOST_OS
 

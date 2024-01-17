@@ -2,11 +2,8 @@
 # This is not a standalone makefile, it must be called from the toplevel
 # makefile to inherit the correct environment
 
-DEBUG?=-g3
-
-CFLAGS+=$(DEBUG)
-
 LDLIBS+=-ln3n
+LDLIBS+=$(LDLIBS_LOCAL)
 LDLIBS+=$(LDLIBS_EXTRA)
 
 TOOLS+=n3n-benchmark
