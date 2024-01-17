@@ -46,7 +46,9 @@ jobs:
               gcc \
               git \
               gmake \
-              python3
+              python3 \
+              jq \
+              bash
             ./autogen.sh
             ./configure
             gmake all
