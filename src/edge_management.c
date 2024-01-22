@@ -30,7 +30,6 @@
 #include <string.h>        // for memcmp, memcpy, strerror, strncpy
 #include <sys/types.h>     // for ssize_t
 #include <time.h>          // for time, time_t
-#include "config.h"        // for PACKAGE_VERSION
 #include "management.h"    // for mgmt_req_t, send_reply, send_json_1str
 #include "n2n_define.h"    // for N2N_PKT_BUF_SIZE, N2N_EVENT_DEBUG, N2N_EVE...
 #include "n2n_typedefs.h"  // for n2n_edge_t, n2n_edge_conf_t

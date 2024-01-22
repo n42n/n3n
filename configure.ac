@@ -1,5 +1,5 @@
 odnl> Do not add anything above
-AC_INIT([edge], m4_esyscmd([scripts/version.sh | tr -d '\n']))
+AC_INIT([edge], m4_esyscmd([scripts/version.sh]))
 dnl> Do not add anything above
 
 AC_DEFINE([PACKAGE_BUILDDATE], "[m4_esyscmd([scripts/version.sh date | tr -d '\n'])]", [Last change date])

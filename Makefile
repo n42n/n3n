@@ -13,6 +13,11 @@ export LDLIBS_LOCAL
 export LDLIBS_EXTRA
 export CONFIG_HOST_OS
 
+# This allows breaking the build if the version.sh script discovers
+# any inconsistancies
+PACKAGE_VERSION:=$(shell scripts/version.sh)
+CFLAGS+=-DPACKAGE_VERSION='"$(PACKAGE_VERSION)"'
+
 -include config.mak
 
 ifndef CONFIG_HOST
@@ -157,11 +162,9 @@ COVERAGEDIR?=coverage
 .PHONY: all
 all: version $(DOCS) $(SUBDIRS) apps
 
-# This allows breaking the build if the version.sh script discovers
-# any inconsistancies
 .PHONY: version
 version:
-	@echo "Build for version: $(shell scripts/version.sh)"
+	@echo "Build for version: $(PACKAGE_VERSION)"
 
 apps tools: $(SUBDIR_LIBS)
 	$(MAKE) -C $@

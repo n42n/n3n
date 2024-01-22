@@ -31,7 +31,6 @@
 #include <sys/types.h>          // for ssize_t
 #include <time.h>               // for time_t, time
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
-#include "config.h"             // for PACKAGE_VERSION
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
 #include "n2n.h"                // for sn_community, n2n_sn_t
 #include "n2n_regex.h"          // for re_matchp, re_compile
