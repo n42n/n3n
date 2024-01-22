@@ -21,9 +21,6 @@ ifndef CONFIG_HOST
 $(error Please run ./configure)
 endif
 
-CFLAGS+=-I$(abspath include)
-LDFLAGS+=-L$(abspath src)
-
 #Ultrasparc64 users experiencing SIGBUS should try the following gcc options
 #(thanks to Robert Gibbon)
 PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finline-functions -fweb -frename-registers -mapp-regs
@@ -63,6 +60,13 @@ MANDIR?=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
+
+
+#######################################
+# All the additiona needed for using the n3n library
+#
+CFLAGS+=-I$(abspath include)
+LDFLAGS+=-L$(abspath src)
 
 N2N_OBJS=\
 	src/aes.o \
@@ -107,6 +111,13 @@ N2N_OBJS=\
 	src/tuntap_netbsd.o \
 	src/tuntap_osx.o \
 	src/wire.o \
+
+src/libn3n.a: $(N2N_OBJS)
+	@echo "  AR      $@"
+	@$(AR) rcs $@ $^
+SUBDIR_LIBS+=src/libn3n.a
+
+#######################################
 
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)
@@ -153,7 +164,7 @@ version:
 	@echo -n "Build for version: "
 	@scripts/version.sh
 
-apps tools: src/libn3n.a
+apps tools: $(SUBDIR_LIBS)
 	$(MAKE) -C $@
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
@@ -176,10 +187,6 @@ $(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
 
 %.gz : %
 	gzip -n -c $< > $@
-
-src/libn3n.a: $(N2N_OBJS)
-	@echo "  AR      $@"
-	@$(AR) rcs $@ $^
 
 .PHONY: test test.units test.integration
 test: test.builtin test.units test.integration
@@ -253,7 +260,7 @@ clean.cov:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(N2N_OBJS) src/libn3n.a $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(N2N_OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
 
