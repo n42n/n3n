@@ -24,6 +24,7 @@
 
 #ifdef HAVE_LIBZSTD
 
+#include <n3n/logging.h> // for traceEvent
 #include <n3n/transform.h>   // for n3n_transform_register
 
 #include "n2n.h"
