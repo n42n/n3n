@@ -19,10 +19,10 @@
  */
 
 
-#include "config.h"  // for HAVE_ZSTD
+#include "config.h"  // for HAVE_LIBZSTD
 
 
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
 
 #include <n3n/transform.h>   // for n3n_transform_register
 
@@ -153,4 +153,4 @@ void n3n_initfuncs_transform_zstd () {
     n3n_transform_register(&transform);
 }
 
-#endif // HAVE_ZSTD
+#endif // HAVE_LIBZSTD

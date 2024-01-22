@@ -58,7 +58,7 @@
 #include "n2n_port_mapping.h"  // for n2n_del_port_mapping, n2n_set_port_map...
 
 
-#ifdef HAVE_MINIUPNP
+#ifdef HAVE_LIBMINIUPNPC
 
 
 #if 0 /* unused code */
@@ -272,13 +272,13 @@ static int n2n_upnp_del_port_mapping (const uint16_t port) {
     return errorcode;
 }
 
-#endif // HAVE_MINIUPNP
+#endif // HAVE_LIBMINIUPNPC
 
 
 // ----------------------------------------------------------------------------------------------------
 
 
-#ifdef HAVE_NATPMP
+#ifdef HAVE_LIBNATPMP
 
 static int n2n_natpmp_initialization (natpmp_t *natpmp, char *lanaddr, char *externaladdr) {
 
@@ -460,7 +460,7 @@ static int n2n_natpmp_del_port_mapping (const uint16_t port) {
     return errorcode;
 }
 
-#endif // HAVE_NATPMP
+#endif // HAVE_LIBNATPMP
 
 
 // static
@@ -470,26 +470,26 @@ static int n2n_natpmp_del_port_mapping (const uint16_t port) {
 
 void n2n_set_port_mapping (const uint16_t port) {
 
-#ifdef HAVE_NATPMP
+#ifdef HAVE_LIBNATPMP
     // since the NAT-PMP protocol is more concise than UPnP, NAT-PMP is preferred.
     if(n2n_natpmp_set_port_mapping(port))
-#endif // HAVE_NATPMP
+#endif // HAVE_LIBNATPMP
     {
-#ifdef HAVE_MINIUPNP
+#ifdef HAVE_LIBMINIUPNPC
         n2n_upnp_set_port_mapping(port);
-#endif // HAVE_MINIUPNP
+#endif // HAVE_LIBMINIUPNPC
     }
 }
 
 
 void n2n_del_port_mapping (const uint16_t port) {
 
-#ifdef HAVE_NATPMP
+#ifdef HAVE_LIBNATPMP
     if(n2n_natpmp_del_port_mapping(port))
-#endif // HAVE_NATPMP
+#endif // HAVE_LIBNATPMP
     {
-#ifdef HAVE_MINIUPNP
+#ifdef HAVE_LIBMINIUPNPC
         n2n_upnp_del_port_mapping(port);
-#endif // HAVE_MINIUPNP
+#endif // HAVE_LIBMINIUPNPC
     }
 }

@@ -539,7 +539,7 @@ struct n2n_edge {
     tuntap_dev device;                                                   /**< All about the TUNTAP device */
     n2n_trans_op_t transop;                                              /**< The transop to use when encoding */
     n2n_trans_op_t transop_lzo;                                          /**< The transop for LZO  compression */
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     n2n_trans_op_t transop_zstd;                                         /**< The transop for ZSTD compression */
 #endif
     n2n_edge_callbacks_t cb;                                             /**< API callbacks */

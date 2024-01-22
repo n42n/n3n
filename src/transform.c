@@ -97,8 +97,7 @@ void n3n_initfuncs_transform () {
     n3n_initfuncs_transform_null();
     n3n_initfuncs_transform_speck();
     n3n_initfuncs_transform_twofish();
-// FIXME: codebase has these defs wrong, they should be HAVE_LIBZSTD
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     n3n_initfuncs_transform_zstd();
 #endif
 }

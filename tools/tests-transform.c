@@ -67,7 +67,7 @@ int main (int argc, char * argv[]) {
     n2n_trans_op_t transop_cc20;
     n2n_trans_op_t transop_speck;
     n2n_trans_op_t transop_lzo;
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     n2n_trans_op_t transop_zstd;
 #endif
     n2n_edge_conf_t conf;
@@ -91,7 +91,7 @@ int main (int argc, char * argv[]) {
     n2n_transop_cc20_init(&conf, &transop_cc20);
     n2n_transop_speck_init(&conf, &transop_speck);
     n2n_transop_lzo_init(&conf, &transop_lzo);
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     n2n_transop_zstd_init(&conf, &transop_zstd);
 #endif
 
@@ -103,7 +103,7 @@ int main (int argc, char * argv[]) {
     run_transop_benchmark("cc20", &transop_cc20, &conf, pktbuf);
     run_transop_benchmark("speck", &transop_speck, &conf, pktbuf);
     run_transop_benchmark("lzo", &transop_lzo, &conf, pktbuf);
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     run_transop_benchmark("zstd", &transop_zstd, &conf, pktbuf);
 #else
     // FIXME - output dummy data to the stdout for easy comparison
@@ -125,7 +125,7 @@ int main (int argc, char * argv[]) {
     transop_cc20.deinit(&transop_cc20);
     transop_speck.deinit(&transop_speck);
     transop_lzo.deinit(&transop_lzo);
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     transop_zstd.deinit(&transop_zstd);
 #endif
 

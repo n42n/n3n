@@ -444,7 +444,7 @@ n2n_edge_t* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     // always initialize compression transforms so we can at least decompress
     rc = n2n_transop_lzo_init(&eee->conf, &eee->transop_lzo);
     if(rc) goto edge_init_error; /* error message is printed in lzo_init */
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     rc = n2n_transop_zstd_init(&eee->conf, &eee->transop_zstd);
     if(rc) goto edge_init_error; /* error message is printed in zstd_init */
 #endif
@@ -1756,7 +1756,7 @@ static int handle_PACKET (n2n_edge_t * eee,
                                                decode_buf, eth_size, pkt->srcMac);
             break;
 
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
         case N2N_COMPRESSION_ID_ZSTD:
             deflate_len = eee->transop_zstd.rev(&eee->transop_zstd,
                                                 deflate_buf, N2N_PKT_BUF_SIZE,
@@ -2115,7 +2115,7 @@ void edge_send_packet2net (n2n_edge_t * eee,
                 }
                 break;
 
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
             case N2N_COMPRESSION_ID_ZSTD:
                 compression_len = eee->transop_zstd.fwd(&eee->transop_zstd,
                                                         compression_buf, sizeof(compression_buf),
@@ -3126,7 +3126,7 @@ void edge_term (n2n_edge_t * eee) {
 
     eee->transop.deinit(&eee->transop);
     eee->transop_lzo.deinit(&eee->transop_lzo);
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
     eee->transop_zstd.deinit(&eee->transop_zstd);
 #endif
 
