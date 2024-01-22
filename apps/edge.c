@@ -931,7 +931,7 @@ int main (int argc, char* argv[]) {
     if(edge_verify_conf(&conf) != 0)
         cmd_help_about(0, NULL, NULL);
 
-    traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", PACKAGE_VERSION, PACKAGE_BUILDDATE);
+    traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", VERSION, PACKAGE_BUILDDATE);
 
 #ifdef HAVE_LIBCRYPTO
     traceEvent(TRACE_NORMAL, "using %s", OpenSSL_version(0));

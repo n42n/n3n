@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -204,7 +204,7 @@ static void mgmt_edge_info (mgmt_req_t *req, strbuf_t *buf) {
                        "\"ip4masklen\":\"%ul\","
                        "\"sockaddr\":\"%s\"}\n",
                        req->tag,
-                       PACKAGE_VERSION,
+                       VERSION,
                        is_null_mac(req->eee->device.mac_addr) ? "" : macaddr_str(mac_buf, req->eee->device.mac_addr),
                        ip_address,
                        req->eee->conf.tuntap_v4.net_bitlen,

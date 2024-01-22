@@ -15,8 +15,8 @@ export CONFIG_HOST_OS
 
 # This allows breaking the build if the version.sh script discovers
 # any inconsistancies
-PACKAGE_VERSION:=$(shell scripts/version.sh)
-CFLAGS+=-DPACKAGE_VERSION='"$(PACKAGE_VERSION)"'
+VERSION:=$(shell scripts/version.sh)
+CFLAGS+=-DVERSION='"$(VERSION)"'
 
 -include config.mak
 

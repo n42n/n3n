@@ -772,7 +772,7 @@ int sn_init_defaults (n2n_sn_t *sss) {
 
     memset(sss, 0, sizeof(n2n_sn_t));
 
-    strncpy(sss->version, PACKAGE_VERSION, sizeof(n2n_version_t));
+    strncpy(sss->version, VERSION, sizeof(n2n_version_t));
     sss->version[sizeof(n2n_version_t) - 1] = '\0';
     sss->daemon = true; /* By defult run as a daemon. */
     sss->bind_address = INADDR_ANY; /* any address */
