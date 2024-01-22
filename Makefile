@@ -165,17 +165,17 @@ SUBDIRS+=apps
 
 COVERAGEDIR?=coverage
 
-.PHONY: $(SUBDIRS)
-
 .PHONY: all
-all: version $(DOCS) $(SUBDIRS) apps
+all: version $(DOCS) subdirs apps
 
 .PHONY: version
 version:
-	@echo "Build for version: $(PACKAGE_VERSION)"
+	@echo "Build for version: $(VERSION)"
 
-apps tools: $(SUBDIR_LIBS)
-	$(MAKE) -C $@
+.PHONY: subdirs
+subdirs: $(SUBDIR_LIBS)
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir; done
+SUBDIR_CLEAN+=$(SUBDIRS)
 
 src/win32/edge.rc: src/win32/edge.manifest
 src/win32/edge_rc.o: src/win32/edge.rc
@@ -264,7 +264,7 @@ clean.cov:
 clean: clean.cov
 	rm -rf $(N2N_OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
+	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
 
 .PHONY: distclean
 distclean:
