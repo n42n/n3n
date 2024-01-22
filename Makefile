@@ -161,8 +161,7 @@ all: version $(DOCS) $(SUBDIRS) apps
 # any inconsistancies
 .PHONY: version
 version:
-	@echo -n "Build for version: "
-	@scripts/version.sh
+	@echo "Build for version: $(shell scripts/version.sh)"
 
 apps tools: $(SUBDIR_LIBS)
 	$(MAKE) -C $@
