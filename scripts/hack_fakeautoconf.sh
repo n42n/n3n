@@ -27,9 +27,10 @@ CONFIG_PREFIX=/usr/local
 CC=gcc
 AR=ar
 WINDRES=windres
-CFLAGS=$CFLAGS -g -O2
-LDFLAGS=$LDFLAGS
-LDLIBS_EXTRA=-lnetapi32 -lws2_32 -liphlpapi
+
+CFLAGS+=$CFLAGS -g -O2
+LDFLAGS+=$LDFLAGS
+LDLIBS_EXTRA+=-lnetapi32 -lws2_32 -liphlpapi
 EOF
 
 cat <<EOF >include/config.h
