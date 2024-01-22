@@ -10,7 +10,7 @@ usage() {
     echo "Usage: $0 [date|short|hash]"
     echo
     echo "Determine the correct version number for the current build"
-    exit 0
+    exit 1
 }
 
 # We assume this script is in the TOPDIR/scripts directory and use that
@@ -28,7 +28,7 @@ if [ -d "$TOPDIR/.git" ]; then
     VER_GIT_SHORT=$(git describe --abbrev=0)
 
     if [ "$VER_FILE_SHORT" != "$VER_GIT_SHORT" ]; then
-        echo "Error: VERSION file does not match tag version ($VER_FILE_SHORT != $VER_GIT_SHORT)"
+        echo "Error: VERSION file does not match tag version ($VER_FILE_SHORT != $VER_GIT_SHORT)" 1>&2
         exit 1
     fi
 

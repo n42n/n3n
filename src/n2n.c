@@ -26,7 +26,7 @@
 #include <string.h>          // for memcmp, memcpy, memset, strlen, strerror
 #include <sys/time.h>        // for gettimeofday, timeval
 #include <time.h>            // for time, localtime, strftime
-#include "config.h"          // for PACKAGE_BUILDDATE, PACKA...
+#include "config.h"          // for HAVE_LIBPTHREAD
 #include "n2n.h"
 #include "random_numbers.h"  // for n2n_rand
 #include "sn_selection.h"    // for sn_selection_criterion_default
@@ -509,7 +509,7 @@ void print_n3n_version () {
     printf("n3n v%s, configured %s\n"
            "Copyright 2007-2022 - ntop.org and contributors\n"
            "Copyright (C) 2023-24 Hamish Coleman\n\n",
-           VERSION, PACKAGE_BUILDDATE);
+           VERSION, BUILDDATE);
 }
 
 /* *********************************************** */

@@ -39,7 +39,6 @@
 #include <time.h>                    // for time
 #include <unistd.h>                  // for setuid, _exit, chdir, fork, getgid
 #include "auth.h"                    // for generate_private_key, generate_p...
-#include "config.h"                  // for PACKAGE_BUILDDATE
 #include "n2n.h"                     // for n2n_edge_conf_t, n2n_edge_t, fil...
 #include "pearson.h"                 // for pearson_hash_64
 #include "portable_endian.h"         // for htobe32
@@ -931,7 +930,7 @@ int main (int argc, char* argv[]) {
     if(edge_verify_conf(&conf) != 0)
         cmd_help_about(0, NULL, NULL);
 
-    traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", VERSION, PACKAGE_BUILDDATE);
+    traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", VERSION, BUILDDATE);
 
 #ifdef HAVE_LIBCRYPTO
     traceEvent(TRACE_NORMAL, "using %s", OpenSSL_version(0));

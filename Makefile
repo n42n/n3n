@@ -13,10 +13,10 @@ export LDLIBS_LOCAL
 export LDLIBS_EXTRA
 export CONFIG_HOST_OS
 
-# This allows breaking the build if the version.sh script discovers
-# any inconsistancies
 VERSION:=$(shell scripts/version.sh)
 CFLAGS+=-DVERSION='"$(VERSION)"'
+BUILDDATE+=$(shell scripts/version.sh date)
+CFLAGS+=-DBUILDDATE='"$(BUILDDATE)"'
 
 -include config.mak
 
@@ -169,7 +169,10 @@ COVERAGEDIR?=coverage
 all: version $(DOCS) subdirs apps
 
 .PHONY: version
+# This allows breaking the build if the version.sh script discovers
+# any inconsistancies
 version:
+	@scripts/version.sh >/dev/null
 	@echo "Build for version: $(VERSION)"
 
 .PHONY: subdirs
