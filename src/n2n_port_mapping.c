@@ -54,13 +54,18 @@
  */
 
 
-#include <arpa/inet.h>
 #include <n2n_define.h>        // for N2N_NETMASK_STR_SIZE
 #include <n3n/logging.h>       // for traceEvent
-#include <netinet/in.h>
 #include <stdint.h>            // for uint16_t
 #include <string.h>            // for memcpy
-#include <sys/socket.h>
+
+#ifdef _WIN32
+#include "win32/defs.h"
+#else
+#include <arpa/inet.h>     // for inet_ntoa
+#include <netinet/in.h>    // for in_addr, htonl, in_addr_t
+#include <sys/socket.h>    // for sendto, recvfrom, sockaddr_storage
+#endif
 
 #include "n2n_port_mapping.h"  // for n2n_del_port_mapping, n2n_set_port_map...
 
