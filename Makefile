@@ -131,6 +131,22 @@ src/libn3n.a: $(N2N_OBJS)
 SUBDIR_LIBS+=src/libn3n.a
 
 #######################################
+# Add non system library version of natpmp
+# TODO: this library doesnt compile for win64 without a patch
+#
+ifdef THIRDPARTY_LIBNATPMP
+CFLAGS+=-I$(abspath thirdparty/libnatpmp)
+CFLAGS+=-DNATPMP_STATICLIB=1
+LDFLAGS+=-L$(abspath thirdparty/libnatpmp)
+LDLIBS_EXTRA+=-lnatpmp
+
+thirdparty/libnatpmp/libnatpmp.a:
+	$(MAKE) -C $(dir $@) $(notdir $@)
+SUBDIR_LIBS+=thirdparty/libnatpmp/libnatpmp.a
+SUBDIR_CLEAN+=thirdparty/libnatpmp
+endif
+
+#######################################
 
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)
