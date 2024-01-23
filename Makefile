@@ -137,6 +137,7 @@ SUBDIR_LIBS+=src/libn3n.a
 ifdef THIRDPARTY_LIBNATPMP
 CFLAGS+=-I$(abspath thirdparty/libnatpmp)
 CFLAGS+=-DNATPMP_STATICLIB=1
+CFLAGS+=-DHAVE_LIBNATPMP=1
 LDFLAGS+=-L$(abspath thirdparty/libnatpmp)
 LDLIBS_EXTRA+=-lnatpmp
 
@@ -144,6 +145,22 @@ thirdparty/libnatpmp/libnatpmp.a:
 	$(MAKE) -C $(dir $@) $(notdir $@)
 SUBDIR_LIBS+=thirdparty/libnatpmp/libnatpmp.a
 SUBDIR_CLEAN+=thirdparty/libnatpmp
+endif
+
+#######################################
+# Add non system library version of miniupnpc
+#
+ifdef THIRDPARTY_MINIUPNPC
+CFLAGS+=-I$(abspath thirdparty/miniupnp/miniupnpc)
+CFLAGS+=-DMINIUPNP_STATICLIB=1
+CFLAGS+=-DHAVE_LIBMINIUPNPC=1
+LDFLAGS+=-L$(abspath thirdparty/miniupnp/miniupnpc/build)
+LDLIBS_EXTRA+=-lminiupnpc
+
+thirdparty/miniupnp/miniupnpc/build/libminiupnpc.a:
+	$(MAKE) -C thirdparty/miniupnp/miniupnpc build/libminiupnpc.a
+SUBDIR_LIBS+=thirdparty/miniupnp/miniupnpc/build/libminiupnpc.a
+SUBDIR_CLEAN+=thirdparty/miniupnp/miniupnpc
 endif
 
 #######################################
