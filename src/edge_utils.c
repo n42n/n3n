@@ -3217,9 +3217,7 @@ static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
     conf->sessiondir = strdup(buf);
 
-    // n3n_config_getunix(conf)
-    //  - concat prefix, session name, ".sock"
-    //  - return
+    traceEvent(TRACE_NORMAL, "sessiondir: %s", conf->sessiondir);
 
     return 0;
 }
