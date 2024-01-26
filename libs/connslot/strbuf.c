@@ -61,18 +61,21 @@ strbuf_t *sb_realloc(strbuf_t **pp, size_t size) {
         size = p->capacity_max;
     }
 
-    p = realloc(p, headersize + size);
-    if (p) {
-        p->capacity = size;
-        if (p->wr_pos >= p->capacity) {
-            // We truncated
-            p->wr_pos = p->capacity-1;
-            p->str[p->wr_pos] = 0;
-        }
-
-        // update the original pointer
-        *pp = p;
+    strbuf_t *newp = realloc(p, headersize + size);
+    if (!newp) {
+        return NULL;
     }
+    p = newp;
+
+    p->capacity = size;
+    if (p->wr_pos >= p->capacity) {
+        // We truncated
+        p->wr_pos = p->capacity-1;
+        p->str[p->wr_pos] = 0;
+    }
+
+    // update the original pointer
+    *pp = p;
     return p;
 }
 
@@ -152,10 +155,13 @@ strbuf_t *sb_reappend(strbuf_t **pp, void *buf, size_t bufsize) {
     strbuf_t *p = *pp;
     size_t needed = p->wr_pos + bufsize;
     if (needed > p->capacity) {
-        p = sb_realloc(pp, needed);
-        if (!p) {
+        strubuf_t *newp = sb_realloc(pp, needed);
+        if (!newp) {
             return NULL;
         }
+        p = newp;
+        // update the original pointer
+        *pp = p;
     }
     sb_append(p, buf, bufsize);
     return p;
