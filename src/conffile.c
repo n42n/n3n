@@ -7,6 +7,7 @@
 
 #include <ctype.h>              // for isprint and friends
 #include <n3n/conffile.h>
+#include <n3n/edge.h>           // for edge_conf_add_supernode
 #include <n3n/logging.h>        // for setTraceLevel
 #include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <n3n/network_traffic_filter.h>
@@ -25,7 +26,6 @@
 #endif
 
 #include <auth.h>               // for generate_private_key
-#include <n2n.h>                // for edge_conf_add_supernode
 #include <n2n_define.h>         // for HEADER_ENCRYPTION_UNKNOWN...
 
 static struct n3n_conf_section *registered_sections = NULL;

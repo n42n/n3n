@@ -20,6 +20,7 @@
 
 
 #include <inttypes.h>   // for PRIx64
+#include <n3n/edge.h>
 #include <n3n/logging.h> // for traceEvent
 #include <stdint.h>     // for uint8_t
 #include <stdio.h>      // for printf, fprintf, size_t, stderr, stdout

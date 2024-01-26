@@ -19,6 +19,7 @@
 
 
 #include <n3n/conffile.h>
+#include <n3n/edge.h>   // for edge_conf_add_supernode
 #include <stdbool.h>
 #include <stdio.h>   // for snprintf, NULL
 #include <stdlib.h>  // for exit

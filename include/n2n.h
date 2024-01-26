@@ -143,12 +143,6 @@ int sock_equal (const n2n_sock_t * a,
 uint64_t time_stamp (void);
 int time_stamp_verify_and_update (uint64_t stamp, uint64_t * previous_stamp, int allow_jitter);
 
-/* Edge conf */
-void edge_init_conf_defaults (n2n_edge_conf_t *conf);
-int edge_verify_conf (const n2n_edge_conf_t *conf);
-int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port);
-void edge_term_conf (n2n_edge_conf_t *conf);
-
 /* Public functions */
 n2n_edge_t* edge_init (const n2n_edge_conf_t *conf, int *rv);
 void update_supernode_reg (n2n_edge_t * eee, time_t nowTime);

@@ -22,6 +22,7 @@
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/conffile.h>            // for n3n_config_load_env
+#include <n3n/edge.h>                // for edge_conf_add_supernode
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
 #include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
