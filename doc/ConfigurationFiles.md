@@ -9,7 +9,7 @@ not discussed here)
 The daemon will attempt to locate a configuration file based on the
 "sessionname" - which defaults to "edge" for the edge daemon.  This would
 result in a config file called "edge.conf", which is located in "/etc/n3n" (or
-the %USERPROFILE% directory on Windows)
+the %USERPROFILE%\n3n directory on Windows)
 
 They are plain text files formatted very similar to INI files.
 

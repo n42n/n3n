@@ -833,13 +833,23 @@ static char *find_config (char *name) {
         return filename;
     }
 
+#ifdef _WIN32
+    char profiledir[1024];
+    profiledir[0] = 0;
+
+    char *userprofile = getenv("USERPROFILE");
+    if(userprofile) {
+        snprintf(profiledir, sizeof(profiledir), "%s/n3n", userprofile);
+    }
+#endif
+
     // TODO: Are there other places that should be searched?
     char *searchpath[] = {
 #ifndef _WIN32
         "/etc/n3n",
 #endif
 #ifdef _WIN32
-        getenv("USERPROFILE"),
+        profiledir,
 #endif
     };
 
