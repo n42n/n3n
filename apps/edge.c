@@ -448,8 +448,7 @@ static void cmd_debug_config_load_dump (int argc, char **argv, n2n_edge_conf_t *
 
 static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *conf) {
     if(!argv[1]) {
-        printf("No session name given\n");
-        exit(1);
+        fprintf(stderr,"Warning: No session name given\n");
     }
 
     // Because we want this test to be deterministic, we dont use the defaults
@@ -458,7 +457,9 @@ static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *c
     memset(conf, 0, sizeof(*conf));
 
     int r = n3n_config_load_file(conf, argv[1]);
-    if(r != 0) {
+    if(r == -2) {
+        fprintf(stderr,"Warning: No config file found\n");
+    } else if(r != 0) {
         printf("Error loading config file (%i)\n", r);
         exit(1);
     }
