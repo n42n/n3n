@@ -155,7 +155,7 @@ strbuf_t *sb_reappend(strbuf_t **pp, void *buf, size_t bufsize) {
     strbuf_t *p = *pp;
     size_t needed = p->wr_pos + bufsize;
     if (needed > p->capacity) {
-        strubuf_t *newp = sb_realloc(pp, needed);
+        strbuf_t *newp = sb_realloc(pp, needed);
         if (!newp) {
             return NULL;
         }
