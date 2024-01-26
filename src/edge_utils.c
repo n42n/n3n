@@ -3279,13 +3279,6 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
 
 /* ************************************** */
 
-const n2n_edge_conf_t* edge_get_conf (const n2n_edge_t *eee) {
-
-    return(&eee->conf);
-}
-
-/* ************************************** */
-
 int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
 
     struct peer_info *sn;
