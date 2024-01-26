@@ -72,10 +72,12 @@ void httpd_test(int port) {
         exit(1);
     }
 
+#ifndef _WIN32
     if (slots_listen_unix(slots, "test.sock")!=0) {
         perror("slots_listen_tcp");
         exit(1);
     }
+#endif
 
     strbuf_t *reply = sb_malloc(48);
     reply->capacity_max = 1000;
