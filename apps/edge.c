@@ -839,8 +839,16 @@ static void term_handler (int sig) {
 }
 
 #ifdef _WIN32
+// Note well, this gets called from a brand new thread, thus is completely
+// different to how signals work in POSIX
 BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
-    term_handler(sig);
+    // Tell the mainloop to exit next time it wakes
+    keep_on_running = false;
+
+    // TODO: Ensure that any running select will immediately return by
+    // closing one of the file handles that it is selecting on
+    // (cannot simply use eee->sock as the we cannot send a shutdown
+    // message to the supernode)
 
     switch(sig) {
         case CTRL_CLOSE_EVENT:
