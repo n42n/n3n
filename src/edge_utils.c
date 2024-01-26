@@ -3160,7 +3160,13 @@ static int mkdir_p (const char *pathname, int mode) {
         return -1;
     }
 
-    if(mkdir(pathname, mode) == -1) {
+#ifndef _WIN32
+    int r = mkdir(pathname, mode);
+#else
+    int r = _mkdir(pathname);
+#endif
+
+    if(r == -1) {
         return -1;
     }
 
