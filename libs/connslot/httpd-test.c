@@ -174,6 +174,14 @@ void httpd_test(int port) {
 }
 
 int main() {
+#ifdef _WIN32
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData ) != 0) {
+        printf("error initialising winsock\n");
+        abort();
+    }
+#endif
+
     int port = 8080;
     printf("Running http test server on port %i\n", port);
 
