@@ -824,6 +824,7 @@ static void daemonize () {
 
 static bool keep_on_running = true;
 
+#ifndef _WIN32
 static void term_handler (int sig) {
     static int called = 0;
 
@@ -837,6 +838,7 @@ static void term_handler (int sig) {
 
     keep_on_running = false;
 }
+#endif
 
 #ifdef _WIN32
 // Note well, this gets called from a brand new thread, thus is completely
