@@ -14,7 +14,10 @@ CFLAGS+=-ftest-coverage
 LDFLAGS+=--coverage
 endif
 
-ifneq ($(NOANALYZER),1)
+# Some supported compilers dont have this function and others are
+# older and detect leaks that are not there, so default to off unless
+# testing
+ifdef ANALYZER
 CFLAGS+=-fanalyzer
 endif
 
