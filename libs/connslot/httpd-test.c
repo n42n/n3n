@@ -53,9 +53,12 @@ int do_jsonrpc(strbuf_t *request, strbuf_t **reply) {
     return 0;
 }
 
+#if 0
 void send_str(int fd, char *s) {
-    write(fd,s,strlen(s));
+    int sent = write(fd,s,strlen(s));
+    // TODO: use the result, or warn_unused_result will kill the build
 }
+#endif
 
 #define NR_SLOTS 5
 void httpd_test(int port) {
