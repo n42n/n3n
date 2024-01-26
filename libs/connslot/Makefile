@@ -26,6 +26,9 @@ CFLAGS+=-fsanitize=leak
 LDFLAGS+=-fsanitize=leak
 endif
 
+# Append any extra libs needed in this environment
+LDLIBS+=$(LDLIBS_EXTRA)
+
 LINT_CCODE+=strbuf.c strbuf.h strbuf-tests.c
 LINT_CCODE+=connslot.c connslot.h connslot-tests.c
 LINT_CCODE+=httpd-test.c
