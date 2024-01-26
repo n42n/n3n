@@ -14,6 +14,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include "strbuf.h"
 
 /**
@@ -249,8 +253,15 @@ size_t sb_reprintf(strbuf_t **pp, const char *format, ...) {
  */
 ssize_t sb_read(int fd, strbuf_t *p) {
     ssize_t size;
+    ssize_t avail = sb_avail(p);
 
-    size = read(fd, &p->str[p->wr_pos], sb_avail(p));
+#ifndef _WIN32
+    size = read(fd, &p->str[p->wr_pos], avail);
+#else
+    // This only works on winsock (network stream) handles
+    size = recv(fd, &p->str[p->wr_pos], avail, 0);
+#endif
+
     if (size != -1) {
         p->wr_pos += size;
     }
@@ -274,7 +285,12 @@ ssize_t sb_write(int fd, strbuf_t *p, int index, ssize_t size) {
     // if index > wr_pos, error
     // if index + size > wr_pos, error
 
+#ifndef _WIN32
     return write(fd, &p->str[index], size);
+#else
+    // This only works on winsock (network stream) handles
+    return send(fd, &p->str[index], size, 0);
+#endif
 }
 
 void sb_dump(strbuf_t *p) {
