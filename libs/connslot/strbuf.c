@@ -190,10 +190,12 @@ size_t sb_vprintf(strbuf_t *p, const char *format, va_list ap) {
  */
 size_t sb_printf(strbuf_t *p, const char *format, ...) {
     va_list ap;
+    size_t r;
 
     va_start(ap, format);
-    return sb_vprintf(p, format, ap);
+    r =  sb_vprintf(p, format, ap);
     va_end(ap);
+    return r;
 }
 
 /**
