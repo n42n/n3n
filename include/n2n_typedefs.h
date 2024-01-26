@@ -507,7 +507,8 @@ typedef struct n2n_edge_conf {
     int mtu;
     devstr_t tuntap_dev_name;
     struct n2n_ip_subnet tuntap_v4;
-    char *sessionname;
+    char *sessionname;              // the name of this session
+    char *sessiondir;              // path to use for session files
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
 } n2n_edge_conf_t;
 
