@@ -13,6 +13,10 @@
 # eg:
 # CFLAGS+=-I../include
 # LDFLAGS+=-L../src
+#
+# CFLAGS+=-I../libs
+# LDFLAGS+=-L../libs/connslot
+# LDLIBS_LOCAL+=-lconnslot
 
 APPS+=edge
 APPS+=supernode

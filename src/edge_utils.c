@@ -18,7 +18,11 @@
  *
  */
 
+#ifdef _WIN32
+#include "win32/defs.h"
+#endif
 
+#include <connslot/connslot.h>
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/conffile.h>            // for n3n_config_load_env
@@ -49,7 +53,6 @@
 #include "uthash.h"                  // for UT_hash_handle, HASH_COUNT, HASH...
 
 #ifdef _WIN32
-#include "win32/defs.h"
 #include "win32/edge_utils_win32.h"
 #else
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop
@@ -2923,42 +2926,58 @@ int run_edge_loop (n2n_edge_t *eee) {
     while(*eee->keep_running) {
 
         int rc, max_sock = 0;
-        fd_set socket_mask;
+        fd_set readers;
+        fd_set writers;
         time_t now;
 
-        FD_ZERO(&socket_mask);
+        FD_ZERO(&readers);
+        FD_ZERO(&writers);
 
-        FD_SET(eee->udp_mgmt_sock, &socket_mask);
-        max_sock = eee->udp_mgmt_sock;
+        FD_SET(eee->udp_mgmt_sock, &readers);
+        max_sock = max(max_sock, eee->udp_mgmt_sock);
 
         if(eee->sock >= 0) {
-            FD_SET(eee->sock, &socket_mask);
-            max_sock = max(eee->sock, eee->udp_mgmt_sock);
+            FD_SET(eee->sock, &readers);
+            max_sock = max(max_sock, eee->sock);
         }
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
         if((eee->conf.allow_p2p)
            && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
-            FD_SET(eee->udp_multicast_sock, &socket_mask);
-            max_sock = max(eee->sock, eee->udp_multicast_sock);
+            FD_SET(eee->udp_multicast_sock, &readers);
+            max_sock = max(max_sock, eee->udp_multicast_sock);
         }
 #endif
 
 #ifndef _WIN32
-        FD_SET(eee->device.fd, &socket_mask);
+        FD_SET(eee->device.fd, &readers);
         max_sock = max(max_sock, eee->device.fd);
 #endif
+
+        slots_t *slots = eee->mgmt_slots;
+        max_sock = max(
+            max_sock,
+            slots_fdset(
+                slots,
+                &readers,
+                &writers
+                )
+            );
 
         struct timeval wait_time;
         wait_time.tv_sec = (eee->sn_wait) ? (SOCKET_TIMEOUT_INTERVAL_SECS / 10 + 1) : (SOCKET_TIMEOUT_INTERVAL_SECS);
         wait_time.tv_usec = 0;
-        rc = select(max_sock + 1, &socket_mask, NULL, NULL, &wait_time);
+        rc = select(max_sock + 1, &readers, &writers, NULL, &wait_time);
         now = time(NULL);
 
+        if(rc == 0) {
+            // check for timed out slots
+            slots_closeidle(slots);
+        }
         if(rc > 0) {
             // any or all of the FDs could have input; check them all
 
             // external
-            if(FD_ISSET(eee->sock, &socket_mask)) {
+            if(FD_ISSET(eee->sock, &readers)) {
                 if(0 != fetch_and_eventually_process_data(
                        eee,
                        eee->sock,
@@ -2983,7 +3002,7 @@ int run_edge_loop (n2n_edge_t *eee) {
             }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-            if(FD_ISSET(eee->udp_multicast_sock, &socket_mask)) {
+            if(FD_ISSET(eee->udp_multicast_sock, &readers)) {
                 if(0 != fetch_and_eventually_process_data(
                        eee,
                        eee->udp_multicast_sock,
@@ -2997,17 +3016,55 @@ int run_edge_loop (n2n_edge_t *eee) {
             }
 #endif
 
-            if(FD_ISSET(eee->udp_mgmt_sock, &socket_mask)) {
+            if(FD_ISSET(eee->udp_mgmt_sock, &readers)) {
                 // read from the management port socket
                 readFromMgmtSocket(eee);
             }
 
 #ifndef _WIN32
-            if(FD_ISSET(eee->device.fd, &socket_mask)) {
+            if(FD_ISSET(eee->device.fd, &readers)) {
                 // read an ethernet frame from the TAP socket; write on the IP socket
                 edge_read_from_tap(eee);
             }
 #endif
+
+            int slots_ready = slots_fdset_loop(slots, &readers, &writers);
+
+            if(slots_ready < 0) {
+                traceEvent(
+                    TRACE_ERROR,
+                    "error: slots_fdset_loop = %i", slots_ready
+                    );
+            } else if(slots_ready > 0) {
+                // A linear scan is not ideal, but this is a select() loop
+                // not one built for performance.
+                // - update connslot to have callbacks instead of scan
+                // - switch to a modern poll loop (and reimplement differently
+                //   for each OS supported)
+                // This should only be a concern if we are doing a large
+                // number of slot connections
+                for(int i=0; i<slots->nr_slots; i++) {
+                    if(slots->conn[i].fd == -1) {
+                        continue;
+                    }
+
+                    if(slots->conn[i].state == CONN_READY) {
+                        strbuf_t **pp;
+                        // TODO:
+                        // - parse request
+
+                        // for now, just echo
+                        slots->conn[i].reply = slots->conn[i].request;
+
+                        pp = &slots->conn[i].reply_header;
+                        sb_reprintf(pp, "HTTP/1.1 200 OK\r\n\r\n");
+                        sb_reprintf(pp, "echo request for testing\r\n\r\n");
+
+                        // Try to immediately start sending the reply
+                        conn_write(&slots->conn[i]);
+                    }
+                }
+            }
         }
 
         // If anything we recieved caused us to stop..
@@ -3138,6 +3195,7 @@ void edge_term (n2n_edge_t * eee) {
 
     closeTraceFile();
 
+    slots_free(eee->mgmt_slots);
     free(eee);
 
 #ifdef _WIN32
@@ -3243,7 +3301,27 @@ static int edge_init_sockets (n2n_edge_t *eee) {
         return(-2);
     }
 
+    eee->mgmt_slots = slots_malloc(5);
+    if(!eee->mgmt_slots) {
+        abort();
+    }
+
+    if(slots_listen_tcp(eee->mgmt_slots, eee->conf.mgmt_port)!=0) {
+        perror("slots_listen_tcp");
+        exit(1);
+    }
+
     n3n_config_setup_sessiondir(&eee->conf);
+
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", eee->conf.sessiondir);
+
+    if(slots_listen_unix(eee->mgmt_slots, unixsock)!=0) {
+        perror("slots_listen_tcp");
+        exit(1);
+    }
+#endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     if(eee->udp_multicast_sock >= 0)

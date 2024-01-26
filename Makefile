@@ -164,6 +164,18 @@ SUBDIR_CLEAN+=thirdparty/miniupnp/miniupnpc
 endif
 
 #######################################
+# All the additions needed for using the connslot library
+#
+CFLAGS+=-I$(abspath libs)
+LDFLAGS+=-L$(abspath libs/connslot)
+LDLIBS_LOCAL+=-lconnslot
+
+libs/connslot/libconnslot.a:
+	$(MAKE) -C $(dir $@) $(notdir $@) httpd-test
+SUBDIR_LIBS+=libs/connslot/libconnslot.a
+SUBDIR_CLEAN+=libs/connslot
+
+#######################################
 
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)

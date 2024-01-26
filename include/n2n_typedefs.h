@@ -526,6 +526,8 @@ struct n2n_edge_stats {
     uint32_t rx_tuntap_error;
 };
 
+typedef struct slots slots_t;
+
 struct n2n_edge {
     n2n_edge_conf_t conf;
 
@@ -551,6 +553,7 @@ struct n2n_edge {
     /* supernode socket is in        eee->curr_sn->sock (of type n2n_sock_t) */
     int sock;
     int udp_mgmt_sock;                                                   /**< socket for status info. */
+    slots_t *mgmt_slots;
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     n2n_sock_t multicast_peer;                                           /**< Multicast peer group (for local edges) */
