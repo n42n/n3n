@@ -3057,8 +3057,9 @@ int run_edge_loop (n2n_edge_t *eee) {
                         slots->conn[i].reply = slots->conn[i].request;
 
                         pp = &slots->conn[i].reply_header;
-                        sb_reprintf(pp, "HTTP/1.1 200 OK\r\n\r\n");
-                        sb_reprintf(pp, "echo request for testing\r\n\r\n");
+                        sb_reprintf(pp, "HTTP/1.1 200 OK\r\n");
+                        int len = sb_len(slots->conn[i].reply);
+                        sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
 
                         // Try to immediately start sending the reply
                         conn_write(&slots->conn[i]);
