@@ -15,7 +15,6 @@
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
 #include "management.h"
-#include "strbuf.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"
@@ -25,14 +24,14 @@
 #endif
 
 
-ssize_t send_reply (mgmt_req_t *req, old_strbuf_t *buf, size_t msg_len) {
+ssize_t send_reply (mgmt_req_t *req, strbuf_t *buf) {
     // TODO: better error handling (counters?)
-    return sendto(req->mgmt_sock, buf->str, msg_len, 0,
+    return sendto(req->mgmt_sock, buf->str, buf->wr_pos, 0,
                   &req->sender_sock, req->sock_len);
 }
 
-size_t gen_json_1str (old_strbuf_t *buf, char *tag, char *_type, char *key, char *val) {
-    return snprintf(buf->str, buf->size,
+size_t gen_json_1str (strbuf_t *buf, char *tag, char *_type, char *key, char *val) {
+    return sb_printf(buf,
                     "{"
                     "\"_tag\":\"%s\","
                     "\"_type\":\"%s\","
@@ -43,8 +42,8 @@ size_t gen_json_1str (old_strbuf_t *buf, char *tag, char *_type, char *key, char
                     val);
 }
 
-size_t gen_json_1uint (old_strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val) {
-    return snprintf(buf->str, buf->size,
+size_t gen_json_1uint (strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val) {
+    return sb_printf(buf,
                     "{"
                     "\"_tag\":\"%s\","
                     "\"_type\":\"%s\","
@@ -55,21 +54,21 @@ size_t gen_json_1uint (old_strbuf_t *buf, char *tag, char *_type, char *key, uns
                     val);
 }
 
-void send_json_1str (mgmt_req_t *req, old_strbuf_t *buf, char *_type, char *key, char *val) {
-    size_t msg_len = gen_json_1str(buf, req->tag, _type, key, val);
-    send_reply(req, buf, msg_len);
+void send_json_1str (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, char *val) {
+    gen_json_1str(buf, req->tag, _type, key, val);
+    send_reply(req, buf);
 }
 
-void send_json_1uint (mgmt_req_t *req, old_strbuf_t *buf, char *_type, char *key, unsigned int val) {
-    size_t msg_len = gen_json_1uint(buf, req->tag, _type, key, val);
-    send_reply(req, buf, msg_len);
+void send_json_1uint (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, unsigned int val) {
+    gen_json_1uint(buf, req->tag, _type, key, val);
+    send_reply(req, buf);
 }
 
-void mgmt_error (mgmt_req_t *req, old_strbuf_t *buf, char *msg) {
+void mgmt_error (mgmt_req_t *req, strbuf_t *buf, char *msg) {
     send_json_1str(req, buf, "error", "error", msg);
 }
 
-void mgmt_stop (mgmt_req_t *req, old_strbuf_t *buf) {
+void mgmt_stop (mgmt_req_t *req, strbuf_t *buf) {
 
     if(req->type==N2N_MGMT_WRITE) {
         *req->keep_running = false;
@@ -78,7 +77,7 @@ void mgmt_stop (mgmt_req_t *req, old_strbuf_t *buf) {
     send_json_1uint(req, buf, "row", "keep_running", *req->keep_running);
 }
 
-void mgmt_verbose (mgmt_req_t *req, old_strbuf_t *buf) {
+void mgmt_verbose (mgmt_req_t *req, strbuf_t *buf) {
 
     if(req->type==N2N_MGMT_WRITE) {
         if(req->argv) {
@@ -89,7 +88,7 @@ void mgmt_verbose (mgmt_req_t *req, old_strbuf_t *buf) {
     send_json_1uint(req, buf, "row", "traceLevel", getTraceLevel());
 }
 
-void mgmt_unimplemented (mgmt_req_t *req, old_strbuf_t *buf) {
+void mgmt_unimplemented (mgmt_req_t *req, strbuf_t *buf) {
 
     mgmt_error(req, buf, "unimplemented");
 }
@@ -104,8 +103,8 @@ void mgmt_event_post2 (enum n2n_event_topic topic, int data0, void *data1, mgmt_
     }
 
     char buf_space[100];
-    old_strbuf_t *buf;
-    OLD_STRBUF_INIT(buf, buf_space, sizeof(buf_space));
+    strbuf_t *buf;
+    STRBUF_INIT(buf, buf_space);
 
     char *tag;
     if(sub->type == N2N_MGMT_SUB) {
@@ -114,13 +113,13 @@ void mgmt_event_post2 (enum n2n_event_topic topic, int data0, void *data1, mgmt_
         tag = debug->tag;
     }
 
-    size_t msg_len = fn(buf, tag, data0, data1);
+    fn(buf, tag, data0, data1);
 
     if(sub->type == N2N_MGMT_SUB) {
-        send_reply(sub, buf, msg_len);
+        send_reply(sub, buf);
     }
     if(debug->type == N2N_MGMT_SUB) {
-        send_reply(debug, buf, msg_len);
+        send_reply(debug, buf);
     }
     // TODO:
     // - ideally, we would detect that the far end has gone away and
@@ -130,24 +129,21 @@ void mgmt_event_post2 (enum n2n_event_topic topic, int data0, void *data1, mgmt_
     //   and provide a manual unsubscribe
 }
 
-void mgmt_help_row (mgmt_req_t *req, old_strbuf_t *buf, char *cmd, char *help) {
-    size_t msg_len;
+void mgmt_help_row (mgmt_req_t *req, strbuf_t *buf, char *cmd, char *help) {
+    sb_printf(buf,
+              "{"
+              "\"_tag\":\"%s\","
+              "\"_type\":\"row\","
+              "\"cmd\":\"%s\","
+              "\"help\":\"%s\"}\n",
+              req->tag,
+              cmd,
+              help);
 
-    msg_len = snprintf(buf->str, buf->size,
-                       "{"
-                       "\"_tag\":\"%s\","
-                       "\"_type\":\"row\","
-                       "\"cmd\":\"%s\","
-                       "\"help\":\"%s\"}\n",
-                       req->tag,
-                       cmd,
-                       help);
-
-    send_reply(req, buf, msg_len);
+    send_reply(req, buf);
 }
 
-void mgmt_help_events_row (mgmt_req_t *req, old_strbuf_t *buf, mgmt_req_t *sub, char *cmd, char *help) {
-    size_t msg_len;
+void mgmt_help_events_row (mgmt_req_t *req, strbuf_t *buf, mgmt_req_t *sub, char *cmd, char *help) {
     char host[40];
     char serv[6];
 
@@ -164,21 +160,21 @@ void mgmt_help_events_row (mgmt_req_t *req, old_strbuf_t *buf, mgmt_req_t *sub, 
 
     // TODO: handle a topic with no subscribers more cleanly
 
-    msg_len = snprintf(buf->str, buf->size,
-                       "{"
-                       "\"_tag\":\"%s\","
-                       "\"_type\":\"row\","
-                       "\"topic\":\"%s\","
-                       "\"tag\":\"%s\","
-                       "\"sockaddr\":\"%s:%s\","
-                       "\"help\":\"%s\"}\n",
-                       req->tag,
-                       cmd,
-                       sub->tag,
-                       host, serv,
-                       help);
+    sb_printf(buf,
+             "{"
+             "\"_tag\":\"%s\","
+             "\"_type\":\"row\","
+             "\"topic\":\"%s\","
+             "\"tag\":\"%s\","
+             "\"sockaddr\":\"%s:%s\","
+             "\"help\":\"%s\"}\n",
+             req->tag,
+             cmd,
+             sub->tag,
+             host, serv,
+             help);
 
-    send_reply(req, buf, msg_len);
+    send_reply(req, buf);
 }
 
 // TODO: work out a method to keep the mgmt_handlers defintion const static,
@@ -211,7 +207,7 @@ int mgmt_auth (mgmt_req_t *req, char *auth) {
 /*
  * Handle the common and shred parts of the mgmt_req_t initialisation
  */
-bool mgmt_req_init2 (mgmt_req_t *req, old_strbuf_t *buf, char *cmdline) {
+bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline) {
     char *typechar;
     char *options;
     char *flagstr;

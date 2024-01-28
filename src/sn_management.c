@@ -25,6 +25,7 @@
 
 
 #include <errno.h>       // for errno
+#include <connslot/strbuf.h> // for strbuf_t
 #include <n3n/logging.h> // for traceEvent
 #include <stdbool.h>
 #include <stdint.h>      // for uint8_t, uint32_t
@@ -36,7 +37,6 @@
 #include "n2n_define.h"    // for N2N_SN_PKTBUF_SIZE, UNPURGEABLE
 #include "n2n_typedefs.h"  // for n2n_sn_t, sn_community, peer_info, sn_stats_t
 #include "peer_info.h"   // for peer_info, peer_info_t
-#include "strbuf.h"      // for old_strbuf_t, OLD_STRBUF_INIT
 #include "uthash.h"      // for UT_hash_handle, HASH_ITER, HASH_COUNT
 
 #ifdef _WIN32
@@ -48,7 +48,7 @@
 
 int load_allowed_sn_community (n2n_sn_t *sss); /* defined in sn_utils.c */
 
-static void mgmt_reload_communities (mgmt_req_t *req, old_strbuf_t *buf) {
+static void mgmt_reload_communities (mgmt_req_t *req, strbuf_t *buf) {
 
     if(req->type!=N2N_MGMT_WRITE) {
         mgmt_error(req, buf, "writeonly");
@@ -64,104 +64,102 @@ static void mgmt_reload_communities (mgmt_req_t *req, old_strbuf_t *buf) {
     send_json_1uint(req, buf, "row", "ok", ok);
 }
 
-static void mgmt_timestamps (mgmt_req_t *req, old_strbuf_t *buf) {
-    size_t msg_len;
+static void mgmt_timestamps (mgmt_req_t *req, strbuf_t *buf) {
+    sb_printf(buf,
+              "{"
+              "\"_tag\":\"%s\","
+              "\"_type\":\"row\","
+              "\"start_time\":%lu,"
+              "\"last_fwd\":%ld,"
+              "\"last_reg_super\":%ld}\n",
+              req->tag,
+              req->sss->start_time,
+              req->sss->stats.last_fwd,
+              req->sss->stats.last_reg_super);
 
-    msg_len = snprintf(buf->str, buf->size,
-                       "{"
-                       "\"_tag\":\"%s\","
-                       "\"_type\":\"row\","
-                       "\"start_time\":%lu,"
-                       "\"last_fwd\":%ld,"
-                       "\"last_reg_super\":%ld}\n",
-                       req->tag,
-                       req->sss->start_time,
-                       req->sss->stats.last_fwd,
-                       req->sss->stats.last_reg_super);
-
-    send_reply(req, buf, msg_len);
+    send_reply(req, buf);
 }
 
-static void mgmt_packetstats (mgmt_req_t *req, old_strbuf_t *buf) {
-    size_t msg_len;
+static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
+    sb_printf(buf,
+              "{"
+              "\"_tag\":\"%s\","
+              "\"_type\":\"row\","
+              "\"type\":\"forward\","
+              "\"tx_pkt\":%lu}\n",
+              req->tag,
+              req->sss->stats.fwd);
 
-    msg_len = snprintf(buf->str, buf->size,
-                       "{"
-                       "\"_tag\":\"%s\","
-                       "\"_type\":\"row\","
-                       "\"type\":\"forward\","
-                       "\"tx_pkt\":%lu}\n",
-                       req->tag,
-                       req->sss->stats.fwd);
+    send_reply(req, buf);
+    sb_zero(buf);
 
-    send_reply(req, buf, msg_len);
+    sb_printf(buf,
+              "{"
+              "\"_tag\":\"%s\","
+              "\"_type\":\"row\","
+              "\"type\":\"broadcast\","
+              "\"tx_pkt\":%lu}\n",
+              req->tag,
+              req->sss->stats.broadcast);
 
-    msg_len = snprintf(buf->str, buf->size,
-                       "{"
-                       "\"_tag\":\"%s\","
-                       "\"_type\":\"row\","
-                       "\"type\":\"broadcast\","
-                       "\"tx_pkt\":%lu}\n",
-                       req->tag,
-                       req->sss->stats.broadcast);
+    send_reply(req, buf);
+    sb_zero(buf);
 
-    send_reply(req, buf, msg_len);
-
-    msg_len = snprintf(buf->str, buf->size,
-                       "{"
-                       "\"_tag\":\"%s\","
-                       "\"_type\":\"row\","
-                       "\"type\":\"reg_super\","
-                       "\"rx_pkt\":%lu,"
-                       "\"nak\":%lu}\n",
-                       req->tag,
-                       req->sss->stats.reg_super,
-                       req->sss->stats.reg_super_nak);
+    sb_printf(buf,
+              "{"
+              "\"_tag\":\"%s\","
+              "\"_type\":\"row\","
+              "\"type\":\"reg_super\","
+              "\"rx_pkt\":%lu,"
+              "\"nak\":%lu}\n",
+              req->tag,
+              req->sss->stats.reg_super,
+              req->sss->stats.reg_super_nak);
 
     /* Note: reg_super_nak is not currently incremented anywhere */
 
-    send_reply(req, buf, msg_len);
+    send_reply(req, buf);
+    sb_zero(buf);
 
     /* Generic errors when trying to sendto() */
-    msg_len = snprintf(buf->str, buf->size,
-                       "{"
-                       "\"_tag\":\"%s\","
-                       "\"_type\":\"row\","
-                       "\"type\":\"errors\","
-                       "\"tx_pkt\":%lu}\n",
-                       req->tag,
-                       req->sss->stats.errors);
+    sb_printf(buf,
+              "{"
+              "\"_tag\":\"%s\","
+              "\"_type\":\"row\","
+              "\"type\":\"errors\","
+              "\"tx_pkt\":%lu}\n",
+              req->tag,
+              req->sss->stats.errors);
 
-    send_reply(req, buf, msg_len);
+    send_reply(req, buf);
 }
 
-static void mgmt_communities (mgmt_req_t *req, old_strbuf_t *buf) {
-    size_t msg_len;
+static void mgmt_communities (mgmt_req_t *req, strbuf_t *buf) {
     struct sn_community *community, *tmp;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
 
     HASH_ITER(hh, req->sss->communities, community, tmp) {
 
-        msg_len = snprintf(buf->str, buf->size,
-                           "{"
-                           "\"_tag\":\"%s\","
-                           "\"_type\":\"row\","
-                           "\"community\":\"%s\","
-                           "\"purgeable\":%i,"
-                           "\"is_federation\":%i,"
-                           "\"ip4addr\":\"%s\"}\n",
-                           req->tag,
-                           (community->is_federation) ? "-/-" : community->community,
-                           community->purgeable,
-                           community->is_federation,
-                           (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
+        sb_printf(buf,
+                  "{"
+                  "\"_tag\":\"%s\","
+                  "\"_type\":\"row\","
+                  "\"community\":\"%s\","
+                  "\"purgeable\":%i,"
+                  "\"is_federation\":%i,"
+                  "\"ip4addr\":\"%s\"}\n",
+                  req->tag,
+                  (community->is_federation) ? "-/-" : community->community,
+                  community->purgeable,
+                  community->is_federation,
+                  (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
 
-        send_reply(req, buf, msg_len);
+        send_reply(req, buf);
+        sb_zero(buf);
     }
 }
 
-static void mgmt_edges (mgmt_req_t *req, old_strbuf_t *buf) {
-    size_t msg_len;
+static void mgmt_edges (mgmt_req_t *req, strbuf_t *buf) {
     struct sn_community *community, *tmp;
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
@@ -171,35 +169,36 @@ static void mgmt_edges (mgmt_req_t *req, old_strbuf_t *buf) {
     HASH_ITER(hh, req->sss->communities, community, tmp) {
         HASH_ITER(hh, community->edges, peer, tmpPeer) {
 
-            msg_len = snprintf(buf->str, buf->size,
-                               "{"
-                               "\"_tag\":\"%s\","
-                               "\"_type\":\"row\","
-                               "\"community\":\"%s\","
-                               "\"ip4addr\":\"%s\","
-                               "\"purgeable\":%i,"
-                               "\"macaddr\":\"%s\","
-                               "\"sockaddr\":\"%s\","
-                               "\"proto\":\"%s\","
-                               "\"desc\":\"%s\","
-                               "\"last_seen\":%li}\n",
-                               req->tag,
-                               (community->is_federation) ? "-/-" : community->community,
-                               (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
-                               peer->purgeable,
-                               (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
-                               sock_to_cstr(sockbuf, &(peer->sock)),
-                               ((peer->socket_fd >= 0) && (peer->socket_fd != req->sss->sock)) ? "TCP" : "UDP",
-                               peer->dev_desc,
-                               peer->last_seen);
+            sb_printf(buf,
+                      "{"
+                      "\"_tag\":\"%s\","
+                      "\"_type\":\"row\","
+                      "\"community\":\"%s\","
+                      "\"ip4addr\":\"%s\","
+                      "\"purgeable\":%i,"
+                      "\"macaddr\":\"%s\","
+                      "\"sockaddr\":\"%s\","
+                      "\"proto\":\"%s\","
+                      "\"desc\":\"%s\","
+                      "\"last_seen\":%li}\n",
+                      req->tag,
+                      (community->is_federation) ? "-/-" : community->community,
+                      (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
+                      peer->purgeable,
+                      (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+                      sock_to_cstr(sockbuf, &(peer->sock)),
+                      ((peer->socket_fd >= 0) && (peer->socket_fd != req->sss->sock)) ? "TCP" : "UDP",
+                      peer->dev_desc,
+                      peer->last_seen);
 
-            send_reply(req, buf, msg_len);
+            send_reply(req, buf);
+            sb_zero(buf);
         }
     }
 }
 
 // Forward define so we can include this in the mgmt_handlers[] table
-static void mgmt_help (mgmt_req_t *req, old_strbuf_t *buf);
+static void mgmt_help (mgmt_req_t *req, strbuf_t *buf);
 
 static const mgmt_handler_t mgmt_handlers[] = {
     { .cmd = "supernodes", .help = "Reserved for edge", .func = mgmt_unimplemented},
@@ -216,7 +215,7 @@ static const mgmt_handler_t mgmt_handlers[] = {
 
 // TODO: want to keep the mgmt_handlers defintion const static, otherwise
 // this whole function could be shared
-static void mgmt_help (mgmt_req_t *req, old_strbuf_t *buf) {
+static void mgmt_help (mgmt_req_t *req, strbuf_t *buf) {
     /*
      * Even though this command is readonly, we deliberately do not check
      * the type - allowing help replies to both read and write requests
@@ -226,13 +225,14 @@ static void mgmt_help (mgmt_req_t *req, old_strbuf_t *buf) {
     int nr_handlers = sizeof(mgmt_handlers) / sizeof(mgmt_handler_t);
     for( i=0; i < nr_handlers; i++ ) {
         mgmt_help_row(req, buf, mgmt_handlers[i].cmd, mgmt_handlers[i].help);
+        sb_zero(buf);
     }
 }
 
 // TODO: DRY
 static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
 
-    old_strbuf_t *buf;
+    strbuf_t *buf;
     char cmdlinebuf[80];
 
     /* save a copy of the commandline before we reuse the udp_buf */
@@ -242,8 +242,11 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
     traceEvent(TRACE_DEBUG, "mgmt json %s", cmdlinebuf);
 
     /* we reuse the buffer already on the stack for all our strings */
-    // xx
-    OLD_STRBUF_INIT(buf, udp_buf, N2N_SN_PKTBUF_SIZE);
+    /* FIXME, this is a hack as it uses strbuf_t internals */
+    buf = (strbuf_t *)udp_buf;
+    sb_zero(buf);
+    buf->capacity = N2N_SN_PKTBUF_SIZE;
+    buf->capacity_max = buf->capacity;
 
     if(!mgmt_req_init2(req, buf, (char *)&cmdlinebuf)) {
         // if anything failed during init
@@ -269,8 +272,10 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
      * - do we care?
      */
     send_json_1str(req, buf, "begin", "cmd", req->argv0);
+    sb_zero(buf);
 
     mgmt_handlers[handler].func(req, buf);
+    sb_zero(buf);
 
     send_json_1str(req, buf, "end", "cmd", req->argv0);
     return;
