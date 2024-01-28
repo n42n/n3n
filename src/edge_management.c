@@ -69,16 +69,16 @@ size_t event_peer (strbuf_t *buf, char *tag, int data0, void *data1) {
      * If needed, other details can be fetched via the edges method call.
      */
     return sb_printf(buf,
-                    "{"
-                    "\"_tag\":\"%s\","
-                    "\"_type\":\"event\","
-                    "\"action\":%i,"
-                    "\"macaddr\":\"%s\","
-                    "\"sockaddr\":\"%s\"}\n",
-                    tag,
-                    action,
-                    (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
-                    sock_to_cstr(sockbuf, &(peer->sock)));
+                     "{"
+                     "\"_tag\":\"%s\","
+                     "\"_type\":\"event\","
+                     "\"action\":%i,"
+                     "\"macaddr\":\"%s\","
+                     "\"sockaddr\":\"%s\"}\n",
+                     tag,
+                     action,
+                     (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+                     sock_to_cstr(sockbuf, &(peer->sock)));
 }
 
 

@@ -32,26 +32,26 @@ ssize_t send_reply (mgmt_req_t *req, strbuf_t *buf) {
 
 size_t gen_json_1str (strbuf_t *buf, char *tag, char *_type, char *key, char *val) {
     return sb_printf(buf,
-                    "{"
-                    "\"_tag\":\"%s\","
-                    "\"_type\":\"%s\","
-                    "\"%s\":\"%s\"}\n",
-                    tag,
-                    _type,
-                    key,
-                    val);
+                     "{"
+                     "\"_tag\":\"%s\","
+                     "\"_type\":\"%s\","
+                     "\"%s\":\"%s\"}\n",
+                     tag,
+                     _type,
+                     key,
+                     val);
 }
 
 size_t gen_json_1uint (strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val) {
     return sb_printf(buf,
-                    "{"
-                    "\"_tag\":\"%s\","
-                    "\"_type\":\"%s\","
-                    "\"%s\":%u}\n",
-                    tag,
-                    _type,
-                    key,
-                    val);
+                     "{"
+                     "\"_tag\":\"%s\","
+                     "\"_type\":\"%s\","
+                     "\"%s\":%u}\n",
+                     tag,
+                     _type,
+                     key,
+                     val);
 }
 
 void send_json_1str (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, char *val) {
@@ -161,18 +161,18 @@ void mgmt_help_events_row (mgmt_req_t *req, strbuf_t *buf, mgmt_req_t *sub, char
     // TODO: handle a topic with no subscribers more cleanly
 
     sb_printf(buf,
-             "{"
-             "\"_tag\":\"%s\","
-             "\"_type\":\"row\","
-             "\"topic\":\"%s\","
-             "\"tag\":\"%s\","
-             "\"sockaddr\":\"%s:%s\","
-             "\"help\":\"%s\"}\n",
-             req->tag,
-             cmd,
-             sub->tag,
-             host, serv,
-             help);
+              "{"
+              "\"_tag\":\"%s\","
+              "\"_type\":\"row\","
+              "\"topic\":\"%s\","
+              "\"tag\":\"%s\","
+              "\"sockaddr\":\"%s:%s\","
+              "\"help\":\"%s\"}\n",
+              req->tag,
+              cmd,
+              sub->tag,
+              host, serv,
+              help);
 
     send_reply(req, buf);
 }
