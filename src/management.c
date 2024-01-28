@@ -18,6 +18,7 @@
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
 #include "management.h"
+#include "peer_info.h"   // for peer_info
 
 #ifdef _WIN32
 #include "win32/defs.h"
@@ -352,6 +353,59 @@ static void jsonrpc_get_verbose (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_1uint(id, conn, getTraceLevel());
 }
 
+static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, char *mode) {
+    macstr_t mac_buf;
+    n2n_sock_str_t sockbuf;
+    dec_ip_bit_str_t ip_bit_str = {'\0'};
+
+    sb_reprintf(reply,
+              "{"
+              "\"mode\":\"%s\","
+              "\"ip4addr\":\"%s\","
+              "\"purgeable\":%i,"
+              "\"local\":%i,"
+              "\"macaddr\":\"%s\","
+              "\"sockaddr\":\"%s\","
+              "\"desc\":\"%s\","
+              "\"last_p2p\":%li,"
+              "\"last_sent_query\":%li,"
+              "\"last_seen\":%li},",
+              mode,
+              (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
+              peer->purgeable,
+              peer->local,
+              (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+              sock_to_cstr(sockbuf, &(peer->sock)),
+              peer->dev_desc,
+              peer->last_p2p,
+              peer->last_sent_query,
+              peer->last_seen
+              );
+}
+
+static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
+    struct peer_info *peer, *tmpPeer;
+
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->reply, "[");
+
+    // dump nodes with forwarding through supernodes
+    HASH_ITER(hh, eee->pending_peers, peer, tmpPeer) {
+        jsonrpc_get_edges_row(&conn->reply, peer, "pSp");
+    }
+
+    // dump peer-to-peer nodes
+    HASH_ITER(hh, eee->known_peers, peer, tmpPeer) {
+        jsonrpc_get_edges_row(&conn->reply, peer, "p2p");
+    }
+
+    // back up over the final ','
+    conn->reply->wr_pos--;
+
+    sb_reprintf(&conn->reply, "]");
+    jsonrpc_result_tail(conn, 200);
+}
+
 static void jsonrpc_todo (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_error(id, conn, 501, "TODO");
 }
@@ -363,6 +417,11 @@ struct mgmt_jsonrpc_method {
 };
 
 static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
+    { "get_communities", jsonrpc_todo },
+    { "get_edges", jsonrpc_get_edges },
+    { "get_packetstats", jsonrpc_todo },
+    { "get_supernodes", jsonrpc_todo },
+    { "get_timestamps", jsonrpc_todo },
     { "get_verbose", jsonrpc_get_verbose },
     { "set_verbose", jsonrpc_todo },
 };
