@@ -13,6 +13,10 @@
 #include <sys/select.h>
 #endif
 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include "strbuf.h"
 
 #ifdef _WIN32
