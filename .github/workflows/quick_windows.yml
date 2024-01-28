@@ -3,7 +3,6 @@ name: Quick Windows test
 
 # yamllint disable-line rule:truthy
 on:
-
   pull_request:
   workflow_dispatch:
 
