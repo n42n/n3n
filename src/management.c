@@ -287,6 +287,9 @@ bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline) {
 void render_http(conn_t *conn, int code) {
     strbuf_t **pp = &conn->reply_header;
     sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
+    // TODO:
+    // - content type
+    // - caching
     int len = sb_len(conn->reply);
     sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
 }
@@ -300,12 +303,17 @@ void render_error(n2n_edge_t *eee, conn_t *conn) {
     render_http(conn, 404);
 }
 
-void render_index(n2n_edge_t *eee, conn_t *conn) {
-    // Reuse the request buffer
-    conn->reply = conn->request;
-    sb_zero(conn->reply);
-    sb_printf(conn->reply, "<html><body>FIXME: index.html goes here\n");
+#include "management_index.html.h"
 
+void render_index_page(n2n_edge_t *eee, conn_t *conn) {
+    conn->reply = &management_index;
+    render_http(conn, 200);
+}
+
+#include "management_script.js.h"
+
+void render_script_page(n2n_edge_t *eee, conn_t *conn) {
+    conn->reply = &management_script;
     render_http(conn, 200);
 }
 
@@ -317,7 +325,8 @@ struct mgmt_api_endpoint {
 
 static struct mgmt_api_endpoint api_endpoints[] = {
     { "POST /v1 ", render_error, "JsonRPC" },
-    { "GET / ", render_index, "Index page" },
+    { "GET / ", render_index_page, "Human interface" },
+    { "GET /script.js ", render_script_page, "javascript helpers" },
     // status
     // metrics
     // help

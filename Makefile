@@ -126,6 +126,9 @@ N2N_OBJS+=src/win32/wintap.o
 N2N_OBJS+=src/win32/edge_rc.o
 endif
 
+src/management.c: src/management_index.html.h
+src/management.c: src/management_script.js.h
+
 src/libn3n.a: $(N2N_OBJS)
 	@echo "  AR      $@"
 	@$(AR) rcs $@ $^
@@ -238,6 +241,9 @@ $(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
 
 %.gz : %
 	gzip -n -c $< > $@
+
+%.h : %
+	libs/connslot/file2strbufc $< $(basename $(notdir $<)) >$@
 
 .PHONY: test test.units test.integration
 test: test.builtin test.units test.integration

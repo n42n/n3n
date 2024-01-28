@@ -1,0 +1,69 @@
+<html>
+<head>
+ <title>n3n edge management</title>
+</head>
+<body>
+ <table>
+    <tr>
+        <td>Last Updated:
+        <td><div id="time"></div>
+        <td><button onclick=refresh_job()>update</button>
+        <td><button onclick=do_stop()>stop edge</button>
+    <tr>
+        <td>Logging Verbosity:
+        <td>
+            <div id="verbose"></div>
+        <td>
+            <button onclick=setverbose(verbose+1)>+</button>
+            <button onclick=setverbose(verbose-1)>-</button>
+ </table>
+ <br>
+ <div id="communities"></div>
+ <br>
+ Edges/Peers:
+ <div id="edges"></div>
+ <br>
+ Supernodes:
+ <div id="supernodes"></div>
+ <br>
+ <div id="timestamps"></div>
+ <br>
+ <div id="packetstats"></div>
+
+ <script src="script.js"></script>
+ <script>
+// FIXME: hacky global
+var nodetype="edge";
+
+function refresh_job() {
+    do_get(
+        nodetype + '/verbose', 'verbose',
+        rows2verbose, null
+    );
+    do_get(
+        nodetype + '/communities', 'communities',
+        rows2keyvalue, ['community']
+    );
+    do_get(
+        nodetype + '/supernodes', 'supernodes',
+        rows2table, ['version','current','macaddr','sockaddr','uptime']
+    );
+    do_get(
+        nodetype + '/edges', 'edges',
+        rows2table, ['mode','ip4addr','macaddr','sockaddr','desc']
+    );
+    do_get(
+        nodetype + '/timestamps', 'timestamps',
+        rows2keyvalueall, null
+    );
+    do_get(
+        nodetype + '/packetstats', 'packetstats',
+        rows2table, ['type','tx_pkt','rx_pkt']
+    );
+}
+
+refresh_setup(10000);
+refresh_job();
+ </script>
+</body>
+</html>
