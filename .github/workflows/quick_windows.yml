@@ -34,4 +34,3 @@ jobs:
         with:
           name: tests-smoketest-windows
           path: tests
-
