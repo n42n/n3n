@@ -27,8 +27,10 @@
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/conffile.h>            // for n3n_config_load_env
 #include <n3n/edge.h>                // for edge_conf_add_supernode
+#include <n3n/ethernet.h>            // for is_null_mac
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
+#include <n3n/strings.h>             // for sock_to_cstr
 #include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
 #include <stdbool.h>
 #include <stdint.h>                  // for uint8_t, uint16_t, uint32_t, uin...

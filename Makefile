@@ -73,6 +73,8 @@ MAN8DIR=$(MANDIR)/man8
 CFLAGS+=-I$(abspath include)
 LDFLAGS+=-L$(abspath src)
 
+CFLAGS+=-DHAVE_BRIDGING_SUPPORT
+
 N2N_OBJS=\
 	src/aes.o \
 	src/auth.o \

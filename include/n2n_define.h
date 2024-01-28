@@ -173,7 +173,6 @@ enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
 #define N2N_COMMUNITY_SIZE         20
 #define N2N_PRIVATE_PUBLIC_KEY_SIZE 32
 #define N2N_USER_KEY_LINE_STARTER  '*'
-#define N2N_MAC_SIZE               6
 #define N2N_NO_REG_COOKIE          0x00000000
 #define N2N_FORWARDED_REG_COOKIE   0x00001000
 #define N2N_PORT_REG_COOKIE        0x00004000

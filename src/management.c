@@ -9,7 +9,9 @@
 
 #include <connslot/connslot.h>  // for conn_t
 #include <connslot/jsonrpc.h>   // for jsonrpc_t, jsonrpc_parse
+#include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <pearson.h>     // for pearson_hash_64
 #include <stdbool.h>
 #include <stdio.h>       // for snprintf, NULL, size_t

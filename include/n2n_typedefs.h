@@ -21,6 +21,7 @@
 #ifndef _N2N_TYPEDEFS_H_
 #define _N2N_TYPEDEFS_H_
 
+#include <n3n/ethernet.h>   // for n2n_mac_t
 #include <n3n/network_traffic_filter.h>
 #include <n3n/resolve.h>
 #include <stdbool.h>
@@ -35,7 +36,6 @@
 
 typedef uint8_t n2n_community_t[N2N_COMMUNITY_SIZE];
 typedef uint8_t n2n_private_public_key_t[N2N_PRIVATE_PUBLIC_KEY_SIZE];
-typedef uint8_t n2n_mac_t[N2N_MAC_SIZE];
 typedef uint32_t n2n_cookie_t;
 typedef uint8_t n2n_desc_t[N2N_DESC_SIZE];
 typedef char n2n_sock_str_t[N2N_SOCKBUF_SIZE];     /* tracing string buffer */
@@ -104,9 +104,6 @@ typedef struct ether_hdr ether_hdr_t;
 /** Common type used to hold stringified IP addresses. */
 typedef char ipstr_t[INET_ADDRSTRLEN];
 
-/** Common type used to hold stringified MAC addresses. */
-#define N2N_MACSTR_SIZE 32
-typedef char macstr_t[N2N_MACSTR_SIZE];
 typedef char dec_ip_str_t[N2N_NETMASK_STR_SIZE];
 typedef char dec_ip_bit_str_t[N2N_NETMASK_STR_SIZE + 4];
 typedef char devstr_t[N2N_IFNAMSIZ];

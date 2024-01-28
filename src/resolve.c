@@ -9,6 +9,7 @@
 #include <n2n.h>             // for sock_equal
 #include <n3n/logging.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
+#include <n3n/strings.h>     // for sock_to_cstr
 #include <unistd.h>          // for sleep
 #include "resolve.h"
 #include "config.h"          // for HAVE_LIBPTHREAD

@@ -36,7 +36,6 @@
 #define SN_MANUAL_MAC   /* allows supernode MAC address to be set manually */
 
 #define N2N_HAVE_TCP    /* needs to be defined before it gets undefined */
-#define HAVE_BRIDGING_SUPPORT
 
 #include "config.h" /* Visual C++ */
 
@@ -118,11 +117,9 @@ char* inaddrtoa (ipstr_t out, struct in_addr addr);
 char* intoa (uint32_t addr, char* buf, uint16_t buf_len);
 uint32_t bitlen2mask (uint8_t bitlen);
 uint8_t mask2bitlen (uint32_t mask);
-char* macaddr_str (macstr_t buf, const n2n_mac_t mac);
 int str2mac (uint8_t * outmac /* 6 bytes */, const char * s);
 uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_broadcast (const n2n_mac_t dest_mac);
-uint8_t is_null_mac (const n2n_mac_t dest_mac);
 char* msg_type2str (uint16_t msg_type);
 void print_n3n_version ();
 int is_empty_ip_address (const n2n_sock_t * sock);
@@ -131,9 +128,6 @@ int memrnd (uint8_t *address, size_t len);
 int memxor (uint8_t *destination, const uint8_t *source, size_t len);
 
 /* Sockets */
-char* sock_to_cstr (n2n_sock_str_t out,
-                    const n2n_sock_t * sock);
-char * ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr);
 SOCKET open_socket(struct sockaddr *, socklen_t, int type);
 int sock_equal (const n2n_sock_t * a,
                 const n2n_sock_t * b);

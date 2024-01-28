@@ -20,7 +20,9 @@
 
 
 #include <errno.h>              // for errno, EAFNOSUPPORT
+#include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
+#include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
 #include <stdbool.h>
 #include <stdint.h>             // for uint8_t, uint32_t, uint16_t, uint64_t
 #include <stdio.h>              // for sscanf, snprintf, fclose, fgets, fopen

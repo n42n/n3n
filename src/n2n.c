@@ -20,7 +20,9 @@
 
 
 #include <errno.h>           // for errno
+#include <n3n/ethernet.h>    // for is_null_mac, N2N_MACSTR_SIZE
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/strings.h>     // for ip_subnet_to_str, sock_to_cstr
 #include <stdbool.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
 #include <string.h>          // for memcmp, memcpy, memset, strlen, strerror
@@ -154,6 +156,7 @@ uint8_t mask2bitlen (uint32_t mask) {
 
 /* *********************************************** */
 
+// TODO: move to a ethernet helper source file
 char * macaddr_str (macstr_t buf,
                     const n2n_mac_t mac) {
 
@@ -224,6 +227,7 @@ uint8_t is_broadcast (const n2n_mac_t dest_mac) {
 }
 
 
+// TODO: move to a ethernet helper source file
 uint8_t is_null_mac (const n2n_mac_t dest_mac) {
 
     int is_null_mac = (memcmp(null_mac, dest_mac, N2N_MAC_SIZE) == 0);
@@ -294,6 +298,7 @@ extern int str2mac (uint8_t * outmac /* 6 bytes */, const char * s) {
     return 0; /* ok */
 }
 
+// TODO: move to a strings helper source file
 extern char * sock_to_cstr (n2n_sock_str_t out,
                             const n2n_sock_t * sock) {
 
@@ -323,6 +328,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
     }
 }
 
+// TODO: move to a strings helper source file
 char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
 
     snprintf(buf, sizeof(dec_ip_bit_str_t), "%hhu.%hhu.%hhu.%hhu/%hhu",
