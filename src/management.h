@@ -68,7 +68,7 @@ typedef struct mgmt_handler {
     int flags;
     char  *cmd;
     char  *help;
-    void (*func)(mgmt_req_t *req, strbuf_t *buf);
+    void (*func)(mgmt_req_t *req, old_strbuf_t *buf);
 } mgmt_handler_t;
 
 /*
@@ -80,7 +80,7 @@ typedef struct mgmt_events {
     char  *help;
 } mgmt_events_t;
 
-typedef size_t (mgmt_event_handler_t)(strbuf_t *buf, char *tag, int data0, void *data1);
+typedef size_t (mgmt_event_handler_t)(old_strbuf_t *buf, char *tag, int data0, void *data1);
 
 // Lookup the index of matching argv0 in a cmd list
 // store index in "Result", or -1 for not found
@@ -96,23 +96,23 @@ typedef size_t (mgmt_event_handler_t)(strbuf_t *buf, char *tag, int data0, void 
         } \
 } while(0)
 
-ssize_t send_reply (mgmt_req_t *req, strbuf_t *buf, size_t msg_len);
-size_t gen_json_1str (strbuf_t *buf, char *tag, char *_type, char *key, char *val);
-size_t gen_json_1uint (strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val);
-void send_json_1str (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, char *val);
-void send_json_1uint (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, unsigned int val);
+ssize_t send_reply (mgmt_req_t *req, old_strbuf_t *buf, size_t msg_len);
+size_t gen_json_1str (old_strbuf_t *buf, char *tag, char *_type, char *key, char *val);
+size_t gen_json_1uint (old_strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val);
+void send_json_1str (mgmt_req_t *req, old_strbuf_t *buf, char *_type, char *key, char *val);
+void send_json_1uint (mgmt_req_t *req, old_strbuf_t *buf, char *_type, char *key, unsigned int val);
 
-void mgmt_error (mgmt_req_t *req, strbuf_t *buf, char *msg);
+void mgmt_error (mgmt_req_t *req, old_strbuf_t *buf, char *msg);
 
-void mgmt_stop (mgmt_req_t *req, strbuf_t *buf);
-void mgmt_verbose (mgmt_req_t *req, strbuf_t *buf);
-void mgmt_unimplemented (mgmt_req_t *req, strbuf_t *buf);
+void mgmt_stop (mgmt_req_t *req, old_strbuf_t *buf);
+void mgmt_verbose (mgmt_req_t *req, old_strbuf_t *buf);
+void mgmt_unimplemented (mgmt_req_t *req, old_strbuf_t *buf);
 
 void mgmt_event_post2 (enum n2n_event_topic topic, int data0, void *data1, mgmt_req_t *debug, mgmt_req_t *sub, mgmt_event_handler_t fn);
-void mgmt_help_row (mgmt_req_t *req, strbuf_t *buf, char *cmd, char *help);
-void mgmt_help_events_row (mgmt_req_t *req, strbuf_t *buf, mgmt_req_t *sub, char *cmd, char *help);
+void mgmt_help_row (mgmt_req_t *req, old_strbuf_t *buf, char *cmd, char *help);
+void mgmt_help_events_row (mgmt_req_t *req, old_strbuf_t *buf, mgmt_req_t *sub, char *cmd, char *help);
 int mgmt_auth (mgmt_req_t *req, char *auth);
-bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline);
+bool mgmt_req_init2 (mgmt_req_t *req, old_strbuf_t *buf, char *cmdline);
 
 void readFromMgmtSocket (n2n_edge_t *eee);
 

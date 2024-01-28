@@ -35,7 +35,7 @@
 #include "n2n_typedefs.h"  // for n2n_edge_t, n2n_edge_conf_t
 #include "peer_info.h"     // for peer_info, peer_info_t
 #include "sn_selection.h"  // for sn_selection_criterion_str, selection_crit...
-#include "strbuf.h"        // for strbuf_t, STRBUF_INIT
+#include "strbuf.h"        // for old_strbuf_t, OLD_STRBUF_INIT
 #include "uthash.h"        // for UT_hash_handle, HASH_ITER
 
 #ifdef _WIN32
@@ -46,17 +46,17 @@
 #include <sys/socket.h>    // for sendto, recvfrom, sockaddr_storage
 #endif
 
-size_t event_debug (strbuf_t *buf, char *tag, int data0, void *data1) {
+size_t event_debug (old_strbuf_t *buf, char *tag, int data0, void *data1) {
     traceEvent(TRACE_DEBUG, "Unexpected call to event_debug");
     return 0;
 }
 
-size_t event_test (strbuf_t *buf, char *tag, int data0, void *data1) {
+size_t event_test (old_strbuf_t *buf, char *tag, int data0, void *data1) {
     size_t msg_len = gen_json_1str(buf, tag, "event", "test", (char *)data1);
     return msg_len;
 }
 
-size_t event_peer (strbuf_t *buf, char *tag, int data0, void *data1) {
+size_t event_peer (old_strbuf_t *buf, char *tag, int data0, void *data1) {
     int action = data0;
     struct peer_info *peer = (struct peer_info *)data1;
 
@@ -83,7 +83,7 @@ size_t event_peer (strbuf_t *buf, char *tag, int data0, void *data1) {
 
 
 
-static void mgmt_communities (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_communities (mgmt_req_t *req, old_strbuf_t *buf) {
 
     if(req->eee->conf.header_encryption != HEADER_ENCRYPTION_NONE) {
         mgmt_error(req, buf, "noaccess");
@@ -93,7 +93,7 @@ static void mgmt_communities (mgmt_req_t *req, strbuf_t *buf) {
     send_json_1str(req, buf, "row", "community", (char *)req->eee->conf.community_name);
 }
 
-static void mgmt_supernodes (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_supernodes (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
@@ -135,7 +135,7 @@ static void mgmt_supernodes (mgmt_req_t *req, strbuf_t *buf) {
     }
 }
 
-static void mgmt_edges_row (mgmt_req_t *req, strbuf_t *buf, struct peer_info *peer, char *mode) {
+static void mgmt_edges_row (mgmt_req_t *req, old_strbuf_t *buf, struct peer_info *peer, char *mode) {
     size_t msg_len;
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
@@ -170,7 +170,7 @@ static void mgmt_edges_row (mgmt_req_t *req, strbuf_t *buf, struct peer_info *pe
     send_reply(req, buf, msg_len);
 }
 
-static void mgmt_edges (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_edges (mgmt_req_t *req, old_strbuf_t *buf) {
     struct peer_info *peer, *tmpPeer;
 
     // dump nodes with forwarding through supernodes
@@ -184,7 +184,7 @@ static void mgmt_edges (mgmt_req_t *req, strbuf_t *buf) {
     }
 }
 
-static void mgmt_edge_info (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_edge_info (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
     macstr_t mac_buf;
     struct in_addr ip_addr;
@@ -213,7 +213,7 @@ static void mgmt_edge_info (mgmt_req_t *req, strbuf_t *buf) {
     send_reply(req, buf, msg_len);
 }
 
-static void mgmt_timestamps (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_timestamps (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
 
     msg_len = snprintf(buf->str, buf->size,
@@ -231,7 +231,7 @@ static void mgmt_timestamps (mgmt_req_t *req, strbuf_t *buf) {
     send_reply(req, buf, msg_len);
 }
 
-static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_packetstats (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
 
     msg_len = snprintf(buf->str, buf->size,
@@ -313,15 +313,15 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
     send_reply(req, buf, msg_len);
 }
 
-static void mgmt_post_test (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_post_test (mgmt_req_t *req, old_strbuf_t *buf) {
 
     send_json_1str(req, buf, "row", "sending", "test");
     mgmt_event_post(N2N_EVENT_TEST, -1, req->argv);
 }
 
 // Forward define so we can include this in the mgmt_handlers[] table
-static void mgmt_help (mgmt_req_t *req, strbuf_t *buf);
-static void mgmt_help_events (mgmt_req_t *req, strbuf_t *buf);
+static void mgmt_help (mgmt_req_t *req, old_strbuf_t *buf);
+static void mgmt_help_events (mgmt_req_t *req, old_strbuf_t *buf);
 
 static const mgmt_handler_t mgmt_handlers[] = {
     { .cmd = "reload_communities", .flags = FLAG_WROK, .help = "Reserved for supernode", .func = mgmt_unimplemented},
@@ -369,7 +369,7 @@ void mgmt_event_post (enum n2n_event_topic topic, int data0, void *data1) {
     mgmt_event_post2(topic, data0, data1, debug, sub, fn);
 }
 
-static void mgmt_help_events (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_help_events (mgmt_req_t *req, old_strbuf_t *buf) {
     int i;
     int nr_handlers = sizeof(mgmt_event_names) / sizeof(mgmt_events_t);
     for( i=0; i < nr_handlers; i++ ) {
@@ -382,7 +382,7 @@ static void mgmt_help_events (mgmt_req_t *req, strbuf_t *buf) {
 
 // TODO: want to keep the mgmt_handlers defintion const static, otherwise
 // this whole function could be shared
-static void mgmt_help (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_help (mgmt_req_t *req, old_strbuf_t *buf) {
     /*
      * Even though this command is readonly, we deliberately do not check
      * the type - allowing help replies to both read and write requests
@@ -397,7 +397,7 @@ static void mgmt_help (mgmt_req_t *req, strbuf_t *buf) {
 
 static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
 
-    strbuf_t *buf;
+    old_strbuf_t *buf;
     char cmdlinebuf[80];
 
     /* save a copy of the commandline before we reuse the udp_buf */
@@ -407,7 +407,7 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
     traceEvent(TRACE_DEBUG, "mgmt json %s", cmdlinebuf);
 
     /* we reuse the buffer already on the stack for all our strings */
-    STRBUF_INIT(buf, udp_buf, N2N_SN_PKTBUF_SIZE);
+    OLD_STRBUF_INIT(buf, udp_buf, N2N_SN_PKTBUF_SIZE);
 
     if(!mgmt_req_init2(req, buf, (char *)&cmdlinebuf)) {
         // if anything failed during init

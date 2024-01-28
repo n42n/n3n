@@ -8,17 +8,17 @@
  * the public include folder
  */
 
-#ifndef STRBUF_H
-#define STRBUF_H 1
+#ifndef OLD_STRBUF_H
+#define OLD_STRBUF_H 1
 
-typedef struct strbuf {
+typedef struct old_strbuf {
     size_t size;
     char str[];
-} strbuf_t;
+} old_strbuf_t;
 
 // Initialise the strbuf pointer buf to point at the storage area p
 // of size buflen
-#define STRBUF_INIT(buf,p,buflen) do { \
+#define OLD_STRBUF_INIT(buf,p,buflen) do { \
         buf = (void *)p; \
         buf->size = buflen - sizeof(size_t); \
 } while(0)

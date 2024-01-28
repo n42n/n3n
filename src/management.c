@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-24 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Common routines shared between the management interfaces
@@ -14,6 +14,7 @@
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
 #include "management.h"
+#include "strbuf.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"
@@ -23,13 +24,13 @@
 #endif
 
 
-ssize_t send_reply (mgmt_req_t *req, strbuf_t *buf, size_t msg_len) {
+ssize_t send_reply (mgmt_req_t *req, old_strbuf_t *buf, size_t msg_len) {
     // TODO: better error handling (counters?)
     return sendto(req->mgmt_sock, buf->str, msg_len, 0,
                   &req->sender_sock, req->sock_len);
 }
 
-size_t gen_json_1str (strbuf_t *buf, char *tag, char *_type, char *key, char *val) {
+size_t gen_json_1str (old_strbuf_t *buf, char *tag, char *_type, char *key, char *val) {
     return snprintf(buf->str, buf->size,
                     "{"
                     "\"_tag\":\"%s\","
@@ -41,7 +42,7 @@ size_t gen_json_1str (strbuf_t *buf, char *tag, char *_type, char *key, char *va
                     val);
 }
 
-size_t gen_json_1uint (strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val) {
+size_t gen_json_1uint (old_strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val) {
     return snprintf(buf->str, buf->size,
                     "{"
                     "\"_tag\":\"%s\","
@@ -53,21 +54,21 @@ size_t gen_json_1uint (strbuf_t *buf, char *tag, char *_type, char *key, unsigne
                     val);
 }
 
-void send_json_1str (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, char *val) {
+void send_json_1str (mgmt_req_t *req, old_strbuf_t *buf, char *_type, char *key, char *val) {
     size_t msg_len = gen_json_1str(buf, req->tag, _type, key, val);
     send_reply(req, buf, msg_len);
 }
 
-void send_json_1uint (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, unsigned int val) {
+void send_json_1uint (mgmt_req_t *req, old_strbuf_t *buf, char *_type, char *key, unsigned int val) {
     size_t msg_len = gen_json_1uint(buf, req->tag, _type, key, val);
     send_reply(req, buf, msg_len);
 }
 
-void mgmt_error (mgmt_req_t *req, strbuf_t *buf, char *msg) {
+void mgmt_error (mgmt_req_t *req, old_strbuf_t *buf, char *msg) {
     send_json_1str(req, buf, "error", "error", msg);
 }
 
-void mgmt_stop (mgmt_req_t *req, strbuf_t *buf) {
+void mgmt_stop (mgmt_req_t *req, old_strbuf_t *buf) {
 
     if(req->type==N2N_MGMT_WRITE) {
         *req->keep_running = false;
@@ -76,7 +77,7 @@ void mgmt_stop (mgmt_req_t *req, strbuf_t *buf) {
     send_json_1uint(req, buf, "row", "keep_running", *req->keep_running);
 }
 
-void mgmt_verbose (mgmt_req_t *req, strbuf_t *buf) {
+void mgmt_verbose (mgmt_req_t *req, old_strbuf_t *buf) {
 
     if(req->type==N2N_MGMT_WRITE) {
         if(req->argv) {
@@ -87,7 +88,7 @@ void mgmt_verbose (mgmt_req_t *req, strbuf_t *buf) {
     send_json_1uint(req, buf, "row", "traceLevel", getTraceLevel());
 }
 
-void mgmt_unimplemented (mgmt_req_t *req, strbuf_t *buf) {
+void mgmt_unimplemented (mgmt_req_t *req, old_strbuf_t *buf) {
 
     mgmt_error(req, buf, "unimplemented");
 }
@@ -102,8 +103,8 @@ void mgmt_event_post2 (enum n2n_event_topic topic, int data0, void *data1, mgmt_
     }
 
     char buf_space[100];
-    strbuf_t *buf;
-    STRBUF_INIT(buf, buf_space, sizeof(buf_space));
+    old_strbuf_t *buf;
+    OLD_STRBUF_INIT(buf, buf_space, sizeof(buf_space));
 
     char *tag;
     if(sub->type == N2N_MGMT_SUB) {
@@ -128,7 +129,7 @@ void mgmt_event_post2 (enum n2n_event_topic topic, int data0, void *data1, mgmt_
     //   and provide a manual unsubscribe
 }
 
-void mgmt_help_row (mgmt_req_t *req, strbuf_t *buf, char *cmd, char *help) {
+void mgmt_help_row (mgmt_req_t *req, old_strbuf_t *buf, char *cmd, char *help) {
     size_t msg_len;
 
     msg_len = snprintf(buf->str, buf->size,
@@ -144,7 +145,7 @@ void mgmt_help_row (mgmt_req_t *req, strbuf_t *buf, char *cmd, char *help) {
     send_reply(req, buf, msg_len);
 }
 
-void mgmt_help_events_row (mgmt_req_t *req, strbuf_t *buf, mgmt_req_t *sub, char *cmd, char *help) {
+void mgmt_help_events_row (mgmt_req_t *req, old_strbuf_t *buf, mgmt_req_t *sub, char *cmd, char *help) {
     size_t msg_len;
     char host[40];
     char serv[6];
@@ -209,7 +210,7 @@ int mgmt_auth (mgmt_req_t *req, char *auth) {
 /*
  * Handle the common and shred parts of the mgmt_req_t initialisation
  */
-bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline) {
+bool mgmt_req_init2 (mgmt_req_t *req, old_strbuf_t *buf, char *cmdline) {
     char *typechar;
     char *options;
     char *flagstr;

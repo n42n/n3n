@@ -36,7 +36,7 @@
 #include "n2n_define.h"    // for N2N_SN_PKTBUF_SIZE, UNPURGEABLE
 #include "n2n_typedefs.h"  // for n2n_sn_t, sn_community, peer_info, sn_stats_t
 #include "peer_info.h"   // for peer_info, peer_info_t
-#include "strbuf.h"      // for strbuf_t, STRBUF_INIT
+#include "strbuf.h"      // for old_strbuf_t, OLD_STRBUF_INIT
 #include "uthash.h"      // for UT_hash_handle, HASH_ITER, HASH_COUNT
 
 #ifdef _WIN32
@@ -48,7 +48,7 @@
 
 int load_allowed_sn_community (n2n_sn_t *sss); /* defined in sn_utils.c */
 
-static void mgmt_reload_communities (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_reload_communities (mgmt_req_t *req, old_strbuf_t *buf) {
 
     if(req->type!=N2N_MGMT_WRITE) {
         mgmt_error(req, buf, "writeonly");
@@ -64,7 +64,7 @@ static void mgmt_reload_communities (mgmt_req_t *req, strbuf_t *buf) {
     send_json_1uint(req, buf, "row", "ok", ok);
 }
 
-static void mgmt_timestamps (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_timestamps (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
 
     msg_len = snprintf(buf->str, buf->size,
@@ -82,7 +82,7 @@ static void mgmt_timestamps (mgmt_req_t *req, strbuf_t *buf) {
     send_reply(req, buf, msg_len);
 }
 
-static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_packetstats (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
 
     msg_len = snprintf(buf->str, buf->size,
@@ -135,7 +135,7 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
     send_reply(req, buf, msg_len);
 }
 
-static void mgmt_communities (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_communities (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
     struct sn_community *community, *tmp;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
@@ -160,7 +160,7 @@ static void mgmt_communities (mgmt_req_t *req, strbuf_t *buf) {
     }
 }
 
-static void mgmt_edges (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_edges (mgmt_req_t *req, old_strbuf_t *buf) {
     size_t msg_len;
     struct sn_community *community, *tmp;
     struct peer_info *peer, *tmpPeer;
@@ -199,7 +199,7 @@ static void mgmt_edges (mgmt_req_t *req, strbuf_t *buf) {
 }
 
 // Forward define so we can include this in the mgmt_handlers[] table
-static void mgmt_help (mgmt_req_t *req, strbuf_t *buf);
+static void mgmt_help (mgmt_req_t *req, old_strbuf_t *buf);
 
 static const mgmt_handler_t mgmt_handlers[] = {
     { .cmd = "supernodes", .help = "Reserved for edge", .func = mgmt_unimplemented},
@@ -216,7 +216,7 @@ static const mgmt_handler_t mgmt_handlers[] = {
 
 // TODO: want to keep the mgmt_handlers defintion const static, otherwise
 // this whole function could be shared
-static void mgmt_help (mgmt_req_t *req, strbuf_t *buf) {
+static void mgmt_help (mgmt_req_t *req, old_strbuf_t *buf) {
     /*
      * Even though this command is readonly, we deliberately do not check
      * the type - allowing help replies to both read and write requests
@@ -232,7 +232,7 @@ static void mgmt_help (mgmt_req_t *req, strbuf_t *buf) {
 // TODO: DRY
 static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
 
-    strbuf_t *buf;
+    old_strbuf_t *buf;
     char cmdlinebuf[80];
 
     /* save a copy of the commandline before we reuse the udp_buf */
@@ -243,7 +243,7 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
 
     /* we reuse the buffer already on the stack for all our strings */
     // xx
-    STRBUF_INIT(buf, udp_buf, N2N_SN_PKTBUF_SIZE);
+    OLD_STRBUF_INIT(buf, udp_buf, N2N_SN_PKTBUF_SIZE);
 
     if(!mgmt_req_init2(req, buf, (char *)&cmdlinebuf)) {
         // if anything failed during init
