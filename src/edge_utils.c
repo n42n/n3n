@@ -3015,20 +3015,7 @@ int run_edge_loop (n2n_edge_t *eee) {
                     }
 
                     if(slots->conn[i].state == CONN_READY) {
-                        strbuf_t **pp;
-                        // TODO:
-                        // - parse request
-
-                        // for now, just echo
-                        slots->conn[i].reply = slots->conn[i].request;
-
-                        pp = &slots->conn[i].reply_header;
-                        sb_reprintf(pp, "HTTP/1.1 200 OK\r\n");
-                        int len = sb_len(slots->conn[i].reply);
-                        sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
-
-                        // Try to immediately start sending the reply
-                        conn_write(&slots->conn[i]);
+                        mgmt_api_handler(eee, &slots->conn[i]);
                     }
                 }
             }

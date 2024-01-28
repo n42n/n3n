@@ -7,6 +7,7 @@
  */
 
 
+#include <connslot/connslot.h>  // for conn_t
 #include <n3n/logging.h> // for traceEvent
 #include <pearson.h>     // for pearson_hash_64
 #include <stdbool.h>
@@ -285,4 +286,21 @@ bool mgmt_req_init2 (mgmt_req_t *req, old_strbuf_t *buf, char *cmdline) {
     }
 
     return true;
+}
+
+void mgmt_api_handler (n2n_edge_t *eee, conn_t *conn) {
+    strbuf_t **pp;
+    // TODO:
+    // - parse request
+
+    // for now, just echo
+    conn->reply = conn->request;
+
+    pp = &conn->reply_header;
+    sb_reprintf(pp, "HTTP/1.1 200 OK\r\n");
+    int len = sb_len(conn->reply);
+    sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
+
+    // Try to immediately start sending the reply
+    conn_write(conn);
 }

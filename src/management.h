@@ -11,6 +11,7 @@
 #ifndef MANAGEMENT_H
 #define MANAGEMENT_H 1
 
+#include <connslot/connslot.h>  // for conn_t
 #include <n2n_typedefs.h>  // For the n2n_edge_t and n2n_sn_t defs
 #include <stdbool.h>
 #include <stddef.h>        // for size_t
@@ -121,4 +122,6 @@ int process_mgmt (n2n_sn_t *sss,
                   char *mgmt_buf,
                   size_t mgmt_size,
                   time_t now);
+
+void mgmt_api_handler (n2n_edge_t *, conn_t *);
 #endif
