@@ -310,8 +310,8 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
         "\"jsonrpc\":\"2.0\","
         "\"id\":\"%s\","
         "\"error\":{"
-            "\"code\":%i,"
-            "\"message\":\"%s\""
+        " \"code\":%i,"
+        " \"message\":\"%s\""
         "}}",
         id,
         code,
@@ -359,28 +359,28 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, cha
     dec_ip_bit_str_t ip_bit_str = {'\0'};
 
     sb_reprintf(reply,
-              "{"
-              "\"mode\":\"%s\","
-              "\"ip4addr\":\"%s\","
-              "\"purgeable\":%i,"
-              "\"local\":%i,"
-              "\"macaddr\":\"%s\","
-              "\"sockaddr\":\"%s\","
-              "\"desc\":\"%s\","
-              "\"last_p2p\":%li,"
-              "\"last_sent_query\":%li,"
-              "\"last_seen\":%li},",
-              mode,
-              (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
-              peer->purgeable,
-              peer->local,
-              (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
-              sock_to_cstr(sockbuf, &(peer->sock)),
-              peer->dev_desc,
-              peer->last_p2p,
-              peer->last_sent_query,
-              peer->last_seen
-              );
+                "{"
+                "\"mode\":\"%s\","
+                "\"ip4addr\":\"%s\","
+                "\"purgeable\":%i,"
+                "\"local\":%i,"
+                "\"macaddr\":\"%s\","
+                "\"sockaddr\":\"%s\","
+                "\"desc\":\"%s\","
+                "\"last_p2p\":%li,"
+                "\"last_sent_query\":%li,"
+                "\"last_seen\":%li},",
+                mode,
+                (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
+                peer->purgeable,
+                peer->local,
+                (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+                sock_to_cstr(sockbuf, &(peer->sock)),
+                peer->dev_desc,
+                peer->last_p2p,
+                peer->last_sent_query,
+                peer->last_seen
+                );
 }
 
 static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
@@ -437,7 +437,7 @@ static void render_error (n2n_edge_t *eee, conn_t *conn) {
 
 static void handle_jsonrpc (n2n_edge_t *eee, conn_t *conn) {
     char *body = strstr(conn->request->str, "\r\n\r\n");
-    if (!body) {
+    if(!body) {
         // "Error: no body"
         goto error;
     }
@@ -445,7 +445,7 @@ static void handle_jsonrpc (n2n_edge_t *eee, conn_t *conn) {
 
     jsonrpc_t json;
 
-    if (jsonrpc_parse(body, &json) != 0) {
+    if(jsonrpc_parse(body, &json) != 0) {
         // "Error: parsing json"
         goto error;
     }
