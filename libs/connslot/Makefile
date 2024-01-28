@@ -47,7 +47,7 @@ connslot.o: connslot.h
 connslot-tests: connslot.o strbuf.o
 httpd-test: connslot.o strbuf.o jsonrpc.o
 
-libconnslot.a: strbuf.o connslot.o
+libconnslot.a: strbuf.o connslot.o jsonrpc.o
 	$(AR) rcs $@ $^
 CLEAN+=libconnslot.a
 

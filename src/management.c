@@ -8,6 +8,7 @@
 
 
 #include <connslot/connslot.h>  // for conn_t
+#include <connslot/jsonrpc.h>   // for jsonrpc_t, jsonrpc_parse
 #include <n3n/logging.h> // for traceEvent
 #include <pearson.h>     // for pearson_hash_64
 #include <stdbool.h>
@@ -284,37 +285,172 @@ bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline) {
     return true;
 }
 
-void render_http (conn_t *conn, int code) {
+static void generate_http_headers (conn_t *conn, const char *type, int code) {
     strbuf_t **pp = &conn->reply_header;
     sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
     // TODO:
-    // - content type
     // - caching
     int len = sb_len(conn->reply);
+    sb_reprintf(pp, "Content-Type: %s\r\n", type);
     sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
 }
 
-void render_error (n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
+    // Reuse the request buffer
+    conn->reply = conn->request;
+    sb_zero(conn->reply);
+
+    strbuf_t **pp = &conn->reply;
+    sb_reprintf(
+        pp,
+        "{"
+        "\"jsonrpc\":\"2.0\","
+        "\"id\":\"%s\","
+        "\"error\":{"
+            "\"code\":%i,"
+            "\"message\":\"%s\""
+        "}}",
+        id,
+        code,
+        message
+        );
+
+
+    generate_http_headers(conn, "application/json", code);
+}
+
+static void jsonrpc_result_head (char *id, conn_t *conn) {
+    // Reuse the request buffer
+    conn->reply = conn->request;
+    sb_zero(conn->reply);
+
+    sb_reprintf(
+        &conn->reply,
+        "{"
+        "\"jsonrpc\":\"2.0\","
+        "\"id\":\"%s\","
+        "\"result\":",
+        id
+        );
+}
+
+static void jsonrpc_result_tail (conn_t *conn, int code) {
+    strbuf_t **pp = &conn->reply;
+    sb_reprintf(pp, "}");
+    generate_http_headers(conn, "application/json", code);
+}
+
+static void jsonrpc_1uint (char *id, conn_t *conn, uint32_t result) {
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->reply, "%u", result);
+    jsonrpc_result_tail(conn, 200);
+}
+
+static void jsonrpc_get_verbose (char *id, n2n_edge_t *eee, conn_t *conn) {
+    jsonrpc_1uint(id, conn, getTraceLevel());
+}
+
+static void jsonrpc_todo (char *id, n2n_edge_t *eee, conn_t *conn) {
+    jsonrpc_error(id, conn, 501, "TODO");
+}
+
+struct mgmt_jsonrpc_method {
+    char *method;
+    void (*func)(char *id, n2n_edge_t *eee, conn_t *conn);
+    char *desc;
+};
+
+static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
+    { "get_verbose", jsonrpc_get_verbose },
+    { "set_verbose", jsonrpc_todo },
+};
+
+static void render_error (n2n_edge_t *eee, conn_t *conn) {
     // Reuse the request buffer
     conn->reply = conn->request;
     sb_zero(conn->reply);
     sb_printf(conn->reply, "api error\n");
 
-    render_http(conn, 404);
+    generate_http_headers(conn, "text/plain", 404);
+}
+
+static void handle_jsonrpc (n2n_edge_t *eee, conn_t *conn) {
+    char *body = strstr(conn->request->str, "\r\n\r\n");
+    if (!body) {
+        // "Error: no body"
+        goto error;
+    }
+    body += 4;
+
+    jsonrpc_t json;
+
+    if (jsonrpc_parse(body, &json) != 0) {
+        // "Error: parsing json"
+        goto error;
+    }
+
+    traceEvent(
+        TRACE_DEBUG,
+        "jsonrpc id=%s, method=%s, params=%s",
+        json.id,
+        json.method,
+        json.params
+        );
+
+    // Since we are going to reuse the request buffer for the reply, copy
+    // the id string out of it as every single reply will need it
+    char idbuf[10];
+    strncpy(idbuf, json.id, sizeof(idbuf)-1);
+
+    int i;
+    int nr_handlers = sizeof(jsonrpc_methods) / sizeof(jsonrpc_methods[0]);
+    for( i=0; i < nr_handlers; i++ ) {
+        if(!strncmp(
+               jsonrpc_methods[i].method,
+               json.method,
+               strlen(jsonrpc_methods[i].method))) {
+            break;
+        }
+    }
+    if( i >= nr_handlers ) {
+        // "Unknown method
+        goto error;
+    } else {
+        jsonrpc_methods[i].func(idbuf, eee, conn);
+    }
+    return;
+
+error:
+    render_error(eee, conn);
+}
+
+static void render_todo_page (n2n_edge_t *eee, conn_t *conn) {
+    // Reuse the request buffer
+    conn->reply = conn->request;
+    sb_zero(conn->reply);
+    sb_printf(conn->reply, "TODO\n");
+
+    generate_http_headers(conn, "text/plain", 501);
 }
 
 #include "management_index.html.h"
 
-void render_index_page (n2n_edge_t *eee, conn_t *conn) {
+// Generate the output for the human user interface
+static void render_index_page (n2n_edge_t *eee, conn_t *conn) {
+    // TODO:
+    // - could allow overriding of built in text with an external file
+    // - there is a race condition if multiple users are fetching the
+    //   page and have partial writes (same for render_script_page)
     conn->reply = &management_index;
-    render_http(conn, 200);
+    generate_http_headers(conn, "text/html", 200);
 }
 
 #include "management_script.js.h"
 
-void render_script_page (n2n_edge_t *eee, conn_t *conn) {
+// Generate the output for the small set of javascript functions
+static void render_script_page (n2n_edge_t *eee, conn_t *conn) {
     conn->reply = &management_script;
-    render_http(conn, 200);
+    generate_http_headers(conn, "text/javascript", 200);
 }
 
 struct mgmt_api_endpoint {
@@ -323,13 +459,13 @@ struct mgmt_api_endpoint {
     char *desc;
 };
 
-static struct mgmt_api_endpoint api_endpoints[] = {
-    { "POST /v1 ", render_error, "JsonRPC" },
+static const struct mgmt_api_endpoint api_endpoints[] = {
+    { "POST /v1 ", handle_jsonrpc, "JsonRPC" },
     { "GET / ", render_index_page, "Human interface" },
+    { "GET /help ", render_todo_page, "Describe available endpoints" },
+    { "GET /metrics ", render_todo_page, "Fetch metrics data" },
     { "GET /script.js ", render_script_page, "javascript helpers" },
-    // status
-    // metrics
-    // help
+    { "GET /status ", render_todo_page, "Quick health check" },
 };
 
 void mgmt_api_handler (n2n_edge_t *eee, conn_t *conn) {

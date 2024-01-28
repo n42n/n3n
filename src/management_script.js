@@ -1,12 +1,10 @@
 var verbose=-1;
 var jsonrpc_id=1;   // incremented on each request
 
-function rows2verbose(id, unused, data) {
-    row0 = data[0]
-    verbose = row0['traceLevel']
-
+function result2verbose(id, unused, data) {
+    verbose = data;
     let div = document.getElementById(id);
-    div.innerHTML=verbose
+    div.innerHTML=verbose;
 }
 
 function rows2keyvalue(id, keys, data) {
@@ -76,10 +74,13 @@ function do_jsonrpc(url, method, params, id, handler, handler_param) {
         return response.json();
       })
       .then(function (data) {
-        handler(id,handler_param,data);
+        if ('error' in data) {
+            throw new Error('JsonRPC got ' + data['error'])
+        }
+        handler(id,handler_param,data['result']);
       })
       .catch(function (err) {
-        console.log('error: ' + err);
+        console.log(err);
       });
 }
 
@@ -94,10 +95,10 @@ function setverbose(tracelevel) {
         tracelevel = 0;
     }
     // FIXME: uses global in script library
-    // FIXME: convert to JsonRPC
-    do_post(
-        nodetype + '/verbose', tracelevel, 'verbose',
-        rows2verbose, null
+    do_jsonrpc(
+        url, "set_verbose", tracelevel,
+        'verbose',
+        result2verbose, null
     );
 }
 
