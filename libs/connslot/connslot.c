@@ -293,7 +293,7 @@ static int _slots_listen_find_empty(slots_t *slots) {
     return listen_nr;
 }
 
-int slots_listen_tcp(slots_t *slots, int port) {
+int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
     int listen_nr = _slots_listen_find_empty(slots);
     if (listen_nr <0) {
         return -2;
@@ -313,12 +313,20 @@ int slots_listen_tcp(slots_t *slots, int port) {
         .sin6_addr = IN6ADDR_ANY_INIT,
     };
 
+    if (!allow_remote) {
+        memcpy(&addr.sin6_addr, &in6addr_loopback, sizeof(in6addr_loopback));
+    }
+
     if ((server = socket(AF_INET6, SOCK_STREAM, 0)) < 0) {
         // try again with IPv4
         struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
         addr4->sin_family = AF_INET;
         addr4->sin_port = htons(port);
-        addr4->sin_addr.s_addr = INADDR_ANY;
+        if (allow_remote) {
+            addr4->sin_addr.s_addr = htonl(INADDR_ANY);
+        } else {
+            addr4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        }
         if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             return -1;
         }

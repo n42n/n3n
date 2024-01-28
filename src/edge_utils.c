@@ -3307,7 +3307,7 @@ static int edge_init_sockets (n2n_edge_t *eee) {
         abort();
     }
 
-    if(slots_listen_tcp(eee->mgmt_slots, eee->conf.mgmt_port)!=0) {
+    if(slots_listen_tcp(eee->mgmt_slots, eee->conf.mgmt_port, false)!=0) {
         perror("slots_listen_tcp");
         exit(1);
     }

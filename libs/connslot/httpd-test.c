@@ -67,7 +67,7 @@ void httpd_test(int port) {
         abort();
     }
 
-    if (slots_listen_tcp(slots, port)!=0) {
+    if (slots_listen_tcp(slots, port, true)!=0) {
         perror("slots_listen_tcp");
         exit(1);
     }
