@@ -549,7 +549,7 @@ struct n2n_edge {
 
     struct n2n_edge_stats stats;                                         /**< Statistics */
 
-    n2n_resolve_parameter_t          *resolve_parameter;                 /**< Pointer to name resolver's parameter block */
+    n3n_resolve_parameter_t          *resolve_parameter;                 /**< Pointer to name resolver's parameter block */
 
     network_traffic_filter_t         *network_traffic_filter;
 };
@@ -658,7 +658,7 @@ typedef struct n2n_sn {
     n2n_auth_t auth;
     uint32_t dynamic_key_time;                                /* UTC time of last dynamic key generation (second accuracy) */
     uint8_t override_spoofing_protection;                                /* set if overriding MAC/IP spoofing protection (cli option '-M') */
-    n2n_resolve_parameter_t                *resolve_parameter;/*Pointer to name resolver's parameter block */
+    n3n_resolve_parameter_t                *resolve_parameter;/*Pointer to name resolver's parameter block */
     char *mgmt_password;
 } n2n_sn_t;
 

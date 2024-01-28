@@ -12,10 +12,11 @@
 #include <n3n/resolve.h>    // for n2n_resolve_parameter_t
 #include <n2n_typedefs.h>   // for n2n_sock_t
 #include <uthash.h>         // for UT_hash_handle
+#include "config.h"         // for HAVE_LIBPTHREAD
 #include "peer_info.h"      // for struct peer_info
 
 #ifdef HAVE_LIBPTHREAD
-struct n2n_resolve_ip_sock {
+struct n3n_resolve_ip_sock {
     char          *org_ip;            /* pointer to original ip/named address string (used read only) */
     n2n_sock_t sock;                  /* resolved socket */
     n2n_sock_t    *org_sock;          /* pointer to original socket where 'sock' gets copied to from time to time */
@@ -25,8 +26,8 @@ struct n2n_resolve_ip_sock {
 };
 
 // structure to hold resolver thread's parameters
-struct n2n_resolve_parameter {
-    struct n2n_resolve_ip_sock *list;      /* pointer to list of to be resolved nodes */
+struct n3n_resolve_parameter {
+    struct n3n_resolve_ip_sock *list;      /* pointer to list of to be resolved nodes */
     time_t check_interval;                 /* interval to checik resolover results */
     time_t last_checked;                   /* last time the resolver results were cheked */
     time_t last_resolved;                  /* last time the resolver completed */
@@ -38,9 +39,9 @@ struct n2n_resolve_parameter {
 #endif
 
 
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list);
-bool resolve_check (n2n_resolve_parameter_t *param, bool resolution_request, time_t now);
-void resolve_cancel_thread (n2n_resolve_parameter_t *param);
+int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn_list);
+bool resolve_check (n3n_resolve_parameter_t *param, bool resolution_request, time_t now);
+void resolve_cancel_thread (n3n_resolve_parameter_t *param);
 
 // Internal resolver function, will turn static once supernode.c doesnt use it
 int supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);

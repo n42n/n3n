@@ -6,8 +6,10 @@
  * The resolver thread code and functions
  */
 
+#include <n2n.h>             // for sock_equal
 #include <n3n/logging.h>
-#include <n3n/resolve.h>     // for n2n_resolve_parameter_t
+#include <n3n/resolve.h>     // for n3n_resolve_parameter_t
+#include <unistd.h>          // for sleep
 #include "resolve.h"
 #include "config.h"          // for HAVE_LIBPTHREAD
 
@@ -116,8 +118,9 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
 
 N2N_THREAD_RETURN_DATATYPE resolve_thread (N2N_THREAD_PARAMETER_DATATYPE p) {
 
-    n2n_resolve_parameter_t *param = (n2n_resolve_parameter_t*)p;
-    n2n_resolve_ip_sock_t   *entry, *tmp_entry;
+    n3n_resolve_parameter_t *param = (n3n_resolve_parameter_t*)p;
+    struct n3n_resolve_ip_sock *entry;
+    struct n3n_resolve_ip_sock *tmp_entry;
     time_t rep_time = N2N_RESOLVE_INTERVAL / 10;
     time_t now;
 
@@ -162,18 +165,18 @@ N2N_THREAD_RETURN_DATATYPE resolve_thread (N2N_THREAD_PARAMETER_DATATYPE p) {
     }
 }
 
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list) {
+int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn_list) {
     struct peer_info        *sn, *tmp_sn;
-    n2n_resolve_ip_sock_t   *entry;
+    struct n3n_resolve_ip_sock *entry;
     int ret;
 
     // create parameter structure
-    *param = (n2n_resolve_parameter_t*)calloc(1, sizeof(n2n_resolve_parameter_t));
+    *param = (n3n_resolve_parameter_t*)calloc(1, sizeof(n3n_resolve_parameter_t));
     if(*param) {
         HASH_ITER(hh, sn_list, sn, tmp_sn) {
             // create entries for those peers that come with ip_addr string (from command-line)
             if(sn->ip_addr) {
-                entry = (n2n_resolve_ip_sock_t*)calloc(1, sizeof(n2n_resolve_ip_sock_t));
+                entry = (struct n3n_resolve_ip_sock*)calloc(1, sizeof(struct n3n_resolve_ip_sock));
                 if(entry) {
                     entry->org_ip = sn->ip_addr;
                     entry->org_sock = &(sn->sock);
@@ -202,17 +205,18 @@ int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn
 }
 
 
-void resolve_cancel_thread (n2n_resolve_parameter_t *param) {
+void resolve_cancel_thread (n3n_resolve_parameter_t *param) {
     pthread_cancel(param->id);
     free(param);
 }
 
 
-bool resolve_check (n2n_resolve_parameter_t *param, bool requires_resolution, time_t now) {
+bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, time_t now) {
 
     bool ret = requires_resolution; /* if trylock fails, it still requires resolution */
 
-    n2n_resolve_ip_sock_t   *entry, *tmp_entry;
+    struct n3n_resolve_ip_sock *entry;
+    struct n3n_resolve_ip_sock *tmp_entry;
     n2n_sock_str_t sock_buf;
 
     if(NULL == param)
@@ -268,16 +272,16 @@ int maybe_supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn) {
 #endif
 
 #ifndef HAVE_LIBPTHREAD
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list) {
+int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn_list) {
     return -1;
 }
 
-void resolve_cancel_thread (n2n_resolve_parameter_t *param) {
+void resolve_cancel_thread (n3n_resolve_parameter_t *param) {
     return;
 }
 
 
-bool resolve_check (n2n_resolve_parameter_t *param, bool requires_resolution, time_t now) {
+bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, time_t now) {
     return requires_resolution;
 }
 

@@ -9,6 +9,6 @@
 #ifndef _N3N_RESOLVE_H_
 #define _N3N_RESOLVE_H_
 
-typedef struct n2n_resolve_parameter n2n_resolve_parameter_t;
+typedef struct n3n_resolve_parameter n3n_resolve_parameter_t;
 
 #endif
