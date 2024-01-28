@@ -284,18 +284,61 @@ bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline) {
     return true;
 }
 
-void mgmt_api_handler (n2n_edge_t *eee, conn_t *conn) {
-    strbuf_t **pp;
-    // TODO:
-    // - parse request
-
-    // for now, just echo
-    conn->reply = conn->request;
-
-    pp = &conn->reply_header;
-    sb_reprintf(pp, "HTTP/1.1 200 OK\r\n");
+void render_http(conn_t *conn, int code) {
+    strbuf_t **pp = &conn->reply_header;
+    sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
     int len = sb_len(conn->reply);
     sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
+}
+
+void render_error(n2n_edge_t *eee, conn_t *conn) {
+    // Reuse the request buffer
+    conn->reply = conn->request;
+    sb_zero(conn->reply);
+    sb_printf(conn->reply, "api error\n");
+
+    render_http(conn, 404);
+}
+
+void render_index(n2n_edge_t *eee, conn_t *conn) {
+    // Reuse the request buffer
+    conn->reply = conn->request;
+    sb_zero(conn->reply);
+    sb_printf(conn->reply, "<html><body>FIXME: index.html goes here\n");
+
+    render_http(conn, 200);
+}
+
+struct mgmt_api_endpoint {
+    char *match;    // when the request buffer starts with this
+    void (*func)(n2n_edge_t *eee, conn_t *conn);
+    char *desc;
+};
+
+static struct mgmt_api_endpoint api_endpoints[] = {
+    { "POST /v1 ", render_error, "JsonRPC" },
+    { "GET / ", render_index, "Index page" },
+    // status
+    // metrics
+    // help
+};
+
+void mgmt_api_handler (n2n_edge_t *eee, conn_t *conn) {
+    int i;
+    int nr_handlers = sizeof(api_endpoints) / sizeof(api_endpoints[0]);
+    for( i=0; i < nr_handlers; i++ ) {
+        if(!strncmp(
+                    api_endpoints[i].match,
+                    conn->request->str,
+                    strlen(api_endpoints[i].match))) {
+            break;
+        }
+    }
+    if( i >= nr_handlers ) {
+        render_error(eee, conn);
+    } else {
+        api_endpoints[i].func(eee, conn);
+    }
 
     // Try to immediately start sending the reply
     conn_write(conn);
