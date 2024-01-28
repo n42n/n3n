@@ -36,8 +36,9 @@
 #include "pearson.h"           // for pearson_hash_64
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
-// FIXME: including a private header
+// FIXME, including private headers
 #include "../src/peer_info.h"         // for peer_info, peer_info_init
+#include "../src/resolve.h"           // for supernode2sock
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -55,7 +56,6 @@ static n2n_sn_t sss_node;
 void close_tcp_connection (n2n_sn_t *sss, n2n_tcp_connection_t *conn);
 void calculate_shared_secrets (n2n_sn_t *sss);
 int load_allowed_sn_community (n2n_sn_t *sss);
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list);
 
 
 /** Help message to print if the command line arguments are not valid. */

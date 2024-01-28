@@ -22,6 +22,7 @@
 #define _N2N_TYPEDEFS_H_
 
 #include <n3n/network_traffic_filter.h>
+#include <n3n/resolve.h>
 #include <stdbool.h>
 #include <stdint.h>     // for uint8_t and friends
 #include <time.h>
@@ -437,35 +438,6 @@ typedef struct n2n_trans_op {
 
 /* *************************************************** */
 
-
-typedef struct n2n_resolve_ip_sock {
-    char          *org_ip;            /* pointer to original ip/named address string (used read only) */
-    n2n_sock_t sock;                  /* resolved socket */
-    n2n_sock_t    *org_sock;          /* pointer to original socket where 'sock' gets copied to from time to time */
-    int error_code;                   /* result of last resolution attempt */
-
-    UT_hash_handle hh;                /* makes this structure hashable */
-} n2n_resolve_ip_sock_t;
-
-
-// structure to hold resolver thread's parameters
-typedef struct n2n_resolve_parameter {
-    n2n_resolve_ip_sock_t   *list;         /* pointer to list of to be resolved nodes */
-    time_t check_interval;                 /* interval to checik resolover results */
-    time_t last_checked;                   /* last time the resolver results were cheked */
-    time_t last_resolved;                  /* last time the resolver completed */
-    uint8_t changed;                       /* indicates a change */
-    uint8_t request;                       /* flags main thread's need for intermediate resolution */
-#ifdef HAVE_LIBPTHREAD
-    pthread_t id;                          /* thread id */
-    pthread_mutex_t access;                /* mutex for shared access */
-#endif
-} n2n_resolve_parameter_t;
-
-
-/* *************************************************** */
-
-
 typedef struct n2n_edge_conf {
     struct peer_info         *supernodes;            /**< List of supernodes */
     n2n_community_t community_name;                  /**< The community. 16 full octets. */
@@ -536,7 +508,7 @@ struct n2n_edge {
     struct peer_info                 *curr_sn;                           /**< Currently active supernode. */
     uint8_t sn_wait;                                                     /**< Whether we are waiting for a supernode response. */
     uint8_t sn_pong;                                                     /**< Whether we have seen a PONG since last time reset. */
-    uint8_t resolution_request;                                          /**< Flag an immediate DNS resolution request */
+    bool resolution_request;                                             /**< Flag an immediate DNS resolution request */
     int close_socket_counter;                                            /**< counter for close-event before re-opening */
     size_t sup_attempts;                                                 /**< Number of remaining attempts to this supernode. */
     tuntap_dev device;                                                   /**< All about the TUNTAP device */

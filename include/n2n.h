@@ -120,7 +120,6 @@ uint32_t bitlen2mask (uint8_t bitlen);
 uint8_t mask2bitlen (uint32_t mask);
 char* macaddr_str (macstr_t buf, const n2n_mac_t mac);
 int str2mac (uint8_t * outmac /* 6 bytes */, const char * s);
-int supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);
 uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_null_mac (const n2n_mac_t dest_mac);

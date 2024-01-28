@@ -42,6 +42,7 @@
 #include <unistd.h>                  // for gethostname, sleep
 #include "auth.h"                    // for generate_private_key
 #include "portable_endian.h"         // for be16toh, htobe16
+#include "resolve.h"                 // for resolve_create_thread, resolve_c...
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "n2n.h"                     // for n2n_edge_t, n2n_edge_...
 #include "n2n_wire.h"                // for encode_mac, fill_sockaddr, decod...
@@ -64,10 +65,6 @@
 
 
 /* ************************************** */
-
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list);
-int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, time_t now);
-int resolve_cancel_thread (n2n_resolve_parameter_t *param);
 
 static const char * supernode_ip (const n2n_edge_t * eee);
 static void send_register (n2n_edge_t *eee, const n2n_sock_t *remote_peer, const n2n_mac_t peer_mac, n2n_cookie_t cookie);
@@ -1576,7 +1573,7 @@ void update_supernode_reg (n2n_edge_t * eee, time_t now) {
         traceEvent(TRACE_WARNING, "supernode not responding, now trying [%s]", supernode_ip(eee));
         reset_sup_attempts(eee);
         // trigger out-of-schedule DNS resolution
-        eee->resolution_request = 1;
+        eee->resolution_request = true;
 
         // in some multi-NATed scenarios communication gets stuck on losing connection to supernode
         // closing and re-opening the socket allows for re-establishing communication
@@ -1617,16 +1614,17 @@ void update_supernode_reg (n2n_edge_t * eee, time_t now) {
         --(eee->sup_attempts);
     }
 
-#ifndef HAVE_LIBPTHREAD
-    if(supernode2sock(&(eee->curr_sn->sock), eee->curr_sn->ip_addr) == 0) {
-#endif
-    traceEvent(TRACE_INFO, "registering with supernode [%s][number of supernodes %d][attempts left %u]",
-               supernode_ip(eee), HASH_COUNT(eee->conf.supernodes), (unsigned int)eee->sup_attempts);
+    if(maybe_supernode2sock(&(eee->curr_sn->sock), eee->curr_sn->ip_addr) == 0) {
+        traceEvent(
+            TRACE_INFO,
+            "registering with supernode [%s][number of supernodes %d][attempts left %u]",
+            supernode_ip(eee),
+            HASH_COUNT(eee->conf.supernodes),
+            (unsigned int)eee->sup_attempts
+            );
 
-    send_register_super(eee);
-#ifndef HAVE_LIBPTHREAD
-}
-#endif
+        send_register_super(eee);
+    }
 
     register_with_local_peers(eee);
 

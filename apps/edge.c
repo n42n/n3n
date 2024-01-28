@@ -48,8 +48,9 @@
 #include "speck.h"                   // for speck_init, speck_context_t
 #include "uthash.h"                  // for UT_hash_handle, HASH_ADD, HASH_C...
 
-// FIXME, including a private header
+// FIXME, including private headers
 #include "../src/peer_info.h"        // for peer_info, peer_info_t
+#include "../src/resolve.h"          // for resolve_check
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -92,7 +93,6 @@ int supernode_disconnect (n2n_edge_t *eee);
 int fetch_and_eventually_process_data (n2n_edge_t *eee, SOCKET sock,
                                        uint8_t *pktbuf, uint16_t *expected, uint16_t *position,
                                        time_t now);
-int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, time_t now);
 
 /* *************************************************** */
 
@@ -1116,7 +1116,7 @@ int main (int argc, char* argv[]) {
         }
         seek_answer = 1;
 
-        resolve_check(eee->resolve_parameter, 0 /* no intermediate resolution requirement at this point */, now);
+        resolve_check(eee->resolve_parameter, false /* no intermediate resolution requirement at this point */, now);
     }
     // allow a higher number of pings for first regular round of ping
     // to quicker get an inital 'supernode selection criterion overview'

@@ -39,6 +39,7 @@
 #include "peer_info.h"          // for purge_peer_list, clear_peer_list
 #include "portable_endian.h"    // for be16toh, htobe16
 #include "random_numbers.h"     // for n2n_rand, n2n_rand_sqr, n2n_seed, n2n...
+#include "resolve.h"            // for resolve_create_thread, resolve_cancel...
 #include "sn_selection.h"       // for sn_selection_criterion_gather_data
 #include "speck.h"              // for speck_128_encrypt, speck_context_t
 #include "uthash.h"             // for UT_hash_handle, HASH_ITER, HASH_DEL
@@ -55,11 +56,6 @@
 
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
-
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list);
-int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, time_t now);
-int resolve_cancel_thread (n2n_resolve_parameter_t *param);
-
 
 static ssize_t sendto_peer (n2n_sn_t *sss,
                             const struct peer_info *peer,
@@ -2783,7 +2779,7 @@ int run_sn_loop (n2n_sn_t *sss) {
         re_register_and_purge_supernodes(sss, sss->federation, &last_re_reg_and_purge, now, 0 /* not forced */);
         purge_expired_communities(sss, &last_purge_edges, now);
         sort_communities(sss, &last_sort_communities, now);
-        resolve_check(sss->resolve_parameter, 0 /* presumably, no special resolution requirement */, now);
+        resolve_check(sss->resolve_parameter, false /* presumably, no special resolution requirement */, now);
     } /* while */
 
     sn_term(sss);

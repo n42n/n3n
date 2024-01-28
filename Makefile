@@ -96,6 +96,7 @@ N2N_OBJS=\
 	src/pearson.o \
 	src/peer_info.o \
 	src/random_numbers.o \
+	src/resolve.o \
 	src/sn_management.o \
 	src/sn_selection.o \
 	src/sn_utils.o \
