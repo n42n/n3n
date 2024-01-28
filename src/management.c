@@ -284,7 +284,7 @@ bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline) {
     return true;
 }
 
-void render_http(conn_t *conn, int code) {
+void render_http (conn_t *conn, int code) {
     strbuf_t **pp = &conn->reply_header;
     sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
     // TODO:
@@ -294,7 +294,7 @@ void render_http(conn_t *conn, int code) {
     sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
 }
 
-void render_error(n2n_edge_t *eee, conn_t *conn) {
+void render_error (n2n_edge_t *eee, conn_t *conn) {
     // Reuse the request buffer
     conn->reply = conn->request;
     sb_zero(conn->reply);
@@ -305,16 +305,16 @@ void render_error(n2n_edge_t *eee, conn_t *conn) {
 
 #include "management_index.html.h"
 
-void render_index_page(n2n_edge_t *eee, conn_t *conn) {
+void render_index_page (n2n_edge_t *eee, conn_t *conn) {
     conn->reply = &management_index;
     render_http(conn, 200);
 }
 
 #include "management_script.js.h"
 
-void render_script_page(n2n_edge_t *eee, conn_t *conn) {
+void render_script_page (n2n_edge_t *eee, conn_t *conn) {
     conn->reply = &management_script;
-    render_http(conn, 200);
+    render_http(conn, 200)
 }
 
 struct mgmt_api_endpoint {
@@ -337,9 +337,9 @@ void mgmt_api_handler (n2n_edge_t *eee, conn_t *conn) {
     int nr_handlers = sizeof(api_endpoints) / sizeof(api_endpoints[0]);
     for( i=0; i < nr_handlers; i++ ) {
         if(!strncmp(
-                    api_endpoints[i].match,
-                    conn->request->str,
-                    strlen(api_endpoints[i].match))) {
+               api_endpoints[i].match,
+               conn->request->str,
+               strlen(api_endpoints[i].match))) {
             break;
         }
     }
