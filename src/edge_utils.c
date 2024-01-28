@@ -119,40 +119,7 @@ int edge_verify_conf (const n2n_edge_conf_t *conf) {
 
 /* ************************************** */
 
-void edge_set_callbacks (n2n_edge_t *eee, const n2n_edge_callbacks_t *callbacks) {
 
-    memcpy(&eee->cb, callbacks, sizeof(n2n_edge_callbacks_t));
-}
-
-/* ************************************** */
-
-void edge_set_userdata (n2n_edge_t *eee, void *user_data) {
-
-    eee->user_data = user_data;
-}
-
-/* ************************************** */
-
-void* edge_get_userdata (n2n_edge_t *eee) {
-
-    return(eee->user_data);
-}
-
-/* ************************************** */
-
-int edge_get_n2n_socket (n2n_edge_t *eee) {
-
-    return(eee->sock);
-}
-
-/* ************************************** */
-
-int edge_get_management_socket (n2n_edge_t *eee) {
-
-    return(eee->udp_mgmt_sock);
-}
-
-/* ************************************** */
 
 /** Destination 01:00:5E:00:00:00 - 01:00:5E:7F:FF:FF is multicast ethernet.
  */
