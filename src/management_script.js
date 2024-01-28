@@ -1,4 +1,5 @@
 var verbose=-1;
+var jsonrpc_id=1;   // incremented on each request
 
 function rows2verbose(id, unused, data) {
     row0 = data[0]
@@ -58,29 +59,16 @@ function rows2table(id, columns, data) {
     div.innerHTML=s
 }
 
-function do_get(url, id, handler, handler_param) {
-    fetch(url)
-      .then(function (response) {
-        if (!response.ok) {
-            throw new Error('Fetch got ' + response.status)
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        handler(id,handler_param,data);
+function do_jsonrpc(url, method, params, id, handler, handler_param) {
+    let body = {
+        "jsonrpc": "2.0",
+        "method": method,
+        "id": jsonrpc_id,
+        "params": params
+    }
+    jsonrpc_id++;
 
-        // update the timestamp on success
-        let now = Math.round(new Date().getTime() / 1000);
-        let time = document.getElementById('time');
-        time.innerHTML=now;
-      })
-      .catch(function (err) {
-        console.log('error: ' + err);
-      });
-}
-
-function do_post(url, body, id, handler, handler_param) {
-    fetch(url, {method:'POST', body: body})
+    fetch(url, {method:'POST', body: JSON.stringify(body)})
       .then(function (response) {
         if (!response.ok) {
             throw new Error('Fetch got ' + response.status)
@@ -97,6 +85,7 @@ function do_post(url, body, id, handler, handler_param) {
 
 function do_stop(tracelevel) {
     // FIXME: uses global in script library
+    // FIXME: convert to JsonRPC
     fetch(nodetype + '/stop', {method:'POST'})
 }
 
@@ -105,6 +94,7 @@ function setverbose(tracelevel) {
         tracelevel = 0;
     }
     // FIXME: uses global in script library
+    // FIXME: convert to JsonRPC
     do_post(
         nodetype + '/verbose', tracelevel, 'verbose',
         rows2verbose, null

@@ -314,7 +314,7 @@ void render_index_page (n2n_edge_t *eee, conn_t *conn) {
 
 void render_script_page (n2n_edge_t *eee, conn_t *conn) {
     conn->reply = &management_script;
-    render_http(conn, 200)
+    render_http(conn, 200);
 }
 
 struct mgmt_api_endpoint {

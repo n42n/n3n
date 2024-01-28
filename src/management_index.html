@@ -33,31 +33,37 @@
  <script src="script.js"></script>
  <script>
 // FIXME: hacky global
-var nodetype="edge";
+var url="/v1";
 
 function refresh_job() {
-    do_get(
-        nodetype + '/verbose', 'verbose',
+    do_jsonrpc(
+        url, "get_verbose", null,
+        'verbose',
         rows2verbose, null
     );
-    do_get(
-        nodetype + '/communities', 'communities',
+    do_jsonrpc(
+        url, "get_communities", null,
+        'communities',
         rows2keyvalue, ['community']
     );
-    do_get(
-        nodetype + '/supernodes', 'supernodes',
+    do_jsonrpc(
+        url, "get_supernodes", null,
+        'supernodes',
         rows2table, ['version','current','macaddr','sockaddr','uptime']
     );
-    do_get(
-        nodetype + '/edges', 'edges',
+    do_jsonrpc(
+        url, "get_edges", null,
+        'edges',
         rows2table, ['mode','ip4addr','macaddr','sockaddr','desc']
     );
-    do_get(
-        nodetype + '/timestamps', 'timestamps',
+    do_jsonrpc(
+        url, "get_timestamps", null,
+        'timestamps',
         rows2keyvalueall, null
     );
-    do_get(
-        nodetype + '/packetstats', 'packetstats',
+    do_jsonrpc(
+        url, "get_packetstats", null,
+        'packetstats',
         rows2table, ['type','tx_pkt','rx_pkt']
     );
 }
