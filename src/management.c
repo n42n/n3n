@@ -470,13 +470,13 @@ static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
 static void jsonrpc_get_timestamps (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->reply,
-              "{"
-              "\"start_time\":%lu,"
-              "\"last_super\":%ld,"
-              "\"last_p2p\":%ld}\n",
-              eee->start_time,
-              eee->last_sup,
-              eee->last_p2p);
+                "{"
+                "\"start_time\":%lu,"
+                "\"last_super\":%ld,"
+                "\"last_p2p\":%ld}\n",
+                eee->start_time,
+                eee->last_sup,
+                eee->last_p2p);
 
     jsonrpc_result_tail(conn, 200);
 }
@@ -485,52 +485,52 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->reply, "[");
     sb_reprintf(&conn->reply,
-              "{"
-              "\"type\":\"transop\","
-              "\"tx_pkt\":%lu,"
-              "\"rx_pkt\":%lu},",
-              eee->transop.tx_cnt,
-              eee->transop.rx_cnt);
+                "{"
+                "\"type\":\"transop\","
+                "\"tx_pkt\":%lu,"
+                "\"rx_pkt\":%lu},",
+                eee->transop.tx_cnt,
+                eee->transop.rx_cnt);
 
     sb_reprintf(&conn->reply,
-              "{"
-              "\"type\":\"p2p\","
-              "\"tx_pkt\":%u,"
-              "\"rx_pkt\":%u},",
-              eee->stats.tx_p2p,
-              eee->stats.rx_p2p);
+                "{"
+                "\"type\":\"p2p\","
+                "\"tx_pkt\":%u,"
+                "\"rx_pkt\":%u},",
+                eee->stats.tx_p2p,
+                eee->stats.rx_p2p);
 
     sb_reprintf(&conn->reply,
-              "{"
-              "\"type\":\"super\","
-              "\"tx_pkt\":%u,"
-              "\"rx_pkt\":%u},",
-              eee->stats.tx_sup,
-              eee->stats.rx_sup);
+                "{"
+                "\"type\":\"super\","
+                "\"tx_pkt\":%u,"
+                "\"rx_pkt\":%u},",
+                eee->stats.tx_sup,
+                eee->stats.rx_sup);
 
     sb_reprintf(&conn->reply,
-              "{"
-              "\"type\":\"super_broadcast\","
-              "\"tx_pkt\":%u,"
-              "\"rx_pkt\":%u},",
-              eee->stats.tx_sup_broadcast,
-              eee->stats.rx_sup_broadcast);
+                "{"
+                "\"type\":\"super_broadcast\","
+                "\"tx_pkt\":%u,"
+                "\"rx_pkt\":%u},",
+                eee->stats.tx_sup_broadcast,
+                eee->stats.rx_sup_broadcast);
 
     sb_reprintf(&conn->reply,
-              "{"
-              "\"type\":\"tuntap_error\","
-              "\"tx_pkt\":%u,"
-              "\"rx_pkt\":%u},",
-              eee->stats.tx_tuntap_error,
-              eee->stats.rx_tuntap_error);
+                "{"
+                "\"type\":\"tuntap_error\","
+                "\"tx_pkt\":%u,"
+                "\"rx_pkt\":%u},",
+                eee->stats.tx_tuntap_error,
+                eee->stats.rx_tuntap_error);
 
     sb_reprintf(&conn->reply,
-              "{"
-              "\"type\":\"multicast_drop\","
-              "\"tx_pkt\":%u,"
-              "\"rx_pkt\":%u},",
-              eee->stats.tx_multicast_drop,
-              eee->stats.rx_multicast_drop);
+                "{"
+                "\"type\":\"multicast_drop\","
+                "\"tx_pkt\":%u,"
+                "\"rx_pkt\":%u},",
+                eee->stats.tx_multicast_drop,
+                eee->stats.rx_multicast_drop);
 
     // back up over the final ','
     conn->reply->wr_pos--;
