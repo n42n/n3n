@@ -270,9 +270,8 @@ int maybe_supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn) {
     return 0;
 }
 
-#endif
+#else // HAVE_LIBPTHREAD
 
-#ifndef HAVE_LIBPTHREAD
 int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn_list) {
     return -1;
 }

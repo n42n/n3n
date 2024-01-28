@@ -13,6 +13,7 @@
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <pearson.h>     // for pearson_hash_64
+#include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
 #include <stdio.h>       // for snprintf, NULL, size_t
 #include <stdlib.h>      // for strtoul
@@ -349,8 +350,23 @@ static void jsonrpc_1uint (char *id, conn_t *conn, uint32_t result) {
     jsonrpc_result_tail(conn, 200);
 }
 
+static void jsonrpc_1str (char *id, conn_t *conn, char *result) {
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->reply, "\"%s\"", result);
+    jsonrpc_result_tail(conn, 200);
+}
+
 static void jsonrpc_get_verbose (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_1uint(id, conn, getTraceLevel());
+}
+
+static void jsonrpc_get_community (char *id, n2n_edge_t *eee, conn_t *conn) {
+    if(eee->conf.header_encryption != HEADER_ENCRYPTION_NONE) {
+        jsonrpc_error(id, conn, 403, "Forbidden");
+        return;
+    }
+
+    jsonrpc_1str(id, conn, (char *)eee->conf.community_name);
 }
 
 static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, char *mode) {
@@ -406,6 +422,123 @@ static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_tail(conn, 200);
 }
 
+static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
+    struct peer_info *peer, *tmpPeer;
+    macstr_t mac_buf;
+    n2n_sock_str_t sockbuf;
+    selection_criterion_str_t sel_buf;
+
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->reply, "[");
+
+    HASH_ITER(hh, eee->conf.supernodes, peer, tmpPeer) {
+
+        /*
+         * TODO:
+         * The version string provided by the remote supernode could contain
+         * chars that make our JSON invalid.
+         * - do we care?
+         */
+
+        sb_reprintf(&conn->reply,
+                    "{"
+                    "\"version\":\"%s\","
+                    "\"purgeable\":%i,"
+                    "\"current\":%i,"
+                    "\"macaddr\":\"%s\","
+                    "\"sockaddr\":\"%s\","
+                    "\"selection\":\"%s\","
+                    "\"last_seen\":%li,"
+                    "\"uptime\":%li},",
+                    peer->version,
+                    peer->purgeable,
+                    (peer == eee->curr_sn) ? (eee->sn_wait ? 2 : 1 ) : 0,
+                    is_null_mac(peer->mac_addr) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+                    sock_to_cstr(sockbuf, &(peer->sock)),
+                    sn_selection_criterion_str(eee, sel_buf, peer),
+                    peer->last_seen,
+                    peer->uptime);
+    }
+
+    // back up over the final ','
+    conn->reply->wr_pos--;
+
+    sb_reprintf(&conn->reply, "]");
+    jsonrpc_result_tail(conn, 200);
+}
+
+static void jsonrpc_get_timestamps (char *id, n2n_edge_t *eee, conn_t *conn) {
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->reply,
+              "{"
+              "\"start_time\":%lu,"
+              "\"last_super\":%ld,"
+              "\"last_p2p\":%ld}\n",
+              eee->start_time,
+              eee->last_sup,
+              eee->last_p2p);
+
+    jsonrpc_result_tail(conn, 200);
+}
+
+static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->reply, "[");
+    sb_reprintf(&conn->reply,
+              "{"
+              "\"type\":\"transop\","
+              "\"tx_pkt\":%lu,"
+              "\"rx_pkt\":%lu},",
+              eee->transop.tx_cnt,
+              eee->transop.rx_cnt);
+
+    sb_reprintf(&conn->reply,
+              "{"
+              "\"type\":\"p2p\","
+              "\"tx_pkt\":%u,"
+              "\"rx_pkt\":%u},",
+              eee->stats.tx_p2p,
+              eee->stats.rx_p2p);
+
+    sb_reprintf(&conn->reply,
+              "{"
+              "\"type\":\"super\","
+              "\"tx_pkt\":%u,"
+              "\"rx_pkt\":%u},",
+              eee->stats.tx_sup,
+              eee->stats.rx_sup);
+
+    sb_reprintf(&conn->reply,
+              "{"
+              "\"type\":\"super_broadcast\","
+              "\"tx_pkt\":%u,"
+              "\"rx_pkt\":%u},",
+              eee->stats.tx_sup_broadcast,
+              eee->stats.rx_sup_broadcast);
+
+    sb_reprintf(&conn->reply,
+              "{"
+              "\"type\":\"tuntap_error\","
+              "\"tx_pkt\":%u,"
+              "\"rx_pkt\":%u},",
+              eee->stats.tx_tuntap_error,
+              eee->stats.rx_tuntap_error);
+
+    sb_reprintf(&conn->reply,
+              "{"
+              "\"type\":\"multicast_drop\","
+              "\"tx_pkt\":%u,"
+              "\"rx_pkt\":%u},",
+              eee->stats.tx_multicast_drop,
+              eee->stats.rx_multicast_drop);
+
+    // back up over the final ','
+    conn->reply->wr_pos--;
+
+    sb_reprintf(&conn->reply, "]");
+    jsonrpc_result_tail(conn, 200);
+}
+
 static void jsonrpc_todo (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_error(id, conn, 501, "TODO");
 }
@@ -417,11 +550,11 @@ struct mgmt_jsonrpc_method {
 };
 
 static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
-    { "get_communities", jsonrpc_todo },
+    { "get_community", jsonrpc_get_community },
     { "get_edges", jsonrpc_get_edges },
-    { "get_packetstats", jsonrpc_todo },
-    { "get_supernodes", jsonrpc_todo },
-    { "get_timestamps", jsonrpc_todo },
+    { "get_packetstats", jsonrpc_get_packetstats },
+    { "get_supernodes", jsonrpc_get_supernodes },
+    { "get_timestamps", jsonrpc_get_timestamps },
     { "get_verbose", jsonrpc_get_verbose },
     { "set_verbose", jsonrpc_todo },
 };

@@ -42,9 +42,9 @@ function refresh_job() {
         result2verbose, null
     );
     do_jsonrpc(
-        url, "get_communities", null,
+        url, "get_community", null,
         'communities',
-        rows2keyvalue, ['community']
+        rows2keyvalue, null
     );
     do_jsonrpc(
         url, "get_supernodes", null,

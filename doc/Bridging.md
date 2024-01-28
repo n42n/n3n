@@ -24,4 +24,4 @@
 ## Compile Time Option
 
 The `-r`option at edge does not differentiate between the use cases _routing_ and _bridging_. In case the MAC-learning and MAC-replacing bridging code
-interfers with some special routing scenario, removal of the `#define HAVE_BRIDGING_SUPPORT` from `/include/n3n.h` file disables it at compile time.
+interfers with some special routing scenario, removal of the `-DHAVE_BRIDGING_SUPPORT` from `Makefile` file disables it at compile time.

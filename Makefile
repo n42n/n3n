@@ -130,6 +130,7 @@ endif
 
 src/management.o: src/management_index.html.h
 src/management.o: src/management_script.js.h
+CLEAN_FILES+=src/management_index.html.h src/management_script.js.h
 
 src/libn3n.a: $(N2N_OBJS)
 	@echo "  AR      $@"
@@ -321,6 +322,7 @@ clean.cov:
 clean: clean.cov
 	rm -rf $(N2N_OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
+	rm -f $(CLEAN_FILES)
 	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
 
 .PHONY: distclean

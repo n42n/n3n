@@ -7,16 +7,9 @@ function result2verbose(id, unused, data) {
     div.innerHTML=verbose;
 }
 
-function rows2keyvalue(id, keys, data) {
+function rows2keyvalue(id, unused, data) {
     let s = "<table border=1 cellspacing=0>"
-    data.forEach((row) => {
-        keys.forEach((key) => {
-            if (key in row) {
-                s += "<tr><th>" + key + "<td>" + row[key];
-            }
-        });
-    });
-
+    s += "<tr><th>community<td>" + data;
     s += "</table>"
     let div = document.getElementById(id);
     div.innerHTML=s
@@ -24,10 +17,8 @@ function rows2keyvalue(id, keys, data) {
 
 function rows2keyvalueall(id, unused, data) {
     let s = "<table border=1 cellspacing=0>"
-    data.forEach((row) => {
-        Object.keys(row).forEach((key) => {
-            s += "<tr><th>" + key + "<td>" + row[key];
-        });
+    Object.keys(data).forEach((key) => {
+        s += "<tr><th>" + key + "<td>" + data[key];
     });
 
     s += "</table>"
