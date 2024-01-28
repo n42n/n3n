@@ -25,23 +25,27 @@ sub main {
 
     printf("/* #embed \"%s\" */\n",$filename);
     printf("static strbuf_t %s = {\n",$varname);
-    printf(" .capacity = %i,\n",$size+1); # add one for nul terminator
-    printf(" .wr_pos = %i,\n",$size);
-    print " .str = {";
+    printf("    .capacity = %i,\n",$size+1); # add one for nul terminator
+    printf("    .wr_pos = %i,\n",$size);
+    printf("    .str = {");
 
     for my $pos (0..length($data)-1) {
         my $ch = substr($data, $pos, 1);
 
+        my $sep;
         if ($pos % 16 == 0) {
-            print "\n";
+            print "\n        ";
+            $sep = " ";
+        } else {
+            $sep = "";
         }
-        printf("0x%02x, ", ord($ch));
+        printf("0x%02x,%s", ord($ch), $sep);
     }
 
     # nul terminate (
     print "0x00,\n";
 
-    print " }\n";
+    print "    }\n";
     print "};\n";
 }
 main();
