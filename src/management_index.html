@@ -66,6 +66,8 @@ function refresh_job() {
         'packetstats',
         rows2table, ['type','tx_pkt','rx_pkt']
     );
+    let div = document.getElementById(time);
+    time.innerHTML=Date.now()
 }
 
 refresh_setup(10000);
