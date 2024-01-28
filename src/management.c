@@ -301,12 +301,10 @@ static void generate_http_headers (conn_t *conn, const char *type, int code) {
 
 static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
     // Reuse the request buffer
-    conn->reply = conn->request;
-    sb_zero(conn->reply);
+    sb_zero(conn->request);
 
-    strbuf_t **pp = &conn->reply;
     sb_reprintf(
-        pp,
+        &conn->request,
         "{"
         "\"jsonrpc\":\"2.0\","
         "\"id\":\"%s\","
@@ -319,17 +317,17 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
         message
         );
 
-
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
     generate_http_headers(conn, "application/json", code);
 }
 
 static void jsonrpc_result_head (char *id, conn_t *conn) {
     // Reuse the request buffer
-    conn->reply = conn->request;
-    sb_zero(conn->reply);
+    sb_zero(conn->request);
 
     sb_reprintf(
-        &conn->reply,
+        &conn->request,
         "{"
         "\"jsonrpc\":\"2.0\","
         "\"id\":\"%s\","
@@ -339,20 +337,23 @@ static void jsonrpc_result_head (char *id, conn_t *conn) {
 }
 
 static void jsonrpc_result_tail (conn_t *conn, int code) {
-    strbuf_t **pp = &conn->reply;
-    sb_reprintf(pp, "}");
+    sb_reprintf(&conn->request, "}");
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+
     generate_http_headers(conn, "application/json", code);
 }
 
 static void jsonrpc_1uint (char *id, conn_t *conn, uint32_t result) {
     jsonrpc_result_head(id, conn);
-    sb_reprintf(&conn->reply, "%u", result);
+    sb_reprintf(&conn->request, "%u", result);
     jsonrpc_result_tail(conn, 200);
 }
 
 static void jsonrpc_1str (char *id, conn_t *conn, char *result) {
     jsonrpc_result_head(id, conn);
-    sb_reprintf(&conn->reply, "\"%s\"", result);
+    sb_reprintf(&conn->request, "\"%s\"", result);
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -403,22 +404,22 @@ static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
     struct peer_info *peer, *tmpPeer;
 
     jsonrpc_result_head(id, conn);
-    sb_reprintf(&conn->reply, "[");
+    sb_reprintf(&conn->request, "[");
 
     // dump nodes with forwarding through supernodes
     HASH_ITER(hh, eee->pending_peers, peer, tmpPeer) {
-        jsonrpc_get_edges_row(&conn->reply, peer, "pSp");
+        jsonrpc_get_edges_row(&conn->request, peer, "pSp");
     }
 
     // dump peer-to-peer nodes
     HASH_ITER(hh, eee->known_peers, peer, tmpPeer) {
-        jsonrpc_get_edges_row(&conn->reply, peer, "p2p");
+        jsonrpc_get_edges_row(&conn->request, peer, "p2p");
     }
 
     // back up over the final ','
-    conn->reply->wr_pos--;
+    conn->request->wr_pos--;
 
-    sb_reprintf(&conn->reply, "]");
+    sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -429,7 +430,7 @@ static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
     selection_criterion_str_t sel_buf;
 
     jsonrpc_result_head(id, conn);
-    sb_reprintf(&conn->reply, "[");
+    sb_reprintf(&conn->request, "[");
 
     HASH_ITER(hh, eee->conf.supernodes, peer, tmpPeer) {
 
@@ -440,7 +441,7 @@ static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
          * - do we care?
          */
 
-        sb_reprintf(&conn->reply,
+        sb_reprintf(&conn->request,
                     "{"
                     "\"version\":\"%s\","
                     "\"purgeable\":%i,"
@@ -461,15 +462,15 @@ static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
     }
 
     // back up over the final ','
-    conn->reply->wr_pos--;
+    conn->request->wr_pos--;
 
-    sb_reprintf(&conn->reply, "]");
+    sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
 static void jsonrpc_get_timestamps (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_head(id, conn);
-    sb_reprintf(&conn->reply,
+    sb_reprintf(&conn->request,
                 "{"
                 "\"start_time\":%lu,"
                 "\"last_super\":%ld,"
@@ -483,8 +484,9 @@ static void jsonrpc_get_timestamps (char *id, n2n_edge_t *eee, conn_t *conn) {
 
 static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_head(id, conn);
-    sb_reprintf(&conn->reply, "[");
-    sb_reprintf(&conn->reply,
+    sb_reprintf(&conn->request, "[");
+
+    sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"transop\","
                 "\"tx_pkt\":%lu,"
@@ -492,7 +494,7 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 eee->transop.tx_cnt,
                 eee->transop.rx_cnt);
 
-    sb_reprintf(&conn->reply,
+    sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"p2p\","
                 "\"tx_pkt\":%u,"
@@ -500,7 +502,7 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 eee->stats.tx_p2p,
                 eee->stats.rx_p2p);
 
-    sb_reprintf(&conn->reply,
+    sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"super\","
                 "\"tx_pkt\":%u,"
@@ -508,7 +510,7 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 eee->stats.tx_sup,
                 eee->stats.rx_sup);
 
-    sb_reprintf(&conn->reply,
+    sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"super_broadcast\","
                 "\"tx_pkt\":%u,"
@@ -516,7 +518,7 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 eee->stats.tx_sup_broadcast,
                 eee->stats.rx_sup_broadcast);
 
-    sb_reprintf(&conn->reply,
+    sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"tuntap_error\","
                 "\"tx_pkt\":%u,"
@@ -524,7 +526,7 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 eee->stats.tx_tuntap_error,
                 eee->stats.rx_tuntap_error);
 
-    sb_reprintf(&conn->reply,
+    sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"multicast_drop\","
                 "\"tx_pkt\":%u,"
@@ -533,9 +535,9 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 eee->stats.rx_multicast_drop);
 
     // back up over the final ','
-    conn->reply->wr_pos--;
+    conn->request->wr_pos--;
 
-    sb_reprintf(&conn->reply, "]");
+    sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -560,10 +562,11 @@ static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
 };
 
 static void render_error (n2n_edge_t *eee, conn_t *conn) {
-    // Reuse the request buffer
+    sb_zero(conn->request);
+    sb_printf(conn->request, "api error\n");
+
+    // Update the reply buffer after last potential realloc
     conn->reply = conn->request;
-    sb_zero(conn->reply);
-    sb_printf(conn->reply, "api error\n");
 
     generate_http_headers(conn, "text/plain", 404);
 }
@@ -619,11 +622,11 @@ error:
 }
 
 static void render_todo_page (n2n_edge_t *eee, conn_t *conn) {
-    // Reuse the request buffer
-    conn->reply = conn->request;
-    sb_zero(conn->reply);
-    sb_printf(conn->reply, "TODO\n");
+    sb_zero(conn->request);
+    sb_printf(conn->request, "TODO\n");
 
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
     generate_http_headers(conn, "text/plain", 501);
 }
 

@@ -211,10 +211,9 @@ size_t sb_printf(strbuf_t *p, const char *format, ...) {
  */
 size_t sb_reprintf(strbuf_t **pp, const char *format, ...) {
     va_list ap;
-    strbuf_t *p = *pp;
     size_t size;
 
-    if (!p) {
+    if (!*pp) {
         return -1;
     }
 
@@ -222,12 +221,12 @@ size_t sb_reprintf(strbuf_t **pp, const char *format, ...) {
     while(1) {
 
         va_start(ap, format);
-        size = sb_vprintf(p, format, ap);
+        size = sb_vprintf(*pp, format, ap);
         va_end(ap);
 
-        if (size < p->capacity) {
+        if (size < (*pp)->capacity) {
             // The new data fit in the buffer
-            return sb_len(p);
+            return sb_len(*pp);
         }
 
         if (loop) {
@@ -236,11 +235,10 @@ size_t sb_reprintf(strbuf_t **pp, const char *format, ...) {
             return -1;
         }
 
-        p = sb_realloc(pp, size + 1);
-        if (!p) {
+        strbuf_t *r = sb_realloc(pp, size + 1);
+        if (!r) {
             return -1;
         }
-        p = *pp;
         loop = 1;
     }
 }
