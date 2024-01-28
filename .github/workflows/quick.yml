@@ -5,6 +5,7 @@ name: Quick Tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   smoketest:
@@ -23,7 +24,7 @@ jobs:
         run: |
           ./autogen.sh
           ./configure
-          make test
+          make -j4 test
 
       - if: ${{ failure() }}
         name: Upload tests output
@@ -67,7 +68,7 @@ jobs:
             CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
             LDFLAGS="--coverage"
           make build-dep
-          make test
+          make -j4 test
 
       - name: Generate coverage reports
         run: |
