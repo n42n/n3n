@@ -114,4 +114,11 @@ void mgmt_help_events_row (mgmt_req_t *req, strbuf_t *buf, mgmt_req_t *sub, char
 int mgmt_auth (mgmt_req_t *req, char *auth);
 bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline);
 
+void readFromMgmtSocket (n2n_edge_t *eee);
+
+int process_mgmt (n2n_sn_t *sss,
+                  const struct sockaddr *sender_sock, socklen_t sock_size,
+                  char *mgmt_buf,
+                  size_t mgmt_size,
+                  time_t now);
 #endif

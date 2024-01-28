@@ -32,6 +32,7 @@
 #include <time.h>               // for time_t, time
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
+#include "management.h"         // for process_mgmt
 #include "n2n.h"                // for sn_community, n2n_sn_t
 #include "n2n_regex.h"          // for re_matchp, re_compile
 #include "n2n_wire.h"           // for encode_buf, encode_PEER_INFO, encode_...
@@ -87,12 +88,6 @@ static int purge_expired_communities (n2n_sn_t *sss,
 static int sort_communities (n2n_sn_t *sss,
                              time_t* p_last_sort,
                              time_t now);
-
-int process_mgmt (n2n_sn_t *sss,
-                  const struct sockaddr *sender_sock, socklen_t sock_size,
-                  char *mgmt_buf,
-                  size_t mgmt_size,
-                  time_t now);
 
 static int process_udp (n2n_sn_t *sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,

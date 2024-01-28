@@ -163,7 +163,5 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
 int run_sn_loop (n2n_sn_t *sss);
 int assign_one_ip_subnet (n2n_sn_t *sss, struct sn_community *comm);
 
-void readFromMgmtSocket (n2n_edge_t *eee);
-
 void mgmt_event_post (enum n2n_event_topic topic, int data0, void *data1);
 #endif /* _N2N_H_ */
