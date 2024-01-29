@@ -36,7 +36,7 @@
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
 #include "management.h"         // for process_mgmt
-#include "n2n.h"                // for sn_community, n2n_sn_t
+#include "n2n.h"                // for sn_community, n2n_edge_t
 #include "n2n_regex.h"          // for re_matchp, re_compile
 #include "n2n_wire.h"           // for encode_buf, encode_PEER_INFO, encode_...
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
@@ -61,14 +61,14 @@
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
-static ssize_t sendto_peer (n2n_sn_t *sss,
+static ssize_t sendto_peer (n2n_edge_t *sss,
                             const struct peer_info *peer,
                             const uint8_t *pktbuf,
                             size_t pktsize);
 
-static uint16_t reg_lifetime (n2n_sn_t *sss);
+static uint16_t reg_lifetime (n2n_edge_t *sss);
 
-static int update_edge (n2n_sn_t *sss,
+static int update_edge (n2n_edge_t *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
@@ -78,21 +78,21 @@ static int update_edge (n2n_sn_t *sss,
                         int skip_add,
                         time_t now);
 
-static int re_register_and_purge_supernodes (n2n_sn_t *sss,
+static int re_register_and_purge_supernodes (n2n_edge_t *sss,
                                              struct sn_community *comm,
                                              time_t *p_last_re_reg_and_purge,
                                              time_t now,
                                              uint8_t forced);
 
-static int purge_expired_communities (n2n_sn_t *sss,
+static int purge_expired_communities (n2n_edge_t *sss,
                                       time_t* p_last_purge,
                                       time_t now);
 
-static int sort_communities (n2n_sn_t *sss,
+static int sort_communities (n2n_edge_t *sss,
                              time_t* p_last_sort,
                              time_t now);
 
-static int process_udp (n2n_sn_t *sss,
+static int process_udp (n2n_edge_t *sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t *udp_buf,
@@ -103,7 +103,7 @@ static int process_udp (n2n_sn_t *sss,
 /* ************************************** */
 
 
-void close_tcp_connection (n2n_sn_t *sss, n2n_tcp_connection_t *conn) {
+void close_tcp_connection (n2n_edge_t *sss, n2n_tcp_connection_t *conn) {
 
     struct sn_community *comm, *tmp_comm;
     struct peer_info *edge, *tmp_edge;
@@ -137,7 +137,7 @@ close_conn:
 
 // generate shared secrets for user authentication; can be done only after
 // federation name is known (-F) and community list completely read (-c)
-void calculate_shared_secrets (n2n_sn_t *sss) {
+void calculate_shared_secrets (n2n_edge_t *sss) {
 
     struct sn_community *comm, *tmp_comm;
     sn_user_t *user, *tmp_user;
@@ -163,7 +163,7 @@ void calculate_shared_secrets (n2n_sn_t *sss) {
 
 
 // calculate dynamic keys
-void calculate_dynamic_keys (n2n_sn_t *sss) {
+void calculate_dynamic_keys (n2n_edge_t *sss) {
 
     struct sn_community *comm, *tmp_comm = NULL;
 
@@ -190,7 +190,7 @@ void calculate_dynamic_keys (n2n_sn_t *sss) {
 
 
 // send RE_REGISTER_SUPER to all edges from user/pw auth'ed communites
-void send_re_register_super (n2n_sn_t *sss) {
+void send_re_register_super (n2n_edge_t *sss) {
 
     struct sn_community *comm, *tmp_comm = NULL;
     struct peer_info *edge, *tmp_edge = NULL;
@@ -235,7 +235,7 @@ void send_re_register_super (n2n_sn_t *sss) {
 /** Load the list of allowed communities. Existing/previous ones will be removed,
  *  return 0 on success, -1 if file not found, -2 if no valid entries found
  */
-int load_allowed_sn_community (n2n_sn_t *sss) {
+int load_allowed_sn_community (n2n_edge_t *sss) {
 
     char buffer[4096], *line, *cmn_str, net_str[20], format[20];
 
@@ -493,7 +493,7 @@ int load_allowed_sn_community (n2n_sn_t *sss) {
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_fd (n2n_sn_t *sss,
+static ssize_t sendto_fd (n2n_edge_t *sss,
                           SOCKET socket_fd,
                           const struct sockaddr *socket,
                           const uint8_t *pktbuf,
@@ -530,7 +530,7 @@ static ssize_t sendto_fd (n2n_sn_t *sss,
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_sock (n2n_sn_t *sss,
+static ssize_t sendto_sock (n2n_edge_t *sss,
                             SOCKET socket_fd,
                             const struct sockaddr *socket,
                             const uint8_t *pktbuf,
@@ -578,7 +578,7 @@ static ssize_t sendto_sock (n2n_sn_t *sss,
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_peer (n2n_sn_t *sss,
+static ssize_t sendto_peer (n2n_edge_t *sss,
                             const struct peer_info *peer,
                             const uint8_t *pktbuf,
                             size_t pktsize) {
@@ -611,7 +611,7 @@ static ssize_t sendto_peer (n2n_sn_t *sss,
  *    This will send the exact same datagram to zero or more edges registered to
  *    the supernode.
  */
-static int try_broadcast (n2n_sn_t * sss,
+static int try_broadcast (n2n_edge_t * sss,
                           const struct sn_community *comm,
                           const n2n_common_t * cmn,
                           const n2n_mac_t srcMac,
@@ -641,14 +641,14 @@ static int try_broadcast (n2n_sn_t * sss,
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
                 if(data_sent_len != pktsize) {
-                    ++(sss->stats.errors);
+                    ++(sss->sn_stats.errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to supernode [%s] %s failed %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
                                macaddr_str(mac_buf, scan->mac_addr),
                                strerror(errno));
                 } else {
-                    ++(sss->stats.broadcast);
+                    ++(sss->sn_stats.broadcast);
                     traceEvent(TRACE_DEBUG, "multicast %lu to supernode [%s] %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
@@ -667,14 +667,14 @@ static int try_broadcast (n2n_sn_t * sss,
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
                 if(data_sent_len != pktsize) {
-                    ++(sss->stats.errors);
+                    ++(sss->sn_stats.errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to [%s] %s failed %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
                                macaddr_str(mac_buf, scan->mac_addr),
                                strerror(errno));
                 } else {
-                    ++(sss->stats.broadcast);
+                    ++(sss->sn_stats.broadcast);
                     traceEvent(TRACE_DEBUG, "multicast %lu to [%s] %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
@@ -688,7 +688,7 @@ static int try_broadcast (n2n_sn_t * sss,
 }
 
 
-static int try_forward (n2n_sn_t * sss,
+static int try_forward (n2n_edge_t * sss,
                         const struct sn_community *comm,
                         const n2n_common_t * cmn,
                         const n2n_mac_t dstMac,
@@ -709,13 +709,13 @@ static int try_forward (n2n_sn_t * sss,
         data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
         if(data_sent_len == pktsize) {
-            ++(sss->stats.fwd);
+            ++(sss->sn_stats.fwd);
             traceEvent(TRACE_DEBUG, "unicast %lu to [%s] %s",
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
                        macaddr_str(mac_buf, scan->mac_addr));
         } else {
-            ++(sss->stats.errors);
+            ++(sss->sn_stats.errors);
             traceEvent(TRACE_ERROR, "unicast %lu to [%s] %s FAILED (%d: %s)",
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
@@ -760,20 +760,29 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
 
 /** Initialise the supernode structure */
-int sn_init_defaults (n2n_sn_t *sss) {
+int sn_init_defaults (n2n_edge_t *sss) {
 
     pearson_hash_init();
 
-    memset(sss, 0, sizeof(n2n_sn_t));
+    memset(sss, 0, sizeof(n2n_edge_t));
+
+    sss->conf.is_supernode = true;
 
     strncpy(sss->version, VERSION, sizeof(n2n_version_t));
     sss->version[sizeof(n2n_version_t) - 1] = '\0';
-    sss->daemon = true; /* By defult run as a daemon. */
-    sss->bind_address = INADDR_ANY; /* any address */
-    sss->lport = N2N_SN_LPORT_DEFAULT;
-    sss->mport = N2N_SN_MGMT_PORT;
+    sss->conf.daemon = true; /* By defult run as a daemon. */
+
+    sss->conf.bind_address = malloc(sizeof(*sss->conf.bind_address));
+    memset(sss->conf.bind_address, 0, sizeof(*sss->conf.bind_address));
+
+    struct sockaddr_in *sa = (struct sockaddr_in *)sss->conf.bind_address;
+    sa->sin_family = AF_INET;
+    sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
+    sa->sin_addr.s_addr = htonl(INADDR_ANY);
+
+    sss->conf.mgmt_port = N2N_SN_MGMT_PORT;
     sss->sock = -1;
-    sss->mgmt_sock = -1;
+    sss->udp_mgmt_sock = -1;
     sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
     sss->min_auto_ip_net.net_addr = ntohl(sss->min_auto_ip_net.net_addr);
     sss->min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
@@ -806,23 +815,23 @@ int sn_init_defaults (n2n_sn_t *sss) {
     n2n_srand(n2n_seed());
 
     /* Random auth token */
-    sss->auth.scheme = n2n_auth_simple_id;
-    memrnd(sss->auth.token, N2N_AUTH_ID_TOKEN_SIZE);
-    sss->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+    sss->conf.auth.scheme = n2n_auth_simple_id;
+    memrnd(sss->conf.auth.token, N2N_AUTH_ID_TOKEN_SIZE);
+    sss->conf.auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 
     /* Random MAC address */
     memrnd(sss->mac_addr, N2N_MAC_SIZE);
     sss->mac_addr[0] &= ~0x01; /* Clear multicast bit */
     sss->mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
-    sss->mgmt_password = N2N_MGMT_PASSWORD;
+    sss->conf.mgmt_password = N2N_MGMT_PASSWORD;
 
     return 0; /* OK */
 }
 
 
 /** Initialise the supernode */
-void sn_init (n2n_sn_t *sss) {
+void sn_init (n2n_edge_t *sss) {
 
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
@@ -832,7 +841,7 @@ void sn_init (n2n_sn_t *sss) {
 
 /** Deinitialise the supernode structure and deallocate any memory owned by
  *    it. */
-void sn_term (n2n_sn_t *sss) {
+void sn_term (n2n_edge_t *sss) {
 
     struct sn_community *community, *tmp;
     struct sn_community_regular_expression *re, *tmp_re;
@@ -859,10 +868,10 @@ void sn_term (n2n_sn_t *sss) {
     }
     sss->tcp_sock = -1;
 
-    if(sss->mgmt_sock >= 0) {
-        closesocket(sss->mgmt_sock);
+    if(sss->udp_mgmt_sock >= 0) {
+        closesocket(sss->udp_mgmt_sock);
     }
-    sss->mgmt_sock = -1;
+    sss->udp_mgmt_sock = -1;
 
     HASH_ITER(hh, sss->communities, community, tmp) {
         clear_peer_list(&community->edges);
@@ -931,7 +940,7 @@ void update_node_supernode_association (struct sn_community *comm,
  *    If the supernode has been put into a pre-shutdown phase then this lifetime
  *    should not allow registrations to continue beyond the shutdown point.
  */
-static uint16_t reg_lifetime (n2n_sn_t *sss) {
+static uint16_t reg_lifetime (n2n_edge_t *sss) {
 
     /* NOTE: UDP firewalls usually have a 30 seconds timeout */
     return 15;
@@ -997,10 +1006,10 @@ static int auth_edge (const n2n_auth_t *present, const n2n_auth_t *presented, n2
 
 // provides the current / a new local auth token
 // REVISIT: behavior should depend on some local auth scheme setting (to be implemented)
-static int get_local_auth (n2n_sn_t *sss, n2n_auth_t *auth) {
+static int get_local_auth (n2n_edge_t *sss, n2n_auth_t *auth) {
 
     // n2n_auth_simple_id scheme
-    memcpy(auth, &(sss->auth), sizeof(n2n_auth_t));
+    memcpy(auth, &(sss->conf.auth), sizeof(n2n_auth_t));
 
     return 0;
 }
@@ -1009,7 +1018,7 @@ static int get_local_auth (n2n_sn_t *sss, n2n_auth_t *auth) {
 // handles an incoming (remote) auth token from a so far unknown edge,
 // takes action as required by auth scheme, and
 // could provide an answer auth token for use in REGISTER_SUPER_ACK
-static int handle_remote_auth (n2n_sn_t *sss, const n2n_auth_t *remote_auth,
+static int handle_remote_auth (n2n_edge_t *sss, const n2n_auth_t *remote_auth,
                                n2n_auth_t *answer_auth,
                                struct sn_community *community) {
 
@@ -1061,7 +1070,7 @@ static int handle_remote_auth (n2n_sn_t *sss, const n2n_auth_t *remote_auth,
 
 /** Update the edge table with the details of the edge which contacted the
  *    supernode. */
-static int update_edge (n2n_sn_t *sss,
+static int update_edge (n2n_edge_t *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
@@ -1255,7 +1264,7 @@ static int assign_one_ip_addr (struct sn_community *comm, n2n_desc_t dev_desc, n
 
 
 /** checks if a certain sub-network is still available, i.e. does not cut any other community's sub-network */
-int subnet_available (n2n_sn_t *sss,
+int subnet_available (n2n_edge_t *sss,
                       struct sn_community *comm,
                       uint32_t net_id,
                       uint32_t mask) {
@@ -1282,7 +1291,7 @@ int subnet_available (n2n_sn_t *sss,
 
 
 /** The IP address range (subnet) assigned to the community by the auto ip address function of sn. */
-int assign_one_ip_subnet (n2n_sn_t *sss,
+int assign_one_ip_subnet (n2n_edge_t *sss,
                           struct sn_community *comm) {
 
     uint32_t net_id, net_id_i, mask, net_increment;
@@ -1366,7 +1375,7 @@ static int find_edge_time_stamp_and_verify (struct peer_info * edges,
 }
 
 
-static int re_register_and_purge_supernodes (n2n_sn_t *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
+static int re_register_and_purge_supernodes (n2n_edge_t *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
 
     time_t time;
     struct peer_info *peer, *tmp;
@@ -1440,7 +1449,7 @@ static int re_register_and_purge_supernodes (n2n_sn_t *sss, struct sn_community 
 }
 
 
-static int purge_expired_communities (n2n_sn_t *sss,
+static int purge_expired_communities (n2n_edge_t *sss,
                                       time_t* p_last_purge,
                                       time_t now) {
 
@@ -1507,7 +1516,7 @@ static int number_enc_packets_sort (struct sn_community *a, struct sn_community 
 }
 
 
-static int sort_communities (n2n_sn_t *sss,
+static int sort_communities (n2n_edge_t *sss,
                              time_t* p_last_sort,
                              time_t now) {
 
@@ -1536,7 +1545,7 @@ static int sort_communities (n2n_sn_t *sss,
 /** Examine a datagram and determine what to do with it.
  *
  */
-static int process_udp (n2n_sn_t * sss,
+static int process_udp (n2n_edge_t * sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
@@ -1719,7 +1728,7 @@ static int process_udp (n2n_sn_t * sss,
                 return -1;
             }
 
-            sss->stats.last_fwd = now;
+            sss->sn_stats.last_fwd = now;
             decode_PACKET(&pkt, &cmn, udp_buf, &rem, &idx);
 
             // already checked for valid comm
@@ -1802,7 +1811,7 @@ static int process_udp (n2n_sn_t * sss,
                 return -1;
             }
 
-            sss->stats.last_fwd = now;
+            sss->sn_stats.last_fwd = now;
             decode_REGISTER(&reg, &cmn, udp_buf, &rem, &idx);
 
             // already checked for valid comm
@@ -1882,8 +1891,8 @@ static int process_udp (n2n_sn_t * sss,
             memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
 
             /* Edge/supernode requesting registration with us.    */
-            sss->stats.last_reg_super=now;
-            ++(sss->stats.reg_super);
+            sss->sn_stats.last_reg_super=now;
+            ++(sss->sn_stats.reg_super);
             decode_REGISTER_SUPER(&reg, &cmn, udp_buf, &rem, &idx);
 
             if(comm) {
@@ -2569,7 +2578,7 @@ static int process_udp (n2n_sn_t * sss,
 
 /** Long lived processing entry point. Split out from main to simply
  *  daemonisation on some platforms. */
-int run_sn_loop (n2n_sn_t *sss) {
+int run_sn_loop (n2n_edge_t *sss) {
 
     uint8_t pktbuf[N2N_SN_PKTBUF_SIZE];
     time_t last_purge_edges = 0;
@@ -2594,8 +2603,8 @@ int run_sn_loop (n2n_sn_t *sss) {
         FD_ZERO(&writers);
 
         FD_SET(sss->sock, &readers);
-        FD_SET(sss->mgmt_sock, &readers);
-        max_sock = MAX(sss->sock, sss->mgmt_sock);
+        FD_SET(sss->udp_mgmt_sock, &readers);
+        max_sock = MAX(sss->sock, sss->udp_mgmt_sock);
 
 #ifdef N2N_HAVE_TCP
         n2n_sock_str_t sockbuf;
@@ -2817,13 +2826,13 @@ int run_sn_loop (n2n_sn_t *sss) {
 #endif /* N2N_HAVE_TCP */
 
             // handle management port input
-            if(FD_ISSET(sss->mgmt_sock, &readers)) {
+            if(FD_ISSET(sss->udp_mgmt_sock, &readers)) {
                 struct sockaddr_storage sas;
                 struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                 socklen_t ss_size = sizeof(sas);
 
                 bread = recvfrom(
-                    sss->mgmt_sock,
+                    sss->udp_mgmt_sock,
                     (void *)pktbuf,
                     N2N_SN_PKTBUF_SIZE,
                     0 /*flags*/,

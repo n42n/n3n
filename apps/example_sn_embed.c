@@ -20,7 +20,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>      // for exit
-#include "n2n.h"         // for n2n_sn_t, open_socket, run_sn_loop, sn_init
+#include "n2n.h"         // for n2n_edge, open_socket, run_sn_loop, sn_init
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -33,7 +33,7 @@ static bool keep_running = true;
 
 int main () {
 
-    n2n_sn_t sss_node;
+    struct n2n_edge sss_node;
     int rc;
     struct sockaddr_in local_address;
 
@@ -42,12 +42,12 @@ int main () {
 #endif
 
     sn_init_defaults(&sss_node);
-    sss_node.daemon = false;   // Whether to daemonize
-    sss_node.lport = 1234; // Main UDP listen port
+    sss_node.conf.daemon = false;   // Whether to daemonize
+    int lport = 1234; // Main UDP listen port
 
     memset(&local_address, 0, sizeof(local_address));
     local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(sss_node.lport);
+    local_address.sin_port = htons(lport);
     local_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
     sss_node.sock = open_socket(
@@ -64,12 +64,12 @@ int main () {
     local_address.sin_port = htons(5645);
     local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    sss_node.mgmt_sock = open_socket(
+    sss_node.udp_mgmt_sock = open_socket(
         (struct sockaddr *)&local_address,
         sizeof(local_address),
         0 /* UDP */
         ); // Main UDP management port
-    if(-1 == sss_node.mgmt_sock) {
+    if(-1 == sss_node.udp_mgmt_sock) {
         exit(-2);
     }
 

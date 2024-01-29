@@ -41,7 +41,7 @@ int sn_selection_criterion_common_data_default (n2n_edge_t *eee);
 int sn_selection_sort (peer_info_t **peer_list);
 
 /* gathering data function */
-SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (n2n_sn_t *sss);
+SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (n2n_edge_t *sss);
 
 /* management port output function */
 extern char * sn_selection_criterion_str (n2n_edge_t *eee, selection_criterion_str_t out, peer_info_t *peer);

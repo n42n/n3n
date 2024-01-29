@@ -3326,6 +3326,8 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
     memset(conf, 0, sizeof(*conf));
 
+    conf->is_edge = true;
+
     conf->bind_address = NULL;
     conf->preferred_sock.family = AF_INVALID;
     conf->mgmt_port = N2N_EDGE_MGMT_PORT; /* 5644 by default */

@@ -35,9 +35,9 @@
 #include <string.h>      // for memcmp, memcpy, strerror, strncpy
 #include <sys/types.h>   // for ssize_t, time_t
 #include "management.h"  // for mgmt_req_t, send_reply, mgmt_handler_t, mgmt...
-#include "n2n.h"         // for n2n_sn_t, sn_community, N2N_SN_PK...
+#include "n2n.h"         // for n2n_edge_t, sn_community, N2N_SN_PK...
 #include "n2n_define.h"    // for N2N_SN_PKTBUF_SIZE, UNPURGEABLE
-#include "n2n_typedefs.h"  // for n2n_sn_t, sn_community, peer_info, sn_stats_t
+#include "n2n_typedefs.h"  // for n2n_edge_t, sn_community, peer_info, sn_stats_t
 #include "peer_info.h"   // for peer_info, peer_info_t
 #include "uthash.h"      // for UT_hash_handle, HASH_ITER, HASH_COUNT
 
@@ -48,7 +48,7 @@
 #endif
 
 
-int load_allowed_sn_community (n2n_sn_t *sss); /* defined in sn_utils.c */
+int load_allowed_sn_community (n2n_edge_t *sss); /* defined in sn_utils.c */
 
 static void mgmt_reload_communities (mgmt_req_t *req, strbuf_t *buf) {
 
@@ -76,8 +76,8 @@ static void mgmt_timestamps (mgmt_req_t *req, strbuf_t *buf) {
               "\"last_reg_super\":%ld}\n",
               req->tag,
               req->sss->start_time,
-              req->sss->stats.last_fwd,
-              req->sss->stats.last_reg_super);
+              req->sss->sn_stats.last_fwd,
+              req->sss->sn_stats.last_reg_super);
 
     send_reply(req, buf);
 }
@@ -90,7 +90,7 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"type\":\"forward\","
               "\"tx_pkt\":%lu}\n",
               req->tag,
-              req->sss->stats.fwd);
+              req->sss->sn_stats.fwd);
 
     send_reply(req, buf);
     sb_zero(buf);
@@ -102,7 +102,7 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"type\":\"broadcast\","
               "\"tx_pkt\":%lu}\n",
               req->tag,
-              req->sss->stats.broadcast);
+              req->sss->sn_stats.broadcast);
 
     send_reply(req, buf);
     sb_zero(buf);
@@ -115,8 +115,8 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"rx_pkt\":%lu,"
               "\"nak\":%lu}\n",
               req->tag,
-              req->sss->stats.reg_super,
-              req->sss->stats.reg_super_nak);
+              req->sss->sn_stats.reg_super,
+              req->sss->sn_stats.reg_super_nak);
 
     /* Note: reg_super_nak is not currently incremented anywhere */
 
@@ -131,7 +131,7 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"type\":\"errors\","
               "\"tx_pkt\":%lu}\n",
               req->tag,
-              req->sss->stats.errors);
+              req->sss->sn_stats.errors);
 
     send_reply(req, buf);
 }
@@ -283,7 +283,7 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
     return;
 }
 
-int process_mgmt (n2n_sn_t *sss,
+int process_mgmt (n2n_edge_t *sss,
                   const struct sockaddr *sender_sock, socklen_t sock_size,
                   char *mgmt_buf,
                   size_t mgmt_size,
@@ -295,9 +295,9 @@ int process_mgmt (n2n_sn_t *sss,
 
     req.eee = NULL;
     req.sss = sss;
-    req.mgmt_sock = sss->mgmt_sock;
+    req.mgmt_sock = sss->udp_mgmt_sock;
     req.keep_running = sss->keep_running;
-    req.mgmt_password = sss->mgmt_password;
+    req.mgmt_password = sss->conf.mgmt_password;
     memcpy(&req.sender_sock, sender_sock, sock_size);
     req.sock_len = sock_size;
 

@@ -150,12 +150,12 @@ int quick_edge_init (char *device_name, char *community_name,
                      char *supernode_ip_address_port,
                      bool *keep_on_running);
 int comm_init (struct sn_community *comm, char *cmn);
-int sn_init_defaults (n2n_sn_t *sss);
-void sn_init (n2n_sn_t *sss);
-void sn_term (n2n_sn_t *sss);
+int sn_init_defaults (n2n_edge_t *sss);
+void sn_init (n2n_edge_t *sss);
+void sn_term (n2n_edge_t *sss);
 struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add);
-int run_sn_loop (n2n_sn_t *sss);
-int assign_one_ip_subnet (n2n_sn_t *sss, struct sn_community *comm);
+int run_sn_loop (n2n_edge_t *sss);
+int assign_one_ip_subnet (n2n_edge_t *sss, struct sn_community *comm);
 
 void mgmt_event_post (enum n2n_event_topic topic, int data0, void *data1);
 #endif /* _N2N_H_ */

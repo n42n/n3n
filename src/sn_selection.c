@@ -202,7 +202,7 @@ int sn_selection_sort (peer_info_t **peer_list) {
 /* Function that gathers requested data on a supernode.
  * it remains unaffected by selection strategy because it refers to edge behaviour only
  */
-SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (n2n_sn_t *sss) {
+SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (n2n_edge_t *sss) {
 
     SN_SELECTION_CRITERION_DATA_TYPE data = 0, tmp = 0;
     struct sn_community *comm, *tmp_comm;

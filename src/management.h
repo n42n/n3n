@@ -13,7 +13,7 @@
 
 #include <connslot/connslot.h>  // for conn_t
 #include <connslot/strbuf.h>    // for strbuf_t
-#include <n2n_typedefs.h>  // For the n2n_edge_t and n2n_sn_t defs
+#include <n2n_typedefs.h>  // For the n2n_edge_t
 #include <stdbool.h>
 #include <stddef.h>        // for size_t
 #include <stdint.h>        // for uint64_t
@@ -44,7 +44,7 @@ enum n2n_mgmt_type {
  *   - mgmt_password
  */
 typedef struct mgmt_req {
-    n2n_sn_t *sss;
+    n2n_edge_t *sss;
     n2n_edge_t *eee;
     int mgmt_sock;                  // socket replies come from
     bool *keep_running;
@@ -117,7 +117,7 @@ bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline);
 
 void readFromMgmtSocket (n2n_edge_t *eee);
 
-int process_mgmt (n2n_sn_t *sss,
+int process_mgmt (n2n_edge_t *sss,
                   const struct sockaddr *sender_sock, socklen_t sock_size,
                   char *mgmt_buf,
                   size_t mgmt_size,
