@@ -552,13 +552,21 @@ struct mgmt_jsonrpc_method {
 };
 
 static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
-    { "get_community", jsonrpc_get_community },
-    { "get_edges", jsonrpc_get_edges },
-    { "get_packetstats", jsonrpc_get_packetstats },
-    { "get_supernodes", jsonrpc_get_supernodes },
-    { "get_timestamps", jsonrpc_get_timestamps },
-    { "get_verbose", jsonrpc_get_verbose },
-    { "set_verbose", jsonrpc_todo },
+    { "get_community", jsonrpc_get_community, "Show current edge community" },
+    { "get_edges", jsonrpc_get_edges, "List current edges/peers" },
+    { "get_packetstats", jsonrpc_get_packetstats, "traffic counters" },
+    { "get_supernodes", jsonrpc_get_supernodes, "List current supernodes" },
+    { "get_timestamps", jsonrpc_get_timestamps, "Event timestamps" },
+    { "get_verbose", jsonrpc_get_verbose, "Logging verbosity" },
+    { "set_verbose", jsonrpc_todo, "Set logging verbosity" },
+    // get_info
+    // stop
+    // post.test
+    // help
+    // help.events
+    // get_last_event
+    // reload_communities
+    // get_communities
 };
 
 static void render_error (n2n_edge_t *eee, conn_t *conn) {
