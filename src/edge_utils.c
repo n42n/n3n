@@ -2931,6 +2931,12 @@ int run_edge_loop (n2n_edge_t *eee) {
                 )
             );
 
+        // FIXME:
+        // unlock the windows tun reader thread before select() and lock it
+        // again after select().  It currently works by accident, but the
+        // structures it manipulates are not thread-safe, so try to make it
+        // work by /design/
+
         struct timeval wait_time;
         wait_time.tv_sec = (eee->sn_wait) ? (SOCKET_TIMEOUT_INTERVAL_SECS / 10 + 1) : (SOCKET_TIMEOUT_INTERVAL_SECS);
         wait_time.tv_usec = 0;
