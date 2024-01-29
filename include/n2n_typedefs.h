@@ -642,6 +642,7 @@ typedef struct n2n_sn {
     int tcp_sock;                                           /* auxiliary socket for optional TCP connections */
     n2n_tcp_connection_t                   *tcp_connections;/* list of established TCP connections */
     int mgmt_sock;                                          /* management socket. */
+    slots_t *mgmt_slots;
     n2n_ip_subnet_t min_auto_ip_net;                        /* Address range of auto_ip service. */
     n2n_ip_subnet_t max_auto_ip_net;                        /* Address range of auto_ip service. */
     uint32_t userid;

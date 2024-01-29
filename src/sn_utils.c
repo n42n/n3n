@@ -19,6 +19,7 @@
  */
 
 
+#include <connslot/connslot.h>
 #include <errno.h>              // for errno, EAFNOSUPPORT
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
@@ -888,6 +889,12 @@ void sn_term (n2n_sn_t *sss) {
 
     if(sss->community_file)
         free(sss->community_file);
+
+    // TODO: merge config, then:
+    // free(sss->conf.sessiondir);
+
+    slots_free(sss->mgmt_slots);
+
 #ifdef _WIN32
     destroyWin32();
 #endif
@@ -2604,6 +2611,16 @@ int run_sn_loop (n2n_sn_t *sss) {
         }
 #endif
 
+        slots_t *slots = sss->mgmt_slots;
+        max_sock = max(
+            max_sock,
+            slots_fdset(
+                slots,
+                &readers,
+                &writers
+                )
+            );
+
         wait_time.tv_sec = 10;
         wait_time.tv_usec = 0;
 
@@ -2837,6 +2854,38 @@ int run_sn_loop (n2n_sn_t *sss) {
                         );
                 }
             }
+
+            int slots_ready = slots_fdset_loop(slots, &readers, &writers);
+
+            if(slots_ready < 0) {
+                traceEvent(
+                    TRACE_ERROR,
+                    "error: slots_fdset_loop = %i", slots_ready
+                    );
+            } else if(slots_ready > 0) {
+                // see edge_utils for note about linear scan
+                for(int i=0; i<slots->nr_slots; i++) {
+                    if(slots->conn[i].fd == -1) {
+                        continue;
+                    }
+
+                    if(slots->conn[i].state == CONN_READY) {
+                        // TODO: merge conf and then:
+                        // mgmt_api_handler(sss, &slots->conn[i]);
+                        //
+                        // for now, just echo
+                        strbuf_t **pp;
+                        slots->conn[i].reply = slots->conn[i].request;
+
+                        pp = &slots->conn[i].reply_header;
+                        sb_reprintf(pp, "HTTP/1.1 200 OK\r\n");
+                        int len = sb_len(slots->conn[i].reply);
+                        sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
+                        conn_write(&slots->conn[i]);
+                    }
+                }
+            }
+
         }
 
         // If anything we recieved caused us to stop..

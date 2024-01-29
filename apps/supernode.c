@@ -19,6 +19,7 @@
  */
 
 
+#include <connslot/connslot.h>
 #include <ctype.h>             // for isspace
 #include <errno.h>             // for errno
 #include <getopt.h>            // for required_argument, getopt_long, no_arg...
@@ -714,6 +715,21 @@ int main (int argc, char * const argv[]) {
     } else {
         traceEvent(TRACE_NORMAL, "supernode is listening on UDP %u (management)", sss_node.mport);
     }
+
+    sss_node.mgmt_slots = slots_malloc(5);
+    if(!sss_node.mgmt_slots) {
+        abort();
+    }
+
+    if(slots_listen_tcp(sss_node.mgmt_slots, sss_node.mport, false)!=0) {
+        perror("slots_listen_tcp");
+        exit(1);
+    }
+
+    // TODO: merge conf and then can:
+    // n3n_config_setup_sessiondir(&sss->conf);
+    //
+    // also slots_listen_unix()
 
     HASH_ITER(hh, sss_node.federation->edges, scan, tmp)
     scan->socket_fd = sss_node.sock;
