@@ -24,7 +24,8 @@ jobs:
         run: |
           ./autogen.sh
           ./configure
-          make -j4 test
+          make -j4 all
+          make test
 
       - if: ${{ failure() }}
         name: Upload tests output
@@ -68,7 +69,8 @@ jobs:
             CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
             LDFLAGS="--coverage"
           make build-dep
-          make -j4 test
+          make -j4 all
+          make test
 
       - name: Generate coverage reports
         run: |
