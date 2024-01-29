@@ -2573,35 +2573,34 @@ int run_sn_loop (n2n_sn_t *sss) {
 
     while(*sss->keep_running) {
         int rc;
-        ssize_t bread;
         int max_sock;
-        fd_set socket_mask;
-        n2n_tcp_connection_t *conn, *tmp_conn;
-
-#ifdef N2N_HAVE_TCP
-        SOCKET tmp_sock;
-        n2n_sock_str_t sockbuf;
-#endif
+        ssize_t bread;
+        fd_set readers;
+        fd_set writers;
+        n2n_tcp_connection_t *conn;
+        n2n_tcp_connection_t *tmp_conn;
         struct timeval wait_time;
-        time_t before, now = 0;
+        time_t before;
+        time_t now;
 
-        FD_ZERO(&socket_mask);
+        FD_ZERO(&readers);
+        FD_ZERO(&writers);
 
-        FD_SET(sss->sock, &socket_mask);
-#ifdef N2N_HAVE_TCP
-        FD_SET(sss->tcp_sock, &socket_mask);
-#endif
-        FD_SET(sss->mgmt_sock, &socket_mask);
-
-        max_sock = MAX(MAX(sss->sock, sss->mgmt_sock), sss->tcp_sock);
+        FD_SET(sss->sock, &readers);
+        FD_SET(sss->mgmt_sock, &readers);
+        max_sock = MAX(sss->sock, sss->mgmt_sock);
 
 #ifdef N2N_HAVE_TCP
+        n2n_sock_str_t sockbuf;
+        FD_SET(sss->tcp_sock, &readers);
+
         // add the tcp connections' sockets
         HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn) {
             //socket descriptor
-            FD_SET(conn->socket_fd, &socket_mask);
-            if(conn->socket_fd > max_sock)
-                max_sock = conn->socket_fd;
+            FD_SET(conn->socket_fd, &readers);
+            if(conn->socket_fd > max_sock) {
+                max_sock = MAX(max_sock, conn->socket_fd);
+            }
         }
 #endif
 
@@ -2610,26 +2609,49 @@ int run_sn_loop (n2n_sn_t *sss) {
 
         before = time(NULL);
 
-        rc = select(max_sock + 1, &socket_mask, NULL, NULL, &wait_time);
+        rc = select(max_sock + 1, &readers, &writers, NULL, &wait_time);
 
         now = time(NULL);
+
+        if(rc == 0) {
+            if(((now - before) < wait_time.tv_sec) && (*sss->keep_running)) {
+                // this is no real timeout, something went wrong with one of the tcp connections (probably)
+                // close them all, edges will re-open if they detect closure
+                // FIXME: untangle this as the description above is unlikely
+                traceEvent(TRACE_DEBUG, "falsly claimed timeout, assuming issue with tcp connection, closing them all");
+                HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn) {
+                    close_tcp_connection(sss, conn);
+                }
+            } else {
+                traceEvent(TRACE_DEBUG, "timeout");
+            }
+        }
 
         if(rc > 0) {
 
             // external udp
-            if(FD_ISSET(sss->sock, &socket_mask)) {
+            if(FD_ISSET(sss->sock, &readers)) {
                 struct sockaddr_storage sas;
                 struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                 socklen_t ss_size = sizeof(sas);
 
-                bread = recvfrom(sss->sock, (void *)pktbuf, N2N_SN_PKTBUF_SIZE, 0 /*flags*/,
-                                 sender_sock, &ss_size);
+                bread = recvfrom(
+                    sss->sock,
+                    (void *)pktbuf,
+                    N2N_SN_PKTBUF_SIZE,
+                    0 /*flags*/,
+                    sender_sock,
+                    &ss_size
+                    );
 
                 if((bread < 0)
 #ifdef _WIN32
                    && (WSAGetLastError() != WSAECONNRESET)
 #endif
                    ) {
+                    // FIXME: when would we get a WSAECONNRESET on a UDP read
+                    // of a non connected socket
+
                     /* For UDP bread of zero just means no data (unlike TCP). */
                     /* The fd is no good now. Maybe we lost our interface. */
                     traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
@@ -2637,13 +2659,20 @@ int run_sn_loop (n2n_sn_t *sss) {
                     traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
 #endif
                     *sss->keep_running = false;
-                    break;
                 }
 
                 // we have a datagram to process...
                 if(bread > 0) {
                     // ...and the datagram has data (not just a header)
-                    process_udp(sss, sender_sock, ss_size, sss->sock, pktbuf, bread, now);
+                    process_udp(
+                        sss,
+                        sender_sock,
+                        ss_size,
+                        sss->sock,
+                        pktbuf,
+                        bread,
+                        now
+                        );
                 }
             }
 
@@ -2660,14 +2689,21 @@ int run_sn_loop (n2n_sn_t *sss) {
                 if(conn->inactive)
                     continue;
 
-                if(FD_ISSET(conn->socket_fd, &socket_mask)) {
+                if(FD_ISSET(conn->socket_fd, &readers)) {
                     struct sockaddr_storage sas;
                     struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                     socklen_t ss_size = sizeof(sas);
 
-                    bread = recvfrom(conn->socket_fd,
-                                     conn->buffer + conn->position, conn->expected - conn->position, 0 /*flags*/,
-                                     sender_sock, &ss_size);
+                    // TODO: this all looks like it could use a tcp buffer
+                    // management layer - like the connslot abstraction
+                    bread = recvfrom(
+                        conn->socket_fd,
+                        conn->buffer + conn->position,
+                        conn->expected - conn->position,
+                        0 /*flags*/,
+                        sender_sock,
+                        &ss_size
+                        );
 
                     if(bread <= 0) {
                         traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
@@ -2692,8 +2728,15 @@ int run_sn_loop (n2n_sn_t *sss) {
                             }
                         } else {
                             // full packet read, handle it
-                            process_udp(sss, &(conn->sock), conn->sock_len, conn->socket_fd,
-                                        conn->buffer + sizeof(uint16_t), conn->position - sizeof(uint16_t), now);
+                            process_udp(
+                                sss,
+                                &(conn->sock),
+                                conn->sock_len,
+                                conn->socket_fd,
+                                conn->buffer + sizeof(uint16_t),
+                                conn->position - sizeof(uint16_t),
+                                now
+                                );
 
                             // reset, await new prepended length
                             conn->expected = sizeof(uint16_t);
@@ -2712,16 +2755,24 @@ int run_sn_loop (n2n_sn_t *sss) {
             }
 
             // accept new incoming tcp connection
-            if(FD_ISSET(sss->tcp_sock, &socket_mask)) {
+            if(FD_ISSET(sss->tcp_sock, &readers)) {
                 struct sockaddr_storage sas;
                 struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                 socklen_t ss_size = sizeof(sas);
 
                 if((HASH_COUNT(sss->tcp_connections) + 4) < FD_SETSIZE) {
-                    tmp_sock = accept(sss->tcp_sock, sender_sock, &ss_size);
-                    // REVISIT: should we error out if ss_size returns bigger than before? can this ever happen?
+                    SOCKET tmp_sock = accept(
+                        sss->tcp_sock,
+                        sender_sock,
+                        &ss_size
+                        );
+                    // REVISIT: should we error out if ss_size returns bigger
+                    // than before? can this ever happen?
                     if(tmp_sock >= 0) {
-                        conn = (n2n_tcp_connection_t*)calloc(1, sizeof(n2n_tcp_connection_t));
+                        conn = (n2n_tcp_connection_t*)calloc(
+                            1,
+                            sizeof(n2n_tcp_connection_t)
+                            );
                         if(conn) {
                             conn->socket_fd = tmp_sock;
                             memcpy(&(conn->sock), sender_sock, ss_size);
@@ -2730,53 +2781,90 @@ int run_sn_loop (n2n_sn_t *sss) {
                             conn->expected = sizeof(uint16_t);
                             conn->position = 0;
                             HASH_ADD_INT(sss->tcp_connections, socket_fd, conn);
-                            traceEvent(TRACE_INFO, "accepted incoming TCP connection from [%s]",
-                                       sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
+                            traceEvent(
+                                TRACE_INFO,
+                                "accepted incoming TCP connection from [%s]",
+                                sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
+                                );
                         }
                     }
                 } else {
                     // no space to store the socket for a new connection, close immediately
-                    traceEvent(TRACE_DEBUG, "denied incoming TCP connection from [%s] due to max connections limit hit",
-                               sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
+                    traceEvent(
+                        TRACE_DEBUG,
+                        "denied incoming TCP connection from [%s] due to max connections limit hit",
+                        sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
+                        );
                 }
             }
 #endif /* N2N_HAVE_TCP */
 
             // handle management port input
-            if(FD_ISSET(sss->mgmt_sock, &socket_mask)) {
+            if(FD_ISSET(sss->mgmt_sock, &readers)) {
                 struct sockaddr_storage sas;
                 struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                 socklen_t ss_size = sizeof(sas);
 
-                bread = recvfrom(sss->mgmt_sock, (void *)pktbuf, N2N_SN_PKTBUF_SIZE, 0 /*flags*/,
-                                 sender_sock, &ss_size);
+                bread = recvfrom(
+                    sss->mgmt_sock,
+                    (void *)pktbuf,
+                    N2N_SN_PKTBUF_SIZE,
+                    0 /*flags*/,
+                    sender_sock,
+                    &ss_size
+                    );
 
                 // REVISIT: should we error out if ss_size returns bigger than before? can this ever happen?
                 if(bread <= 0) {
-                    traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
+                    traceEvent(
+                        TRACE_ERROR,
+                        "recvfrom() failed %d errno %d (%s)",
+                        bread,
+                        errno,
+                        strerror(errno)
+                        );
                     *sss->keep_running = false;
-                    break;
+                } else {
+
+                    // we have a datagram to process
+                    process_mgmt(
+                        sss,
+                        sender_sock,
+                        ss_size,
+                        (char *)pktbuf,
+                        bread,
+                        now
+                        );
                 }
-
-                // we have a datagram to process
-                process_mgmt(sss, sender_sock, ss_size, (char *)pktbuf, bread, now);
             }
-
-        } else {
-            if(((now - before) < wait_time.tv_sec) && (*sss->keep_running)) {
-                // this is no real timeout, something went wrong with one of the tcp connections (probably)
-                // close them all, edges will re-open if they detect closure
-                traceEvent(TRACE_DEBUG, "falsly claimed timeout, assuming issue with tcp connection, closing them all");
-                HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn)
-                close_tcp_connection(sss, conn);
-            } else
-                traceEvent(TRACE_DEBUG, "timeout");
         }
 
-        re_register_and_purge_supernodes(sss, sss->federation, &last_re_reg_and_purge, now, 0 /* not forced */);
-        purge_expired_communities(sss, &last_purge_edges, now);
-        sort_communities(sss, &last_sort_communities, now);
-        resolve_check(sss->resolve_parameter, false /* presumably, no special resolution requirement */, now);
+        // If anything we recieved caused us to stop..
+        if(!(*sss->keep_running))
+            break;
+
+        re_register_and_purge_supernodes(
+            sss,
+            sss->federation,
+            &last_re_reg_and_purge,
+            now,
+            0 /* not forced */
+            );
+        purge_expired_communities(
+            sss,
+            &last_purge_edges,
+            now
+            );
+        sort_communities(
+            sss,
+            &last_sort_communities,
+            now
+            );
+        resolve_check(
+            sss->resolve_parameter,
+            false /* presumably, no special resolution requirement */,
+            now
+            );
     } /* while */
 
     sn_term(sss);
