@@ -243,13 +243,23 @@ void conn_close(conn_t *conn) {
 void slots_free(slots_t *slots) {
     for (int i=0; i < slots->nr_slots; i++) {
         conn_t *conn = &slots->conn[i];
+
+        // Since it makes buffer handling significantly simpler, It is a
+        // common pattern that the request buffer is reused for the reply.
+        // Avoid double-free by checking for that.
+        //
+        // Usually, this has not mattered, but Ubuntu defaults to using
+        // some pedantic malloc() settings - and I cannot argue against that.
+        if(conn->request != conn->reply) {
+            // TODO: the application usually owns conn->reply, should we free?
+            free(conn->reply);
+            conn->reply = NULL;
+        }
+
         free(conn->request);
         conn->request = NULL;
         free(conn->reply_header);
         conn->reply_header = NULL;
-        // TODO: the application usually owns conn->reply, should we free?
-        free(conn->reply);
-        conn->reply = NULL;
     }
     free(slots);
 }
