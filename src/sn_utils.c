@@ -178,8 +178,8 @@ void calculate_dynamic_keys (n2n_edge_t *sss) {
         if(comm->allowed_users) {
             calculate_dynamic_key(comm->dynamic_key,           /* destination */
                                   sss->dynamic_key_time,       /* time - same for all */
-                                  (uint8_t *)comm->community,  /* community name */
-                                  (uint8_t *)sss->federation->community); /* federation name */
+                                  comm->community,  /* community name */
+                                  sss->federation->community); /* federation name */
             packet_header_change_dynamic_key(comm->dynamic_key,
                                              &(comm->header_encryption_ctx_dynamic),
                                              &(comm->header_iv_ctx_dynamic));

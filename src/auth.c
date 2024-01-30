@@ -162,11 +162,11 @@ int calculate_dynamic_key (uint8_t out_key[N2N_AUTH_CHALLENGE_SIZE],
     speck_context_t   *ctx;
 
     // we know that N2N_AUTH_CHALLENGE_SIZE == 16, i.e. 128 bit that can take the hash value
-    pearson_hash_128(key, comm, sizeof(n2n_community_t));
+    pearson_hash_128(key, (uint8_t *)comm, sizeof(n2n_community_t));
     pearson_hash_128(key, key, N2N_AUTH_CHALLENGE_SIZE);
     pearson_hash_128(key, key, N2N_AUTH_CHALLENGE_SIZE);
 
-    pearson_hash_128(tmp, fed, sizeof(n2n_community_t));
+    pearson_hash_128(tmp, (uint8_t *)fed, sizeof(n2n_community_t));
     pearson_hash_128(tmp, tmp, N2N_AUTH_CHALLENGE_SIZE);
     pearson_hash_128(tmp, tmp, N2N_AUTH_CHALLENGE_SIZE);
 

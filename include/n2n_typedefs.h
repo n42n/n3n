@@ -36,7 +36,7 @@
 
 #include <config.h>     // for HAVE_LIBZSTD
 
-typedef uint8_t n2n_community_t[N2N_COMMUNITY_SIZE];
+typedef char n2n_community_t[N2N_COMMUNITY_SIZE];
 typedef uint8_t n2n_private_public_key_t[N2N_PRIVATE_PUBLIC_KEY_SIZE];
 typedef uint32_t n2n_cookie_t;
 typedef uint8_t n2n_desc_t[N2N_DESC_SIZE];
