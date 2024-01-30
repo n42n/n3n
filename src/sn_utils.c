@@ -877,6 +877,8 @@ void sn_term (n2n_edge_t *sss) {
         clear_peer_list(&community->edges);
         free(community->header_encryption_ctx_static);
         free(community->header_encryption_ctx_dynamic);
+        free(community->header_iv_ctx_static);
+        free(community->header_iv_ctx_dynamic);
 
         // remove all associations
         HASH_ITER(hh, community->assoc, assoc, tmp_assoc) {
