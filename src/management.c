@@ -731,11 +731,11 @@ static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
     { "get_verbose", jsonrpc_get_verbose, "Logging verbosity" },
     { "set_verbose", jsonrpc_set_verbose, "Set logging verbosity" },
     { "stop", jsonrpc_stop, "Stop the daemon" },
-    // post.test
-    // help
-    // help.events
-    // get_last_event
-    // reload_communities
+    // post.test, "send a test event"
+    // help, "Show JsonRPC methods"
+    // help.events, "Show available Subscribe topics"
+    // get_last_event?
+    // reload_communities, "Reloads communities and user's public keys"
 };
 
 static void render_error (struct n3n_runtime_data *eee, conn_t *conn) {
