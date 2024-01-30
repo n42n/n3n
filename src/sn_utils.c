@@ -875,10 +875,9 @@ void sn_term (n2n_edge_t *sss) {
 
     HASH_ITER(hh, sss->communities, community, tmp) {
         clear_peer_list(&community->edges);
-        if(NULL != community->header_encryption_ctx_static) {
-            free(community->header_encryption_ctx_static);
-            free(community->header_encryption_ctx_dynamic);
-        }
+        free(community->header_encryption_ctx_static);
+        free(community->header_encryption_ctx_dynamic);
+
         // remove all associations
         HASH_ITER(hh, community->assoc, assoc, tmp_assoc) {
             HASH_DEL(community->assoc, assoc);
@@ -896,8 +895,9 @@ void sn_term (n2n_edge_t *sss) {
         free(re);
     }
 
-    if(sss->community_file)
-        free(sss->community_file);
+    free(sss->conf.bind_address);
+
+    free(sss->community_file);
 
     // TODO: merge config, then:
     // free(sss->conf.sessiondir);
