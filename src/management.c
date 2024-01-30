@@ -520,6 +520,35 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
     jsonrpc_result_tail(conn, 200);
 }
 
+static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+    macstr_t mac_buf;
+    n2n_sock_str_t sockbuf;
+
+    struct in_addr ip_addr;
+    ipstr_t ip_address;
+
+    ip_addr.s_addr = eee->device.ip_addr;
+    inaddrtoa(ip_address, ip_addr);
+
+    jsonrpc_result_head(id, conn);
+
+    sb_reprintf(&conn->request,
+                "{"
+                "\"version\":\"%s\","
+                "\"builddate\":\"%s\","
+                "\"macaddr\":\"%s\","
+                "\"ip4addr\":\"%s\","
+                "\"sockaddr\":\"%s\"}",
+                VERSION,
+                BUILDDATE,
+                is_null_mac(eee->device.mac_addr) ? "" : macaddr_str(mac_buf, eee->device.mac_addr),
+                ip_address,
+                sock_to_cstr(sockbuf, &eee->conf.preferred_sock)
+                );
+
+    jsonrpc_result_tail(conn, 200);
+}
+
 static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
@@ -695,13 +724,13 @@ struct mgmt_jsonrpc_method {
 static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
     { "get_communities", jsonrpc_get_communities, "Show current communities" },
     { "get_edges", jsonrpc_get_edges, "List current edges/peers" },
+    { "get_info", jsonrpc_get_info, "Provide basic edge information" },
     { "get_packetstats", jsonrpc_get_packetstats, "traffic counters" },
     { "get_supernodes", jsonrpc_get_supernodes, "List current supernodes" },
     { "get_timestamps", jsonrpc_get_timestamps, "Event timestamps" },
     { "get_verbose", jsonrpc_get_verbose, "Logging verbosity" },
     { "set_verbose", jsonrpc_set_verbose, "Set logging verbosity" },
     { "stop", jsonrpc_stop, "Stop the daemon" },
-    // get_info
     // post.test
     // help
     // help.events
