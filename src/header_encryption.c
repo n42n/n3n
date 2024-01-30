@@ -146,23 +146,15 @@ void packet_header_setup_key (const char *community_name,
 
     pearson_hash_128(key, (uint8_t*)community_name, N2N_COMMUNITY_SIZE);
 
-    if(!*ctx_static)
-        *ctx_static = (he_context_t*)calloc(1, sizeof(speck_context_t));
     speck_init((speck_context_t**)ctx_static, key, 128);
 
-    if(!*ctx_dynamic)
-        *ctx_dynamic = (he_context_t*)calloc(1, sizeof(speck_context_t));
     speck_init((speck_context_t**)ctx_dynamic, key, 128);
 
     // hash again and use as key for IV encryption
     pearson_hash_128(key, key, sizeof(key));
 
-    if(!*ctx_iv_static)
-        *ctx_iv_static = (he_context_t*)calloc(1, sizeof(speck_context_t));
     speck_init((speck_context_t**)ctx_iv_static, key, 128);
 
-    if(!*ctx_iv_dynamic)
-        *ctx_iv_dynamic = (he_context_t*)calloc(1, sizeof(speck_context_t));
     speck_init((speck_context_t**)ctx_iv_dynamic, key, 128);
 }
 
