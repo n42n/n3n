@@ -3153,6 +3153,10 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     destroy_network_traffic_filter(eee->network_traffic_filter);
 
+    // TODO:
+    // - slots_close(eee->mgmt_slots)
+    // - unlink/rmdir the session socket
+
     free(eee->conf.sessiondir);
 
     closeTraceFile();
