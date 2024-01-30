@@ -416,8 +416,10 @@ static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
         jsonrpc_get_edges_row(&conn->request, peer, "p2p");
     }
 
-    // back up over the final ','
-    conn->request->wr_pos--;
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
 
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
@@ -461,8 +463,10 @@ static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
                     peer->uptime);
     }
 
-    // back up over the final ','
-    conn->request->wr_pos--;
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
 
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
@@ -534,8 +538,10 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 eee->stats.tx_multicast_drop,
                 eee->stats.rx_multicast_drop);
 
-    // back up over the final ','
-    conn->request->wr_pos--;
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
 
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
