@@ -115,7 +115,7 @@ int jsonrpc_parse(char *p, jsonrpc_t *json) {
     char *params = json_find_field(p, "\"params\"");
     char *id = json_find_field(p, "\"id\"");
 
-    if(!method || !params || !id) {
+    if(!method || !id) {
         // not a valid jsonrpc request without these fields found
         return -3;
     }
