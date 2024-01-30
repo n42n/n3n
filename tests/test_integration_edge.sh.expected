@@ -1,79 +1,53 @@
 ### test: ./apps/supernode -v
 
-### test: ./scripts/n3n-ctl communities
+### test: ./scripts/n3nctl -u http://localhost:5644 get_communities
 [
     {
         "community": "test"
     }
 ]
 
-### test: ./scripts/n3n-ctl packetstats
+### test: ./scripts/n3nctl -u http://localhost:5644 get_packetstats
 [
-    {
-        "rx_pkt": 0,
-        "tx_pkt": 2,
-        "type": "transop"
-    },
-    {
-        "rx_pkt": 0,
-        "tx_pkt": 0,
-        "type": "p2p"
-    },
-    {
-        "rx_pkt": 0,
-        "tx_pkt": 2,
-        "type": "super"
-    },
-    {
-        "rx_pkt": 0,
-        "tx_pkt": 2,
-        "type": "super_broadcast"
-    },
-    {
-        "rx_pkt": 0,
-        "tx_pkt": 0,
-        "type": "tuntap_error"
-     }
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 2,
+    "type": "transop"
+  },
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 0,
+    "type": "p2p"
+  },
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 2,
+    "type": "super"
+  },
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 2,
+    "type": "super_broadcast"
+  },
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 0,
+    "type": "tuntap_error"
+  }
 ]
 
-### test: ./scripts/n3n-ctl edges --raw
+### test: ./scripts/n3nctl -u http://localhost:5644 get_edges --raw
 []
 
-### test: ./scripts/n3n-ctl verbose
-[
-    {
-        "traceLevel": 2
-    }
-]
+### test: ./scripts/n3nctl -u http://localhost:5644 get_verbose
+2
 
-### test: ./scripts/n3n-ctl --write verbose 1
-
+### test: ./scripts/n3nctl -u http://localhost:5644 -k n3n set_verbose 1
 1
-### test: ./scripts/n3n-ctl -k n3n --write verbose 1
-[
-    {
-        "traceLevel": 1
-    }
-]
 
-### test: ./scripts/n3n-ctl stop
-[
-    {
-        "keep_running": 1
-    }
-]
+### test: ./scripts/n3nctl -u http://localhost:5644 -k n3n stop
+0
 
-### test: ./scripts/n3n-ctl -k n3n --write stop
-[
-    {
-        "keep_running": 0
-    }
-]
-
-### test: ./scripts/n3n-ctl -t 5645 -k n3n --write stop
-[
-    {
-        "keep_running": 0
-    }
-]
+### test: ./scripts/n3nctl -u http://localhost:5645 -k n3n stop
+0
 

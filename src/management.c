@@ -351,23 +351,91 @@ static void jsonrpc_1uint (char *id, conn_t *conn, uint32_t result) {
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_1str (char *id, conn_t *conn, char *result) {
-    jsonrpc_result_head(id, conn);
-    sb_reprintf(&conn->request, "\"%s\"", result);
-    jsonrpc_result_tail(conn, 200);
-}
-
-static void jsonrpc_get_verbose (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
+static void jsonrpc_get_verbose (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     jsonrpc_1uint(id, conn, getTraceLevel());
 }
 
-static void jsonrpc_get_community (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
-    if(eee->conf.header_encryption != HEADER_ENCRYPTION_NONE) {
-        jsonrpc_error(id, conn, 403, "Forbidden");
+static void jsonrpc_set_verbose (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params_in) {
+    // FIXME: add auth check
+
+    if(!params_in) {
+        jsonrpc_error(id, conn, 400, "missing param");
         return;
     }
 
-    jsonrpc_1str(id, conn, (char *)eee->conf.community_name);
+    if(*params_in != '[') {
+        jsonrpc_error(id, conn, 400, "expecting array");
+        return;
+    }
+
+    // Avoid discarding the const attribute
+    char *params = strdup(params_in+1);
+
+    char *arg1 = json_extract_val(params);
+
+    if(*arg1 == '"') {
+        arg1++;
+    }
+
+    setTraceLevel(strtoul(arg1, NULL, 0));
+    jsonrpc_get_verbose(id, eee, conn, params);
+    free(params);
+}
+
+static void jsonrpc_stop (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+    // FIXME: add auth check
+
+    *eee->keep_running = false;
+
+    jsonrpc_1uint(id, conn, *eee->keep_running);
+}
+
+static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+    if(!eee->communities) {
+        // This is an edge
+        if(eee->conf.header_encryption != HEADER_ENCRYPTION_NONE) {
+            jsonrpc_error(id, conn, 403, "Forbidden");
+            return;
+        }
+
+        jsonrpc_result_head(id, conn);
+        sb_reprintf(
+            &conn->request,
+            "[{\"community\":\"%s\"}]",
+            eee->conf.community_name
+            );
+        jsonrpc_result_tail(conn, 200);
+        return;
+    }
+
+    // Otherwise send the supernode's view
+    struct sn_community *community, *tmp;
+    dec_ip_bit_str_t ip_bit_str = {'\0'};
+
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->request, "[");
+
+    HASH_ITER(hh, eee->communities, community, tmp) {
+
+        sb_reprintf(&conn->request,
+                    "{"
+                    "\"community\":\"%s\","
+                    "\"purgeable\":%i,"
+                    "\"is_federation\":%i,"
+                    "\"ip4addr\":\"%s\"},",
+                    (community->is_federation) ? "-/-" : community->community,
+                    community->purgeable,
+                    community->is_federation,
+                    (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
+    }
+
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
+
+    sb_reprintf(&conn->request, "]");
+    jsonrpc_result_tail(conn, 200);
 }
 
 static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, const char *mode, const char *community) {
@@ -378,7 +446,7 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
     sb_reprintf(reply,
                 "{"
                 "\"mode\":\"%s\","
-                "\"community\":%s,"
+                "\"community\":\"%s\","
                 "\"ip4addr\":\"%s\","
                 "\"purgeable\":%i,"
                 "\"local\":%i,"
@@ -404,7 +472,7 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
     // TODO: add a proto: TCP|UDP item to the output
 }
 
-static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
+static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     struct peer_info *peer, *tmpPeer;
 
     jsonrpc_result_head(id, conn);
@@ -452,7 +520,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
+static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
@@ -499,7 +567,7 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_get_timestamps (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
+static void jsonrpc_get_timestamps (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request,
                 "{"
@@ -522,7 +590,7 @@ static void jsonrpc_get_timestamps (char *id, struct n3n_runtime_data *eee, conn
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
+static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
 
@@ -612,32 +680,33 @@ static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, con
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_todo (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
+#if 0
+static void jsonrpc_todo (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     jsonrpc_error(id, conn, 501, "TODO");
 }
+#endif
 
 struct mgmt_jsonrpc_method {
     char *method;
-    void (*func)(char *id, struct n3n_runtime_data *eee, conn_t *conn);
+    void (*func)(char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params);
     char *desc;
 };
 
 static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
-    { "get_community", jsonrpc_get_community, "Show current edge community" },
+    { "get_communities", jsonrpc_get_communities, "Show current communities" },
     { "get_edges", jsonrpc_get_edges, "List current edges/peers" },
     { "get_packetstats", jsonrpc_get_packetstats, "traffic counters" },
     { "get_supernodes", jsonrpc_get_supernodes, "List current supernodes" },
     { "get_timestamps", jsonrpc_get_timestamps, "Event timestamps" },
     { "get_verbose", jsonrpc_get_verbose, "Logging verbosity" },
-    { "set_verbose", jsonrpc_todo, "Set logging verbosity" },
+    { "set_verbose", jsonrpc_set_verbose, "Set logging verbosity" },
+    { "stop", jsonrpc_stop, "Stop the daemon" },
     // get_info
-    // stop
     // post.test
     // help
     // help.events
     // get_last_event
     // reload_communities
-    // get_communities
 };
 
 static void render_error (struct n3n_runtime_data *eee, conn_t *conn) {
@@ -692,7 +761,7 @@ static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
         // "Unknown method
         goto error;
     } else {
-        jsonrpc_methods[i].func(idbuf, eee, conn);
+        jsonrpc_methods[i].func(idbuf, eee, conn, json.params);
     }
     return;
 

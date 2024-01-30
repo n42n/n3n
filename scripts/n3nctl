@@ -6,136 +6,86 @@
 # Simple script to query the management interface of a running n3n edge node
 
 import argparse
-import socket
-import json
 import collections
+import json
+import os
+import socket
 import time
+import urllib
+import urllib.request
 
 
-class JsonUDP():
-    """encapsulate communication with the edge"""
-
-    def __init__(self, port):
-        self.address = "127.0.0.1"
-        self.port = port
-        self.tag = 0
-        self.key = None
+class JsonRPC:
+    def __init__(self, url):
         self.debug = False
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(1)
 
-    def _next_tag(self):
-        tagstr = str(self.tag)
-        self.tag = (self.tag + 1) % 1000
-        return tagstr
+        if url is None:
+            raise ValueError("need url")
 
-    def _cmdstr(self, msgtype, cmdline):
-        """Create the full command string to send"""
-        tagstr = self._next_tag()
+        if url.startswith("unix://"):
+            self.sessionname = url[7:]
+        else:
+            self.url = url + "/v1"
+        self.timeout = 5
+        self.id = 0
 
-        options = [tagstr]
-        if self.key is not None:
-            options += ['1']  # Flags set for auth key field
-            options += [self.key]
-        optionsstr = ':'.join(options)
+    def _data(self, method, params):
+        self.id += 1
+        data = {
+            "jsonrpc": "2.0",
+            "id": self.id,
+            "method": method,
+            "params": params
+        }
+        json_data = json.dumps(data).encode('utf8')
+        if self.debug:
+            print("data:", json_data)
 
-        return tagstr, ' '.join((msgtype, optionsstr, cmdline))
+        return json_data
 
-    def _rx(self, tagstr):
-        """Wait for rx packets"""
+    def _request_obj(self, method, params):
+        data = self._data(method, params)
 
-        seen_begin = False
-        while not seen_begin:
-            # TODO: there are no timeouts with any of the recv calls
-            data, _ = self.sock.recvfrom(1024)
-            data = json.loads(data.decode('utf8'))
+        req = urllib.request.Request(
+            method="POST",
+            url=self.url,
+            headers={
+                "Content-Type": "application/json",
+            },
+            data=data,
+        )
+        return req
 
-            # TODO: We assume the first packet we get will be tagged for us
-            assert (data['_tag'] == tagstr)
+    def get(self, method, params=None):
+        if hasattr(self, "sessionname"):
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            path = f"/run/n3n/{self.sessionname}/mgmt"
+            sock.connect(path)
+            data = b"POST /v1 \r\n\r\n" + self._data(method, params)
+            sock.sendall(data)
 
-            if data['_type'] == 'error':
-                raise ValueError('Error: {}'.format(data['error']))
+            reply = sock.recv(16384)
+            _, body = reply.split(b"\r\n\r\n")
 
-            if data['_type'] == 'replacing':
-                # a signal that we have evicted an earlier subscribe
-                continue
+        else:
+            req = self._request_obj(method, params)
 
-            if data['_type'] == 'subscribe':
-                return True
+            r = urllib.request.urlopen(req, timeout=self.timeout)
+            if r.status != 200:
+                raise ValueError(f"urllib request got {r.status} {r.reason}")
 
-            if data['_type'] == 'begin':
-                seen_begin = True
+            body = r.read()
 
-                # Ideally, we would confirm that this is our "begin", but that
-                # would need the cmd passed into this method, and that would
-                # probably require parsing the cmdline passed to us :-(
-                # assert(data['cmd'] == cmd)
+        if self.debug:
+            print("reply:", body)
+        r = json.loads(body)
 
-                continue
+        if "result" not in r:
+            raise ValueError("jsonrpc error")
 
-            raise ValueError('Unknown data type {} from '
-                             'edge'.format(data['_type']))
+        assert (r['id'] == str(self.id))
 
-        result = list()
-        error = None
-
-        while True:
-            data, _ = self.sock.recvfrom(1024)
-            data = json.loads(data.decode('utf8'))
-
-            if data['_tag'] != tagstr:
-                # this packet is not for us, ignore it
-                continue
-
-            if data['_type'] == 'error':
-                # we still expect an end packet, so save the error
-                error = ValueError('Error: {}'.format(data['error']))
-                continue
-
-            if data['_type'] == 'end':
-                if error:
-                    raise error
-                return result
-
-            if data['_type'] != 'row':
-                raise ValueError('Unknown data type {} from '
-                                 'edge'.format(data['_type']))
-
-            # remove our boring metadata
-            del data['_tag']
-            del data['_type']
-
-            if self.debug:
-                print(data)
-
-            result.append(data)
-
-    def _call(self, msgtype, cmdline):
-        """Perform a rpc call"""
-        tagstr, msgstr = self._cmdstr(msgtype, cmdline)
-        self.sock.sendto(msgstr.encode('utf8'), (self.address, self.port))
-        return self._rx(tagstr)
-
-    def read(self, cmdline):
-        return self._call('r', cmdline)
-
-    def write(self, cmdline):
-        return self._call('w', cmdline)
-
-    def sub(self, cmdline):
-        return self._call('s', cmdline)
-
-    def readevent(self):
-        self.sock.settimeout(3600)
-
-        data, _ = self.sock.recvfrom(1024)
-        data = json.loads(data.decode('utf8'))
-        # assert(data['_tag'] == tagstr)
-        assert (data['_type'] == 'event')
-
-        del data['_tag']
-        del data['_type']
-        return data
+        return r['result']
 
 
 def str_table(rows, columns, orderby):
@@ -197,7 +147,7 @@ def num2timestr(seconds):
 
 
 def subcmd_show_supernodes(rpc, args):
-    rows = rpc.read('supernodes')
+    rows = rpc.get('get_supernodes')
     columns = [
         'version',
         'current',
@@ -215,7 +165,7 @@ def subcmd_show_supernodes(rpc, args):
 
 
 def subcmd_show_edges(rpc, args):
-    rows = rpc.read('edges')
+    rows = rpc.get('get_edges')
     columns = [
         'mode',
         'ip4addr',
@@ -240,9 +190,14 @@ def subcmd_show_help(rpc, args):
     result += "\n"
     result += "Possble remote commands:\n"
     result += "(those without a pretty-printer will pass-through)\n\n"
-    rows = rpc.read('help')
-    for row in rows:
-        result += "{:12} {}\n".format(row['cmd'], row['help'])
+
+    try:
+        rows = rpc.get('help')
+        for row in rows:
+            result += "{:12} {}\n".format(row['cmd'], row['help'])
+    except urllib.error.HTTPError:
+        result += "Error requesting help data"
+
     return result
 
 
@@ -264,18 +219,10 @@ subcmds = {
 
 def subcmd_default(rpc, args):
     """Just pass command through to edge"""
-    cmdline = ' '.join([args.cmd] + args.args)
-    if args.write:
-        rows = rpc.write(cmdline)
-    elif args.read:
-        rows = rpc.read(cmdline)
-    elif args.sub:
-        if not rpc.sub(cmdline):
-            raise ValueError('Could not subscribe')
-        while True:
-            event = rpc.readevent()
-            # FIXME: violates layering..
-            print(json.dumps(event, sort_keys=True, indent=4))
+    method = args.cmd
+    params = args.args
+    if args.read:
+        rows = rpc.get(method, params)
     else:
         raise ValueError('Unknown request type')
     return json.dumps(rows, sort_keys=True, indent=4)
@@ -284,8 +231,10 @@ def subcmd_default(rpc, args):
 def main():
     ap = argparse.ArgumentParser(
             description='Query the running local n3n edge')
-    ap.add_argument('-t', '--mgmtport', action='store', default=5644,
-                    help='Management Port (default=5644)', type=int)
+    ap.add_argument('-s', '--sessionname', action='store',
+                    help='Which session to use')
+    ap.add_argument('-u', '--mgmturl', action='store',
+                    help='Management API URL')
     ap.add_argument('-k', '--key', action='store',
                     help='Password for mgmt commands')
     ap.add_argument('-d', '--debug', action='store_true',
@@ -311,6 +260,26 @@ def main():
 
     args = ap.parse_args()
 
+    if args.sessionname is not None:
+        args.mgmturl = "unix://" + args.sessionname
+
+    if args.mgmturl is None:
+        # try to guess the sessionname
+        try:
+            sessions = os.listdir("/run/n3n")
+        except FileNotFoundError:
+            sessions = []
+
+        if len(sessions) == 1:
+            # There is only one session, so choose that one
+            args.mgmturl = "unix://" + sessions[0]
+        else:
+            print(
+                "Error: could not guess sessionname, please use "
+                "the --sessionname option"
+            )
+            exit(1)
+
     if not args.read and not args.write and not args.sub:
         args.read = True
 
@@ -319,7 +288,7 @@ def main():
     else:
         func = subcmds[args.cmd]['func']
 
-    rpc = JsonUDP(args.mgmtport)
+    rpc = JsonRPC(args.mgmturl)
     rpc.debug = args.debug
     rpc.key = args.key
 

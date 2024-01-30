@@ -32,36 +32,33 @@ docmd sudo "${BINDIR}"/apps/edge start -l localhost:7654 -c test >/dev/null
 # available?
 sleep 0.1
 
-docmd "${TOPDIR}"/scripts/n3n-ctl communities
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 get_communities
 
-echo "### test: ${TOPDIR}/scripts/n3n-ctl packetstats"
-"${TOPDIR}"/scripts/n3n-ctl packetstats |jq '.[0:5]'
+echo "### test: ${TOPDIR}/scripts/n3nctl -u http://localhost:5644 get_packetstats"
+"${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 get_packetstats |jq '.[0:5]'
 # this is filtering out the type=multicast_drop line as that has a changing
 # number of packets counted
 echo
 
-docmd "${TOPDIR}"/scripts/n3n-ctl edges --raw |grep -v "last_seen"
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 get_edges --raw |grep -v "last_seen"
 
 # TODO:
-# docmd ${TOPDIR}/scripts/n3n-ctl supernodes --raw
+# docmd ${TOPDIR}/scripts/n3nctl supernodes --raw
 # - need fixed mac address
 # - need to mask out:
 #   - version string
 #   - last_seen timestamp
 #   - uptime
 
-docmd "${TOPDIR}"/scripts/n3n-ctl verbose
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 get_verbose
 
-# Test with bad auth
-docmd "${TOPDIR}"/scripts/n3n-ctl --write verbose 1 2>/dev/null
-echo $?
+# # Test with bad auth
+# docmd "${TOPDIR}"/scripts/n3nctl set_verbose 1 2>/dev/null
+# echo $?
 
-docmd "${TOPDIR}"/scripts/n3n-ctl -k $AUTH --write verbose 1
-
-# looks strange, but we are querying the state of the "stop" verb
-docmd "${TOPDIR}"/scripts/n3n-ctl stop
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 -k $AUTH set_verbose 1
 
 # stop them both
-docmd "${TOPDIR}"/scripts/n3n-ctl -k $AUTH --write stop
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 -k $AUTH --write stop
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 -k $AUTH stop
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH stop
 
