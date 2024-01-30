@@ -370,7 +370,7 @@ static void jsonrpc_get_community (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_1str(id, conn, (char *)eee->conf.community_name);
 }
 
-static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, char *mode) {
+static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, const char *mode, const char *community) {
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
@@ -378,6 +378,7 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, cha
     sb_reprintf(reply,
                 "{"
                 "\"mode\":\"%s\","
+                "\"community\":%s,"
                 "\"ip4addr\":\"%s\","
                 "\"purgeable\":%i,"
                 "\"local\":%i,"
@@ -388,6 +389,7 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, cha
                 "\"last_sent_query\":%li,"
                 "\"last_seen\":%li},",
                 mode,
+                community,
                 (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
                 peer->purgeable,
                 peer->local,
@@ -398,6 +400,8 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, cha
                 peer->last_sent_query,
                 peer->last_seen
                 );
+
+    // TODO: add a proto: TCP|UDP item to the output
 }
 
 static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
@@ -408,13 +412,36 @@ static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
 
     // dump nodes with forwarding through supernodes
     HASH_ITER(hh, eee->pending_peers, peer, tmpPeer) {
-        jsonrpc_get_edges_row(&conn->request, peer, "pSp");
+        jsonrpc_get_edges_row(
+            &conn->request,
+            peer,
+            "pSp",
+            eee->conf.community_name
+            );
     }
 
     // dump peer-to-peer nodes
     HASH_ITER(hh, eee->known_peers, peer, tmpPeer) {
-        jsonrpc_get_edges_row(&conn->request, peer, "p2p");
+        jsonrpc_get_edges_row(
+            &conn->request,
+            peer,
+            "p2p",
+            eee->conf.community_name
+            );
     }
+
+    struct sn_community *community, *tmp;
+    HASH_ITER(hh, eee->communities, community, tmp) {
+        HASH_ITER(hh, community->edges, peer, tmpPeer) {
+            jsonrpc_get_edges_row(
+                &conn->request,
+                peer,
+                "sn",
+                (community->is_federation) ? "-/-" : community->community
+                );
+        }
+    }
+
 
     // HACK: back up over the final ','
     if(conn->request->str[conn->request->wr_pos-1] == ',') {
@@ -476,12 +503,21 @@ static void jsonrpc_get_timestamps (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request,
                 "{"
-                "\"start_time\":%lu,"
-                "\"last_super\":%ld,"
-                "\"last_p2p\":%ld}\n",
-                eee->start_time,
+                "\"last_register_req\":%lu,"
+                "\"last_rx_p2p\":%ld,"
+                "\"last_rx_super\":%ld,"
+                "\"last_sweep\":%ld,"
+                "\"last_sn_fwd\":%ld,"
+                "\"last_sn_reg\":%ld,"
+                "\"start_time\":%lu},",
+                eee->last_register_req,
+                eee->last_p2p,
                 eee->last_sup,
-                eee->last_p2p);
+                eee->last_sweep,
+                eee->last_sn_fwd,
+                eee->last_sn_reg,
+                eee->start_time
+                );
 
     jsonrpc_result_tail(conn, 200);
 }
@@ -537,6 +573,35 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
                 "\"rx_pkt\":%u},",
                 eee->stats.tx_multicast_drop,
                 eee->stats.rx_multicast_drop);
+
+    sb_reprintf(&conn->request,
+                "{"
+                "\"type\":\"sn_fwd\","
+                "\"tx_pkt\":%u},",
+                eee->stats.sn_fwd);
+
+    sb_reprintf(&conn->request,
+                "{"
+                "\"type\":\"sn_broadcast\","
+                "\"tx_pkt\":%u},",
+                eee->stats.sn_broadcast);
+
+    sb_reprintf(&conn->request,
+                "{"
+                "\"type\":\"sn_reg\","
+                "\"tx_pkt\":%u,"
+                "\"nak\":%u},",
+                eee->stats.sn_reg,
+                eee->stats.sn_reg_nak);
+
+    /* Note: sn_reg_nak is not currently incremented anywhere */
+
+    /* Generic errors when trying to sendto() */
+    sb_reprintf(&conn->request,
+                "{"
+                "\"type\":\"sn_errors\","
+                "\"tx_pkt\":%u},",
+                eee->stats.sn_errors);
 
     // HACK: back up over the final ','
     if(conn->request->str[conn->request->wr_pos-1] == ',') {

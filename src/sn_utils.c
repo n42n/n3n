@@ -2881,18 +2881,7 @@ int run_sn_loop (n2n_edge_t *sss) {
                     }
 
                     if(slots->conn[i].state == CONN_READY) {
-                        // TODO: merge conf and then:
-                        // mgmt_api_handler(sss, &slots->conn[i]);
-                        //
-                        // for now, just echo
-                        strbuf_t **pp;
-                        slots->conn[i].reply = slots->conn[i].request;
-
-                        pp = &slots->conn[i].reply_header;
-                        sb_reprintf(pp, "HTTP/1.1 200 OK\r\n");
-                        int len = sb_len(slots->conn[i].reply);
-                        sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
-                        conn_write(&slots->conn[i]);
+                        mgmt_api_handler(sss, &slots->conn[i]);
                     }
                 }
             }

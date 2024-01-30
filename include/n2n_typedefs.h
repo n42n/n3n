@@ -568,9 +568,9 @@ struct n2n_edge {
     time_t last_p2p;                                                     /**< Last time p2p traffic was received. */
     time_t last_sup;                                                     /**< Last time a packet arrived from supernode. */
     time_t last_sweep;                                                   /**< Last time a sweep was performed. */
-    time_t start_time;                                                   /**< For calculating uptime */
     time_t last_sn_fwd;       /* Time when last message was forwarded. */
     time_t last_sn_reg;       /* Time when last REGISTER_SUPER was received. */
+    time_t start_time;                                                   /**< For calculating uptime */
 
 
 
