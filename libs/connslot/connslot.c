@@ -480,6 +480,9 @@ int slots_closeidle(slots_t *slots) {
 
 int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
     for (int i=0; i<SLOTS_LISTEN; i++) {
+        if (slots->listen[i] == -1) {
+            continue;
+        }
         if (FD_ISSET(slots->listen[i], readers)) {
             // A new connection
             int slotnr = slots_accept(slots, i);
