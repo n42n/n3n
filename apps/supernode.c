@@ -684,18 +684,6 @@ int main (int argc, char * const argv[]) {
     local_address.sin_port = htons(sss_node.conf.mgmt_port);
     local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    sss_node.udp_mgmt_sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
-        0 /* UDP */
-        );
-    if(-1 == sss_node.udp_mgmt_sock) {
-        traceEvent(TRACE_ERROR, "failed to open management socket, %s", strerror(errno));
-        exit(-2);
-    } else {
-        traceEvent(TRACE_NORMAL, "supernode is listening on UDP %u (management)", sss_node.conf.mgmt_port);
-    }
-
     sss_node.mgmt_slots = slots_malloc(5);
     if(!sss_node.mgmt_slots) {
         abort();
@@ -705,6 +693,7 @@ int main (int argc, char * const argv[]) {
         perror("slots_listen_tcp");
         exit(1);
     }
+    traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
 
     // TODO: merge conf and then can:
     // n3n_config_setup_sessiondir(&sss->conf);

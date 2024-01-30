@@ -64,14 +64,7 @@ int main () {
     local_address.sin_port = htons(5645);
     local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    sss_node.udp_mgmt_sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
-        0 /* UDP */
-        ); // Main UDP management port
-    if(-1 == sss_node.udp_mgmt_sock) {
-        exit(-2);
-    }
+    // Could also initialise the management api and its socket
 
     sn_init(&sss_node);
 

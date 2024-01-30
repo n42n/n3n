@@ -485,12 +485,12 @@ void readFromMgmtSocket (struct n3n_runtime_data *eee) {
 
     req.sss = NULL;
     req.eee = eee;
-    req.mgmt_sock = eee->udp_mgmt_sock;
+    req.mgmt_sock = -1;
     req.keep_running = eee->keep_running;
     req.mgmt_password = eee->conf.mgmt_password;
     req.sock_len = sizeof(req.sas);
 
-    recvlen = recvfrom(eee->udp_mgmt_sock, udp_buf, N2N_PKT_BUF_SIZE, 0 /*flags*/,
+    recvlen = recvfrom(req.mgmt_sock, udp_buf, N2N_PKT_BUF_SIZE, 0 /*flags*/,
                        &req.sender_sock, &req.sock_len);
 
     if(recvlen < 0) {

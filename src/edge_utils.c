@@ -502,7 +502,6 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     // on trying to close them (open_sockets does so for also being able to RE-open the sockets
     // if called in-between, see "Supernode not responding" in update_supernode_reg(...)
     eee->sock = -1;
-    eee->udp_mgmt_sock = -1;
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     eee->udp_multicast_sock = -1;
 #endif
@@ -2901,9 +2900,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         FD_ZERO(&readers);
         FD_ZERO(&writers);
 
-        FD_SET(eee->udp_mgmt_sock, &readers);
-        max_sock = max(max_sock, eee->udp_mgmt_sock);
-
         if(eee->sock >= 0) {
             FD_SET(eee->sock, &readers);
             max_sock = max(max_sock, eee->sock);
@@ -2989,11 +2985,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 }
             }
 #endif
-
-            if(FD_ISSET(eee->udp_mgmt_sock, &readers)) {
-                // read from the management port socket
-                readFromMgmtSocket(eee);
-            }
 
 #ifndef _WIN32
             if(FD_ISSET(eee->device.fd, &readers)) {
@@ -3123,9 +3114,6 @@ void edge_term (struct n3n_runtime_data * eee) {
     if(eee->sock >= 0)
         closesocket(eee->sock);
 
-    if(eee->udp_mgmt_sock >= 0)
-        closesocket(eee->udp_mgmt_sock);
-
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     if(eee->udp_multicast_sock >= 0)
         closesocket(eee->udp_multicast_sock);
@@ -3248,24 +3236,11 @@ static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
-    if(eee->udp_mgmt_sock >= 0)
-        closesocket(eee->udp_mgmt_sock);
-
     struct sockaddr_in local_address;
     memset(&local_address, 0, sizeof(local_address));
     local_address.sin_family = AF_INET;
     local_address.sin_port = htons(eee->conf.mgmt_port);
     local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-    eee->udp_mgmt_sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
-        0 /* UDP */
-        );
-    if(eee->udp_mgmt_sock < 0) {
-        traceEvent(TRACE_ERROR, "failed to bind management UDP port %u", eee->conf.mgmt_port);
-        return(-2);
-    }
 
     eee->mgmt_slots = slots_malloc(5);
     if(!eee->mgmt_slots) {

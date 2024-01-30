@@ -547,7 +547,6 @@ struct n3n_runtime_data {
     /* Sockets */
     /* supernode socket is in        eee->curr_sn->sock (of type n2n_sock_t) */
     int sock;
-    int udp_mgmt_sock;                                                   /**< socket for status info. */
     slots_t *mgmt_slots;
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY

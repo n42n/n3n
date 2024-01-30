@@ -295,7 +295,7 @@ int process_mgmt (struct n3n_runtime_data *sss,
 
     req.eee = NULL;
     req.sss = sss;
-    req.mgmt_sock = sss->udp_mgmt_sock;
+    req.mgmt_sock = -1;
     req.keep_running = sss->keep_running;
     req.mgmt_password = sss->conf.mgmt_password;
     memcpy(&req.sender_sock, sender_sock, sock_size);

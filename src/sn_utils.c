@@ -782,7 +782,6 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
 
     sss->conf.mgmt_port = N2N_SN_MGMT_PORT;
     sss->sock = -1;
-    sss->udp_mgmt_sock = -1;
     sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
     sss->min_auto_ip_net.net_addr = ntohl(sss->min_auto_ip_net.net_addr);
     sss->min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
@@ -867,11 +866,6 @@ void sn_term (struct n3n_runtime_data *sss) {
         closesocket(sss->tcp_sock);
     }
     sss->tcp_sock = -1;
-
-    if(sss->udp_mgmt_sock >= 0) {
-        closesocket(sss->udp_mgmt_sock);
-    }
-    sss->udp_mgmt_sock = -1;
 
     HASH_ITER(hh, sss->communities, community, tmp) {
         clear_peer_list(&community->edges);
@@ -2605,8 +2599,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
         FD_ZERO(&writers);
 
         FD_SET(sss->sock, &readers);
-        FD_SET(sss->udp_mgmt_sock, &readers);
-        max_sock = MAX(sss->sock, sss->udp_mgmt_sock);
+        max_sock = sss->sock;
 
 #ifdef N2N_HAVE_TCP
         n2n_sock_str_t sockbuf;
@@ -2826,45 +2819,6 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                 }
             }
 #endif /* N2N_HAVE_TCP */
-
-            // handle management port input
-            if(FD_ISSET(sss->udp_mgmt_sock, &readers)) {
-                struct sockaddr_storage sas;
-                struct sockaddr *sender_sock = (struct sockaddr*)&sas;
-                socklen_t ss_size = sizeof(sas);
-
-                bread = recvfrom(
-                    sss->udp_mgmt_sock,
-                    (void *)pktbuf,
-                    N2N_SN_PKTBUF_SIZE,
-                    0 /*flags*/,
-                    sender_sock,
-                    &ss_size
-                    );
-
-                // REVISIT: should we error out if ss_size returns bigger than before? can this ever happen?
-                if(bread <= 0) {
-                    traceEvent(
-                        TRACE_ERROR,
-                        "recvfrom() failed %d errno %d (%s)",
-                        bread,
-                        errno,
-                        strerror(errno)
-                        );
-                    *sss->keep_running = false;
-                } else {
-
-                    // we have a datagram to process
-                    process_mgmt(
-                        sss,
-                        sender_sock,
-                        ss_size,
-                        (char *)pktbuf,
-                        bread,
-                        now
-                        );
-                }
-            }
 
             int slots_ready = slots_fdset_loop(slots, &readers, &writers);
 
