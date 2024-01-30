@@ -641,14 +641,14 @@ static int try_broadcast (n2n_edge_t * sss,
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
                 if(data_sent_len != pktsize) {
-                    ++(sss->sn_stats.errors);
+                    ++(sss->stats.sn_errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to supernode [%s] %s failed %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
                                macaddr_str(mac_buf, scan->mac_addr),
                                strerror(errno));
                 } else {
-                    ++(sss->sn_stats.broadcast);
+                    ++(sss->stats.sn_broadcast);
                     traceEvent(TRACE_DEBUG, "multicast %lu to supernode [%s] %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
@@ -667,14 +667,14 @@ static int try_broadcast (n2n_edge_t * sss,
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
                 if(data_sent_len != pktsize) {
-                    ++(sss->sn_stats.errors);
+                    ++(sss->stats.sn_errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to [%s] %s failed %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
                                macaddr_str(mac_buf, scan->mac_addr),
                                strerror(errno));
                 } else {
-                    ++(sss->sn_stats.broadcast);
+                    ++(sss->stats.sn_broadcast);
                     traceEvent(TRACE_DEBUG, "multicast %lu to [%s] %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
@@ -709,13 +709,13 @@ static int try_forward (n2n_edge_t * sss,
         data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
         if(data_sent_len == pktsize) {
-            ++(sss->sn_stats.fwd);
+            ++(sss->stats.sn_fwd);
             traceEvent(TRACE_DEBUG, "unicast %lu to [%s] %s",
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
                        macaddr_str(mac_buf, scan->mac_addr));
         } else {
-            ++(sss->sn_stats.errors);
+            ++(sss->stats.sn_errors);
             traceEvent(TRACE_ERROR, "unicast %lu to [%s] %s FAILED (%d: %s)",
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
@@ -1730,7 +1730,7 @@ static int process_udp (n2n_edge_t * sss,
                 return -1;
             }
 
-            sss->sn_stats.last_fwd = now;
+            sss->last_sn_fwd = now;
             decode_PACKET(&pkt, &cmn, udp_buf, &rem, &idx);
 
             // already checked for valid comm
@@ -1813,7 +1813,7 @@ static int process_udp (n2n_edge_t * sss,
                 return -1;
             }
 
-            sss->sn_stats.last_fwd = now;
+            sss->last_sn_fwd = now;
             decode_REGISTER(&reg, &cmn, udp_buf, &rem, &idx);
 
             // already checked for valid comm
@@ -1893,8 +1893,8 @@ static int process_udp (n2n_edge_t * sss,
             memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
 
             /* Edge/supernode requesting registration with us.    */
-            sss->sn_stats.last_reg_super=now;
-            ++(sss->sn_stats.reg_super);
+            sss->last_sn_reg=now;
+            ++(sss->stats.sn_reg);
             decode_REGISTER_SUPER(&reg, &cmn, udp_buf, &rem, &idx);
 
             if(comm) {

@@ -500,17 +500,12 @@ struct n2n_edge_stats {
     uint32_t rx_multicast_drop;
     uint32_t tx_tuntap_error;
     uint32_t rx_tuntap_error;
+    uint32_t sn_errors;         /* Number of errors encountered. */
+    uint32_t sn_reg;            /* Number of REGISTER_SUPER requests received. */
+    uint32_t sn_reg_nak;        /* Number of REGISTER_SUPER requests declined. */
+    uint32_t sn_fwd;            /* Number of messages forwarded. */
+    uint32_t sn_broadcast;      /* Number of messages broadcast to a community. */
 };
-
-typedef struct sn_stats {
-    size_t errors;         /* Number of errors encountered. */
-    size_t reg_super;      /* Number of REGISTER_SUPER requests received. */
-    size_t reg_super_nak;  /* Number of REGISTER_SUPER requests declined. */
-    size_t fwd;            /* Number of messages forwarded. */
-    size_t broadcast;      /* Number of messages broadcast to a community. */
-    time_t last_fwd;       /* Time when last message was forwarded. */
-    time_t last_reg_super; /* Time when last REGISTER_SUPER was received. */
-} sn_stats_t;
 
 typedef struct n2n_tcp_connection {
     int socket_fd;                                        /* file descriptor for tcp socket */
@@ -574,6 +569,9 @@ struct n2n_edge {
     time_t last_sup;                                                     /**< Last time a packet arrived from supernode. */
     time_t last_sweep;                                                   /**< Last time a sweep was performed. */
     time_t start_time;                                                   /**< For calculating uptime */
+    time_t last_sn_fwd;       /* Time when last message was forwarded. */
+    time_t last_sn_reg;       /* Time when last REGISTER_SUPER was received. */
+
 
 
     struct n2n_edge_stats stats;                                         /**< Statistics */
@@ -584,7 +582,6 @@ struct n2n_edge {
 
     // Supernode specific data
     n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
-    sn_stats_t sn_stats;
     n2n_mac_t mac_addr;
     int tcp_sock;                                           /* auxiliary socket for optional TCP connections */
     n2n_tcp_connection_t                   *tcp_connections;/* list of established TCP connections */

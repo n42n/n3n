@@ -76,8 +76,8 @@ static void mgmt_timestamps (mgmt_req_t *req, strbuf_t *buf) {
               "\"last_reg_super\":%ld}\n",
               req->tag,
               req->sss->start_time,
-              req->sss->sn_stats.last_fwd,
-              req->sss->sn_stats.last_reg_super);
+              req->sss->last_sn_fwd,
+              req->sss->last_sn_reg);
 
     send_reply(req, buf);
 }
@@ -88,9 +88,9 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"_tag\":\"%s\","
               "\"_type\":\"row\","
               "\"type\":\"forward\","
-              "\"tx_pkt\":%lu}\n",
+              "\"tx_pkt\":%u}\n",
               req->tag,
-              req->sss->sn_stats.fwd);
+              req->sss->stats.sn_fwd);
 
     send_reply(req, buf);
     sb_zero(buf);
@@ -100,9 +100,9 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"_tag\":\"%s\","
               "\"_type\":\"row\","
               "\"type\":\"broadcast\","
-              "\"tx_pkt\":%lu}\n",
+              "\"tx_pkt\":%u}\n",
               req->tag,
-              req->sss->sn_stats.broadcast);
+              req->sss->stats.sn_broadcast);
 
     send_reply(req, buf);
     sb_zero(buf);
@@ -112,11 +112,11 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"_tag\":\"%s\","
               "\"_type\":\"row\","
               "\"type\":\"reg_super\","
-              "\"rx_pkt\":%lu,"
-              "\"nak\":%lu}\n",
+              "\"rx_pkt\":%u,"
+              "\"nak\":%u}\n",
               req->tag,
-              req->sss->sn_stats.reg_super,
-              req->sss->sn_stats.reg_super_nak);
+              req->sss->stats.sn_reg,
+              req->sss->stats.sn_reg_nak);
 
     /* Note: reg_super_nak is not currently incremented anywhere */
 
@@ -129,9 +129,9 @@ static void mgmt_packetstats (mgmt_req_t *req, strbuf_t *buf) {
               "\"_tag\":\"%s\","
               "\"_type\":\"row\","
               "\"type\":\"errors\","
-              "\"tx_pkt\":%lu}\n",
+              "\"tx_pkt\":%u}\n",
               req->tag,
-              req->sss->sn_stats.errors);
+              req->sss->stats.sn_errors);
 
     send_reply(req, buf);
 }
