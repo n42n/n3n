@@ -35,9 +35,9 @@
 #include <string.h>      // for memcmp, memcpy, strerror, strncpy
 #include <sys/types.h>   // for ssize_t, time_t
 #include "management.h"  // for mgmt_req_t, send_reply, mgmt_handler_t, mgmt...
-#include "n2n.h"         // for n2n_edge_t, sn_community, N2N_SN_PK...
+#include "n2n.h"         // for n3n_runtime_data, sn_community, N2N_SN_PK...
 #include "n2n_define.h"    // for N2N_SN_PKTBUF_SIZE, UNPURGEABLE
-#include "n2n_typedefs.h"  // for n2n_edge_t, sn_community, peer_info, sn_stats_t
+#include "n2n_typedefs.h"  // for n3n_runtime_data, sn_community, peer_info, sn_stats_t
 #include "peer_info.h"   // for peer_info, peer_info_t
 #include "uthash.h"      // for UT_hash_handle, HASH_ITER, HASH_COUNT
 
@@ -48,7 +48,7 @@
 #endif
 
 
-int load_allowed_sn_community (n2n_edge_t *sss); /* defined in sn_utils.c */
+int load_allowed_sn_community (struct n3n_runtime_data *sss); /* defined in sn_utils.c */
 
 static void mgmt_reload_communities (mgmt_req_t *req, strbuf_t *buf) {
 
@@ -283,7 +283,7 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
     return;
 }
 
-int process_mgmt (n2n_edge_t *sss,
+int process_mgmt (struct n3n_runtime_data *sss,
                   const struct sockaddr *sender_sock, socklen_t sock_size,
                   char *mgmt_buf,
                   size_t mgmt_size,

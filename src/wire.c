@@ -252,7 +252,7 @@ int decode_common (n2n_common_t * out,
     out->pc = (out->flags & N2N_FLAGS_TYPE_MASK);
     out->flags &= N2N_FLAGS_BITS_MASK;
 
-    decode_buf(out->community, N2N_COMMUNITY_SIZE, base, rem, idx);
+    decode_buf((uint8_t *)out->community, N2N_COMMUNITY_SIZE, base, rem, idx);
 
     return (*idx - idx0);
 }

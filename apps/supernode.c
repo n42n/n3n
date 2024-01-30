@@ -53,11 +53,11 @@
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
-static n2n_edge_t sss_node;
+static struct n3n_runtime_data sss_node;
 
-void close_tcp_connection (n2n_edge_t *sss, n2n_tcp_connection_t *conn);
-void calculate_shared_secrets (n2n_edge_t *sss);
-int load_allowed_sn_community (n2n_edge_t *sss);
+void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn);
+void calculate_shared_secrets (struct n3n_runtime_data *sss);
+int load_allowed_sn_community (struct n3n_runtime_data *sss);
 
 
 /** Help message to print if the command line arguments are not valid. */
@@ -202,7 +202,7 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
     traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
 }
 
-static int setOption (int optkey, char *_optarg, n2n_edge_t *sss) {
+static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
 
     //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, _optarg ? _optarg : "");
 
@@ -398,7 +398,7 @@ static const struct option long_options[] = {
 /* *************************************************** */
 
 /* read command line options */
-static int loadFromCLI (int argc, char * const argv[], n2n_edge_t *sss) {
+static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *sss) {
 
     u_char c;
 
@@ -446,7 +446,7 @@ static char *trim (char *s) {
 /* *************************************************** */
 
 /* parse the configuration file */
-static int loadFromFile (const char *path, n2n_edge_t *sss) {
+static int loadFromFile (const char *path, struct n3n_runtime_data *sss) {
 
     char buffer[4096], *line;
     char *line_vec[3];
@@ -493,7 +493,7 @@ static int loadFromFile (const char *path, n2n_edge_t *sss) {
 /* *************************************************** */
 
 /* Add the federation to the communities list of a supernode */
-static int add_federation_to_communities (n2n_edge_t *sss) {
+static int add_federation_to_communities (struct n3n_runtime_data *sss) {
 
     uint32_t num_communities = 0;
 

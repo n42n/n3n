@@ -343,7 +343,7 @@ struct host_info {
 };
 #endif
 
-typedef struct n2n_edge n2n_edge_t;
+struct n3n_runtime_data;
 
 /* *************************************************** */
 
@@ -354,10 +354,10 @@ typedef struct n2n_edge n2n_edge_t;
 // make it harder to write a custom packet filter function in a user
 // application, but that might not be needed.
 struct network_traffic_filter {
-    n2n_verdict (*filter_packet_from_peer)(network_traffic_filter_t* filter, n2n_edge_t *eee,
+    n2n_verdict (*filter_packet_from_peer)(network_traffic_filter_t* filter, struct n3n_runtime_data *eee,
                                            const n2n_sock_t *peer, uint8_t *payload, uint16_t payload_size);
 
-    n2n_verdict (*filter_packet_from_tap)(network_traffic_filter_t* filter, n2n_edge_t *eee, uint8_t *payload, uint16_t payload_size);
+    n2n_verdict (*filter_packet_from_tap)(network_traffic_filter_t* filter, struct n3n_runtime_data *eee, uint8_t *payload, uint16_t payload_size);
 
     filter_rule_t *rules;
 
@@ -373,26 +373,26 @@ struct network_traffic_filter {
  * N2N events. */
 typedef struct n2n_edge_callbacks {
     /* The supernode registration has been updated */
-    void (*sn_registration_updated)(n2n_edge_t *eee, time_t now, const n2n_sock_t *sn);
+    void (*sn_registration_updated)(struct n3n_runtime_data *eee, time_t now, const n2n_sock_t *sn);
 
     /* A packet has been received from a peer. N2N_DROP can be returned to
      * drop the packet. The packet payload can be modified. This only allows
      * the packet size to be reduced */
-    n2n_verdict (*packet_from_peer)(n2n_edge_t *eee, const n2n_sock_t *peer, uint8_t *payload, uint16_t *payload_size);
+    n2n_verdict (*packet_from_peer)(struct n3n_runtime_data *eee, const n2n_sock_t *peer, uint8_t *payload, uint16_t *payload_size);
 
     /* A packet has been received from the TAP interface. N2N_DROP can be
      * returned to drop the packet. The packet payload can be modified.
      * This only allows the packet size to be reduced */
-    n2n_verdict (*packet_from_tap)(n2n_edge_t *eee, uint8_t *payload, uint16_t *payload_size);
+    n2n_verdict (*packet_from_tap)(struct n3n_runtime_data *eee, uint8_t *payload, uint16_t *payload_size);
 
     /* Called whenever the IP address of the TAP interface changes. */
-    void (*ip_address_changed)(n2n_edge_t *eee, uint32_t old_ip, uint32_t new_ip);
+    void (*ip_address_changed)(struct n3n_runtime_data *eee, uint32_t old_ip, uint32_t new_ip);
 
     /* Called periodically in the main loop. */
-    void (*main_loop_period)(n2n_edge_t *eee, time_t now);
+    void (*main_loop_period)(struct n3n_runtime_data *eee, time_t now);
 
     /* Called when a new socket to supernode is created. */
-    void (*sock_opened)(n2n_edge_t *eee);
+    void (*sock_opened)(struct n3n_runtime_data *eee);
 } n2n_edge_callbacks_t;
 
 /* *************************************************** */
@@ -525,8 +525,7 @@ typedef struct n2n_tcp_connection {
 
 typedef struct slots slots_t;
 
-// TODO: rename this as it is no longer edge specific
-struct n2n_edge {
+struct n3n_runtime_data {
     n2n_edge_conf_t conf;
 
     /* Status */

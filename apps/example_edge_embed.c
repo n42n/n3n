@@ -32,7 +32,7 @@ int main () {
 
     n2n_edge_conf_t conf;
     tuntap_dev tuntap;
-    n2n_edge_t *eee;
+    struct n3n_runtime_data *eee;
     int rc;
 
     edge_init_conf_defaults(&conf);

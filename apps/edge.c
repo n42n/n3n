@@ -41,7 +41,7 @@
 #include <time.h>                    // for time
 #include <unistd.h>                  // for setuid, _exit, chdir, fork, getgid
 #include "auth.h"                    // for generate_private_key, generate_p...
-#include "n2n.h"                     // for n2n_edge_conf_t, n2n_edge_t, fil...
+#include "n2n.h"                     // for n2n_edge_conf_t, n3n_runtime_data, fil...
 #include "pearson.h"                 // for pearson_hash_64
 #include "portable_endian.h"         // for htobe32
 #include "random_numbers.h"          // for n2n_seed, n2n_srand
@@ -87,11 +87,11 @@ int num_cap = sizeof(cap_values)/sizeof(cap_value_t);
 #endif
 
 // forward declaration for use in main()
-void send_register_super (n2n_edge_t *eee);
-void send_query_peer (n2n_edge_t *eee, const n2n_mac_t dst_mac);
-int supernode_connect (n2n_edge_t *eee);
-int supernode_disconnect (n2n_edge_t *eee);
-int fetch_and_eventually_process_data (n2n_edge_t *eee, SOCKET sock,
+void send_register_super (struct n3n_runtime_data *eee);
+void send_query_peer (struct n3n_runtime_data *eee, const n2n_mac_t dst_mac);
+int supernode_connect (struct n3n_runtime_data *eee);
+int supernode_disconnect (struct n3n_runtime_data *eee);
+int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock,
                                        uint8_t *pktbuf, uint16_t *expected, uint16_t *position,
                                        time_t now);
 
@@ -870,7 +870,7 @@ BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
 int main (int argc, char* argv[]) {
 
     int rc;
-    n2n_edge_t *eee;              /* single instance for this program */
+    struct n3n_runtime_data *eee;              /* single instance for this program */
     n2n_edge_conf_t conf;         /* generic N2N edge config */
     uint8_t runlevel = 0;         /* bootstrap: runlevel */
     uint8_t seek_answer = 1;      /*            expecting answer from supernode */

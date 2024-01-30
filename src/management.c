@@ -357,11 +357,11 @@ static void jsonrpc_1str (char *id, conn_t *conn, char *result) {
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_get_verbose (char *id, n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_get_verbose (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
     jsonrpc_1uint(id, conn, getTraceLevel());
 }
 
-static void jsonrpc_get_community (char *id, n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_get_community (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
     if(eee->conf.header_encryption != HEADER_ENCRYPTION_NONE) {
         jsonrpc_error(id, conn, 403, "Forbidden");
         return;
@@ -404,7 +404,7 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
     // TODO: add a proto: TCP|UDP item to the output
 }
 
-static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
     struct peer_info *peer, *tmpPeer;
 
     jsonrpc_result_head(id, conn);
@@ -452,7 +452,7 @@ static void jsonrpc_get_edges (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
@@ -499,7 +499,7 @@ static void jsonrpc_get_supernodes (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_get_timestamps (char *id, n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_get_timestamps (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request,
                 "{"
@@ -522,7 +522,7 @@ static void jsonrpc_get_timestamps (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
 
@@ -612,13 +612,13 @@ static void jsonrpc_get_packetstats (char *id, n2n_edge_t *eee, conn_t *conn) {
     jsonrpc_result_tail(conn, 200);
 }
 
-static void jsonrpc_todo (char *id, n2n_edge_t *eee, conn_t *conn) {
+static void jsonrpc_todo (char *id, struct n3n_runtime_data *eee, conn_t *conn) {
     jsonrpc_error(id, conn, 501, "TODO");
 }
 
 struct mgmt_jsonrpc_method {
     char *method;
-    void (*func)(char *id, n2n_edge_t *eee, conn_t *conn);
+    void (*func)(char *id, struct n3n_runtime_data *eee, conn_t *conn);
     char *desc;
 };
 
@@ -640,7 +640,7 @@ static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
     // get_communities
 };
 
-static void render_error (n2n_edge_t *eee, conn_t *conn) {
+static void render_error (struct n3n_runtime_data *eee, conn_t *conn) {
     sb_zero(conn->request);
     sb_printf(conn->request, "api error\n");
 
@@ -650,7 +650,7 @@ static void render_error (n2n_edge_t *eee, conn_t *conn) {
     generate_http_headers(conn, "text/plain", 404);
 }
 
-static void handle_jsonrpc (n2n_edge_t *eee, conn_t *conn) {
+static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
     char *body = strstr(conn->request->str, "\r\n\r\n");
     if(!body) {
         // "Error: no body"
@@ -700,7 +700,7 @@ error:
     render_error(eee, conn);
 }
 
-static void render_todo_page (n2n_edge_t *eee, conn_t *conn) {
+static void render_todo_page (struct n3n_runtime_data *eee, conn_t *conn) {
     sb_zero(conn->request);
     sb_printf(conn->request, "TODO\n");
 
@@ -712,7 +712,7 @@ static void render_todo_page (n2n_edge_t *eee, conn_t *conn) {
 #include "management_index.html.h"
 
 // Generate the output for the human user interface
-static void render_index_page (n2n_edge_t *eee, conn_t *conn) {
+static void render_index_page (struct n3n_runtime_data *eee, conn_t *conn) {
     // TODO:
     // - could allow overriding of built in text with an external file
     // - there is a race condition if multiple users are fetching the
@@ -724,14 +724,14 @@ static void render_index_page (n2n_edge_t *eee, conn_t *conn) {
 #include "management_script.js.h"
 
 // Generate the output for the small set of javascript functions
-static void render_script_page (n2n_edge_t *eee, conn_t *conn) {
+static void render_script_page (struct n3n_runtime_data *eee, conn_t *conn) {
     conn->reply = &management_script;
     generate_http_headers(conn, "text/javascript", 200);
 }
 
 struct mgmt_api_endpoint {
     char *match;    // when the request buffer starts with this
-    void (*func)(n2n_edge_t *eee, conn_t *conn);
+    void (*func)(struct n3n_runtime_data *eee, conn_t *conn);
     char *desc;
 };
 
@@ -744,7 +744,7 @@ static const struct mgmt_api_endpoint api_endpoints[] = {
     { "GET /status ", render_todo_page, "Quick health check" },
 };
 
-void mgmt_api_handler (n2n_edge_t *eee, conn_t *conn) {
+void mgmt_api_handler (struct n3n_runtime_data *eee, conn_t *conn) {
     int i;
     int nr_handlers = sizeof(api_endpoints) / sizeof(api_endpoints[0]);
     for( i=0; i < nr_handlers; i++ ) {

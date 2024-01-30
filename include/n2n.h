@@ -123,7 +123,7 @@ uint8_t is_broadcast (const n2n_mac_t dest_mac);
 char* msg_type2str (uint16_t msg_type);
 void print_n3n_version ();
 int is_empty_ip_address (const n2n_sock_t * sock);
-void print_edge_stats (const n2n_edge_t *eee);
+void print_edge_stats (const struct n3n_runtime_data *eee);
 int memrnd (uint8_t *address, size_t len);
 int memxor (uint8_t *destination, const uint8_t *source, size_t len);
 
@@ -137,25 +137,25 @@ uint64_t time_stamp (void);
 int time_stamp_verify_and_update (uint64_t stamp, uint64_t * previous_stamp, int allow_jitter);
 
 /* Public functions */
-n2n_edge_t* edge_init (const n2n_edge_conf_t *conf, int *rv);
-void update_supernode_reg (n2n_edge_t * eee, time_t nowTime);
-void readFromIPSocket (n2n_edge_t * eee, int in_sock);
-void edge_term (n2n_edge_t *eee);
-void edge_send_packet2net (n2n_edge_t *eee, uint8_t *tap_pkt, size_t len);
-void edge_read_from_tap (n2n_edge_t *eee);
-int run_edge_loop (n2n_edge_t *eee);
+struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv);
+void update_supernode_reg (struct n3n_runtime_data * eee, time_t nowTime);
+void readFromIPSocket (struct n3n_runtime_data * eee, int in_sock);
+void edge_term (struct n3n_runtime_data *eee);
+void edge_send_packet2net (struct n3n_runtime_data *eee, uint8_t *tap_pkt, size_t len);
+void edge_read_from_tap (struct n3n_runtime_data *eee);
+int run_edge_loop (struct n3n_runtime_data *eee);
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
                      in_addr_t local_ip_address,
                      char *supernode_ip_address_port,
                      bool *keep_on_running);
 int comm_init (struct sn_community *comm, char *cmn);
-int sn_init_defaults (n2n_edge_t *sss);
-void sn_init (n2n_edge_t *sss);
-void sn_term (n2n_edge_t *sss);
+int sn_init_defaults (struct n3n_runtime_data *sss);
+void sn_init (struct n3n_runtime_data *sss);
+void sn_term (struct n3n_runtime_data *sss);
 struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add);
-int run_sn_loop (n2n_edge_t *sss);
-int assign_one_ip_subnet (n2n_edge_t *sss, struct sn_community *comm);
+int run_sn_loop (struct n3n_runtime_data *sss);
+int assign_one_ip_subnet (struct n3n_runtime_data *sss, struct sn_community *comm);
 
 void mgmt_event_post (enum n2n_event_topic topic, int data0, void *data1);
 #endif /* _N2N_H_ */

@@ -18,7 +18,7 @@
  *
  */
 
-#include "n2n.h"           // for n2n_edge_t, N2N_...
+#include "n2n.h"           // for n3n_runtime_data, N2N_...
 // FIXME: if this headers is sorted alphabetically, the test_integration_edge
 // fails with what looks like a struct rearrangement involving eee->stats
 
@@ -35,7 +35,7 @@
 #include <time.h>          // for time, time_t
 #include "management.h"    // for mgmt_req_t, send_reply, send_json_1str
 #include "n2n_define.h"    // for N2N_PKT_BUF_SIZE, N2N_EVENT_DEBUG, N2N_EVE...
-#include "n2n_typedefs.h"  // for n2n_edge_t, n2n_edge_conf_t
+#include "n2n_typedefs.h"  // for n3n_runtime_data, n2n_edge_conf_t
 #include "peer_info.h"     // for peer_info, peer_info_t
 #include "sn_selection.h"  // for sn_selection_criterion_str, selection_crit...
 #include "uthash.h"        // for UT_hash_handle, HASH_ITER
@@ -477,7 +477,7 @@ static void handleMgmtJson (mgmt_req_t *req, char *udp_buf, const int recvlen) {
 
 /** Read a datagram from the management UDP socket and take appropriate
  *    action. */
-void readFromMgmtSocket (n2n_edge_t *eee) {
+void readFromMgmtSocket (struct n3n_runtime_data *eee) {
 
     char udp_buf[N2N_PKT_BUF_SIZE]; /* Compete UDP packet */
     ssize_t recvlen;

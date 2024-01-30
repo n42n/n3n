@@ -13,7 +13,7 @@
 
 #include <connslot/connslot.h>  // for conn_t
 #include <connslot/strbuf.h>    // for strbuf_t
-#include <n2n_typedefs.h>  // For the n2n_edge_t
+#include <n2n_typedefs.h>  // For the n3n_runtime_data
 #include <stdbool.h>
 #include <stddef.h>        // for size_t
 #include <stdint.h>        // for uint64_t
@@ -44,8 +44,8 @@ enum n2n_mgmt_type {
  *   - mgmt_password
  */
 typedef struct mgmt_req {
-    n2n_edge_t *sss;
-    n2n_edge_t *eee;
+    struct n3n_runtime_data *sss;
+    struct n3n_runtime_data *eee;
     int mgmt_sock;                  // socket replies come from
     bool *keep_running;
     char *mgmt_password;
@@ -115,13 +115,13 @@ void mgmt_help_events_row (mgmt_req_t *req, strbuf_t *buf, mgmt_req_t *sub, char
 int mgmt_auth (mgmt_req_t *req, char *auth);
 bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline);
 
-void readFromMgmtSocket (n2n_edge_t *eee);
+void readFromMgmtSocket (struct n3n_runtime_data *eee);
 
-int process_mgmt (n2n_edge_t *sss,
+int process_mgmt (struct n3n_runtime_data *sss,
                   const struct sockaddr *sender_sock, socklen_t sock_size,
                   char *mgmt_buf,
                   size_t mgmt_size,
                   time_t now);
 
-void mgmt_api_handler (n2n_edge_t *, conn_t *);
+void mgmt_api_handler (struct n3n_runtime_data *, conn_t *);
 #endif

@@ -33,7 +33,7 @@ static bool keep_running = true;
 
 int main () {
 
-    struct n2n_edge sss_node;
+    struct n3n_runtime_data sss_node;
     int rc;
     struct sockaddr_in local_address;
 

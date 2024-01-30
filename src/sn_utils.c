@@ -36,7 +36,7 @@
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
 #include "management.h"         // for process_mgmt
-#include "n2n.h"                // for sn_community, n2n_edge_t
+#include "n2n.h"                // for sn_community, n3n_runtime_data
 #include "n2n_regex.h"          // for re_matchp, re_compile
 #include "n2n_wire.h"           // for encode_buf, encode_PEER_INFO, encode_...
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
@@ -61,14 +61,14 @@
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
-static ssize_t sendto_peer (n2n_edge_t *sss,
+static ssize_t sendto_peer (struct n3n_runtime_data *sss,
                             const struct peer_info *peer,
                             const uint8_t *pktbuf,
                             size_t pktsize);
 
-static uint16_t reg_lifetime (n2n_edge_t *sss);
+static uint16_t reg_lifetime (struct n3n_runtime_data *sss);
 
-static int update_edge (n2n_edge_t *sss,
+static int update_edge (struct n3n_runtime_data *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
@@ -78,21 +78,21 @@ static int update_edge (n2n_edge_t *sss,
                         int skip_add,
                         time_t now);
 
-static int re_register_and_purge_supernodes (n2n_edge_t *sss,
+static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss,
                                              struct sn_community *comm,
                                              time_t *p_last_re_reg_and_purge,
                                              time_t now,
                                              uint8_t forced);
 
-static int purge_expired_communities (n2n_edge_t *sss,
+static int purge_expired_communities (struct n3n_runtime_data *sss,
                                       time_t* p_last_purge,
                                       time_t now);
 
-static int sort_communities (n2n_edge_t *sss,
+static int sort_communities (struct n3n_runtime_data *sss,
                              time_t* p_last_sort,
                              time_t now);
 
-static int process_udp (n2n_edge_t *sss,
+static int process_udp (struct n3n_runtime_data *sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t *udp_buf,
@@ -103,7 +103,7 @@ static int process_udp (n2n_edge_t *sss,
 /* ************************************** */
 
 
-void close_tcp_connection (n2n_edge_t *sss, n2n_tcp_connection_t *conn) {
+void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn) {
 
     struct sn_community *comm, *tmp_comm;
     struct peer_info *edge, *tmp_edge;
@@ -137,7 +137,7 @@ close_conn:
 
 // generate shared secrets for user authentication; can be done only after
 // federation name is known (-F) and community list completely read (-c)
-void calculate_shared_secrets (n2n_edge_t *sss) {
+void calculate_shared_secrets (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm;
     sn_user_t *user, *tmp_user;
@@ -163,7 +163,7 @@ void calculate_shared_secrets (n2n_edge_t *sss) {
 
 
 // calculate dynamic keys
-void calculate_dynamic_keys (n2n_edge_t *sss) {
+void calculate_dynamic_keys (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm = NULL;
 
@@ -190,7 +190,7 @@ void calculate_dynamic_keys (n2n_edge_t *sss) {
 
 
 // send RE_REGISTER_SUPER to all edges from user/pw auth'ed communites
-void send_re_register_super (n2n_edge_t *sss) {
+void send_re_register_super (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm = NULL;
     struct peer_info *edge, *tmp_edge = NULL;
@@ -235,7 +235,7 @@ void send_re_register_super (n2n_edge_t *sss) {
 /** Load the list of allowed communities. Existing/previous ones will be removed,
  *  return 0 on success, -1 if file not found, -2 if no valid entries found
  */
-int load_allowed_sn_community (n2n_edge_t *sss) {
+int load_allowed_sn_community (struct n3n_runtime_data *sss) {
 
     char buffer[4096], *line, *cmn_str, net_str[20], format[20];
 
@@ -493,7 +493,7 @@ int load_allowed_sn_community (n2n_edge_t *sss) {
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_fd (n2n_edge_t *sss,
+static ssize_t sendto_fd (struct n3n_runtime_data *sss,
                           SOCKET socket_fd,
                           const struct sockaddr *socket,
                           const uint8_t *pktbuf,
@@ -530,7 +530,7 @@ static ssize_t sendto_fd (n2n_edge_t *sss,
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_sock (n2n_edge_t *sss,
+static ssize_t sendto_sock (struct n3n_runtime_data *sss,
                             SOCKET socket_fd,
                             const struct sockaddr *socket,
                             const uint8_t *pktbuf,
@@ -578,7 +578,7 @@ static ssize_t sendto_sock (n2n_edge_t *sss,
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_peer (n2n_edge_t *sss,
+static ssize_t sendto_peer (struct n3n_runtime_data *sss,
                             const struct peer_info *peer,
                             const uint8_t *pktbuf,
                             size_t pktsize) {
@@ -611,7 +611,7 @@ static ssize_t sendto_peer (n2n_edge_t *sss,
  *    This will send the exact same datagram to zero or more edges registered to
  *    the supernode.
  */
-static int try_broadcast (n2n_edge_t * sss,
+static int try_broadcast (struct n3n_runtime_data * sss,
                           const struct sn_community *comm,
                           const n2n_common_t * cmn,
                           const n2n_mac_t srcMac,
@@ -688,7 +688,7 @@ static int try_broadcast (n2n_edge_t * sss,
 }
 
 
-static int try_forward (n2n_edge_t * sss,
+static int try_forward (struct n3n_runtime_data * sss,
                         const struct sn_community *comm,
                         const n2n_common_t * cmn,
                         const n2n_mac_t dstMac,
@@ -760,11 +760,11 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
 
 /** Initialise the supernode structure */
-int sn_init_defaults (n2n_edge_t *sss) {
+int sn_init_defaults (struct n3n_runtime_data *sss) {
 
     pearson_hash_init();
 
-    memset(sss, 0, sizeof(n2n_edge_t));
+    memset(sss, 0, sizeof(struct n3n_runtime_data));
 
     sss->conf.is_supernode = true;
 
@@ -831,7 +831,7 @@ int sn_init_defaults (n2n_edge_t *sss) {
 
 
 /** Initialise the supernode */
-void sn_init (n2n_edge_t *sss) {
+void sn_init (struct n3n_runtime_data *sss) {
 
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
@@ -841,7 +841,7 @@ void sn_init (n2n_edge_t *sss) {
 
 /** Deinitialise the supernode structure and deallocate any memory owned by
  *    it. */
-void sn_term (n2n_edge_t *sss) {
+void sn_term (struct n3n_runtime_data *sss) {
 
     struct sn_community *community, *tmp;
     struct sn_community_regular_expression *re, *tmp_re;
@@ -942,7 +942,7 @@ void update_node_supernode_association (struct sn_community *comm,
  *    If the supernode has been put into a pre-shutdown phase then this lifetime
  *    should not allow registrations to continue beyond the shutdown point.
  */
-static uint16_t reg_lifetime (n2n_edge_t *sss) {
+static uint16_t reg_lifetime (struct n3n_runtime_data *sss) {
 
     /* NOTE: UDP firewalls usually have a 30 seconds timeout */
     return 15;
@@ -1008,7 +1008,7 @@ static int auth_edge (const n2n_auth_t *present, const n2n_auth_t *presented, n2
 
 // provides the current / a new local auth token
 // REVISIT: behavior should depend on some local auth scheme setting (to be implemented)
-static int get_local_auth (n2n_edge_t *sss, n2n_auth_t *auth) {
+static int get_local_auth (struct n3n_runtime_data *sss, n2n_auth_t *auth) {
 
     // n2n_auth_simple_id scheme
     memcpy(auth, &(sss->conf.auth), sizeof(n2n_auth_t));
@@ -1020,7 +1020,7 @@ static int get_local_auth (n2n_edge_t *sss, n2n_auth_t *auth) {
 // handles an incoming (remote) auth token from a so far unknown edge,
 // takes action as required by auth scheme, and
 // could provide an answer auth token for use in REGISTER_SUPER_ACK
-static int handle_remote_auth (n2n_edge_t *sss, const n2n_auth_t *remote_auth,
+static int handle_remote_auth (struct n3n_runtime_data *sss, const n2n_auth_t *remote_auth,
                                n2n_auth_t *answer_auth,
                                struct sn_community *community) {
 
@@ -1072,7 +1072,7 @@ static int handle_remote_auth (n2n_edge_t *sss, const n2n_auth_t *remote_auth,
 
 /** Update the edge table with the details of the edge which contacted the
  *    supernode. */
-static int update_edge (n2n_edge_t *sss,
+static int update_edge (struct n3n_runtime_data *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
@@ -1266,7 +1266,7 @@ static int assign_one_ip_addr (struct sn_community *comm, n2n_desc_t dev_desc, n
 
 
 /** checks if a certain sub-network is still available, i.e. does not cut any other community's sub-network */
-int subnet_available (n2n_edge_t *sss,
+int subnet_available (struct n3n_runtime_data *sss,
                       struct sn_community *comm,
                       uint32_t net_id,
                       uint32_t mask) {
@@ -1293,7 +1293,7 @@ int subnet_available (n2n_edge_t *sss,
 
 
 /** The IP address range (subnet) assigned to the community by the auto ip address function of sn. */
-int assign_one_ip_subnet (n2n_edge_t *sss,
+int assign_one_ip_subnet (struct n3n_runtime_data *sss,
                           struct sn_community *comm) {
 
     uint32_t net_id, net_id_i, mask, net_increment;
@@ -1377,7 +1377,7 @@ static int find_edge_time_stamp_and_verify (struct peer_info * edges,
 }
 
 
-static int re_register_and_purge_supernodes (n2n_edge_t *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
+static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
 
     time_t time;
     struct peer_info *peer, *tmp;
@@ -1451,7 +1451,7 @@ static int re_register_and_purge_supernodes (n2n_edge_t *sss, struct sn_communit
 }
 
 
-static int purge_expired_communities (n2n_edge_t *sss,
+static int purge_expired_communities (struct n3n_runtime_data *sss,
                                       time_t* p_last_purge,
                                       time_t now) {
 
@@ -1518,7 +1518,7 @@ static int number_enc_packets_sort (struct sn_community *a, struct sn_community 
 }
 
 
-static int sort_communities (n2n_edge_t *sss,
+static int sort_communities (struct n3n_runtime_data *sss,
                              time_t* p_last_sort,
                              time_t now) {
 
@@ -1547,7 +1547,7 @@ static int sort_communities (n2n_edge_t *sss,
 /** Examine a datagram and determine what to do with it.
  *
  */
-static int process_udp (n2n_edge_t * sss,
+static int process_udp (struct n3n_runtime_data * sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
@@ -2580,7 +2580,7 @@ static int process_udp (n2n_edge_t * sss,
 
 /** Long lived processing entry point. Split out from main to simply
  *  daemonisation on some platforms. */
-int run_sn_loop (n2n_edge_t *sss) {
+int run_sn_loop (struct n3n_runtime_data *sss) {
 
     uint8_t pktbuf[N2N_SN_PKTBUF_SIZE];
     time_t last_purge_edges = 0;
