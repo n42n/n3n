@@ -7,9 +7,15 @@ function result2verbose(id, unused, data) {
     div.innerHTML=verbose;
 }
 
-function rows2keyvalue(id, unused, data) {
+function rows2keyvalue(id, keys, data) {
     let s = "<table border=1 cellspacing=0>"
-    s += "<tr><th>community<td>" + data;
+    data.forEach((row) => {
+        keys.forEach((key) => {
+            if (key in row) {
+                s += "<tr><th>" + key + "<td>" + row[key];
+            }
+        });
+    });
     s += "</table>"
     let div = document.getElementById(id);
     div.innerHTML=s
@@ -75,10 +81,13 @@ function do_jsonrpc(url, method, params, id, handler, handler_param) {
       });
 }
 
-function do_stop(tracelevel) {
+function do_stop() {
     // FIXME: uses global in script library
-    // FIXME: convert to JsonRPC
-    fetch(nodetype + '/stop', {method:'POST'})
+    do_jsonrpc(
+        url, "stop", null,
+        'verbose',
+        function (id,param,result) {}, null
+    );
 }
 
 function setverbose(tracelevel) {

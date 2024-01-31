@@ -175,7 +175,7 @@ static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
     bool replacing = false;
 
     if(mgmt_event_subscribers[topicid] != -1) {
-        // TODO: send a goodbuy message to old subscriber
+        // TODO: send a goodbye message to old subscriber
         close(mgmt_event_subscribers[topicid]);
 
         replacing = true;
@@ -187,6 +187,9 @@ static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
 
     // TODO: shutdown(fd, SHUT_RD) - but that does nothing for unix domain
 
+    // The assigned mime type is actually application/json-seq, but firefox
+    // will usefully show you the raw streaming data if we use the wrong
+    // content type
     char *msg1 = "HTTP/1.1 200 event\r\nContent-Type: application/json\r\n\r\n";
     write(mgmt_event_subscribers[topicid], msg1, strlen(msg1));
     // Ignore the result
@@ -217,10 +220,16 @@ void mgmt_event_post (const enum n3n_event_topic topic, int data0, const void *d
     mgmt_events[topic].func(buf, topic, data0, data1);
 
     if( sub != -1 ) {
-        sb_write(sub, buf, 0, -1);
+        if(sb_write(sub, buf, 0, -1) == -1) {
+            mgmt_event_subscribers[topic] = -1;
+            close(sub);
+        }
     }
     if( debug != -1 ) {
-        sb_write(debug, buf, 0, -1);
+        if(sb_write(debug, buf, 0, -1) == -1) {
+            mgmt_event_subscribers[N3N_EVENT_DEBUG] = -1;
+            close(debug);
+        }
     }
     // TODO:
     // - ideally, we would detect that the far end has gone away and
