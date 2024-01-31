@@ -42,6 +42,10 @@
 ### test: ./scripts/n3nctl -u http://localhost:5644 get_verbose
 2
 
+### test: ./scripts/n3nctl -u http://localhost:5644 set_verbose 1
+This request requires an authentication key
+
+1
 ### test: ./scripts/n3nctl -u http://localhost:5644 -k n3n set_verbose 1
 1
 

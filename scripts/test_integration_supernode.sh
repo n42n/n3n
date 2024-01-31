@@ -31,5 +31,9 @@ docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_edges --raw
 docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_verbose
 docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH set_verbose 1
 
+# Test with bad auth
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 set_verbose 1
+echo $?
+
 # stop it
 docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH stop

@@ -52,9 +52,9 @@ docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 get_edges --raw |grep 
 
 docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 get_verbose
 
-# # Test with bad auth
-# docmd "${TOPDIR}"/scripts/n3nctl set_verbose 1 2>/dev/null
-# echo $?
+# Test with bad auth
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 set_verbose 1 2>/dev/null
+echo $?
 
 docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5644 -k $AUTH set_verbose 1
 
