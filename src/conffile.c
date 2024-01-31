@@ -114,18 +114,18 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         }
         case n3n_conf_uint32:
 try_uint32:
-        {
-            uint32_t *val = (uint32_t *)valvoid;
-            char *endptr;
-            uint32_t i = strtoul(value, &endptr, 0);
+            {
+                uint32_t *val = (uint32_t *)valvoid;
+                char *endptr;
+                uint32_t i = strtoul(value, &endptr, 0);
 
-            if(*value && !*endptr) {
-                // "the entire string is valid"
-                *val = i;
-                return 0;
+                if(*value && !*endptr) {
+                    // "the entire string is valid"
+                    *val = i;
+                    return 0;
+                }
+                return -1;
             }
-            return -1;
-        }
         case n3n_conf_strdup: {
             char **val = (char **)valvoid;
             if(*val) {
