@@ -6,7 +6,6 @@
  */
 
 #include <ctype.h>              // for isprint and friends
-#include <grp.h>                // for getgrnam
 #include <n3n/conffile.h>
 #include <n3n/edge.h>           // for edge_conf_add_supernode
 #include <n3n/logging.h>        // for setTraceLevel
@@ -23,6 +22,7 @@
 #ifdef _WIN32
 #include "win32/defs.h"
 #else
+#include <grp.h>                // for getgrnam
 #include <netinet/in.h>  // for sockaddr_in
 #endif
 
