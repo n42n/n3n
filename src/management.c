@@ -832,6 +832,8 @@ static void render_script_page (struct n3n_runtime_data *eee, conn_t *conn) {
     generate_http_headers(conn, "text/javascript", 200);
 }
 
+static void render_help_page (struct n3n_runtime_data *eee, conn_t *conn);
+
 struct mgmt_api_endpoint {
     char *match;    // when the request buffer starts with this
     void (*func)(struct n3n_runtime_data *eee, conn_t *conn);
@@ -841,12 +843,34 @@ struct mgmt_api_endpoint {
 static const struct mgmt_api_endpoint api_endpoints[] = {
     { "POST /v1 ", handle_jsonrpc, "JsonRPC" },
     { "GET / ", render_index_page, "Human interface" },
-    { "GET /help ", render_todo_page, "Describe available endpoints" },
+    { "GET /help ", render_help_page, "Describe available endpoints" },
     { "GET /metrics ", render_todo_page, "Fetch metrics data" },
     { "GET /script.js ", render_script_page, "javascript helpers" },
     { "GET /status ", render_todo_page, "Quick health check" },
     { "GET /events/", event_subscribe, "Subscribe to events" },
 };
+
+static void render_help_page (struct n3n_runtime_data *eee, conn_t *conn) {
+    // Reuse the request buffer
+    sb_zero(conn->request);
+    sb_reprintf(&conn->request, "endpoint, desc\n");
+
+    int i;
+    int nr_handlers = sizeof(api_endpoints) / sizeof(api_endpoints[0]);
+    for( i=0; i < nr_handlers; i++ ) {
+        sb_reprintf(
+            &conn->request,
+            "%s, %s\n",
+            api_endpoints[i].match,
+            api_endpoints[i].desc
+            );
+    }
+
+    // Update the reply buffer only after last potential realloc
+    conn->reply = conn->request;
+
+    generate_http_headers(conn, "text/plain", 200);
+}
 
 void mgmt_api_handler (struct n3n_runtime_data *eee, conn_t *conn) {
     int i;
