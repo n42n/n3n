@@ -112,8 +112,9 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             return 0;
         }
-        case n3n_conf_uint32: {
+        case n3n_conf_uint32:
 try_uint32:
+        {
             uint32_t *val = (uint32_t *)valvoid;
             char *endptr;
             uint32_t i = strtoul(value, &endptr, 0);
