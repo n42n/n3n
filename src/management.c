@@ -55,6 +55,26 @@ int mgmt_auth (mgmt_req_t *req, char *auth) {
 }
 #endif
 
+static void generate_http_headers (conn_t *conn, const char *type, int code) {
+    strbuf_t **pp = &conn->reply_header;
+    sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
+    // TODO:
+    // - caching
+    int len = sb_len(conn->reply);
+    sb_reprintf(pp, "Content-Type: %s\r\n", type);
+    sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
+}
+
+static void render_error (conn_t *conn, const char *message) {
+    sb_zero(conn->request);
+    sb_printf(conn->request, "%s\n", message);
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+
+    generate_http_headers(conn, "text/plain", 404);
+}
+
 static void event_debug (strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1) {
     traceEvent(TRACE_DEBUG, "Unexpected call to event_debug");
     return;
@@ -135,31 +155,46 @@ static const struct mgmt_event mgmt_events[] = {
 };
 
 static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
-    // TODO: look at url tail for event name
-    enum n3n_event_topic topic = N3N_EVENT_DEBUG;
+    char *match = "GET /events/"; // what we expect to have been called with
+    char *urltail = &conn->request->str[strlen(match)];
+    char *topic = strtok(urltail, " ");
+
+    enum n3n_event_topic topicid;
+
+    int nr_topics = sizeof(mgmt_events) / sizeof(mgmt_events[0]);
+    for( topicid=0; topicid < nr_topics; topicid++ ) {
+        if(!strcmp(mgmt_events[topicid].topic,topic)) {
+            break;
+        }
+    }
+    if( topicid >= nr_topics ) {
+        render_error(conn, "unknown topic");
+        return;
+    }
+
     bool replacing = false;
 
-    if(mgmt_event_subscribers[topic] != -1) {
+    if(mgmt_event_subscribers[topicid] != -1) {
         // TODO: send a goodbuy message to old subscriber
-        close(mgmt_event_subscribers[topic]);
+        close(mgmt_event_subscribers[topicid]);
 
         replacing = true;
     }
 
     // Take the filehandle away from the connslots.
-    mgmt_event_subscribers[topic] = conn->fd;
+    mgmt_event_subscribers[topicid] = conn->fd;
     conn_zero(conn);
 
     // TODO: shutdown(fd, SHUT_RD) - but that does nothing for unix domain
 
     char *msg1 = "HTTP/1.1 200 event\r\nContent-Type: application/json\r\n\r\n";
-    write(mgmt_event_subscribers[topic], msg1, strlen(msg1));
+    write(mgmt_event_subscribers[topicid], msg1, strlen(msg1));
     // Ignore the result
     // (the message is leaving here fine, the problem must be at your end)
 
     if(replacing) {
         char *msg2 = "\x1e\"replacing\"\n";
-        write(mgmt_event_subscribers[topic], msg2, strlen(msg2));
+        write(mgmt_event_subscribers[topicid], msg2, strlen(msg2));
     }
 }
 
@@ -192,16 +227,6 @@ void mgmt_event_post (const enum n3n_event_topic topic, int data0, const void *d
     //   set the subscriber socket back to -1
     // - this all assumes that the socket is set to non blocking
     // - if the write returns EWOULDBLOCK, increment a metric and return
-}
-
-static void generate_http_headers (conn_t *conn, const char *type, int code) {
-    strbuf_t **pp = &conn->reply_header;
-    sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
-    // TODO:
-    // - caching
-    int len = sb_len(conn->reply);
-    sb_reprintf(pp, "Content-Type: %s\r\n", type);
-    sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
 }
 
 static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
@@ -743,29 +768,19 @@ static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
     jsonrpc_result_tail(conn, 200);
 }
 
-static void render_error (struct n3n_runtime_data *eee, conn_t *conn) {
-    sb_zero(conn->request);
-    sb_printf(conn->request, "api error\n");
-
-    // Update the reply buffer after last potential realloc
-    conn->reply = conn->request;
-
-    generate_http_headers(conn, "text/plain", 404);
-}
-
 static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
     char *body = strstr(conn->request->str, "\r\n\r\n");
     if(!body) {
-        // "Error: no body"
-        goto error;
+        render_error(conn, "Error: no body");
+        return;
     }
     body += 4;
 
     jsonrpc_t json;
 
     if(jsonrpc_parse(body, &json) != 0) {
-        // "Error: parsing json"
-        goto error;
+        render_error(conn, "Error: parsing json");
+        return;
     }
 
     traceEvent(
@@ -792,15 +807,12 @@ static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
         }
     }
     if( i >= nr_handlers ) {
-        // "Unknown method
-        goto error;
+        render_error(conn, "Unknown method");
+        return;
     } else {
         jsonrpc_methods[i].func(idbuf, eee, conn, json.params);
     }
     return;
-
-error:
-    render_error(eee, conn);
 }
 
 static void render_todo_page (struct n3n_runtime_data *eee, conn_t *conn) {
@@ -884,7 +896,7 @@ void mgmt_api_handler (struct n3n_runtime_data *eee, conn_t *conn) {
         }
     }
     if( i >= nr_handlers ) {
-        render_error(eee, conn);
+        render_error(conn, "unknown endpoint");
     } else {
         api_endpoints[i].func(eee, conn);
     }
