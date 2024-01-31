@@ -115,7 +115,6 @@ enum federation {IS_NO_FEDERATION = 0,IS_FEDERATION = 1};
 #define N2N_EDGE_SN_HOST_SIZE     48
 #define N2N_EDGE_SUP_ATTEMPTS     3             /* Number of failed attmpts before moving on to next supernode. */
 #define N2N_PATHNAME_MAXLEN       256
-#define N2N_EDGE_MGMT_PORT        5644
 #define N2N_SN_MGMT_PORT          5645
 
 enum n3n_event_topic {

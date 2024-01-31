@@ -289,8 +289,7 @@ static struct n3n_conf_option section_management[] = {
         .offset = offsetof(n2n_edge_conf_t, mgmt_port),
         .desc = "The management UDP port",
         .help = "binds the edge management system to the given UDP port. "
-                "Defaults to 5644.  Use this if you need to run multiple "
-                "instance of edge; or something else is bound to that port.",
+                "Use this if you wish to use the TCP API.",
 
     },
     {.name = NULL},

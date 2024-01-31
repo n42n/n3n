@@ -54,6 +54,9 @@
 #include <sys/socket.h>        // for send, socket, AF_INET, recv, connect
 #endif
 
+// FIXME, this tool needs porting to JsonRPC
+#define N2N_EDGE_MGMT_PORT        5644
+
 #if defined (__linux__) || defined(_WIN64)  /*  currently, Linux and Windows only */
 /* Technically, this could be supported on some 32-bit windows.
  * The assumption here is that a version of Windows new enough to

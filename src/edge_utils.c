@@ -3252,20 +3252,16 @@ static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
-    struct sockaddr_in local_address;
-    memset(&local_address, 0, sizeof(local_address));
-    local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(eee->conf.mgmt_port);
-    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
     eee->mgmt_slots = slots_malloc(5);
     if(!eee->mgmt_slots) {
         abort();
     }
 
-    if(slots_listen_tcp(eee->mgmt_slots, eee->conf.mgmt_port, false)!=0) {
-        perror("slots_listen_tcp");
-        exit(1);
+    if(eee->conf.mgmt_port) {
+        if(slots_listen_tcp(eee->mgmt_slots, eee->conf.mgmt_port, false)!=0) {
+            perror("slots_listen_tcp");
+            exit(1);
+        }
     }
 
     n3n_config_setup_sessiondir(&eee->conf);
@@ -3293,6 +3289,7 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     eee->multicast_peer.addr.v4[2] = 0;
     eee->multicast_peer.addr.v4[3] = 68;
 
+    struct sockaddr_in local_address;
     memset(&local_address, 0, sizeof(local_address));
     local_address.sin_family = AF_INET;
     local_address.sin_port = htons(N2N_MULTICAST_PORT);
@@ -3332,7 +3329,6 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
     conf->bind_address = NULL;
     conf->preferred_sock.family = AF_INVALID;
-    conf->mgmt_port = N2N_EDGE_MGMT_PORT; /* 5644 by default */
     conf->transop_id = N2N_TRANSFORM_ID_NULL;
     conf->header_encryption = HEADER_ENCRYPTION_NONE;
     conf->compression = N2N_COMPRESSION_ID_NONE;

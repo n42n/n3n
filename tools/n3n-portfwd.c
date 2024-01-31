@@ -57,6 +57,8 @@
 #endif
 #endif
 
+// FIXME, this tool needs porting to JsonRPC
+#define N2N_EDGE_MGMT_PORT        5644
 
 typedef struct n2n_portfwd_conf {
     uint16_t port;                        /* management port */
