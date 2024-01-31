@@ -36,6 +36,7 @@ if [ -d "$TOPDIR/.git" ]; then
     VER_HASH=$(git rev-parse --short HEAD)
     VER=$(git describe --abbrev=7 --dirty)
     DATE=$(git log -1 --format=%cd)
+    # TODO - if dirty, use the current date, not the last commit date
 else
     # If there is no .git directory in our TOPDIR, we fall back on relying on
     # the VERSION file

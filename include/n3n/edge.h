@@ -6,8 +6,8 @@
  * Public API for edge
  */
 
-#ifndef _N3N_EDGEG_H_
-#define _N3N_EDGEG_H_
+#ifndef _N3N_EDGE_H_
+#define _N3N_EDGE_H_
 
 // Allow public pointers to reference the private structure
 typedef struct n2n_edge_conf n2n_edge_conf_t;
