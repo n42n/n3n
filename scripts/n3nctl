@@ -271,9 +271,14 @@ def main():
     if args.mgmturl is None:
         # try to guess the sessionname
         try:
-            sessions = os.listdir("/run/n3n")
+            sessiondirs = os.listdir("/run/n3n")
         except FileNotFoundError:
-            sessions = []
+            sessiondirs = []
+
+        sessions = []
+        for dirname in sessiondirs:
+            if os.path.exists(f"/run/n3n/{dirname}/mgmt"):
+                sessions.append(dirname)
 
         if len(sessions) == 0:
             print("Error: no sessions found, please specify --url")
