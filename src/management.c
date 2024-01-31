@@ -69,6 +69,13 @@ static void event_test (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
         (char *)data1);
 }
 
+static const char *event_peer_actions[] = {
+    [N3N_EVENT_PEER_PURGE] = "purge",
+    [N3N_EVENT_PEER_CLEAR] = "clear",
+    [N3N_EVENT_PEER_DEL_P2P] = "del_p2p",
+    [N3N_EVENT_PEER_ADD_P2P] = "add_p2p",
+};
+
 static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1) {
     int action = data0;
     struct peer_info *peer = (struct peer_info *)data1;
@@ -85,10 +92,10 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
         buf,
         "\x1e{"
         "\"event\":\"peer\","
-        "\"action\":%i,"
+        "\"action\":\"%s\","
         "\"macaddr\":\"%s\","
         "\"sockaddr\":\"%s\"}\n",
-        action,
+        event_peer_actions[action],
         (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
         sock_to_cstr(sockbuf, &(peer->sock))
         );
