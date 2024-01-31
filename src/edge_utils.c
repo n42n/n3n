@@ -3278,6 +3278,7 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
         perror("slots_listen_tcp");
         exit(1);
     }
+    chown(unixsock, eee->conf.userid, eee->conf.groupid);
 #endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY

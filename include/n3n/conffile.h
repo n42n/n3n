@@ -28,6 +28,8 @@ enum n3n_conf_type {
     n3n_conf_filter_rule,
     n3n_conf_ip_subnet,
     n3n_conf_ip_mode,
+    n3n_conf_userid,
+    n3n_conf_groupid,
 };
 
 struct n3n_conf_option {

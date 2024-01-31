@@ -6,6 +6,7 @@
  */
 
 #include <ctype.h>              // for isprint and friends
+#include <grp.h>                // for getgrnam
 #include <n3n/conffile.h>
 #include <n3n/edge.h>           // for edge_conf_add_supernode
 #include <n3n/logging.h>        // for setTraceLevel
@@ -112,6 +113,7 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             return 0;
         }
         case n3n_conf_uint32: {
+try_uint32:
             uint32_t *val = (uint32_t *)valvoid;
             char *endptr;
             uint32_t i = strtoul(value, &endptr, 0);
@@ -356,6 +358,33 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             return 0;
         }
+        case n3n_conf_userid: {
+#ifndef _WIN32
+            uint32_t *val = (uint32_t *)valvoid;
+            struct passwd *pw = getpwnam(value);
+            if(pw != NULL) {
+                *val = pw->pw_uid;
+                return 0;
+            }
+#endif
+            // if we could not lookup that name (or it is windows)
+            // just try interpreting the string value as an integer
+            goto try_uint32;
+        }
+        case n3n_conf_groupid: {
+
+#ifndef _WIN32
+            uint32_t *val = (uint32_t *)valvoid;
+            struct group *gr = getgrnam(value);
+            if(gr != NULL) {
+                *val = gr->gr_gid;
+                return 0;
+            }
+#endif
+            // if we could not lookup that name (or it is windows)
+            // just try interpreting the string value as an integer
+            goto try_uint32;
+        }
     }
     return -1;
 }
@@ -424,6 +453,8 @@ static char * stringify_option (void *conf, struct n3n_conf_option *option, char
 
             return NULL;
         }
+        case n3n_conf_userid:
+        case n3n_conf_groupid:
         case n3n_conf_uint32: {
             uint32_t *val = (uint32_t *)valvoid;
 
@@ -559,6 +590,8 @@ static int option_storagesize (struct n3n_conf_option *option) {
             bool *val = (bool *)valvoid;
             return sizeof(*val);
         }
+        case n3n_conf_userid:
+        case n3n_conf_groupid:
         case n3n_conf_uint32: {
             uint32_t *val = (uint32_t *)valvoid;
             return sizeof(*val);
