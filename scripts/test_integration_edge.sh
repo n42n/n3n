@@ -27,7 +27,7 @@ docmd "${BINDIR}"/apps/supernode -v
 docmd sudo "${BINDIR}"/apps/edge start ci_edge1 \
     -l localhost:7654 \
     -c test \
-    -Odaemon.userid=$USER \
+    -Odaemon.userid="$USER" \
     1>&2
 
 # TODO: probe the api endpoint, waiting for both the supernode and edge to be
