@@ -118,18 +118,18 @@ enum federation {IS_NO_FEDERATION = 0,IS_FEDERATION = 1};
 #define N2N_EDGE_MGMT_PORT        5644
 #define N2N_SN_MGMT_PORT          5645
 
-enum n2n_event_topic {
-    N2N_EVENT_DEBUG = 0,
-    N2N_EVENT_TEST = 1,
-    N2N_EVENT_PEER = 2,
+enum n3n_event_topic {
+    N3N_EVENT_DEBUG = 0,
+    N3N_EVENT_TEST = 1,
+    N3N_EVENT_PEER = 2,
 };
 
-#define N2N_EVENT_PEER_PURGE    1
-#define N2N_EVENT_PEER_CLEAR    2
-#define N2N_EVENT_PEER_DEL_P2P  3
-#define N2N_EVENT_PEER_ADD_P2P  4
+#define N3N_EVENT_PEER_PURGE    1
+#define N3N_EVENT_PEER_CLEAR    2
+#define N3N_EVENT_PEER_DEL_P2P  3
+#define N3N_EVENT_PEER_ADD_P2P  4
 
-#define N2N_MGMT_PASSWORD  "n3n"               /* default password for management port access (so far, json only) */
+#define N3N_MGMT_PASSWORD  "n3n"               /* default password for management port access (so far, json only) */
 
 
 #define N2N_TCP_BACKLOG_QUEUE_SIZE   3         /* number of concurrently pending connections to be accepted */

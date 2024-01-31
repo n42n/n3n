@@ -171,7 +171,7 @@ static void help (int level) {
         printf(" -t <port>         | management UDP port, for multiple supernodes on a machine,\n"
                "                   | defaults to %u\n", N2N_SN_MGMT_PORT);
         printf(" --management_...  | management port password, defaults to '%s'\n"
-               " ...password <pw>  | \n", N2N_MGMT_PASSWORD);
+               " ...password <pw>  | \n", N3N_MGMT_PASSWORD);
         printf(" -v                | make more verbose, repeat as required\n");
 #ifndef _WIN32
         printf(" -u <UID>          | numeric user ID to use when privileges are dropped\n");

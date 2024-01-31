@@ -82,7 +82,6 @@ N2N_OBJS=\
 	src/conffile.o \
 	src/conffile_defs.o \
 	src/curve25519.o \
-	src/edge_management.o \
 	src/edge_utils.o \
 	src/header_encryption.o \
 	src/hexdump.o \
@@ -99,7 +98,6 @@ N2N_OBJS=\
 	src/peer_info.o \
 	src/random_numbers.o \
 	src/resolve.o \
-	src/sn_management.o \
 	src/sn_selection.o \
 	src/sn_utils.o \
 	src/speck.o \

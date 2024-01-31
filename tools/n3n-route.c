@@ -699,7 +699,7 @@ static void help (int level) {
            "\n           as needed."
            "\n\n           Run with sufficient rights to let the tool add and delete routes."
            "\n\n",
-           N2N_EDGE_MGMT_PORT, N2N_MGMT_PASSWORD);
+           N2N_EDGE_MGMT_PORT, N3N_MGMT_PASSWORD);
 
     exit(0);
 }
@@ -827,7 +827,7 @@ int main (int argc, char* argv[]) {
     rrr.gateway_vpn = inet_address("");
     rrr.gateway_org = inet_address("");
     rrr.gateway_detect = AUTO_DETECT;
-    rrr.password = N2N_MGMT_PASSWORD;
+    rrr.password = N3N_MGMT_PASSWORD;
     rrr.port = N2N_EDGE_MGMT_PORT;
     rrr.routes = NULL;
     setTraceLevel(2); /* NORMAL, should already be default */

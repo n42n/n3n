@@ -24,6 +24,7 @@
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
+#include <n3n/supernode.h>      // for load_allowed_sn_community
 #include <stdbool.h>
 #include <stdint.h>             // for uint8_t, uint32_t, uint16_t, uint64_t
 #include <stdio.h>              // for sscanf, snprintf, fclose, fgets, fopen
@@ -823,7 +824,7 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
     sss->mac_addr[0] &= ~0x01; /* Clear multicast bit */
     sss->mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
-    sss->conf.mgmt_password = N2N_MGMT_PASSWORD;
+    sss->conf.mgmt_password = N3N_MGMT_PASSWORD;
 
     return 0; /* OK */
 }

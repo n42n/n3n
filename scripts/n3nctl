@@ -194,7 +194,7 @@ def subcmd_show_help(rpc, args):
     try:
         rows = rpc.get('help')
         for row in rows:
-            result += "{:12} {}\n".format(row['cmd'], row['help'])
+            result += "{:15} {}\n".format(row['method'], row['desc'])
     except urllib.error.HTTPError:
         result += "Error requesting help data"
 
@@ -221,10 +221,7 @@ def subcmd_default(rpc, args):
     """Just pass command through to edge"""
     method = args.cmd
     params = args.args
-    if args.read:
-        rows = rpc.get(method, params)
-    else:
-        raise ValueError('Unknown request type')
+    rows = rpc.get(method, params)
     return json.dumps(rows, sort_keys=True, indent=4)
 
 
@@ -244,15 +241,6 @@ def main():
     ap.add_argument('--orderby', action='store',
                     help='Hint to a pretty printer on how to sort')
 
-    group = ap.add_mutually_exclusive_group()
-    group.add_argument('--read', action='store_true',
-                       help='Make a read request (default)')
-    group.add_argument('--write', action='store_true',
-                       help='Make a write request (only to non pretty'
-                       'printed cmds)')
-    group.add_argument('--sub', action='store_true',
-                       help='Make a subscribe request')
-
     ap.add_argument('cmd', action='store',
                     help='Command to run (try "help" for list)')
     ap.add_argument('args', action='store', nargs="*",
@@ -270,18 +258,19 @@ def main():
         except FileNotFoundError:
             sessions = []
 
-        if len(sessions) == 1:
+        if len(sessions) == 0:
+            print("Error: no sessions found, please specify --url")
+            exit(1)
+        elif len(sessions) == 1:
             # There is only one session, so choose that one
             args.mgmturl = "unix://" + sessions[0]
         else:
-            print(
-                "Error: could not guess sessionname, please use "
-                "the --sessionname option"
-            )
+            print("Error: found multiple sessions:")
+            print()
+            print("\t", " ".join(sessions))
+            print()
+            print("please use --sessionname to choose one")
             exit(1)
-
-    if not args.read and not args.write and not args.sub:
-        args.read = True
 
     if args.raw or (args.cmd not in subcmds):
         func = subcmd_default

@@ -12,6 +12,7 @@
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
+#include <n3n/supernode.h>      // for load_allowed_sn_community
 #include <pearson.h>     // for pearson_hash_64
 #include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
@@ -28,163 +29,7 @@
 #include <sys/socket.h>  // for sendto, sockaddr
 #endif
 
-
-ssize_t send_reply (mgmt_req_t *req, strbuf_t *buf) {
-    // TODO: better error handling (counters?)
-    return sendto(req->mgmt_sock, buf->str, buf->wr_pos, 0,
-                  &req->sender_sock, req->sock_len);
-}
-
-size_t gen_json_1str (strbuf_t *buf, char *tag, char *_type, char *key, char *val) {
-    return sb_printf(buf,
-                     "{"
-                     "\"_tag\":\"%s\","
-                     "\"_type\":\"%s\","
-                     "\"%s\":\"%s\"}\n",
-                     tag,
-                     _type,
-                     key,
-                     val);
-}
-
-size_t gen_json_1uint (strbuf_t *buf, char *tag, char *_type, char *key, unsigned int val) {
-    return sb_printf(buf,
-                     "{"
-                     "\"_tag\":\"%s\","
-                     "\"_type\":\"%s\","
-                     "\"%s\":%u}\n",
-                     tag,
-                     _type,
-                     key,
-                     val);
-}
-
-void send_json_1str (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, char *val) {
-    gen_json_1str(buf, req->tag, _type, key, val);
-    send_reply(req, buf);
-}
-
-void send_json_1uint (mgmt_req_t *req, strbuf_t *buf, char *_type, char *key, unsigned int val) {
-    gen_json_1uint(buf, req->tag, _type, key, val);
-    send_reply(req, buf);
-}
-
-void mgmt_error (mgmt_req_t *req, strbuf_t *buf, char *msg) {
-    send_json_1str(req, buf, "error", "error", msg);
-}
-
-void mgmt_stop (mgmt_req_t *req, strbuf_t *buf) {
-
-    if(req->type==N2N_MGMT_WRITE) {
-        *req->keep_running = false;
-    }
-
-    send_json_1uint(req, buf, "row", "keep_running", *req->keep_running);
-}
-
-void mgmt_verbose (mgmt_req_t *req, strbuf_t *buf) {
-
-    if(req->type==N2N_MGMT_WRITE) {
-        if(req->argv) {
-            setTraceLevel(strtoul(req->argv, NULL, 0));
-        }
-    }
-
-    send_json_1uint(req, buf, "row", "traceLevel", getTraceLevel());
-}
-
-void mgmt_unimplemented (mgmt_req_t *req, strbuf_t *buf) {
-
-    mgmt_error(req, buf, "unimplemented");
-}
-
-void mgmt_event_post2 (enum n2n_event_topic topic, int data0, void *data1, mgmt_req_t *debug, mgmt_req_t *sub, mgmt_event_handler_t fn) {
-    traceEvent(TRACE_DEBUG, "post topic=%i data0=%i", topic, data0);
-
-    if( sub->type != N2N_MGMT_SUB && debug->type != N2N_MGMT_SUB) {
-        // If neither of this topic or the debug topic have a subscriber
-        // then we dont need to do any work
-        return;
-    }
-
-    char buf_space[100];
-    strbuf_t *buf;
-    STRBUF_INIT(buf, buf_space);
-
-    char *tag;
-    if(sub->type == N2N_MGMT_SUB) {
-        tag = sub->tag;
-    } else {
-        tag = debug->tag;
-    }
-
-    fn(buf, tag, data0, data1);
-
-    if(sub->type == N2N_MGMT_SUB) {
-        send_reply(sub, buf);
-    }
-    if(debug->type == N2N_MGMT_SUB) {
-        send_reply(debug, buf);
-    }
-    // TODO:
-    // - ideally, we would detect that the far end has gone away and
-    //   set the ->type back to N2N_MGMT_UNKNOWN, but we are not using
-    //   a connected socket, so that is difficult
-    // - failing that, we should require the client to send an unsubscribe
-    //   and provide a manual unsubscribe
-}
-
-void mgmt_help_row (mgmt_req_t *req, strbuf_t *buf, char *cmd, char *help) {
-    sb_printf(buf,
-              "{"
-              "\"_tag\":\"%s\","
-              "\"_type\":\"row\","
-              "\"cmd\":\"%s\","
-              "\"help\":\"%s\"}\n",
-              req->tag,
-              cmd,
-              help);
-
-    send_reply(req, buf);
-}
-
-void mgmt_help_events_row (mgmt_req_t *req, strbuf_t *buf, mgmt_req_t *sub, char *cmd, char *help) {
-    char host[40];
-    char serv[6];
-
-    if((sub->type != N2N_MGMT_SUB) ||
-       getnameinfo((struct sockaddr *)&sub->sender_sock, sizeof(sub->sender_sock),
-                   host, sizeof(host),
-                   serv, sizeof(serv),
-                   NI_NUMERICHOST|NI_NUMERICSERV) != 0) {
-        host[0] = '?';
-        host[1] = 0;
-        serv[0] = '?';
-        serv[1] = 0;
-    }
-
-    // TODO: handle a topic with no subscribers more cleanly
-
-    sb_printf(buf,
-              "{"
-              "\"_tag\":\"%s\","
-              "\"_type\":\"row\","
-              "\"topic\":\"%s\","
-              "\"tag\":\"%s\","
-              "\"sockaddr\":\"%s:%s\","
-              "\"help\":\"%s\"}\n",
-              req->tag,
-              cmd,
-              sub->tag,
-              host, serv,
-              help);
-
-    send_reply(req, buf);
-}
-
-// TODO: work out a method to keep the mgmt_handlers defintion const static,
-// and then import the shared mgmt_help () definition to this file
-
+#if 0
 /*
  * Check if the user is authorised for this command.
  * - this should be more configurable!
@@ -208,85 +53,136 @@ int mgmt_auth (mgmt_req_t *req, char *auth) {
 
     return 0;
 }
+#endif
 
-/*
- * Handle the common and shred parts of the mgmt_req_t initialisation
- */
-bool mgmt_req_init2 (mgmt_req_t *req, strbuf_t *buf, char *cmdline) {
-    char *typechar;
-    char *options;
-    char *flagstr;
-    int flags;
-    char *auth;
+static void event_debug (strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1) {
+    traceEvent(TRACE_DEBUG, "Unexpected call to event_debug");
+    return;
+}
 
-    /* Initialise the tag field until we extract it from the cmdline */
-    req->tag[0] = '-';
-    req->tag[1] = '1';
-    req->tag[2] = '\0';
+static void event_test (strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1) {
+    sb_printf(
+        buf,
+        "\x1e{"
+        "\"event\":\"test\","
+        "\"params\":%s}\n",
+        (char *)data1);
+}
 
-    typechar = strtok(cmdline, " \r\n");
-    if(!typechar) {
-        /* should not happen */
-        mgmt_error(req, buf, "notype");
-        return false;
-    }
-    if(*typechar == 'r') {
-        req->type=N2N_MGMT_READ;
-    } else if(*typechar == 'w') {
-        req->type=N2N_MGMT_WRITE;
-    } else if(*typechar == 's') {
-        req->type=N2N_MGMT_SUB;
-    } else {
-        mgmt_error(req, buf, "badtype");
-        return false;
-    }
+static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1) {
+    int action = data0;
+    struct peer_info *peer = (struct peer_info *)data1;
 
-    /* Extract the tag to use in all reply packets */
-    options = strtok(NULL, " \r\n");
-    if(!options) {
-        mgmt_error(req, buf, "nooptions");
-        return false;
-    }
-
-    req->argv0 = strtok(NULL, " \r\n");
-    if(!req->argv0) {
-        mgmt_error(req, buf, "nocmd");
-        return false;
-    }
+    macstr_t mac_buf;
+    n2n_sock_str_t sockbuf;
 
     /*
-     * The entire rest of the line is the argv. We apply no processing
-     * or arg separation so that the cmd can use it however it needs.
+     * Just the peer_info bits that are needed for lookup (maccaddr) or
+     * firewall and routing (sockaddr)
+     * If needed, other details can be fetched via the edges method call.
      */
-    req->argv = strtok(NULL, "\r\n");
+    sb_printf(
+        buf,
+        "\x1e{"
+        "\"event\":\"peer\","
+        "\"action\":%i,"
+        "\"macaddr\":\"%s\","
+        "\"sockaddr\":\"%s\"}\n",
+        action,
+        (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+        sock_to_cstr(sockbuf, &(peer->sock))
+        );
+}
 
-    /*
-     * There might be an auth token mixed in with the tag
-     */
-    char *tagp = strtok(options, ":");
-    strncpy(req->tag, tagp, sizeof(req->tag)-1);
-    req->tag[sizeof(req->tag)-1] = '\0';
+/* Current subscriber for each event topic */
+static SOCKET mgmt_event_subscribers[] = {
+    [N3N_EVENT_DEBUG] = -1,
+    [N3N_EVENT_TEST] = -1,
+    [N3N_EVENT_PEER] = -1,
+};
 
-    flagstr = strtok(NULL, ":");
-    if(flagstr) {
-        flags = strtoul(flagstr, NULL, 16);
-    } else {
-        flags = 0;
+struct mgmt_event {
+    char *topic;
+    char *desc;
+    void (*func)(strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1);
+};
+
+static const struct mgmt_event mgmt_events[] = {
+    [N3N_EVENT_DEBUG] = {
+        .topic = "debug",
+        .desc = "All events - for event debugging",
+        .func = event_debug,
+    },
+    [N3N_EVENT_TEST] = {
+        .topic = "test",
+        .desc = "Used only by post.test",
+        .func = event_test,
+    },
+    [N3N_EVENT_PEER] = {
+        .topic = "peer",
+        .desc = "Changes to peer list",
+        .func = event_peer,
+    },
+};
+
+static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
+    // TODO: look at url tail for event name
+    enum n3n_event_topic topic = N3N_EVENT_DEBUG;
+    bool replacing = false;
+
+    if(mgmt_event_subscribers[topic] != -1) {
+        // TODO: send a goodbuy message to old subscriber
+        close(mgmt_event_subscribers[topic]);
+
+        replacing = true;
     }
 
-    /* Only 1 flag bit defined at the moment - "auth option present" */
-    if(flags & 1) {
-        auth = strtok(NULL, ":");
-    } else {
-        auth = NULL;
+    // Take the filehandle away from the connslots.
+    mgmt_event_subscribers[topic] = conn->fd;
+    conn_zero(conn);
+
+    // TODO: shutdown(fd, SHUT_RD) - but that does nothing for unix domain
+
+    char *msg1 = "HTTP/1.1 200 event\r\nContent-Type: application/json\r\n\r\n";
+    write(mgmt_event_subscribers[topic], msg1, strlen(msg1));
+    // Ignore the result
+    // (the message is leaving here fine, the problem must be at your end)
+
+    if(replacing) {
+        char *msg2 = "\x1e\"replacing\"\n";
+        write(mgmt_event_subscribers[topic], msg2, strlen(msg2));
+    }
+}
+
+void mgmt_event_post (const enum n3n_event_topic topic, int data0, const void *data1) {
+    traceEvent(TRACE_DEBUG, "post topic=%i data0=%i", topic, data0);
+
+    SOCKET debug = mgmt_event_subscribers[N3N_EVENT_DEBUG];
+    SOCKET sub = mgmt_event_subscribers[topic];
+
+    if( sub == -1 && debug == -1) {
+        // If neither of this topic or the debug topic have a subscriber
+        // then we dont need to do any work
+        return;
     }
 
-    if(!mgmt_auth(req, auth)) {
-        mgmt_error(req, buf, "badauth");
-        return false;
-    }
+    char buf_space[100];
+    strbuf_t *buf;
+    STRBUF_INIT(buf, buf_space);
 
-    return true;
+    mgmt_events[topic].func(buf, topic, data0, data1);
+
+    if( sub != -1 ) {
+        sb_write(sub, buf, 0, -1);
+    }
+    if( debug != -1 ) {
+        sb_write(debug, buf, 0, -1);
+    }
+    // TODO:
+    // - ideally, we would detect that the far end has gone away and
+    //   set the subscriber socket back to -1
+    // - this all assumes that the socket is set to non blocking
+    // - if the write returns EWOULDBLOCK, increment a metric and return
 }
 
 static void generate_http_headers (conn_t *conn, const char *type, int code) {
@@ -536,11 +432,15 @@ static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *co
                 "{"
                 "\"version\":\"%s\","
                 "\"builddate\":\"%s\","
+                "\"is_edge\":%i,"
+                "\"is_supernode\":%i,"
                 "\"macaddr\":\"%s\","
                 "\"ip4addr\":\"%s\","
                 "\"sockaddr\":\"%s\"}",
                 VERSION,
                 BUILDDATE,
+                eee->conf.is_edge,
+                eee->conf.is_supernode,
                 is_null_mac(eee->device.mac_addr) ? "" : macaddr_str(mac_buf, eee->device.mac_addr),
                 ip_address,
                 sock_to_cstr(sockbuf, &eee->conf.preferred_sock)
@@ -606,7 +506,7 @@ static void jsonrpc_get_timestamps (char *id, struct n3n_runtime_data *eee, conn
                 "\"last_sweep\":%ld,"
                 "\"last_sn_fwd\":%ld,"
                 "\"last_sn_reg\":%ld,"
-                "\"start_time\":%lu},",
+                "\"start_time\":%lu}",
                 eee->last_register_req,
                 eee->last_p2p,
                 eee->last_sup,
@@ -715,6 +615,77 @@ static void jsonrpc_todo (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
 }
 #endif
 
+static void jsonrpc_post_test (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+
+    mgmt_event_post(N3N_EVENT_TEST, -1, params);
+
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->request, "\"sent\"\n");
+    jsonrpc_result_tail(conn, 200);
+}
+
+
+static void jsonrpc_reload_communities (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+    // FIXME: add auth check
+
+    int ok = load_allowed_sn_community(eee);
+
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->request, "%i", ok);
+    jsonrpc_result_tail(conn, 200);
+}
+
+static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+    int nr_handlers = sizeof(mgmt_events) / sizeof(mgmt_events[0]);
+
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->request, "[");
+    for( int topic=0; topic < nr_handlers; topic++ ) {
+        int sub = mgmt_event_subscribers[topic];
+        char host[40];
+        char serv[6];
+        host[0] = '?';
+        host[1] = 0;
+        serv[0] = '?';
+        serv[1] = 0;
+
+        if(sub != -1) {
+            struct sockaddr_storage sa;
+            socklen_t sa_size = sizeof(sa);
+
+            if(getpeername(sub, (struct sockaddr *)&sa, &sa_size) == 0) {
+                getnameinfo(
+                    (struct sockaddr *)&sa, sa_size,
+                    host, sizeof(host),
+                    serv, sizeof(serv),
+                    NI_NUMERICHOST|NI_NUMERICSERV
+                    );
+            }
+        }
+
+        sb_reprintf(
+            &conn->request,
+            "{"
+            "\"topic\":\"%s\","
+            "\"sockaddr\":\"%s:%s\","
+            "\"desc\":\"%s\"},",
+            mgmt_events[topic].topic,
+            host, serv,
+            mgmt_events[topic].desc
+            );
+    }
+
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
+
+    sb_reprintf(&conn->request, "]");
+    jsonrpc_result_tail(conn, 200);
+}
+
+static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params);
+
 struct mgmt_jsonrpc_method {
     char *method;
     void (*func)(char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params);
@@ -729,14 +700,39 @@ static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
     { "get_supernodes", jsonrpc_get_supernodes, "List current supernodes" },
     { "get_timestamps", jsonrpc_get_timestamps, "Event timestamps" },
     { "get_verbose", jsonrpc_get_verbose, "Logging verbosity" },
+    { "help", jsonrpc_help, "Show JsonRPC methods" },
+    { "help.events", jsonrpc_help_events, "Show available event topics" },
+    { "post.test", jsonrpc_post_test, "Send a test event" },
+    { "reload_communities", jsonrpc_reload_communities, "Reloads communities and user's public keys" },
     { "set_verbose", jsonrpc_set_verbose, "Set logging verbosity" },
     { "stop", jsonrpc_stop, "Stop the daemon" },
-    // post.test, "send a test event"
-    // help, "Show JsonRPC methods"
-    // help.events, "Show available Subscribe topics"
     // get_last_event?
-    // reload_communities, "Reloads communities and user's public keys"
 };
+
+static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->request, "[");
+
+    int i;
+    int nr_handlers = sizeof(jsonrpc_methods) / sizeof(jsonrpc_methods[0]);
+    for( i=0; i < nr_handlers; i++ ) {
+        sb_reprintf(&conn->request,
+                    "{"
+                    "\"method\":\"%s\","
+                    "\"desc\":\"%s\"},",
+                    jsonrpc_methods[i].method,
+                    jsonrpc_methods[i].desc
+                    );
+
+    }
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
+
+    sb_reprintf(&conn->request, "]");
+    jsonrpc_result_tail(conn, 200);
+}
 
 static void render_error (struct n3n_runtime_data *eee, conn_t *conn) {
     sb_zero(conn->request);
@@ -779,10 +775,10 @@ static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
     int i;
     int nr_handlers = sizeof(jsonrpc_methods) / sizeof(jsonrpc_methods[0]);
     for( i=0; i < nr_handlers; i++ ) {
-        if(!strncmp(
+        if(!strcmp(
                jsonrpc_methods[i].method,
-               json.method,
-               strlen(jsonrpc_methods[i].method))) {
+               json.method
+               )) {
             break;
         }
     }
@@ -840,6 +836,7 @@ static const struct mgmt_api_endpoint api_endpoints[] = {
     { "GET /metrics ", render_todo_page, "Fetch metrics data" },
     { "GET /script.js ", render_script_page, "javascript helpers" },
     { "GET /status ", render_todo_page, "Quick health check" },
+    { "GET /events/", event_subscribe, "Subscribe to events" },
 };
 
 void mgmt_api_handler (struct n3n_runtime_data *eee, conn_t *conn) {
