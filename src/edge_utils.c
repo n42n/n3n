@@ -3143,7 +3143,17 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     // TODO:
     // - slots_close(eee->mgmt_slots)
-    // - unlink/rmdir the session socket
+    // - have a helper to calculate/remember the socket pathname
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", eee->conf.sessiondir);
+    unlink(unixsock);
+    rmdir(eee->conf.sessiondir);
+#else
+    _rmdir(eee->conf.sessiondir);
+#endif
+    // Ignore errors in the unlink/rmdir as they could simply be that the
+    // paths were chown/chmod by the administrator
 
     free(eee->conf.sessiondir);
 
