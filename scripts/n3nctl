@@ -6,6 +6,7 @@
 # Simple script to query the management interface of a running n3n edge node
 
 import argparse
+import base64
 import collections
 import json
 import os
@@ -13,6 +14,10 @@ import socket
 import time
 import urllib
 import urllib.request
+
+
+class Unauthenticated(Exception):
+    pass
 
 
 class JsonRPC:
@@ -28,6 +33,8 @@ class JsonRPC:
             self.url = url + "/v1"
         self.timeout = 5
         self.id = 0
+        self.username = "unused"
+        self.password = None
 
     def _data(self, method, params):
         self.id += 1
@@ -54,6 +61,10 @@ class JsonRPC:
             },
             data=data,
         )
+        if self.password is not None:
+            val = f"{self.username}:{self.password}".encode('utf8')
+            encoded = base64.b64encode(val)
+            req.add_header("Authorization", b"Basic " + encoded)
         return req
 
     def get(self, method, params=None):
@@ -70,7 +81,13 @@ class JsonRPC:
         else:
             req = self._request_obj(method, params)
 
-            r = urllib.request.urlopen(req, timeout=self.timeout)
+            try:
+                r = urllib.request.urlopen(req, timeout=self.timeout)
+            except urllib.error.HTTPError as e:
+                if e.code == 401:
+                    raise Unauthenticated
+                raise e
+
             if r.status != 200:
                 raise ValueError(f"urllib request got {r.status} {r.reason}")
 
@@ -279,10 +296,13 @@ def main():
 
     rpc = JsonRPC(args.mgmturl)
     rpc.debug = args.debug
-    rpc.key = args.key
+    rpc.password = args.key
 
     try:
         result = func(rpc, args)
+    except Unauthenticated:
+        print("This request requires an authentication key")
+        exit(1)
     except socket.timeout as e:
         print(e)
         exit(1)

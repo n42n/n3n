@@ -78,6 +78,7 @@ CFLAGS+=-DHAVE_BRIDGING_SUPPORT
 N2N_OBJS=\
 	src/aes.o \
 	src/auth.o \
+	src/base64.o \
 	src/cc20.o \
 	src/conffile.o \
 	src/conffile_defs.o \

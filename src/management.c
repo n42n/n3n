@@ -19,6 +19,7 @@
 #include <stdio.h>       // for snprintf, NULL, size_t
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
+#include "base64.h"      // for base64decode
 #include "management.h"
 #include "peer_info.h"   // for peer_info
 
@@ -28,6 +29,79 @@
 #include <netdb.h>       // for getnameinfo, NI_NUMERICHOST, NI_NUMERICSERV
 #include <sys/socket.h>  // for sendto, sockaddr
 #endif
+
+static void generate_http_headers (conn_t *conn, const char *type, int code) {
+    strbuf_t **pp = &conn->reply_header;
+    sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
+    // TODO:
+    // - caching
+    int len = sb_len(conn->reply);
+    sb_reprintf(pp, "Content-Type: %s\r\n", type);
+    sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
+}
+
+static void render_error (conn_t *conn, const char *message) {
+    sb_zero(conn->request);
+    sb_printf(conn->request, "%s\n", message);
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+
+    generate_http_headers(conn, "text/plain", 404);
+}
+
+static bool auth_check (struct n3n_runtime_data *eee, conn_t *conn) {
+    char *p = strstr(conn->request->str, "Authorization:");
+    if(!p) {
+        // No auth header
+        return false;
+    }
+    strtok(p, " "); // Skip the Authorization: header
+    p = strtok(NULL, " ");
+    if(strcmp(p, "Basic")) {
+        // They sent something other than basic
+        return false;
+    }
+
+    p = strtok(NULL, " \r\n");
+
+    char *decoded = base64decode(p);
+    if(!decoded) {
+        // they didnt send us valid base64
+        return false;
+    }
+
+    p = strtok(decoded,":"); // Skip the username
+    p = strtok(NULL,":");
+    if(!p) {
+        // they didnt send us a complete auth header
+        return false;
+    }
+
+    if(strcmp(eee->conf.mgmt_password, p)) {
+        // They didnt send the right password
+        free(decoded);
+        return false;
+    }
+
+    free(decoded);
+    return true;
+}
+
+static void auth_request (conn_t *conn) {
+    sb_zero(conn->request);
+    sb_printf(conn->request, "%s\n", "unauthorised");
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+
+    strbuf_t **pp = &conn->reply_header;
+    sb_reprintf(pp, "HTTP/1.1 401 unauth\r\n");
+    int len = sb_len(conn->reply);
+    sb_reprintf(pp, "Content-Type: text/plain\r\n");
+    sb_reprintf(pp, "WWW-Authenticate: Basic realm=\"n3n\"\r\n");
+    sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
+}
 
 #if 0
 /*
@@ -54,26 +128,6 @@ int mgmt_auth (mgmt_req_t *req, char *auth) {
     return 0;
 }
 #endif
-
-static void generate_http_headers (conn_t *conn, const char *type, int code) {
-    strbuf_t **pp = &conn->reply_header;
-    sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
-    // TODO:
-    // - caching
-    int len = sb_len(conn->reply);
-    sb_reprintf(pp, "Content-Type: %s\r\n", type);
-    sb_reprintf(pp, "Content-Length: %i\r\n\r\n", len);
-}
-
-static void render_error (conn_t *conn, const char *message) {
-    sb_zero(conn->request);
-    sb_printf(conn->request, "%s\n", message);
-
-    // Update the reply buffer after last potential realloc
-    conn->reply = conn->request;
-
-    generate_http_headers(conn, "text/plain", 404);
-}
 
 static void event_debug (strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1) {
     traceEvent(TRACE_DEBUG, "Unexpected call to event_debug");
@@ -295,7 +349,10 @@ static void jsonrpc_get_verbose (char *id, struct n3n_runtime_data *eee, conn_t 
 }
 
 static void jsonrpc_set_verbose (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params_in) {
-    // FIXME: add auth check
+    if(!auth_check(eee, conn)) {
+        auth_request(conn);
+        return;
+    }
 
     if(!params_in) {
         jsonrpc_error(id, conn, 400, "missing param");
@@ -322,7 +379,10 @@ static void jsonrpc_set_verbose (char *id, struct n3n_runtime_data *eee, conn_t 
 }
 
 static void jsonrpc_stop (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
-    // FIXME: add auth check
+    if(!auth_check(eee, conn)) {
+        auth_request(conn);
+        return;
+    }
 
     *eee->keep_running = false;
 
@@ -669,7 +729,10 @@ static void jsonrpc_post_test (char *id, struct n3n_runtime_data *eee, conn_t *c
 
 
 static void jsonrpc_reload_communities (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
-    // FIXME: add auth check
+    if(!auth_check(eee, conn)) {
+        auth_request(conn);
+        return;
+    }
 
     int ok = load_allowed_sn_community(eee);
 

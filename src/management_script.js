@@ -96,7 +96,7 @@ function setverbose(tracelevel) {
     }
     // FIXME: uses global in script library
     do_jsonrpc(
-        url, "set_verbose", tracelevel,
+        url, "set_verbose", [tracelevel],
         'verbose',
         result2verbose, null
     );
