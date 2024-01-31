@@ -92,6 +92,8 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
         (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
         sock_to_cstr(sockbuf, &(peer->sock))
         );
+
+    // TODO: a generic truncation watcher for these buffers
 }
 
 /* Current subscriber for each event topic */
@@ -166,7 +168,7 @@ void mgmt_event_post (const enum n3n_event_topic topic, int data0, const void *d
         return;
     }
 
-    char buf_space[100];
+    char buf_space[200];
     strbuf_t *buf;
     STRBUF_INIT(buf, buf_space);
 
