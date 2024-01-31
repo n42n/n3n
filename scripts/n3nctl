@@ -72,7 +72,9 @@ class JsonRPC:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             path = f"/run/n3n/{self.sessionname}/mgmt"
             sock.connect(path)
-            data = b"POST /v1 \r\n\r\n" + self._data(method, params)
+            body = self._data(method, params)
+            size = str(len(body)).encode("utf8")
+            data = b"POST /v1 \r\nContent-Length: " + size + b"\r\n\r\n" + body
             sock.sendall(data)
 
             reply = sock.recv(16384)
