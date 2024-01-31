@@ -165,6 +165,9 @@ ssize_t conn_write(conn_t *conn) {
 
     conn->state = CONN_SENDING;
 
+    if (conn->fd == -1) {
+        return 0;
+    }
 #ifndef _WIN32
     int nr = 0;
     unsigned int reply_pos = 0;
@@ -260,6 +263,10 @@ void slots_free(slots_t *slots) {
         conn->request = NULL;
         free(conn->reply_header);
         conn->reply_header = NULL;
+
+        // TODO:
+        // - close any open sockets?
+        // - decrement the nr_open?
     }
     free(slots);
 }
@@ -405,10 +412,13 @@ int slots_fdset(slots_t *slots, fd_set *readers, fd_set *writers) {
     int i;
     int fdmax = 0;
 
+    int nr_open = 0;
+
     for (i=0; i<slots->nr_slots; i++) {
         if (slots->conn[i].fd == -1) {
             continue;
         }
+        nr_open++;
         int fd = slots->conn[i].fd;
         FD_SET(fd, readers);
         if (conn_iswriter(&slots->conn[i])) {
@@ -416,6 +426,10 @@ int slots_fdset(slots_t *slots, fd_set *readers, fd_set *writers) {
         }
         fdmax = (fd > fdmax)? fd : fdmax;
     }
+
+    // Since we scan all the slots, we have an accurate nr_open count
+    // (library users could be converting slots into a different protocols)
+    slots->nr_open = nr_open;
 
     // If we have room for more connections, we listen on the server socket(s)
     if (slots->listen[0] && slots->nr_open < slots->nr_slots) {
@@ -511,11 +525,13 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
     }
 
     int nr_ready = 0;
+    int nr_open = 0;
 
     for (int i=0; i<slots->nr_slots; i++) {
         if (slots->conn[i].fd == -1) {
             continue;
         }
+        nr_open++;
 
         if (FD_ISSET(slots->conn[i].fd, readers)) {
             conn_read(&slots->conn[i]);
@@ -543,6 +559,10 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
             conn_write(&slots->conn[i]);
         }
     }
+
+    // Since we scan all the slots, we have an accurate nr_open count
+    // (library users could be converting slots into a different protocols)
+    slots->nr_open = nr_open;
 
     return nr_ready;
 }
