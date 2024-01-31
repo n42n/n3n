@@ -864,11 +864,11 @@ struct mgmt_api_endpoint {
 static const struct mgmt_api_endpoint api_endpoints[] = {
     { "POST /v1 ", handle_jsonrpc, "JsonRPC" },
     { "GET / ", render_index_page, "Human interface" },
+    { "GET /events/", event_subscribe, "Subscribe to events" },
     { "GET /help ", render_help_page, "Describe available endpoints" },
     { "GET /metrics ", render_todo_page, "Fetch metrics data" },
     { "GET /script.js ", render_script_page, "javascript helpers" },
     { "GET /status ", render_todo_page, "Quick health check" },
-    { "GET /events/", event_subscribe, "Subscribe to events" },
 };
 
 static void render_help_page (struct n3n_runtime_data *eee, conn_t *conn) {
