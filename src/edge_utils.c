@@ -3161,7 +3161,7 @@ void edge_term (struct n3n_runtime_data * eee) {
 
 /* ************************************** */
 
-static int mkdir_p (const char *pathname, int mode) {
+static int mkdir_p (const char *pathname, int mode, int uid, int gid) {
     if(access(pathname, R_OK) == 0) {
         // it already exists (may not be a dir though)
         return 0;
@@ -3173,14 +3173,20 @@ static int mkdir_p (const char *pathname, int mode) {
     }
 
 #ifndef _WIN32
-    int r = mkdir(pathname, mode);
-#else
-    int r = _mkdir(pathname);
-#endif
-
-    if(r == -1) {
+    if(mkdir(pathname, mode) == -1) {
         return -1;
     }
+    if(chown(pathname, uid, gid) == -1) {
+        return -1;
+    }
+
+#else
+    // Some versions of windows appear to have mkdir(), others _mkdir()
+    // using this gives some undefined warnings, but is most compatible
+    if(_mkdir(pathname) == -1) {
+        return -1;
+    }
+#endif
 
     return 0;
 }
@@ -3215,14 +3221,14 @@ static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
     snprintf(basedir, sizeof(basedir), "%s/n3n", userprofile);
 #endif
 
-    if(mkdir_p(basedir, 0755) == -1) {
+    if(mkdir_p(basedir, 0755, conf->userid, conf->groupid) == -1) {
         traceEvent(TRACE_ERROR, "cannot mkdir %s", basedir);
         return -1;
     }
 
     char buf[1024];
     snprintf(buf, sizeof(buf), "%s/%s", basedir, conf->sessionname);
-    if(mkdir_p(buf, 0755) == -1) {
+    if(mkdir_p(buf, 0755, conf->userid, conf->groupid) == -1) {
         traceEvent(TRACE_ERROR, "cannot mkdir %s", buf);
         return -1;
     }
