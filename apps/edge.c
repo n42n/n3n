@@ -359,8 +359,8 @@ static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
 
 #ifdef _WIN32
 static void cmd_help_adaptors (int argc, char **argv, n2n_edge_conf_t *conf) {
-    printf (" AVAILABLE TAP ADAPTERS\n");
-    printf (" ----------------------\n\n");
+    printf(" AVAILABLE TAP ADAPTERS\n");
+    printf(" ----------------------\n\n");
     win_print_available_adapters();
     exit(0);
 }
