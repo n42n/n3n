@@ -24,6 +24,7 @@
 #include <errno.h>             // for errno
 #include <getopt.h>            // for required_argument, getopt_long, no_arg...
 #include <n3n/conffile.h>      // for n3n_config_set_option
+#include <n3n/initfuncs.h>     // for n3n_initfuncs()
 #include <n3n/logging.h>       // for traceEvent
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
@@ -97,9 +98,7 @@ static void help (int level) {
                "\n options for under-        "
                "[-l <supernode host:port>] "
                "\n lying connection          "
-#ifdef SN_MANUAL_MAC
                "[-m <mac address>] "
-#endif
                "[-M] "
                "[-V <version text>] "
                "\n\n overlay network           "
@@ -111,18 +110,14 @@ static void help (int level) {
                "\n                           "
                "[--management-password <pw>] "
                "[-v] "
-#ifndef _WIN32
                "\n                           "
                "[-u <numerical user id>]"
                "[-g <numerical group id>]"
-#endif
                "\n\n meaning of the            "
                "[-M]  disable MAC and IP address spoofing protection"
                "\n flag options              "
-#ifndef _WIN32
                "[-f]  do not fork but run in foreground"
                "\n                           "
-#endif
                "[-v]  make more verbose, repeat as required"
                "\n                           "
                "\n technically, all parameters are optional, but the supernode executable"
@@ -147,10 +142,8 @@ static void help (int level) {
         printf(" -F <fed name>     | name of the supernode's federation, defaults to\n"
                "                   | '%s'\n", (char *)FEDERATION_NAME);
         printf(" -l <host:port>    | ip address or name, and port of known supernode\n");
-#ifdef SN_MANUAL_MAC
         printf(" -m <mac>          | fixed MAC address for the supernode, e.g.\n"
                "                   | '-m 10:20:30:40:50:60', random otherwise\n");
-#endif
         printf(" -M                | disable MAC and IP address spoofing protection for all\n"
                "                   | non-username-password-authenticating communities\n");
         printf(" -V <version text> | sends a custom supernode version string of max 19 letters \n"
@@ -165,18 +158,14 @@ static void help (int level) {
         printf("\n");
         printf(" LOCAL OPTIONS\n");
         printf(" -------------\n\n");
-#ifndef _WIN32
         printf(" -f                | do not fork and run as a daemon, rather run in foreground\n");
-#endif
         printf(" -t <port>         | management UDP port, for multiple supernodes on a machine,\n"
                "                   | defaults to %u\n", N2N_SN_MGMT_PORT);
         printf(" --management_...  | management port password, defaults to '%s'\n"
                " ...password <pw>  | \n", N3N_MGMT_PASSWORD);
         printf(" -v                | make more verbose, repeat as required\n");
-#ifndef _WIN32
         printf(" -u <UID>          | numeric user ID to use when privileges are dropped\n");
         printf(" -g <GID>          | numeric group ID to use when privileges are dropped\n");
-#endif
         printf("\n technically, all parameters are optional, but the supernode executable"
                "\n requires at least one parameter to run, .e.g. -v or -f, as otherwise a"
                "\n short help text is displayed"
@@ -313,7 +302,6 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
 
             break;
         }
-#ifndef _WIN32
         case 'u': /* unprivileged uid */
             sss->conf.userid = atoi(_optarg);
             break;
@@ -321,14 +309,12 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
         case 'g': /* unprivileged uid */
             sss->conf.groupid = atoi(_optarg);
             break;
-#endif
         case 'F': { /* federation name */
             snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", _optarg);
             sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
             sss->federation->purgeable = false;
             break;
         }
-#ifdef SN_MANUAL_MAC
         case 'm': {/* MAC address */
             str2mac(sss->mac_addr, _optarg);
 
@@ -339,7 +325,6 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
 
             break;
         }
-#endif
         case 'M': /* override spoofing protection */
             sss->override_spoofing_protection = 1;
             break;
@@ -404,9 +389,7 @@ static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *
 
     while((c = getopt_long(argc, argv,
                            "p:l:t:a:c:F:vhMV:"
-#ifdef SN_MANUAL_MAC
                            "m:"
-#endif
                            "f"
                            "u:g:"
                            ,
@@ -586,6 +569,9 @@ int main (int argc, char * const argv[]) {
 #ifdef _WIN32
     initWin32();
 #endif
+
+    // Do this early to register all internals
+    n3n_initfuncs();
 
     sn_init_defaults(&sss_node);
     add_federation_to_communities(&sss_node);
