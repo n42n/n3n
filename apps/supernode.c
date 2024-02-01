@@ -202,13 +202,7 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
         }
 
         case 't': /* mgmt-port */
-            sss->conf.mgmt_port = atoi(_optarg);
-
-            if(sss->conf.mgmt_port == 0) {
-                traceEvent(TRACE_WARNING, "bad management port format, defaulting to %u", N2N_SN_MGMT_PORT);
-                // default is made sure in sn_init()
-            }
-
+            set_option_wrap(&sss->conf, "management", "port", _optarg);
             break;
 
         case 'l': { /* supernode:port */
@@ -303,11 +297,11 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
         }
         case 'u': /* unprivileged uid */
-            sss->conf.userid = atoi(_optarg);
+            set_option_wrap(&sss->conf, "daemon", "userid", _optarg);
             break;
 
         case 'g': /* unprivileged uid */
-            sss->conf.groupid = atoi(_optarg);
+            set_option_wrap(&sss->conf, "daemon", "groupid", _optarg);
             break;
         case 'F': { /* federation name */
             snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", _optarg);
@@ -340,12 +334,11 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
 
         case ']': /* password for management port */ {
-            sss->conf.mgmt_password = strdup(_optarg);
-
+            set_option_wrap(&sss->conf, "management", "password", _optarg);
             break;
         }
         case 'f': /* foreground */
-            sss->conf.daemon = false;
+            set_option_wrap(&sss->conf, "daemon", "background", "false");
             break;
         case 'h': /* quick reference */
             return 2;
