@@ -357,6 +357,15 @@ static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
     exit(0);
 }
 
+#ifdef _WIN32
+static void cmd_help_adaptors (int argc, char **argv, n2n_edge_conf_t *conf) {
+    printf (" AVAILABLE TAP ADAPTERS\n");
+    printf (" ----------------------\n\n");
+    win_print_available_adapters();
+    exit(0);
+}
+#endif
+
 static void cmd_help_commands (int argc, char **argv, n2n_edge_conf_t *conf) {
     subcmd_help(cmd_top, 1, true);
     exit(0);
@@ -599,6 +608,14 @@ static struct subcmd_def cmd_help[] = {
         .type = subcmd_type_fn,
         .fn = cmd_help_about,
     },
+#ifdef _WIN32
+    {
+        .name = "adaptors",
+        .help = "List windows TAP adaptors",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_adaptors,
+    },
+#endif
     {
         .name = "commands",
         .help = "Show all possible commandline commands",
@@ -739,7 +756,7 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
     }
 
     // Now that we might need it, setup some default config
-    edge_init_conf_defaults(conf);
+    edge_init_conf_defaults(conf, cmd.sessionname);
 
     if(cmd.subcmd->session_arg) {
         // the cmd structure can request the normal loading of config
@@ -765,9 +782,6 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
         // Update the loaded conf with any option args
         optind = 1;
         loadFromCLI(argc, argv, conf);
-
-        // Record the session name we used
-        conf->sessionname = cmd.sessionname;
     }
 
     // Do the selected subcmd

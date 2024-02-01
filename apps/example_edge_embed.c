@@ -35,7 +35,7 @@ int main () {
     struct n3n_runtime_data *eee;
     int rc;
 
-    edge_init_conf_defaults(&conf);
+    edge_init_conf_defaults(&conf,"edge");
     n3n_config_load_env(&conf);
     conf.allow_routing = true;                                                               // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to

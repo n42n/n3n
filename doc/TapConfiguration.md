@@ -6,9 +6,20 @@ For MacOS and Windows there are specific instructions; please see the [Building]
 
 ## Device Name
 
-If the OS specific driver allows **naming** the virtual Ethernet device created by n3n, the `-d <device>` command-line option can be used to give a name, e.g. `-d n3n0`. This device name makes the virtual ethernet device easily accessible to all `ip` command activity, `iptables`, `tcpdump` and any other of your preferred network tools. It defaults to `edge0` if not provided through `-d`.
+If the OS specific driver allows **naming** the virtual Ethernet device created
+by n3n, the `tuntap.name` option can be used to give a name, e.g.
+`-Otuntap.name=n3n0`. This device name makes the virtual ethernet device easily
+accessible to all `ip` command activity, `iptables`, `tcpdump` and any other of
+your
+preferred network tools. If not provided, it defaults to the sessionname with
+a zero appended (so, with the default sessionname, the interface will be called
+`edge0`)
 
-One exception applies to Windows: As the installed TAP driver(s) come with fixed names, `-d <device>` **selects** the appropriate device by name out of the present ones. This is only required if more than one TAP devices are present. To help with it, `edge --help` lists the available TAP adapters at the bottom of its output (Windows only).
+One exception applies to Windows: As the installed TAP driver(s) come with
+fixed names, `tuntap.name` **selects** the appropriate device by name out of
+the present ones. This is only required if more than one TAP devices are
+present. To help with determining the adaptor names, the command
+`edge help adaptors` lists the available TAP adapters (Windows only).
 
 ## MAC
 

@@ -144,7 +144,6 @@ enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
 #define N2N_NETMASK_STR_SIZE      16 /* dotted decimal 12 numbers + 3 dots */
 #define N2N_MACNAMSIZ             18 /* AA:BB:CC:DD:EE:FF + NULL*/
 
-#define N2N_EDGE_DEFAULT_DEV_NAME    "edge0"
 #define N2N_EDGE_DEFAULT_V4MASKLEN   24               /* default netmask for edge ip address... */
 
 #define N2N_SN_LPORT_DEFAULT 7654

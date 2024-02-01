@@ -3321,9 +3321,16 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
 /* ************************************** */
 
 
-void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
+void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
 
     memset(conf, 0, sizeof(*conf));
+
+    // Record the session name we used
+    if(sessionname) {
+        conf->sessionname = sessionname;
+    } else {
+        conf->sessionname = "NULL";
+    }
 
     conf->is_edge = true;
 
@@ -3340,12 +3347,14 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
 
 #ifdef _WIN32
+    // TODO: more investigations in interface naming/renaming on windows
     conf->tuntap_dev_name[0] = '\0';
 #else
-    strncpy(
+    snprintf(
         conf->tuntap_dev_name,
-        N2N_EDGE_DEFAULT_DEV_NAME,
-        sizeof(conf->tuntap_dev_name)
+        sizeof(conf->tuntap_dev_name),
+        "%s0",
+        conf->sessionname
         );
 #endif
 
@@ -3447,7 +3456,7 @@ int quick_edge_init (char *device_name, char *community_name,
     int rv;
 
     /* Setup the configuration */
-    edge_init_conf_defaults(&conf);
+    edge_init_conf_defaults(&conf,"edge");
     n3n_config_load_env(&conf);
     conf.encrypt_key = encrypt_key;
     conf.transop_id = N2N_TRANSFORM_ID_AES;
