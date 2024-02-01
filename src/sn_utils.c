@@ -763,8 +763,6 @@ int comm_init (struct sn_community *comm, char *cmn) {
 /** Initialise the supernode structure */
 int sn_init_defaults (struct n3n_runtime_data *sss) {
 
-    pearson_hash_init();
-
     memset(sss, 0, sizeof(struct n3n_runtime_data));
 
     sss->conf.is_supernode = true;
@@ -832,6 +830,8 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
+
+    pearson_hash_init();
 
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
