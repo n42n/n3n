@@ -233,111 +233,10 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
 }
 
 /********************************************************************/
-// Sub command generic processor
 
-enum subcmd_type {
-    subcmd_type_nest = 1,
-    subcmd_type_fn
-};
-struct subcmd_def {
-    char *name;
-    char *help;
-    union {
-        struct subcmd_def *nest;
-        void (*fn)(int argc, char **argv, n2n_edge_conf_t *conf);
-    };
-    enum subcmd_type type;
-    bool session_arg;   // is the next arg a session name to load?
-};
-struct subcmd_result {
-    int argc;
-    char **argv;
-    char *sessionname;
-    struct subcmd_def *subcmd;
-};
+static struct n3n_subcmd_def cmd_top[]; // Forward define
 
-void subcmd_help (struct subcmd_def *p, int indent, bool recurse) {
-    while(p->name) {
-        printf(
-            "%*c%-10s",
-            indent,
-            ' ',
-            p->name
-            );
-        if(p->type == subcmd_type_nest) {
-            printf(" ->");
-        }
-        if(p->help) {
-            printf(" %s", p->help);
-        }
-        printf("\n");
-        if(recurse && p->type == subcmd_type_nest) {
-            subcmd_help(p->nest, indent +2, recurse);
-        }
-        p++;
-    }
-}
-
-static void subcmd_help_simple (struct subcmd_def *p) {
-    printf(
-        "\n"
-        "Try edge -h for help\n"
-        "\n"
-        "or add a subcommand:\n"
-        "\n"
-        );
-    subcmd_help(p, 1, false);
-    exit(1);
-}
-
-struct subcmd_result subcmd_lookup (struct subcmd_def *top, int argc, char **argv) {
-    struct subcmd_result r;
-    struct subcmd_def *p = top;
-    while(p->name) {
-        if(argc < 1) {
-            // No subcmd to process
-            subcmd_help_simple(top);
-        }
-        if(!argv) {
-            // Null subcmd
-            subcmd_help_simple(top);
-        }
-
-        if(strcmp(p->name, argv[0])!=0) {
-            p++;
-            continue;
-        }
-
-        switch(p->type) {
-            case subcmd_type_nest:
-                argc--;
-                argv++;
-                top = p->nest;
-                p = top;
-                continue;
-            case subcmd_type_fn:
-                if(p->session_arg) {
-                    r.sessionname = argv[1];
-                } else {
-                    r.sessionname = NULL;
-                }
-                r.argc = argc;
-                r.argv = argv;
-                r.subcmd = p;
-                return r;
-        }
-        printf("Internal Error subcmd->type: %i\n", p->type);
-        exit(1);
-    }
-    printf("Unknown subcmd: '%s'\n", argv[0]);
-    exit(1);
-}
-
-/********************************************************************/
-
-static struct subcmd_def cmd_top[]; // Forward define
-
-static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_about (int argc, char **argv, void *conf) {
     printf("n3n - a peer to peer VPN for when you have noLAN\n"
            "\n"
            " usage: edge [options...] [command] [command args]\n"
@@ -358,7 +257,7 @@ static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
 }
 
 #ifdef _WIN32
-static void cmd_help_adaptors (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_adaptors (int argc, char **argv, void *conf) {
     printf(" AVAILABLE TAP ADAPTERS\n");
     printf(" ----------------------\n\n");
     win_print_available_adapters();
@@ -366,17 +265,17 @@ static void cmd_help_adaptors (int argc, char **argv, n2n_edge_conf_t *conf) {
 }
 #endif
 
-static void cmd_help_commands (int argc, char **argv, n2n_edge_conf_t *conf) {
-    subcmd_help(cmd_top, 1, true);
+static void cmd_help_commands (int argc, char **argv, void *conf) {
+    n3n_subcmd_help(cmd_top, 1, true);
     exit(0);
 }
 
-static void cmd_help_config (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_config (int argc, char **argv, void *conf) {
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
 
-static void cmd_help_options (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_options (int argc, char **argv, void *conf) {
     int i;
 
     printf(" option    config\n");
@@ -425,24 +324,24 @@ static void cmd_help_options (int argc, char **argv, n2n_edge_conf_t *conf) {
     exit(0);
 }
 
-static void cmd_help_transform (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_transform (int argc, char **argv, void *conf) {
     // TODO: add an interface to the registered transform lookups and print
     // out the list
     printf("Not implemented\n");
     exit(1);
 }
 
-static void cmd_help_version (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_version (int argc, char **argv, void *conf) {
     print_n3n_version();
     exit(0);
 }
 
-static void cmd_debug_config_addr (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_addr (int argc, char **argv, void *conf) {
     n3n_config_debug_addr(conf, stdout);
     exit(0);
 }
 
-static void cmd_debug_config_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_dump (int argc, char **argv, void *conf) {
     int level=1;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -451,12 +350,13 @@ static void cmd_debug_config_dump (int argc, char **argv, n2n_edge_conf_t *conf)
     exit(0);
 }
 
-static void cmd_debug_config_load_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_load_dump (int argc, char **argv, void *conf) {
     n3n_config_dump(conf, stdout, 1);
     exit(0);
 }
 
-static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_test_config_roundtrip (int argc, char **argv, void *_conf) {
+    n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
     if(!argv[1]) {
         fprintf(stderr,"Warning: No session name given\n");
     }
@@ -484,7 +384,7 @@ static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *c
     exit(0);
 }
 
-static void cmd_test_hashing (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_test_hashing (int argc, char **argv, void *conf) {
     int level=0;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -496,7 +396,7 @@ static void cmd_test_hashing (int argc, char **argv, n2n_edge_conf_t *conf) {
     exit(errors);
 }
 
-static void cmd_tools_keygen (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_tools_keygen (int argc, char **argv, void *conf) {
     if(argc == 1) {
         printf(
             "n3n keygen tool\n"
@@ -564,191 +464,177 @@ static void cmd_tools_keygen (int argc, char **argv, n2n_edge_conf_t *conf) {
     exit(0);
 }
 
-static void cmd_start (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_start (int argc, char **argv, void *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
 }
 
-static struct subcmd_def cmd_debug_config[] = {
+static struct n3n_subcmd_def cmd_debug_config[] = {
     {
         .name = "addr",
         .help = "show internal config addresses and sizes",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_debug_config_addr,
     },
     {
         .name = "dump",
         .help = "[level] - just dump the default config",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_debug_config_dump,
     },
     {
         .name = "load_dump",
         .help = "[sessionname] - load from all normal sources, then dump",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_debug_config_load_dump,
         .session_arg = true,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_debug[] = {
+static struct n3n_subcmd_def cmd_debug[] = {
     {
         .name = "config",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_debug_config,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_help[] = {
+static struct n3n_subcmd_def cmd_help[] = {
     {
         .name = "about",
         .help = "Basic command help",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_about,
     },
 #ifdef _WIN32
     {
         .name = "adaptors",
         .help = "List windows TAP adaptors",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_adaptors,
     },
 #endif
     {
         .name = "commands",
         .help = "Show all possible commandline commands",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_commands,
     },
     {
         .name = "config",
         .help = "All config file help text",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_config,
     },
     {
         .name = "options",
         .help = "Describe all commandline options ",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_options,
     },
     {
         .name = "transform",
         .help = "Show compiled encryption and compression modules",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_transform,
     },
     {
         .name = "version",
         .help = "Show the version",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_version,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_test_config[] = {
+static struct n3n_subcmd_def cmd_test_config[] = {
     {
         .name = "roundtrip",
         .help = "<sessionname> - load only the config file and then dump it",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_config_roundtrip,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_tools[] = {
+static struct n3n_subcmd_def cmd_tools[] = {
     {
         .name = "keygen",
         .help = "generate public keys",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_tools_keygen,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_test[] = {
+static struct n3n_subcmd_def cmd_test[] = {
     {
         .name = "config",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_test_config,
     },
     {
         .name = "hashing",
         .help = "test hashing functions",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_hashing,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_top[] = {
+static struct n3n_subcmd_def cmd_top[] = {
     {
         .name = "debug",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_debug,
     },
     {
         .name = "help",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_help,
     },
     {
         .name = "start",
         .help = "[sessionname] - starts daemon",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_start,
         .session_arg = true,
     },
     {
         .name = "tools",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_tools,
     },
     {
         .name = "test",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_test,
     },
     { .name = NULL }
 };
 
 static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
-
-    // A first pass through to reorder the argv
-    int c = 0;
-    while(c != -1) {
-        c = getopt_long(
-            argc, argv,
-            // The superset of all possible short options
-            GETOPTS,
-            long_options,
-            NULL
-            );
-
-        switch(c) {
-            case '?': // An invalid arg, or a missing optarg
-                exit(1);
-            case 'V':
-                cmd_help_version(0, NULL, NULL);
-            case 'h': /* quick reference */
-                cmd_help_about(0, NULL, NULL);
-        }
-    }
-
-    if(optind >= argc) {
-        // There is no sub-command provided
-        subcmd_help_simple(cmd_top);
-    }
-    // We now know there is a sub command on the commandline
-
-    struct subcmd_result cmd = subcmd_lookup(
-        cmd_top,
-        argc - optind,
-        &argv[optind]
+    struct n3n_subcmd_result cmd = n3n_subcmd_parse(
+        argc,
+        argv,
+        GETOPTS,
+        long_options,
+        cmd_top
         );
+
+    switch(cmd.type) {
+        case n3n_subcmd_result_unknown:
+            // Shouldnt happen
+            abort();
+        case n3n_subcmd_result_version:
+            cmd_help_version(0, NULL, NULL);
+        case n3n_subcmd_result_about:
+            cmd_help_about(0, NULL, NULL);
+        case n3n_subcmd_result_ok:
+            break;
+    }
 
     // If no session name has been found, use the default
     if(!cmd.sessionname) {

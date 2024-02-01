@@ -1094,3 +1094,126 @@ out1:
     free(filename);
     return error;
 }
+
+
+/********************************************************************/
+// Sub command generic processor
+
+void n3n_subcmd_help (struct n3n_subcmd_def *p, int indent, bool recurse) {
+    while(p->name) {
+        printf(
+            "%*c%-10s",
+            indent,
+            ' ',
+            p->name
+            );
+        if(p->type == n3n_subcmd_type_nest) {
+            printf(" ->");
+        }
+        if(p->help) {
+            printf(" %s", p->help);
+        }
+        printf("\n");
+        if(recurse && p->type == n3n_subcmd_type_nest) {
+            n3n_subcmd_help(p->nest, indent +2, recurse);
+        }
+        p++;
+    }
+}
+
+static void subcmd_help_simple (struct n3n_subcmd_def *p) {
+    printf(
+        "\n"
+        "Try -h for help\n"
+        "\n"
+        "or add a subcommand:\n"
+        "\n"
+        );
+    n3n_subcmd_help(p, 1, false);
+    exit(1);
+}
+
+struct n3n_subcmd_result subcmd_lookup (struct n3n_subcmd_def *top, int argc, char **argv) {
+    struct n3n_subcmd_result r;
+    struct n3n_subcmd_def *p = top;
+    while(p->name) {
+        if(argc < 1) {
+            // No subcmd to process
+            subcmd_help_simple(top);
+        }
+        if(!argv) {
+            // Null subcmd
+            subcmd_help_simple(top);
+        }
+
+        if(strcmp(p->name, argv[0])!=0) {
+            p++;
+            continue;
+        }
+
+        switch(p->type) {
+            case n3n_subcmd_type_nest:
+                argc--;
+                argv++;
+                top = p->nest;
+                p = top;
+                continue;
+            case n3n_subcmd_type_fn:
+                if(p->session_arg) {
+                    r.sessionname = argv[1];
+                } else {
+                    r.sessionname = NULL;
+                }
+                r.argc = argc;
+                r.argv = argv;
+                r.subcmd = p;
+                r.type = n3n_subcmd_result_ok;
+                return r;
+        }
+        printf("Internal Error subcmd->type: %i\n", p->type);
+        exit(1);
+    }
+    printf("Unknown subcmd: '%s'\n", argv[0]);
+    exit(1);
+}
+
+struct n3n_subcmd_result n3n_subcmd_parse (int argc, char **argv, char *getopts, const struct option *long_options, struct n3n_subcmd_def *top) {
+    struct n3n_subcmd_result cmd;
+
+    // A first pass through to reorder the argv
+    int c = 0;
+    while(c != -1) {
+        c = getopt_long(
+            argc, argv,
+            // The superset of all possible short options
+            getopts,
+            long_options,
+            NULL
+            );
+
+        switch(c) {
+            case '?': // An invalid arg, or a missing optarg
+                exit(1);
+            case 'V':
+                cmd.type = n3n_subcmd_result_version;
+                return cmd;
+            case 'h': /* quick reference */
+                cmd.type = n3n_subcmd_result_about;
+                return cmd;
+        }
+    }
+
+    if(optind >= argc) {
+        // There is no sub-command provided
+        subcmd_help_simple(top);
+    }
+    // We now know there is a sub command on the commandline
+
+    cmd = subcmd_lookup(
+        top,
+        argc - optind,
+        &argv[optind]
+        );
+
+    return cmd;
+}
