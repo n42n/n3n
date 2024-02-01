@@ -69,7 +69,7 @@ int main (int argc, char * argv[]) {
     print_n3n_version();
 
     /* Init configuration */
-    edge_init_conf_defaults(&conf,"benchmark");
+    edge_init_conf_defaults(&conf,"_TEST");
 
     strncpy((char*)conf.community_name, "abc123def456", sizeof(conf.community_name));
     conf.encrypt_key = strdup("SoMEVer!S$cUREPassWORD");
