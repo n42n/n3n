@@ -3329,6 +3329,10 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf) {
 
     conf->bind_address = NULL;
     conf->preferred_sock.family = AF_INVALID;
+#ifdef _WIN32
+    // Cannot rely on having unix domain sockets on windows
+    conf->mgmt_port = N2N_EDGE_MGMT_PORT;
+#endif
     conf->transop_id = N2N_TRANSFORM_ID_NULL;
     conf->header_encryption = HEADER_ENCRYPTION_NONE;
     conf->compression = N2N_COMPRESSION_ID_NONE;

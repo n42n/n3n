@@ -339,6 +339,9 @@ int open_wintap (struct tuntap_dev *device,
               "netsh interface ipv4 set subinterface \"%s\" mtu=%d store=persistent > nul",
               device->ifName, mtu);
 
+    // TODO: this sets the ipv4 mtu, for some reason, windows has different
+    // MTU per protocol
+
     if(system(cmd) != 0) {
         printf("WARNING: Unable to set MTU [%s]\n", mtu, cmd);
     }

@@ -34,8 +34,9 @@ On exit, the daemon will attempt to remove its socket and session directory,
 allowing this to be used as a simple way to see which session names are
 running.
 
-Note that Windows does not support Unix Domain sockets, but still creates
-a session directory in %USERPROFILE%\n3n
+Note that since Windows does not support Unix Domain sockets, it listens on
+TCP/5644 by default (and creates an empty session directory in
+%USERPROFILE%\n3n)
 
 ## List the HTTP endpoints
 
