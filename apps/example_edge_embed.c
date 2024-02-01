@@ -19,6 +19,7 @@
 
 
 #include <n3n/conffile.h>
+#include <n3n/edge.h>   // for edge_conf_add_supernode
 #include <stdbool.h>
 #include <stdio.h>   // for snprintf, NULL
 #include <stdlib.h>  // for exit
@@ -31,10 +32,10 @@ int main () {
 
     n2n_edge_conf_t conf;
     tuntap_dev tuntap;
-    n2n_edge_t *eee;
+    struct n3n_runtime_data *eee;
     int rc;
 
-    edge_init_conf_defaults(&conf);
+    edge_init_conf_defaults(&conf,"edge");
     n3n_config_load_env(&conf);
     conf.allow_routing = true;                                                               // Whether to allow the edge to route packets to other edges
     snprintf((char *)conf.community_name, sizeof(conf.community_name), "%s", "mycommunity"); // Community to connect to

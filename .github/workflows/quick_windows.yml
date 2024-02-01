@@ -1,0 +1,36 @@
+---
+name: Quick Tests (Windows)
+
+# yamllint disable-line rule:truthy
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoketest:
+    name: Smoke test
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fix Checkout
+        run: |
+          git fetch --force --tags
+
+      - name: Run minimal test set
+        run: |
+          export CFLAGS="-fprofile-arcs -ftest-coverage"
+          export LDFLAGS="--coverage"
+          ./scripts/hack_fakeautoconf.sh
+          make -j4
+          make test.builtin test.units
+        shell: bash
+
+      - if: ${{ failure() }}
+        name: Upload tests output
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-smoketest-windows
+          path: tests

@@ -7,6 +7,7 @@
 
 #include <ctype.h>              // for isprint and friends
 #include <n3n/conffile.h>
+#include <n3n/edge.h>           // for edge_conf_add_supernode
 #include <n3n/logging.h>        // for setTraceLevel
 #include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <n3n/network_traffic_filter.h>
@@ -21,11 +22,11 @@
 #ifdef _WIN32
 #include "win32/defs.h"
 #else
+#include <grp.h>                // for getgrnam
 #include <netinet/in.h>  // for sockaddr_in
 #endif
 
 #include <auth.h>               // for generate_private_key
-#include <n2n.h>                // for edge_conf_add_supernode
 #include <n2n_define.h>         // for HEADER_ENCRYPTION_UNKNOWN...
 
 static struct n3n_conf_section *registered_sections = NULL;
@@ -83,7 +84,13 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
         return -1;
     }
 
-    void *valvoid = (char *)conf + p->offset;
+    void *valvoid = NULL;
+
+    // Entries that cannot be set via a pointer are marked with
+    // a negative offset
+    if(p->offset >= 0) {
+        valvoid = (char *)conf + p->offset;
+    }
 
     switch(p->type) {
         case n3n_conf_strncpy: {
@@ -105,18 +112,20 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             return 0;
         }
-        case n3n_conf_uint32: {
-            uint32_t *val = (uint32_t *)valvoid;
-            char *endptr;
-            uint32_t i = strtoul(value, &endptr, 0);
+        case n3n_conf_uint32:
+try_uint32:
+            {
+                uint32_t *val = (uint32_t *)valvoid;
+                char *endptr;
+                uint32_t i = strtoul(value, &endptr, 0);
 
-            if(*value && !*endptr) {
-                // "the entire string is valid"
-                *val = i;
-                return 0;
+                if(*value && !*endptr) {
+                    // "the entire string is valid"
+                    *val = i;
+                    return 0;
+                }
+                return -1;
             }
-            return -1;
-        }
         case n3n_conf_strdup: {
             char **val = (char **)valvoid;
             if(*val) {
@@ -350,6 +359,33 @@ int n3n_config_set_option (void *conf, char *section, char *option, char *value)
             }
             return 0;
         }
+        case n3n_conf_userid: {
+#ifndef _WIN32
+            uint32_t *val = (uint32_t *)valvoid;
+            struct passwd *pw = getpwnam(value);
+            if(pw != NULL) {
+                *val = pw->pw_uid;
+                return 0;
+            }
+#endif
+            // if we could not lookup that name (or it is windows)
+            // just try interpreting the string value as an integer
+            goto try_uint32;
+        }
+        case n3n_conf_groupid: {
+
+#ifndef _WIN32
+            uint32_t *val = (uint32_t *)valvoid;
+            struct group *gr = getgrnam(value);
+            if(gr != NULL) {
+                *val = gr->gr_gid;
+                return 0;
+            }
+#endif
+            // if we could not lookup that name (or it is windows)
+            // just try interpreting the string value as an integer
+            goto try_uint32;
+        }
     }
     return -1;
 }
@@ -380,7 +416,13 @@ static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
 // that the option could not be rendered.
 // Buffer overflow is handled simplisticly by simply filling the buffer.
 static char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
-    void *valvoid = (char *)conf + option->offset;
+    void *valvoid = NULL;
+
+    // Entries that cannot be set via a pointer are marked with
+    // a negative offset
+    if(option->offset >= 0) {
+        valvoid = (char *)conf + option->offset;
+    }
 
     switch(option->type) {
         case n3n_conf_strncpy: {
@@ -412,6 +454,8 @@ static char * stringify_option (void *conf, struct n3n_conf_option *option, char
 
             return NULL;
         }
+        case n3n_conf_userid:
+        case n3n_conf_groupid:
         case n3n_conf_uint32: {
             uint32_t *val = (uint32_t *)valvoid;
 
@@ -537,6 +581,79 @@ static char * stringify_option (void *conf, struct n3n_conf_option *option, char
     return NULL;
 }
 
+static int option_storagesize (struct n3n_conf_option *option) {
+    void *valvoid = NULL;
+    switch(option->type) {
+        case n3n_conf_strncpy: {
+            return option->length;
+        }
+        case n3n_conf_bool: {
+            bool *val = (bool *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_userid:
+        case n3n_conf_groupid:
+        case n3n_conf_uint32: {
+            uint32_t *val = (uint32_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_strdup: {
+            char **val = (char **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_transform: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_headerenc: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_compression: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_supernode: {
+            return -1;
+        }
+        case n3n_conf_privatekey: {
+            n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_publickey: {
+            n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_sockaddr: {
+            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_n2n_sock_addr: {
+            struct n2n_sock *val = (struct n2n_sock *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_sn_selection: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_verbose: {
+            return -1;
+        }
+        case n3n_conf_filter_rule: {
+            return -1;
+        }
+        case n3n_conf_ip_subnet: {
+            struct n2n_ip_subnet *val = (struct n2n_ip_subnet *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_ip_mode: {
+            uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+    }
+    return -1;
+}
+
 /*
  * Dump details about a single option.
  * level specifies how much data to output:
@@ -637,6 +754,49 @@ void n3n_config_dump (void *conf, FILE *f, int level) {
     }
 }
 
+void n3n_config_debug_addr (void *conf, FILE *f) {
+    struct n3n_conf_section *section = registered_sections;
+    struct n3n_conf_option *option;
+
+    fprintf(f, "# Internal Address consistancy checks\n");
+    while(section) {
+        option = section->options;
+        while(option->name) {
+            if(option->type == n3n_conf_supernode) {
+                option++;
+                continue;
+            }
+            void *first = NULL;
+            void *last = NULL;
+
+            // Entries that cannot be set via a pointer are marked with
+            // a negative offset
+            if(option->offset >= 0) {
+                first = (char *)conf + option->offset;
+            }
+
+            int size = option_storagesize(option);
+            if(size > 0) {
+                last = first + (size-1);
+            }
+
+            fprintf(
+                f,
+                "%p..%p / %i == %s.%s (%i)\n",
+                first,
+                last,
+                size,
+                section->name,
+                option->name,
+                option->type
+                );
+            option++;
+        }
+
+        section = section->next;
+    }
+}
+
 int n3n_config_load_env (void *conf) {
     char *s;
     int rc = 0;
@@ -707,13 +867,23 @@ static char *find_config (char *name) {
         return filename;
     }
 
+#ifdef _WIN32
+    char profiledir[1024];
+    profiledir[0] = 0;
+
+    char *userprofile = getenv("USERPROFILE");
+    if(userprofile) {
+        snprintf(profiledir, sizeof(profiledir), "%s/n3n", userprofile);
+    }
+#endif
+
     // TODO: Are there other places that should be searched?
     char *searchpath[] = {
 #ifndef _WIN32
         "/etc/n3n",
 #endif
 #ifdef _WIN32
-        getenv("USERPROFILE"),
+        profiledir,
 #endif
     };
 
@@ -783,6 +953,8 @@ char *extract_section (char *line) {
 
 int n3n_config_load_file (void *conf, char *name) {
     int error = -1;
+    char *section = NULL;
+
     char *filename = find_config(name);
     if(!filename) {
         // Couldnt find a filename
@@ -791,10 +963,9 @@ int n3n_config_load_file (void *conf, char *name) {
     FILE *f = fopen(filename, "r");
     if(!f) {
         // Shouldnt happen, since find_config found a file
-        goto out;
+        printf("Unexpected error opening %s\n", filename);
+        goto out1;
     }
-
-    char *section = NULL;
 
     char buf[1024];
     char *line;
@@ -818,6 +989,11 @@ int n3n_config_load_file (void *conf, char *name) {
             free(section);
             char *tmp_section = extract_section(line);
             if(!tmp_section) {
+                printf(
+                    "Error:%s:%i: could not extract section\n",
+                    filename,
+                    linenr
+                    );
                 goto out;
             }
             section = strdup(tmp_section);
@@ -912,6 +1088,8 @@ int n3n_config_load_file (void *conf, char *name) {
     error = 0;
 
 out:
+    fclose(f);
+out1:
     free(section);
     free(filename);
     return error;

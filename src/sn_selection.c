@@ -23,14 +23,14 @@
 #include <stdint.h>           // for UINT64_MAX, uint32_t, int64_t, uint64_t
 #include <stdio.h>            // for snprintf, NULL
 #include <string.h>           // for memcpy, memset
-#include "n2n.h"              // for n2n_edge_t, SN_SELECTION_CRIT...
+#include "n2n.h"              // for n3n_runtime_data, SN_SELECTION_CRIT...
 #include "peer_info.h"        // for peer_info_t
 #include "portable_endian.h"  // for be32toh, be64toh, htobe64
 #include "sn_selection.h"     // for selection_criterion_str_t, sn_selection_cr...
 #include "uthash.h"           // for UT_hash_handle, HASH_COUNT, HASH_ITER, HAS...
 
 
-static SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_read (n2n_edge_t *eee);
+static SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_read (struct n3n_runtime_data *eee);
 static int sn_selection_criterion_sort (peer_info_t *a, peer_info_t *b);
 
 
@@ -74,7 +74,7 @@ int sn_selection_criterion_good (SN_SELECTION_CRITERION_DATA_TYPE *selection_cri
 /* Take data from PEER_INFO payload and transform them into a selection_criterion.
  * This function is highly dependant of the chosen selection criterion.
  */
-int sn_selection_criterion_calculate (n2n_edge_t *eee, peer_info_t *peer, SN_SELECTION_CRITERION_DATA_TYPE *data) {
+int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t *peer, SN_SELECTION_CRITERION_DATA_TYPE *data) {
 
     SN_SELECTION_CRITERION_DATA_TYPE common_data;
     int sum = 0;
@@ -114,7 +114,11 @@ int sn_selection_criterion_calculate (n2n_edge_t *eee, peer_info_t *peer, SN_SEL
 
         default: {
             // this should never happen
-            traceEvent(TRACE_ERROR, "selection_criterion unknown selection strategy configuration");
+            traceEvent(
+                TRACE_ERROR,
+                "sn_selection_strategy unknown %i",
+                eee->conf.sn_selection_strategy
+                );
             break;
         }
     }
@@ -124,7 +128,7 @@ int sn_selection_criterion_calculate (n2n_edge_t *eee, peer_info_t *peer, SN_SEL
 
 
 /* Set sn_selection_criterion_common_data field to default value. */
-int sn_selection_criterion_common_data_default (n2n_edge_t *eee) {
+int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
 
     switch(eee->conf.sn_selection_strategy) {
 
@@ -151,7 +155,11 @@ int sn_selection_criterion_common_data_default (n2n_edge_t *eee) {
 
         default: {
             // this should never happen
-            traceEvent(TRACE_ERROR, "selection_criterion unknown selection strategy configuration");
+            traceEvent(
+                TRACE_ERROR,
+                "sn_selection_strategy unknown %i",
+                eee->conf.sn_selection_strategy
+                );
             break;
         }
     }
@@ -161,7 +169,7 @@ int sn_selection_criterion_common_data_default (n2n_edge_t *eee) {
 
 
 /* Return the value of sn_selection_criterion_common_data field. */
-static SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_read (n2n_edge_t *eee) {
+static SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_read (struct n3n_runtime_data *eee) {
 
     return eee->sn_selection_criterion_common_data;
 }
@@ -194,7 +202,7 @@ int sn_selection_sort (peer_info_t **peer_list) {
 /* Function that gathers requested data on a supernode.
  * it remains unaffected by selection strategy because it refers to edge behaviour only
  */
-SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (n2n_sn_t *sss) {
+SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (struct n3n_runtime_data *sss) {
 
     SN_SELECTION_CRITERION_DATA_TYPE data = 0, tmp = 0;
     struct sn_community *comm, *tmp_comm;
@@ -214,7 +222,7 @@ SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (n2n_sn_t *s
 
 
 /* Convert selection_criterion field in a string for management port output. */
-extern char * sn_selection_criterion_str (n2n_edge_t *eee, selection_criterion_str_t out, peer_info_t *peer) {
+extern char * sn_selection_criterion_str (struct n3n_runtime_data *eee, selection_criterion_str_t out, peer_info_t *peer) {
 
     int chars = 0;
 
@@ -249,7 +257,11 @@ extern char * sn_selection_criterion_str (n2n_edge_t *eee, selection_criterion_s
 
             default: {
                 // this should never happen
-                traceEvent(TRACE_ERROR, "selection_criterion unknown selection strategy configuration");
+                traceEvent(
+                    TRACE_ERROR,
+                    "sn_selection_strategy unknown %i",
+                    eee->conf.sn_selection_strategy
+                    );
                 break;
             }
         }

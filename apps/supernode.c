@@ -19,9 +19,11 @@
  */
 
 
+#include <connslot/connslot.h>
 #include <ctype.h>             // for isspace
 #include <errno.h>             // for errno
 #include <getopt.h>            // for required_argument, getopt_long, no_arg...
+#include <n3n/conffile.h>      // for n3n_config_set_option
 #include <n3n/logging.h>       // for traceEvent
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
@@ -32,12 +34,13 @@
 #include <sys/types.h>         // for time_t, u_char, u_int
 #include <time.h>              // for time
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
-#include "n2n.h"               // for n2n_sn_t, sn_community
+#include "n2n.h"               // for n2n_edge, sn_community
 #include "pearson.h"           // for pearson_hash_64
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
-// FIXME: including a private header
+// FIXME, including private headers
 #include "../src/peer_info.h"         // for peer_info, peer_info_init
+#include "../src/resolve.h"           // for supernode2sock
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -50,12 +53,11 @@
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
-static n2n_sn_t sss_node;
+static struct n3n_runtime_data sss_node;
 
-void close_tcp_connection (n2n_sn_t *sss, n2n_tcp_connection_t *conn);
-void calculate_shared_secrets (n2n_sn_t *sss);
-int load_allowed_sn_community (n2n_sn_t *sss);
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list);
+void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn);
+void calculate_shared_secrets (struct n3n_runtime_data *sss);
+int load_allowed_sn_community (struct n3n_runtime_data *sss);
 
 
 /** Help message to print if the command line arguments are not valid. */
@@ -169,7 +171,7 @@ static void help (int level) {
         printf(" -t <port>         | management UDP port, for multiple supernodes on a machine,\n"
                "                   | defaults to %u\n", N2N_SN_MGMT_PORT);
         printf(" --management_...  | management port password, defaults to '%s'\n"
-               " ...password <pw>  | \n", N2N_MGMT_PASSWORD);
+               " ...password <pw>  | \n", N3N_MGMT_PASSWORD);
         printf(" -v                | make more verbose, repeat as required\n");
 #ifndef _WIN32
         printf(" -u <UID>          | numeric user ID to use when privileges are dropped\n");
@@ -190,49 +192,30 @@ static void help (int level) {
 
 /* *************************************************** */
 
-static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
+// little wrapper to show errors if the conffile parser has a problem
+static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option, char *value) {
+    int i = n3n_config_set_option(conf, section, option, value);
+    if(i==0) {
+        return;
+    }
+
+    traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
+}
+
+static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
 
     //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, _optarg ? _optarg : "");
 
     switch(optkey) {
         case 'p': { /* local-port */
-            char* colon = strpbrk(_optarg, ":");
-            if(colon) { /*ip address:port */
-                *colon = 0;
-                sss->bind_address = ntohl(inet_addr(_optarg));
-                sss->lport = atoi(++colon);
-
-                if(sss->bind_address == INADDR_NONE) {
-                    traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                    sss->bind_address = INADDR_ANY;
-                }
-                if(sss->lport == 0) {
-                    traceEvent(TRACE_WARNING, "bad local port format, defaulting to %u", N2N_SN_LPORT_DEFAULT);
-                    sss->lport = N2N_SN_LPORT_DEFAULT;
-                }
-            } else { /* ip address or port only */
-                char* dot = strpbrk(_optarg, ".");
-                if(dot) { /* ip address only */
-                    sss->bind_address = ntohl(inet_addr(_optarg));
-                    if(sss->bind_address == INADDR_NONE) {
-                        traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                        sss->bind_address = INADDR_ANY;
-                    }
-                } else { /* port only */
-                    sss->lport = atoi(_optarg);
-                    if(sss->lport == 0) {
-                        traceEvent(TRACE_WARNING, "bad local port format, defaulting to %u", N2N_SN_LPORT_DEFAULT);
-                        sss->lport = N2N_SN_LPORT_DEFAULT;
-                    }
-                }
-            }
+            set_option_wrap(&sss->conf, "connection", "bind", _optarg);
             break;
         }
 
         case 't': /* mgmt-port */
-            sss->mport = atoi(_optarg);
+            sss->conf.mgmt_port = atoi(_optarg);
 
-            if(sss->mport == 0) {
+            if(sss->conf.mgmt_port == 0) {
                 traceEvent(TRACE_WARNING, "bad management port format, defaulting to %u", N2N_SN_MGMT_PORT);
                 // default is made sure in sn_init()
             }
@@ -332,11 +315,11 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
         }
 #ifndef _WIN32
         case 'u': /* unprivileged uid */
-            sss->userid = atoi(_optarg);
+            sss->conf.userid = atoi(_optarg);
             break;
 
         case 'g': /* unprivileged uid */
-            sss->groupid = atoi(_optarg);
+            sss->conf.groupid = atoi(_optarg);
             break;
 #endif
         case 'F': { /* federation name */
@@ -372,12 +355,12 @@ static int setOption (int optkey, char *_optarg, n2n_sn_t *sss) {
             break;
 
         case ']': /* password for management port */ {
-            sss->mgmt_password = strdup(_optarg);
+            sss->conf.mgmt_password = strdup(_optarg);
 
             break;
         }
         case 'f': /* foreground */
-            sss->daemon = false;
+            sss->conf.daemon = false;
             break;
         case 'h': /* quick reference */
             return 2;
@@ -415,7 +398,7 @@ static const struct option long_options[] = {
 /* *************************************************** */
 
 /* read command line options */
-static int loadFromCLI (int argc, char * const argv[], n2n_sn_t *sss) {
+static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *sss) {
 
     u_char c;
 
@@ -463,7 +446,7 @@ static char *trim (char *s) {
 /* *************************************************** */
 
 /* parse the configuration file */
-static int loadFromFile (const char *path, n2n_sn_t *sss) {
+static int loadFromFile (const char *path, struct n3n_runtime_data *sss) {
 
     char buffer[4096], *line;
     char *line_vec[3];
@@ -510,7 +493,7 @@ static int loadFromFile (const char *path, n2n_sn_t *sss) {
 /* *************************************************** */
 
 /* Add the federation to the communities list of a supernode */
-static int add_federation_to_communities (n2n_sn_t *sss) {
+static int add_federation_to_communities (struct n3n_runtime_data *sss) {
 
     uint32_t num_communities = 0;
 
@@ -631,7 +614,7 @@ int main (int argc, char * const argv[]) {
         load_allowed_sn_community(&sss_node);
 
 #ifndef _WIN32
-    if(sss_node.daemon) {
+    if(sss_node.conf.daemon) {
         setUseSyslog(1); /* traceEvent output now goes to syslog. */
 
         if(-1 == daemon(0, 0)) {
@@ -659,61 +642,63 @@ int main (int argc, char * const argv[]) {
 
     traceEvent(TRACE_DEBUG, "traceLevel is %d", getTraceLevel());
 
-    struct sockaddr_in local_address;
-    memset(&local_address, 0, sizeof(local_address));
-    local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(sss_node.lport);
-    local_address.sin_addr.s_addr = htonl(sss_node.bind_address);
+    struct sockaddr_in *sa = (struct sockaddr_in *)sss_node.conf.bind_address;
 
     sss_node.sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
+        sss_node.conf.bind_address,
+        sizeof(*sss_node.conf.bind_address),
         0 /* UDP */
         );
+
     if(-1 == sss_node.sock) {
         traceEvent(TRACE_ERROR, "failed to open main socket. %s", strerror(errno));
         exit(-2);
     } else {
-        traceEvent(TRACE_NORMAL, "supernode is listening on UDP %u (main)", sss_node.lport);
+        traceEvent(TRACE_NORMAL, "supernode is listening on UDP %u (main)", ntohs(sa->sin_port));
     }
 
 #ifdef N2N_HAVE_TCP
     sss_node.tcp_sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
+        sss_node.conf.bind_address,
+        sizeof(*sss_node.conf.bind_address),
         1 /* TCP */
         );
     if(-1 == sss_node.tcp_sock) {
         traceEvent(TRACE_ERROR, "failed to open auxiliary TCP socket, %s", strerror(errno));
         exit(-2);
     } else {
-        traceEvent(TRACE_INFO, "supernode opened TCP %u (aux)", sss_node.lport);
+        traceEvent(TRACE_INFO, "supernode opened TCP %u (aux)", ntohs(sa->sin_port));
     }
 
     if(-1 == listen(sss_node.tcp_sock, N2N_TCP_BACKLOG_QUEUE_SIZE)) {
         traceEvent(TRACE_ERROR, "failed to listen on auxiliary TCP socket, %s", strerror(errno));
         exit(-2);
     } else {
-        traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (aux)", sss_node.lport);
+        traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (aux)", ntohs(sa->sin_port));
     }
 #endif
 
+    struct sockaddr_in local_address;
     memset(&local_address, 0, sizeof(local_address));
     local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(sss_node.mport);
+    local_address.sin_port = htons(sss_node.conf.mgmt_port);
     local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    sss_node.mgmt_sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
-        0 /* UDP */
-        );
-    if(-1 == sss_node.mgmt_sock) {
-        traceEvent(TRACE_ERROR, "failed to open management socket, %s", strerror(errno));
-        exit(-2);
-    } else {
-        traceEvent(TRACE_NORMAL, "supernode is listening on UDP %u (management)", sss_node.mport);
+    sss_node.mgmt_slots = slots_malloc(5);
+    if(!sss_node.mgmt_slots) {
+        abort();
     }
+
+    if(slots_listen_tcp(sss_node.mgmt_slots, sss_node.conf.mgmt_port, false)!=0) {
+        perror("slots_listen_tcp");
+        exit(1);
+    }
+    traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
+
+    // TODO: merge conf and then can:
+    // n3n_config_setup_sessiondir(&sss->conf);
+    //
+    // also slots_listen_unix()
 
     HASH_ITER(hh, sss_node.federation->edges, scan, tmp)
     scan->socket_fd = sss_node.sock;
@@ -729,21 +714,21 @@ int main (int argc, char * const argv[]) {
          * otherwise reset it to zero
          * (TODO: this looks wrong)
          */
-        sss_node.userid = sss_node.userid == 0 ? pw->pw_uid : 0;
-        sss_node.groupid = sss_node.groupid == 0 ? pw->pw_gid : 0;
+        sss_node.conf.userid = sss_node.conf.userid == 0 ? pw->pw_uid : 0;
+        sss_node.conf.groupid = sss_node.conf.groupid == 0 ? pw->pw_gid : 0;
     }
 
     /*
      * If we have a non-zero requested uid/gid, attempt to switch to use
      * those
      */
-    if((sss_node.userid != 0) || (sss_node.groupid != 0)) {
+    if((sss_node.conf.userid != 0) || (sss_node.conf.groupid != 0)) {
         traceEvent(TRACE_INFO, "dropping privileges to uid=%d, gid=%d",
-                   (signed int)sss_node.userid, (signed int)sss_node.groupid);
+                   (signed int)sss_node.conf.userid, (signed int)sss_node.conf.groupid);
 
         /* Finished with the need for root privileges. Drop to unprivileged user. */
-        if((setgid(sss_node.groupid) != 0)
-           || (setuid(sss_node.userid) != 0)) {
+        if((setgid(sss_node.conf.groupid) != 0)
+           || (setuid(sss_node.conf.userid) != 0)) {
             traceEvent(TRACE_ERROR, "unable to drop privileges [%u/%s]", errno, strerror(errno));
         }
     }

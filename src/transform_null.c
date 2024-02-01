@@ -77,12 +77,6 @@ static int transop_decode_null (n2n_trans_op_t *arg,
 }
 
 
-static void transop_tick_null (n2n_trans_op_t *arg, time_t now) {
-
-    // no tick action
-}
-
-
 int n2n_transop_null_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
     memset(ttt, 0, sizeof(n2n_trans_op_t));
@@ -90,7 +84,6 @@ int n2n_transop_null_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     ttt->transform_id  = N2N_TRANSFORM_ID_NULL;
     ttt->no_encryption = 1;
     ttt->deinit        = transop_deinit_null;
-    ttt->tick          = transop_tick_null;
     ttt->fwd           = transop_encode_null;
     ttt->rev           = transop_decode_null;
 

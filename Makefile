@@ -9,8 +9,14 @@ export AR
 export EXE
 export CFLAGS
 export LDFLAGS
+export LDLIBS_LOCAL
 export LDLIBS_EXTRA
 export CONFIG_HOST_OS
+
+VERSION:=$(shell scripts/version.sh)
+CFLAGS+=-DVERSION='"$(VERSION)"'
+BUILDDATE+=$(shell scripts/version.sh date)
+CFLAGS+=-DBUILDDATE='"$(BUILDDATE)"'
 
 -include config.mak
 
@@ -19,9 +25,6 @@ ifndef CONFIG_HOST
 # dont error if we are installing build-deps or other non-compile action
 $(error Please run ./configure)
 endif
-
-CFLAGS+=-I./include
-LDFLAGS+=-L.
 
 #Ultrasparc64 users experiencing SIGBUS should try the following gcc options
 #(thanks to Robert Gibbon)
@@ -63,15 +66,23 @@ MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
 
-N2N_LIB=libn3n.a
+
+#######################################
+# All the additiona needed for using the n3n library
+#
+CFLAGS+=-I$(abspath include)
+LDFLAGS+=-L$(abspath src)
+
+CFLAGS+=-DHAVE_BRIDGING_SUPPORT
+
 N2N_OBJS=\
 	src/aes.o \
 	src/auth.o \
+	src/base64.o \
 	src/cc20.o \
 	src/conffile.o \
 	src/conffile_defs.o \
 	src/curve25519.o \
-	src/edge_management.o \
 	src/edge_utils.o \
 	src/header_encryption.o \
 	src/hexdump.o \
@@ -87,7 +98,7 @@ N2N_OBJS=\
 	src/pearson.o \
 	src/peer_info.o \
 	src/random_numbers.o \
-	src/sn_management.o \
+	src/resolve.o \
 	src/sn_selection.o \
 	src/sn_utils.o \
 	src/speck.o \
@@ -107,6 +118,70 @@ N2N_OBJS=\
 	src/tuntap_netbsd.o \
 	src/tuntap_osx.o \
 	src/wire.o \
+
+ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
+N2N_OBJS+=src/win32/edge_utils_win32.o
+N2N_OBJS+=src/win32/getopt1.o
+N2N_OBJS+=src/win32/getopt.o
+N2N_OBJS+=src/win32/wintap.o
+N2N_OBJS+=src/win32/edge_rc.o
+endif
+
+src/management.o: src/management_index.html.h
+src/management.o: src/management_script.js.h
+CLEAN_FILES+=src/management_index.html.h src/management_script.js.h
+
+src/libn3n.a: $(N2N_OBJS)
+	@echo "  AR      $@"
+	@$(AR) rcs $@ $^
+SUBDIR_LIBS+=src/libn3n.a
+
+#######################################
+# Add non system library version of natpmp
+# TODO: this library doesnt compile for win64 without a patch
+#
+ifdef THIRDPARTY_LIBNATPMP
+CFLAGS+=-I$(abspath thirdparty/libnatpmp)
+CFLAGS+=-DNATPMP_STATICLIB=1
+CFLAGS+=-DHAVE_LIBNATPMP=1
+LDFLAGS+=-L$(abspath thirdparty/libnatpmp)
+LDLIBS_EXTRA+=-lnatpmp
+
+thirdparty/libnatpmp/libnatpmp.a:
+	$(MAKE) -C $(dir $@) $(notdir $@)
+SUBDIR_LIBS+=thirdparty/libnatpmp/libnatpmp.a
+SUBDIR_CLEAN+=thirdparty/libnatpmp
+endif
+
+#######################################
+# Add non system library version of miniupnpc
+#
+ifdef THIRDPARTY_MINIUPNPC
+CFLAGS+=-I$(abspath thirdparty/miniupnp/miniupnpc)
+CFLAGS+=-DMINIUPNP_STATICLIB=1
+CFLAGS+=-DHAVE_LIBMINIUPNPC=1
+LDFLAGS+=-L$(abspath thirdparty/miniupnp/miniupnpc/build)
+LDLIBS_EXTRA+=-lminiupnpc
+
+thirdparty/miniupnp/miniupnpc/build/libminiupnpc.a:
+	$(MAKE) -C thirdparty/miniupnp/miniupnpc build/libminiupnpc.a
+SUBDIR_LIBS+=thirdparty/miniupnp/miniupnpc/build/libminiupnpc.a
+SUBDIR_CLEAN+=thirdparty/miniupnp/miniupnpc
+endif
+
+#######################################
+# All the additions needed for using the connslot library
+#
+CFLAGS+=-I$(abspath libs)
+LDFLAGS+=-L$(abspath libs/connslot)
+LDLIBS_LOCAL+=-lconnslot
+
+libs/connslot/libconnslot.a:
+	$(MAKE) -C $(dir $@) $(notdir $@) httpd-test
+SUBDIR_LIBS+=libs/connslot/libconnslot.a
+SUBDIR_CLEAN+=libs/connslot
+
+#######################################
 
 # As source files pass the linter, they can be added here (If all the source
 # is passing the linter tests, this can be refactored)
@@ -141,60 +216,54 @@ SUBDIRS+=apps
 
 COVERAGEDIR?=coverage
 
-.PHONY: $(SUBDIRS)
-
 .PHONY: all
-all: version apps $(DOCS) $(SUBDIRS)
+all: version $(DOCS) subdirs apps
 
+.PHONY: version
 # This allows breaking the build if the version.sh script discovers
 # any inconsistancies
-.PHONY: version
 version:
-	@echo -n "Build for version: "
-	@scripts/version.sh
+	@scripts/version.sh >/dev/null
+	@echo "Build for version: $(VERSION)"
 
-apps tools: $(N2N_LIB)
-	$(MAKE) -C $@
-
-ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
-N2N_OBJS+=src/win32/edge_utils_win32.o
-N2N_OBJS+=src/win32/getopt1.o
-N2N_OBJS+=src/win32/getopt.o
-N2N_OBJS+=src/win32/wintap.o
-N2N_OBJS+=src/win32/edge_rc.o
-endif
+.PHONY: subdirs
+subdirs: $(SUBDIR_LIBS)
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir; done
+SUBDIR_CLEAN+=$(SUBDIRS)
 
 src/win32/edge.rc: src/win32/edge.manifest
 src/win32/edge_rc.o: src/win32/edge.rc
 	$(WINDRES) $< -O coff -o $@
 
-%: src/%
-	cp $< $@
+# Remember to keep the two CC lines in sync
+$(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
+%.o: %.c
+	@echo "  CC      $@"
+	@$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 %.gz : %
 	gzip -n -c $< > $@
 
-$(N2N_LIB): $(N2N_OBJS)
-	$(AR) rcs $(N2N_LIB) $(N2N_OBJS)
-#	$(RANLIB) $@
+%.h : %
+	libs/connslot/file2strbufc $< $(basename $(notdir $<)) >$@
 
 .PHONY: test test.units test.integration
 test: test.builtin test.units test.integration
 
-test.units: tools
+test.units: subdirs		# needs tools
 	scripts/test_harness.sh tests/tests_units.list
 
-test.integration: apps
+test.integration: subdirs	# needs apps
 	scripts/test_harness.sh tests/tests_integration.list
 
-test.builtin: apps
+test.builtin: subdirs		# needs apps
 	scripts/test_harness.sh tests/tests_builtin.list
 
 .PHONY: lint lint.python lint.ccode lint.shell lint.yaml
 lint: lint.python lint.ccode lint.shell lint.yaml
 
 lint.python:
-	flake8 scripts/n3n-ctl scripts/n3n-httpd scripts/n3n-convert_old_conf
+	flake8 scripts/n3nctl scripts/n3n-convert_old_conf
 
 lint.ccode:
 	scripts/indent.sh -e '$(LINT_EXCLUDE)' $(LINT_CCODE)
@@ -250,9 +319,10 @@ clean.cov:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(N2N_OBJS) $(N2N_LIB) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(N2N_OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean; done
+	rm -f $(CLEAN_FILES)
+	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
 
 .PHONY: distclean
 distclean:
@@ -260,7 +330,6 @@ distclean:
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
 	rm -f edge.8.gz n3n.7.gz supernode.1.gz
-	rm -f libn3n.a
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status

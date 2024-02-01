@@ -2,13 +2,8 @@
 # This is not a standalone makefile, it must be called from the toplevel
 # makefile to inherit the correct environment
 
-DEBUG?=-g3
-
-CFLAGS+=$(DEBUG)
-
-CFLAGS+=-I../include
-LDFLAGS+=-L..
 LDLIBS+=-ln3n
+LDLIBS+=$(LDLIBS_LOCAL)
 LDLIBS+=$(LDLIBS_EXTRA)
 
 TOOLS+=n3n-benchmark
@@ -24,6 +19,12 @@ TESTS+=tests-auth
 
 .PHONY: all clean install
 all: $(TOOLS) $(TESTS)
+
+# Remember to keep the two CC lines in sync
+$(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $$^ $(LDLIBS) -o $$@)
+%: %.c
+	@echo "  CC      $@"
+	@$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 # See comments in the topdir Makefile about how to generate coverage
 # data.

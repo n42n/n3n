@@ -19,8 +19,12 @@
  */
 
 
+#include <connslot/connslot.h>
 #include <errno.h>              // for errno, EAFNOSUPPORT
+#include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
+#include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
+#include <n3n/supernode.h>      // for load_allowed_sn_community
 #include <stdbool.h>
 #include <stdint.h>             // for uint8_t, uint32_t, uint16_t, uint64_t
 #include <stdio.h>              // for sscanf, snprintf, fclose, fgets, fopen
@@ -31,15 +35,16 @@
 #include <sys/types.h>          // for ssize_t
 #include <time.h>               // for time_t, time
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
-#include "config.h"             // for PACKAGE_VERSION
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
-#include "n2n.h"                // for sn_community, n2n_sn_t
+#include "management.h"         // for process_mgmt
+#include "n2n.h"                // for sn_community, n3n_runtime_data
 #include "n2n_regex.h"          // for re_matchp, re_compile
 #include "n2n_wire.h"           // for encode_buf, encode_PEER_INFO, encode_...
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
 #include "peer_info.h"          // for purge_peer_list, clear_peer_list
 #include "portable_endian.h"    // for be16toh, htobe16
 #include "random_numbers.h"     // for n2n_rand, n2n_rand_sqr, n2n_seed, n2n...
+#include "resolve.h"            // for resolve_create_thread, resolve_cancel...
 #include "sn_selection.h"       // for sn_selection_criterion_gather_data
 #include "speck.h"              // for speck_128_encrypt, speck_context_t
 #include "uthash.h"             // for UT_hash_handle, HASH_ITER, HASH_DEL
@@ -57,19 +62,14 @@
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
-int resolve_create_thread (n2n_resolve_parameter_t **param, struct peer_info *sn_list);
-int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, time_t now);
-int resolve_cancel_thread (n2n_resolve_parameter_t *param);
-
-
-static ssize_t sendto_peer (n2n_sn_t *sss,
+static ssize_t sendto_peer (struct n3n_runtime_data *sss,
                             const struct peer_info *peer,
                             const uint8_t *pktbuf,
                             size_t pktsize);
 
-static uint16_t reg_lifetime (n2n_sn_t *sss);
+static uint16_t reg_lifetime (struct n3n_runtime_data *sss);
 
-static int update_edge (n2n_sn_t *sss,
+static int update_edge (struct n3n_runtime_data *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
@@ -79,27 +79,21 @@ static int update_edge (n2n_sn_t *sss,
                         int skip_add,
                         time_t now);
 
-static int re_register_and_purge_supernodes (n2n_sn_t *sss,
+static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss,
                                              struct sn_community *comm,
                                              time_t *p_last_re_reg_and_purge,
                                              time_t now,
                                              uint8_t forced);
 
-static int purge_expired_communities (n2n_sn_t *sss,
+static int purge_expired_communities (struct n3n_runtime_data *sss,
                                       time_t* p_last_purge,
                                       time_t now);
 
-static int sort_communities (n2n_sn_t *sss,
+static int sort_communities (struct n3n_runtime_data *sss,
                              time_t* p_last_sort,
                              time_t now);
 
-int process_mgmt (n2n_sn_t *sss,
-                  const struct sockaddr *sender_sock, socklen_t sock_size,
-                  char *mgmt_buf,
-                  size_t mgmt_size,
-                  time_t now);
-
-static int process_udp (n2n_sn_t *sss,
+static int process_udp (struct n3n_runtime_data *sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t *udp_buf,
@@ -110,7 +104,7 @@ static int process_udp (n2n_sn_t *sss,
 /* ************************************** */
 
 
-void close_tcp_connection (n2n_sn_t *sss, n2n_tcp_connection_t *conn) {
+void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn) {
 
     struct sn_community *comm, *tmp_comm;
     struct peer_info *edge, *tmp_edge;
@@ -144,7 +138,7 @@ close_conn:
 
 // generate shared secrets for user authentication; can be done only after
 // federation name is known (-F) and community list completely read (-c)
-void calculate_shared_secrets (n2n_sn_t *sss) {
+void calculate_shared_secrets (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm;
     sn_user_t *user, *tmp_user;
@@ -170,7 +164,7 @@ void calculate_shared_secrets (n2n_sn_t *sss) {
 
 
 // calculate dynamic keys
-void calculate_dynamic_keys (n2n_sn_t *sss) {
+void calculate_dynamic_keys (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm = NULL;
 
@@ -185,8 +179,8 @@ void calculate_dynamic_keys (n2n_sn_t *sss) {
         if(comm->allowed_users) {
             calculate_dynamic_key(comm->dynamic_key,           /* destination */
                                   sss->dynamic_key_time,       /* time - same for all */
-                                  (uint8_t *)comm->community,  /* community name */
-                                  (uint8_t *)sss->federation->community); /* federation name */
+                                  comm->community,  /* community name */
+                                  sss->federation->community); /* federation name */
             packet_header_change_dynamic_key(comm->dynamic_key,
                                              &(comm->header_encryption_ctx_dynamic),
                                              &(comm->header_iv_ctx_dynamic));
@@ -197,7 +191,7 @@ void calculate_dynamic_keys (n2n_sn_t *sss) {
 
 
 // send RE_REGISTER_SUPER to all edges from user/pw auth'ed communites
-void send_re_register_super (n2n_sn_t *sss) {
+void send_re_register_super (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm = NULL;
     struct peer_info *edge, *tmp_edge = NULL;
@@ -242,7 +236,7 @@ void send_re_register_super (n2n_sn_t *sss) {
 /** Load the list of allowed communities. Existing/previous ones will be removed,
  *  return 0 on success, -1 if file not found, -2 if no valid entries found
  */
-int load_allowed_sn_community (n2n_sn_t *sss) {
+int load_allowed_sn_community (struct n3n_runtime_data *sss) {
 
     char buffer[4096], *line, *cmn_str, net_str[20], format[20];
 
@@ -500,7 +494,7 @@ int load_allowed_sn_community (n2n_sn_t *sss) {
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_fd (n2n_sn_t *sss,
+static ssize_t sendto_fd (struct n3n_runtime_data *sss,
                           SOCKET socket_fd,
                           const struct sockaddr *socket,
                           const uint8_t *pktbuf,
@@ -537,7 +531,7 @@ static ssize_t sendto_fd (n2n_sn_t *sss,
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_sock (n2n_sn_t *sss,
+static ssize_t sendto_sock (struct n3n_runtime_data *sss,
                             SOCKET socket_fd,
                             const struct sockaddr *socket,
                             const uint8_t *pktbuf,
@@ -585,7 +579,7 @@ static ssize_t sendto_sock (n2n_sn_t *sss,
  *
  *    @return -1 on error otherwise number of bytes sent
  */
-static ssize_t sendto_peer (n2n_sn_t *sss,
+static ssize_t sendto_peer (struct n3n_runtime_data *sss,
                             const struct peer_info *peer,
                             const uint8_t *pktbuf,
                             size_t pktsize) {
@@ -618,7 +612,7 @@ static ssize_t sendto_peer (n2n_sn_t *sss,
  *    This will send the exact same datagram to zero or more edges registered to
  *    the supernode.
  */
-static int try_broadcast (n2n_sn_t * sss,
+static int try_broadcast (struct n3n_runtime_data * sss,
                           const struct sn_community *comm,
                           const n2n_common_t * cmn,
                           const n2n_mac_t srcMac,
@@ -648,14 +642,14 @@ static int try_broadcast (n2n_sn_t * sss,
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
                 if(data_sent_len != pktsize) {
-                    ++(sss->stats.errors);
+                    ++(sss->stats.sn_errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to supernode [%s] %s failed %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
                                macaddr_str(mac_buf, scan->mac_addr),
                                strerror(errno));
                 } else {
-                    ++(sss->stats.broadcast);
+                    ++(sss->stats.sn_broadcast);
                     traceEvent(TRACE_DEBUG, "multicast %lu to supernode [%s] %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
@@ -674,14 +668,14 @@ static int try_broadcast (n2n_sn_t * sss,
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
                 if(data_sent_len != pktsize) {
-                    ++(sss->stats.errors);
+                    ++(sss->stats.sn_errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to [%s] %s failed %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
                                macaddr_str(mac_buf, scan->mac_addr),
                                strerror(errno));
                 } else {
-                    ++(sss->stats.broadcast);
+                    ++(sss->stats.sn_broadcast);
                     traceEvent(TRACE_DEBUG, "multicast %lu to [%s] %s",
                                pktsize,
                                sock_to_cstr(sockbuf, &(scan->sock)),
@@ -695,7 +689,7 @@ static int try_broadcast (n2n_sn_t * sss,
 }
 
 
-static int try_forward (n2n_sn_t * sss,
+static int try_forward (struct n3n_runtime_data * sss,
                         const struct sn_community *comm,
                         const n2n_common_t * cmn,
                         const n2n_mac_t dstMac,
@@ -716,13 +710,13 @@ static int try_forward (n2n_sn_t * sss,
         data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
         if(data_sent_len == pktsize) {
-            ++(sss->stats.fwd);
+            ++(sss->stats.sn_fwd);
             traceEvent(TRACE_DEBUG, "unicast %lu to [%s] %s",
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
                        macaddr_str(mac_buf, scan->mac_addr));
         } else {
-            ++(sss->stats.errors);
+            ++(sss->stats.sn_errors);
             traceEvent(TRACE_ERROR, "unicast %lu to [%s] %s FAILED (%d: %s)",
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
@@ -767,20 +761,28 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
 
 /** Initialise the supernode structure */
-int sn_init_defaults (n2n_sn_t *sss) {
+int sn_init_defaults (struct n3n_runtime_data *sss) {
 
     pearson_hash_init();
 
-    memset(sss, 0, sizeof(n2n_sn_t));
+    memset(sss, 0, sizeof(struct n3n_runtime_data));
 
-    strncpy(sss->version, PACKAGE_VERSION, sizeof(n2n_version_t));
+    sss->conf.is_supernode = true;
+
+    strncpy(sss->version, VERSION, sizeof(n2n_version_t));
     sss->version[sizeof(n2n_version_t) - 1] = '\0';
-    sss->daemon = true; /* By defult run as a daemon. */
-    sss->bind_address = INADDR_ANY; /* any address */
-    sss->lport = N2N_SN_LPORT_DEFAULT;
-    sss->mport = N2N_SN_MGMT_PORT;
+    sss->conf.daemon = true; /* By defult run as a daemon. */
+
+    sss->conf.bind_address = malloc(sizeof(*sss->conf.bind_address));
+    memset(sss->conf.bind_address, 0, sizeof(*sss->conf.bind_address));
+
+    struct sockaddr_in *sa = (struct sockaddr_in *)sss->conf.bind_address;
+    sa->sin_family = AF_INET;
+    sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
+    sa->sin_addr.s_addr = htonl(INADDR_ANY);
+
+    sss->conf.mgmt_port = N2N_SN_MGMT_PORT;
     sss->sock = -1;
-    sss->mgmt_sock = -1;
     sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
     sss->min_auto_ip_net.net_addr = ntohl(sss->min_auto_ip_net.net_addr);
     sss->min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
@@ -813,23 +815,23 @@ int sn_init_defaults (n2n_sn_t *sss) {
     n2n_srand(n2n_seed());
 
     /* Random auth token */
-    sss->auth.scheme = n2n_auth_simple_id;
-    memrnd(sss->auth.token, N2N_AUTH_ID_TOKEN_SIZE);
-    sss->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+    sss->conf.auth.scheme = n2n_auth_simple_id;
+    memrnd(sss->conf.auth.token, N2N_AUTH_ID_TOKEN_SIZE);
+    sss->conf.auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 
     /* Random MAC address */
     memrnd(sss->mac_addr, N2N_MAC_SIZE);
     sss->mac_addr[0] &= ~0x01; /* Clear multicast bit */
     sss->mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
-    sss->mgmt_password = N2N_MGMT_PASSWORD;
+    sss->conf.mgmt_password = N3N_MGMT_PASSWORD;
 
     return 0; /* OK */
 }
 
 
 /** Initialise the supernode */
-void sn_init (n2n_sn_t *sss) {
+void sn_init (struct n3n_runtime_data *sss) {
 
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
@@ -839,7 +841,7 @@ void sn_init (n2n_sn_t *sss) {
 
 /** Deinitialise the supernode structure and deallocate any memory owned by
  *    it. */
-void sn_term (n2n_sn_t *sss) {
+void sn_term (struct n3n_runtime_data *sss) {
 
     struct sn_community *community, *tmp;
     struct sn_community_regular_expression *re, *tmp_re;
@@ -866,17 +868,13 @@ void sn_term (n2n_sn_t *sss) {
     }
     sss->tcp_sock = -1;
 
-    if(sss->mgmt_sock >= 0) {
-        closesocket(sss->mgmt_sock);
-    }
-    sss->mgmt_sock = -1;
-
     HASH_ITER(hh, sss->communities, community, tmp) {
         clear_peer_list(&community->edges);
-        if(NULL != community->header_encryption_ctx_static) {
-            free(community->header_encryption_ctx_static);
-            free(community->header_encryption_ctx_dynamic);
-        }
+        free(community->header_encryption_ctx_static);
+        free(community->header_encryption_ctx_dynamic);
+        free(community->header_iv_ctx_static);
+        free(community->header_iv_ctx_dynamic);
+
         // remove all associations
         HASH_ITER(hh, community->assoc, assoc, tmp_assoc) {
             HASH_DEL(community->assoc, assoc);
@@ -894,8 +892,15 @@ void sn_term (n2n_sn_t *sss) {
         free(re);
     }
 
-    if(sss->community_file)
-        free(sss->community_file);
+    free(sss->conf.bind_address);
+
+    free(sss->community_file);
+
+    // TODO: merge config, then:
+    // free(sss->conf.sessiondir);
+
+    slots_free(sss->mgmt_slots);
+
 #ifdef _WIN32
     destroyWin32();
 #endif
@@ -932,7 +937,7 @@ void update_node_supernode_association (struct sn_community *comm,
  *    If the supernode has been put into a pre-shutdown phase then this lifetime
  *    should not allow registrations to continue beyond the shutdown point.
  */
-static uint16_t reg_lifetime (n2n_sn_t *sss) {
+static uint16_t reg_lifetime (struct n3n_runtime_data *sss) {
 
     /* NOTE: UDP firewalls usually have a 30 seconds timeout */
     return 15;
@@ -998,10 +1003,10 @@ static int auth_edge (const n2n_auth_t *present, const n2n_auth_t *presented, n2
 
 // provides the current / a new local auth token
 // REVISIT: behavior should depend on some local auth scheme setting (to be implemented)
-static int get_local_auth (n2n_sn_t *sss, n2n_auth_t *auth) {
+static int get_local_auth (struct n3n_runtime_data *sss, n2n_auth_t *auth) {
 
     // n2n_auth_simple_id scheme
-    memcpy(auth, &(sss->auth), sizeof(n2n_auth_t));
+    memcpy(auth, &(sss->conf.auth), sizeof(n2n_auth_t));
 
     return 0;
 }
@@ -1010,7 +1015,7 @@ static int get_local_auth (n2n_sn_t *sss, n2n_auth_t *auth) {
 // handles an incoming (remote) auth token from a so far unknown edge,
 // takes action as required by auth scheme, and
 // could provide an answer auth token for use in REGISTER_SUPER_ACK
-static int handle_remote_auth (n2n_sn_t *sss, const n2n_auth_t *remote_auth,
+static int handle_remote_auth (struct n3n_runtime_data *sss, const n2n_auth_t *remote_auth,
                                n2n_auth_t *answer_auth,
                                struct sn_community *community) {
 
@@ -1062,7 +1067,7 @@ static int handle_remote_auth (n2n_sn_t *sss, const n2n_auth_t *remote_auth,
 
 /** Update the edge table with the details of the edge which contacted the
  *    supernode. */
-static int update_edge (n2n_sn_t *sss,
+static int update_edge (struct n3n_runtime_data *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
@@ -1256,7 +1261,7 @@ static int assign_one_ip_addr (struct sn_community *comm, n2n_desc_t dev_desc, n
 
 
 /** checks if a certain sub-network is still available, i.e. does not cut any other community's sub-network */
-int subnet_available (n2n_sn_t *sss,
+int subnet_available (struct n3n_runtime_data *sss,
                       struct sn_community *comm,
                       uint32_t net_id,
                       uint32_t mask) {
@@ -1283,7 +1288,7 @@ int subnet_available (n2n_sn_t *sss,
 
 
 /** The IP address range (subnet) assigned to the community by the auto ip address function of sn. */
-int assign_one_ip_subnet (n2n_sn_t *sss,
+int assign_one_ip_subnet (struct n3n_runtime_data *sss,
                           struct sn_community *comm) {
 
     uint32_t net_id, net_id_i, mask, net_increment;
@@ -1367,7 +1372,7 @@ static int find_edge_time_stamp_and_verify (struct peer_info * edges,
 }
 
 
-static int re_register_and_purge_supernodes (n2n_sn_t *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
+static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
 
     time_t time;
     struct peer_info *peer, *tmp;
@@ -1441,7 +1446,7 @@ static int re_register_and_purge_supernodes (n2n_sn_t *sss, struct sn_community 
 }
 
 
-static int purge_expired_communities (n2n_sn_t *sss,
+static int purge_expired_communities (struct n3n_runtime_data *sss,
                                       time_t* p_last_purge,
                                       time_t now) {
 
@@ -1508,7 +1513,7 @@ static int number_enc_packets_sort (struct sn_community *a, struct sn_community 
 }
 
 
-static int sort_communities (n2n_sn_t *sss,
+static int sort_communities (struct n3n_runtime_data *sss,
                              time_t* p_last_sort,
                              time_t now) {
 
@@ -1537,7 +1542,7 @@ static int sort_communities (n2n_sn_t *sss,
 /** Examine a datagram and determine what to do with it.
  *
  */
-static int process_udp (n2n_sn_t * sss,
+static int process_udp (struct n3n_runtime_data * sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
@@ -1720,7 +1725,7 @@ static int process_udp (n2n_sn_t * sss,
                 return -1;
             }
 
-            sss->stats.last_fwd = now;
+            sss->last_sn_fwd = now;
             decode_PACKET(&pkt, &cmn, udp_buf, &rem, &idx);
 
             // already checked for valid comm
@@ -1803,7 +1808,7 @@ static int process_udp (n2n_sn_t * sss,
                 return -1;
             }
 
-            sss->stats.last_fwd = now;
+            sss->last_sn_fwd = now;
             decode_REGISTER(&reg, &cmn, udp_buf, &rem, &idx);
 
             // already checked for valid comm
@@ -1883,8 +1888,8 @@ static int process_udp (n2n_sn_t * sss,
             memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
 
             /* Edge/supernode requesting registration with us.    */
-            sss->stats.last_reg_super=now;
-            ++(sss->stats.reg_super);
+            sss->last_sn_reg=now;
+            ++(sss->stats.sn_reg);
             decode_REGISTER_SUPER(&reg, &cmn, udp_buf, &rem, &idx);
 
             if(comm) {
@@ -2570,7 +2575,7 @@ static int process_udp (n2n_sn_t * sss,
 
 /** Long lived processing entry point. Split out from main to simply
  *  daemonisation on some platforms. */
-int run_sn_loop (n2n_sn_t *sss) {
+int run_sn_loop (struct n3n_runtime_data *sss) {
 
     uint8_t pktbuf[N2N_SN_PKTBUF_SIZE];
     time_t last_purge_edges = 0;
@@ -2581,63 +2586,94 @@ int run_sn_loop (n2n_sn_t *sss) {
 
     while(*sss->keep_running) {
         int rc;
-        ssize_t bread;
         int max_sock;
-        fd_set socket_mask;
-        n2n_tcp_connection_t *conn, *tmp_conn;
-
-#ifdef N2N_HAVE_TCP
-        SOCKET tmp_sock;
-        n2n_sock_str_t sockbuf;
-#endif
+        ssize_t bread;
+        fd_set readers;
+        fd_set writers;
+        n2n_tcp_connection_t *conn;
+        n2n_tcp_connection_t *tmp_conn;
         struct timeval wait_time;
-        time_t before, now = 0;
+        time_t before;
+        time_t now;
 
-        FD_ZERO(&socket_mask);
+        FD_ZERO(&readers);
+        FD_ZERO(&writers);
 
-        FD_SET(sss->sock, &socket_mask);
-#ifdef N2N_HAVE_TCP
-        FD_SET(sss->tcp_sock, &socket_mask);
-#endif
-        FD_SET(sss->mgmt_sock, &socket_mask);
-
-        max_sock = MAX(MAX(sss->sock, sss->mgmt_sock), sss->tcp_sock);
+        FD_SET(sss->sock, &readers);
+        max_sock = sss->sock;
 
 #ifdef N2N_HAVE_TCP
+        n2n_sock_str_t sockbuf;
+        FD_SET(sss->tcp_sock, &readers);
+
         // add the tcp connections' sockets
         HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn) {
             //socket descriptor
-            FD_SET(conn->socket_fd, &socket_mask);
-            if(conn->socket_fd > max_sock)
-                max_sock = conn->socket_fd;
+            FD_SET(conn->socket_fd, &readers);
+            if(conn->socket_fd > max_sock) {
+                max_sock = MAX(max_sock, conn->socket_fd);
+            }
         }
 #endif
+
+        slots_t *slots = sss->mgmt_slots;
+        max_sock = max(
+            max_sock,
+            slots_fdset(
+                slots,
+                &readers,
+                &writers
+                )
+            );
 
         wait_time.tv_sec = 10;
         wait_time.tv_usec = 0;
 
         before = time(NULL);
 
-        rc = select(max_sock + 1, &socket_mask, NULL, NULL, &wait_time);
+        rc = select(max_sock + 1, &readers, &writers, NULL, &wait_time);
 
         now = time(NULL);
+
+        if(rc == 0) {
+            if(((now - before) < wait_time.tv_sec) && (*sss->keep_running)) {
+                // this is no real timeout, something went wrong with one of the tcp connections (probably)
+                // close them all, edges will re-open if they detect closure
+                // FIXME: untangle this as the description above is unlikely
+                traceEvent(TRACE_DEBUG, "falsly claimed timeout, assuming issue with tcp connection, closing them all");
+                HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn) {
+                    close_tcp_connection(sss, conn);
+                }
+            } else {
+                traceEvent(TRACE_DEBUG, "timeout");
+            }
+        }
 
         if(rc > 0) {
 
             // external udp
-            if(FD_ISSET(sss->sock, &socket_mask)) {
+            if(FD_ISSET(sss->sock, &readers)) {
                 struct sockaddr_storage sas;
                 struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                 socklen_t ss_size = sizeof(sas);
 
-                bread = recvfrom(sss->sock, (void *)pktbuf, N2N_SN_PKTBUF_SIZE, 0 /*flags*/,
-                                 sender_sock, &ss_size);
+                bread = recvfrom(
+                    sss->sock,
+                    (void *)pktbuf,
+                    N2N_SN_PKTBUF_SIZE,
+                    0 /*flags*/,
+                    sender_sock,
+                    &ss_size
+                    );
 
                 if((bread < 0)
 #ifdef _WIN32
                    && (WSAGetLastError() != WSAECONNRESET)
 #endif
                    ) {
+                    // FIXME: when would we get a WSAECONNRESET on a UDP read
+                    // of a non connected socket
+
                     /* For UDP bread of zero just means no data (unlike TCP). */
                     /* The fd is no good now. Maybe we lost our interface. */
                     traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
@@ -2645,13 +2681,20 @@ int run_sn_loop (n2n_sn_t *sss) {
                     traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
 #endif
                     *sss->keep_running = false;
-                    break;
                 }
 
                 // we have a datagram to process...
                 if(bread > 0) {
                     // ...and the datagram has data (not just a header)
-                    process_udp(sss, sender_sock, ss_size, sss->sock, pktbuf, bread, now);
+                    process_udp(
+                        sss,
+                        sender_sock,
+                        ss_size,
+                        sss->sock,
+                        pktbuf,
+                        bread,
+                        now
+                        );
                 }
             }
 
@@ -2668,14 +2711,21 @@ int run_sn_loop (n2n_sn_t *sss) {
                 if(conn->inactive)
                     continue;
 
-                if(FD_ISSET(conn->socket_fd, &socket_mask)) {
+                if(FD_ISSET(conn->socket_fd, &readers)) {
                     struct sockaddr_storage sas;
                     struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                     socklen_t ss_size = sizeof(sas);
 
-                    bread = recvfrom(conn->socket_fd,
-                                     conn->buffer + conn->position, conn->expected - conn->position, 0 /*flags*/,
-                                     sender_sock, &ss_size);
+                    // TODO: this all looks like it could use a tcp buffer
+                    // management layer - like the connslot abstraction
+                    bread = recvfrom(
+                        conn->socket_fd,
+                        conn->buffer + conn->position,
+                        conn->expected - conn->position,
+                        0 /*flags*/,
+                        sender_sock,
+                        &ss_size
+                        );
 
                     if(bread <= 0) {
                         traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
@@ -2700,8 +2750,15 @@ int run_sn_loop (n2n_sn_t *sss) {
                             }
                         } else {
                             // full packet read, handle it
-                            process_udp(sss, &(conn->sock), conn->sock_len, conn->socket_fd,
-                                        conn->buffer + sizeof(uint16_t), conn->position - sizeof(uint16_t), now);
+                            process_udp(
+                                sss,
+                                &(conn->sock),
+                                conn->sock_len,
+                                conn->socket_fd,
+                                conn->buffer + sizeof(uint16_t),
+                                conn->position - sizeof(uint16_t),
+                                now
+                                );
 
                             // reset, await new prepended length
                             conn->expected = sizeof(uint16_t);
@@ -2720,16 +2777,24 @@ int run_sn_loop (n2n_sn_t *sss) {
             }
 
             // accept new incoming tcp connection
-            if(FD_ISSET(sss->tcp_sock, &socket_mask)) {
+            if(FD_ISSET(sss->tcp_sock, &readers)) {
                 struct sockaddr_storage sas;
                 struct sockaddr *sender_sock = (struct sockaddr*)&sas;
                 socklen_t ss_size = sizeof(sas);
 
                 if((HASH_COUNT(sss->tcp_connections) + 4) < FD_SETSIZE) {
-                    tmp_sock = accept(sss->tcp_sock, sender_sock, &ss_size);
-                    // REVISIT: should we error out if ss_size returns bigger than before? can this ever happen?
+                    SOCKET tmp_sock = accept(
+                        sss->tcp_sock,
+                        sender_sock,
+                        &ss_size
+                        );
+                    // REVISIT: should we error out if ss_size returns bigger
+                    // than before? can this ever happen?
                     if(tmp_sock >= 0) {
-                        conn = (n2n_tcp_connection_t*)calloc(1, sizeof(n2n_tcp_connection_t));
+                        conn = (n2n_tcp_connection_t*)calloc(
+                            1,
+                            sizeof(n2n_tcp_connection_t)
+                            );
                         if(conn) {
                             conn->socket_fd = tmp_sock;
                             memcpy(&(conn->sock), sender_sock, ss_size);
@@ -2738,53 +2803,72 @@ int run_sn_loop (n2n_sn_t *sss) {
                             conn->expected = sizeof(uint16_t);
                             conn->position = 0;
                             HASH_ADD_INT(sss->tcp_connections, socket_fd, conn);
-                            traceEvent(TRACE_INFO, "accepted incoming TCP connection from [%s]",
-                                       sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
+                            traceEvent(
+                                TRACE_INFO,
+                                "accepted incoming TCP connection from [%s]",
+                                sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
+                                );
                         }
                     }
                 } else {
                     // no space to store the socket for a new connection, close immediately
-                    traceEvent(TRACE_DEBUG, "denied incoming TCP connection from [%s] due to max connections limit hit",
-                               sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
+                    traceEvent(
+                        TRACE_DEBUG,
+                        "denied incoming TCP connection from [%s] due to max connections limit hit",
+                        sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
+                        );
                 }
             }
 #endif /* N2N_HAVE_TCP */
 
-            // handle management port input
-            if(FD_ISSET(sss->mgmt_sock, &socket_mask)) {
-                struct sockaddr_storage sas;
-                struct sockaddr *sender_sock = (struct sockaddr*)&sas;
-                socklen_t ss_size = sizeof(sas);
+            int slots_ready = slots_fdset_loop(slots, &readers, &writers);
 
-                bread = recvfrom(sss->mgmt_sock, (void *)pktbuf, N2N_SN_PKTBUF_SIZE, 0 /*flags*/,
-                                 sender_sock, &ss_size);
+            if(slots_ready < 0) {
+                traceEvent(
+                    TRACE_ERROR,
+                    "error: slots_fdset_loop = %i", slots_ready
+                    );
+            } else if(slots_ready > 0) {
+                // see edge_utils for note about linear scan
+                for(int i=0; i<slots->nr_slots; i++) {
+                    if(slots->conn[i].fd == -1) {
+                        continue;
+                    }
 
-                // REVISIT: should we error out if ss_size returns bigger than before? can this ever happen?
-                if(bread <= 0) {
-                    traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
-                    *sss->keep_running = false;
-                    break;
+                    if(slots->conn[i].state == CONN_READY) {
+                        mgmt_api_handler(sss, &slots->conn[i]);
+                    }
                 }
-
-                // we have a datagram to process
-                process_mgmt(sss, sender_sock, ss_size, (char *)pktbuf, bread, now);
             }
 
-        } else {
-            if(((now - before) < wait_time.tv_sec) && (*sss->keep_running)) {
-                // this is no real timeout, something went wrong with one of the tcp connections (probably)
-                // close them all, edges will re-open if they detect closure
-                traceEvent(TRACE_DEBUG, "falsly claimed timeout, assuming issue with tcp connection, closing them all");
-                HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn)
-                close_tcp_connection(sss, conn);
-            } else
-                traceEvent(TRACE_DEBUG, "timeout");
         }
 
-        re_register_and_purge_supernodes(sss, sss->federation, &last_re_reg_and_purge, now, 0 /* not forced */);
-        purge_expired_communities(sss, &last_purge_edges, now);
-        sort_communities(sss, &last_sort_communities, now);
-        resolve_check(sss->resolve_parameter, 0 /* presumably, no special resolution requirement */, now);
+        // If anything we recieved caused us to stop..
+        if(!(*sss->keep_running))
+            break;
+
+        re_register_and_purge_supernodes(
+            sss,
+            sss->federation,
+            &last_re_reg_and_purge,
+            now,
+            0 /* not forced */
+            );
+        purge_expired_communities(
+            sss,
+            &last_purge_edges,
+            now
+            );
+        sort_communities(
+            sss,
+            &last_sort_communities,
+            now
+            );
+        resolve_check(
+            sss->resolve_parameter,
+            false /* presumably, no special resolution requirement */,
+            now
+            );
     } /* while */
 
     sn_term(sss);

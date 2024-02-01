@@ -23,6 +23,8 @@
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
 #include <n3n/conffile.h>            // for n3n_config_set_option
+#include <n3n/edge.h>
+#include <n3n/ethernet.h>            // for macaddr_str, macstr_t
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/tests.h>               // for test_hashing
@@ -39,8 +41,7 @@
 #include <time.h>                    // for time
 #include <unistd.h>                  // for setuid, _exit, chdir, fork, getgid
 #include "auth.h"                    // for generate_private_key, generate_p...
-#include "config.h"                  // for PACKAGE_BUILDDATE, PACKAGE_VERSION
-#include "n2n.h"                     // for n2n_edge_conf_t, n2n_edge_t, fil...
+#include "n2n.h"                     // for n2n_edge_conf_t, n3n_runtime_data, fil...
 #include "pearson.h"                 // for pearson_hash_64
 #include "portable_endian.h"         // for htobe32
 #include "random_numbers.h"          // for n2n_seed, n2n_srand
@@ -48,8 +49,9 @@
 #include "speck.h"                   // for speck_init, speck_context_t
 #include "uthash.h"                  // for UT_hash_handle, HASH_ADD, HASH_C...
 
-// FIXME, including a private header
+// FIXME, including private headers
 #include "../src/peer_info.h"        // for peer_info, peer_info_t
+#include "../src/resolve.h"          // for resolve_check
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -85,14 +87,13 @@ int num_cap = sizeof(cap_values)/sizeof(cap_value_t);
 #endif
 
 // forward declaration for use in main()
-void send_register_super (n2n_edge_t *eee);
-void send_query_peer (n2n_edge_t *eee, const n2n_mac_t dst_mac);
-int supernode_connect (n2n_edge_t *eee);
-int supernode_disconnect (n2n_edge_t *eee);
-int fetch_and_eventually_process_data (n2n_edge_t *eee, SOCKET sock,
+void send_register_super (struct n3n_runtime_data *eee);
+void send_query_peer (struct n3n_runtime_data *eee, const n2n_mac_t dst_mac);
+int supernode_connect (struct n3n_runtime_data *eee);
+int supernode_disconnect (struct n3n_runtime_data *eee);
+int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock,
                                        uint8_t *pktbuf, uint16_t *expected, uint16_t *position,
                                        time_t now);
-int resolve_check (n2n_resolve_parameter_t *param, uint8_t resolution_request, time_t now);
 
 /* *************************************************** */
 
@@ -241,11 +242,18 @@ enum subcmd_type {
 struct subcmd_def {
     char *name;
     char *help;
-    enum subcmd_type type;
     union {
         struct subcmd_def *nest;
-        void (*fn)(int argc, char **argv, char *, n2n_edge_conf_t *conf);
+        void (*fn)(int argc, char **argv, n2n_edge_conf_t *conf);
     };
+    enum subcmd_type type;
+    bool session_arg;   // is the next arg a session name to load?
+};
+struct subcmd_result {
+    int argc;
+    char **argv;
+    char *sessionname;
+    struct subcmd_def *subcmd;
 };
 
 void subcmd_help (struct subcmd_def *p, int indent, bool recurse) {
@@ -275,14 +283,15 @@ static void subcmd_help_simple (struct subcmd_def *p) {
         "\n"
         "Try edge -h for help\n"
         "\n"
-        "Main subcommands:\n"
+        "or add a subcommand:\n"
         "\n"
         );
     subcmd_help(p, 1, false);
     exit(1);
 }
 
-void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
+struct subcmd_result subcmd_lookup (struct subcmd_def *top, int argc, char **argv) {
+    struct subcmd_result r;
     struct subcmd_def *p = top;
     while(p->name) {
         if(argc < 1) {
@@ -307,8 +316,15 @@ void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname
                 p = top;
                 continue;
             case subcmd_type_fn:
-                p->fn(argc, argv, defname, conf);
-                return;
+                if(p->session_arg) {
+                    r.sessionname = argv[1];
+                } else {
+                    r.sessionname = NULL;
+                }
+                r.argc = argc;
+                r.argv = argv;
+                r.subcmd = p;
+                return r;
         }
         printf("Internal Error subcmd->type: %i\n", p->type);
         exit(1);
@@ -321,7 +337,7 @@ void subcmd_lookup (struct subcmd_def *top, int argc, char **argv, char *defname
 
 static struct subcmd_def cmd_top[]; // Forward define
 
-static void cmd_help_about (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
     printf("n3n - a peer to peer VPN for when you have noLAN\n"
            "\n"
            " usage: edge [options...] [command] [command args]\n"
@@ -341,17 +357,26 @@ static void cmd_help_about (int argc, char **argv, char *_, n2n_edge_conf_t *con
     exit(0);
 }
 
-static void cmd_help_commands (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+#ifdef _WIN32
+static void cmd_help_adaptors (int argc, char **argv, n2n_edge_conf_t *conf) {
+    printf(" AVAILABLE TAP ADAPTERS\n");
+    printf(" ----------------------\n\n");
+    win_print_available_adapters();
+    exit(0);
+}
+#endif
+
+static void cmd_help_commands (int argc, char **argv, n2n_edge_conf_t *conf) {
     subcmd_help(cmd_top, 1, true);
     exit(0);
 }
 
-static void cmd_help_config (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_config (int argc, char **argv, n2n_edge_conf_t *conf) {
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
 
-static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_options (int argc, char **argv, n2n_edge_conf_t *conf) {
     int i;
 
     printf(" option    config\n");
@@ -400,19 +425,24 @@ static void cmd_help_options (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(0);
 }
 
-static void cmd_help_transform (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_transform (int argc, char **argv, n2n_edge_conf_t *conf) {
     // TODO: add an interface to the registered transform lookups and print
     // out the list
     printf("Not implemented\n");
     exit(1);
 }
 
-static void cmd_help_version (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_help_version (int argc, char **argv, n2n_edge_conf_t *conf) {
     print_n3n_version();
     exit(0);
 }
 
-static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_addr (int argc, char **argv, n2n_edge_conf_t *conf) {
+    n3n_config_debug_addr(conf, stdout);
+    exit(0);
+}
+
+static void cmd_debug_config_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
     int level=1;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -421,18 +451,40 @@ static void cmd_test_config_dump (int argc, char **argv, char *_, n2n_edge_conf_
     exit(0);
 }
 
-static void cmd_test_config_load_dump (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
-    conf = malloc(sizeof(*conf));
-    memset(conf, 0, sizeof(*conf));
-    if(n3n_config_load_file(conf, argv[1]) != 0) {
-        printf("Error loading config file\n");
-        exit(1);
-    }
+static void cmd_debug_config_load_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
     n3n_config_dump(conf, stdout, 1);
     exit(0);
 }
 
-static void cmd_test_hashing (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *conf) {
+    if(!argv[1]) {
+        fprintf(stderr,"Warning: No session name given\n");
+    }
+
+    // Because we want this test to be deterministic, we dont use the defaults
+    // or load the normal way, we start with a zeroed out conf
+    conf = malloc(sizeof(*conf));
+    memset(conf, 0, sizeof(*conf));
+
+    int r = n3n_config_load_file(conf, argv[1]);
+    if(r == -2) {
+        fprintf(stderr,"Warning: No config file found\n");
+    } else if(r != 0) {
+        printf("Error loading config file (%i)\n", r);
+        exit(1);
+    }
+
+    fprintf(stderr, "Loaded config file for session name: '%s'\n", argv[1]);
+
+    // Save the session name for later
+    conf->sessionname = argv[1];
+
+    // Then dump it out
+    n3n_config_dump(conf, stdout, 1);
+    exit(0);
+}
+
+static void cmd_test_hashing (int argc, char **argv, n2n_edge_conf_t *conf) {
     int level=0;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -444,7 +496,7 @@ static void cmd_test_hashing (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(errors);
 }
 
-static void cmd_tools_keygen (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_tools_keygen (int argc, char **argv, n2n_edge_conf_t *conf) {
     if(argc == 1) {
         printf(
             "n3n keygen tool\n"
@@ -512,10 +564,42 @@ static void cmd_tools_keygen (int argc, char **argv, char *_, n2n_edge_conf_t *c
     exit(0);
 }
 
-static void cmd_start (int argc, char **argv, char *_, n2n_edge_conf_t *conf) {
+static void cmd_start (int argc, char **argv, n2n_edge_conf_t *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
 }
+
+static struct subcmd_def cmd_debug_config[] = {
+    {
+        .name = "addr",
+        .help = "show internal config addresses and sizes",
+        .type = subcmd_type_fn,
+        .fn = &cmd_debug_config_addr,
+    },
+    {
+        .name = "dump",
+        .help = "[level] - just dump the default config",
+        .type = subcmd_type_fn,
+        .fn = &cmd_debug_config_dump,
+    },
+    {
+        .name = "load_dump",
+        .help = "[sessionname] - load from all normal sources, then dump",
+        .type = subcmd_type_fn,
+        .fn = &cmd_debug_config_load_dump,
+        .session_arg = true,
+    },
+    { .name = NULL }
+};
+
+static struct subcmd_def cmd_debug[] = {
+    {
+        .name = "config",
+        .type = subcmd_type_nest,
+        .nest = cmd_debug_config,
+    },
+    { .name = NULL }
+};
 
 static struct subcmd_def cmd_help[] = {
     {
@@ -524,6 +608,14 @@ static struct subcmd_def cmd_help[] = {
         .type = subcmd_type_fn,
         .fn = cmd_help_about,
     },
+#ifdef _WIN32
+    {
+        .name = "adaptors",
+        .help = "List windows TAP adaptors",
+        .type = subcmd_type_fn,
+        .fn = cmd_help_adaptors,
+    },
+#endif
     {
         .name = "commands",
         .help = "Show all possible commandline commands",
@@ -559,16 +651,10 @@ static struct subcmd_def cmd_help[] = {
 
 static struct subcmd_def cmd_test_config[] = {
     {
-        .name = "dump",
-        .help = "[level] - just dump the current config",
+        .name = "roundtrip",
+        .help = "<sessionname> - load only the config file and then dump it",
         .type = subcmd_type_fn,
-        .fn = &cmd_test_config_dump,
-    },
-    {
-        .name = "load_dump",
-        .help = "[sessionname] - load the config file and then dump it",
-        .type = subcmd_type_fn,
-        .fn = &cmd_test_config_load_dump,
+        .fn = &cmd_test_config_roundtrip,
     },
     { .name = NULL }
 };
@@ -600,6 +686,11 @@ static struct subcmd_def cmd_test[] = {
 
 static struct subcmd_def cmd_top[] = {
     {
+        .name = "debug",
+        .type = subcmd_type_nest,
+        .nest = cmd_debug,
+    },
+    {
         .name = "help",
         .type = subcmd_type_nest,
         .nest = cmd_help,
@@ -609,6 +700,7 @@ static struct subcmd_def cmd_top[] = {
         .help = "[sessionname] - starts daemon",
         .type = subcmd_type_fn,
         .fn = &cmd_start,
+        .session_arg = true,
     },
     {
         .name = "tools",
@@ -640,9 +732,9 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             case '?': // An invalid arg, or a missing optarg
                 exit(1);
             case 'V':
-                cmd_help_version(0, NULL, NULL, NULL);
+                cmd_help_version(0, NULL, NULL);
             case 'h': /* quick reference */
-                cmd_help_about(0, NULL, NULL, NULL);
+                cmd_help_about(0, NULL, NULL);
         }
     }
 
@@ -652,44 +744,48 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
     }
     // We now know there is a sub command on the commandline
 
-    char **subargv = &argv[optind];
-    int subargc = argc - optind;
+    struct subcmd_result cmd = subcmd_lookup(
+        cmd_top,
+        argc - optind,
+        &argv[optind]
+        );
 
-    // The start subcmd loads config, which then gets overwitten by any
-    // commandline args, so it gets done first
-    // TODO: work out a nicer way to integrate this into the subcmd parser
-    if(strcmp(subargv[0],"start")==0) {
-        char *name = subargv[1];
+    // If no session name has been found, use the default
+    if(!cmd.sessionname) {
+        cmd.sessionname = defname;
+    }
 
-        if(!name) {
-            // If no session name is specified, use the default
-            name = defname;
-        }
+    // Now that we might need it, setup some default config
+    edge_init_conf_defaults(conf, cmd.sessionname);
 
-        int r = n3n_config_load_file(conf, name);
+    if(cmd.subcmd->session_arg) {
+        // the cmd structure can request the normal loading of config
+
+        int r = n3n_config_load_file(conf, cmd.sessionname);
         if(r == -1) {
             printf("Error loading config file\n");
             exit(1);
         }
         if(r == -2) {
-            printf("Warning: no config file found for session '%s'\n", name);
+            printf(
+                "Warning: no config file found for session '%s'\n",
+                cmd.sessionname
+                );
         }
 
-        // Save the session name for later
-        conf->sessionname = name;
+        // Update the loaded conf with the current environment
+        if(n3n_config_load_env(conf)!=0) {
+            printf("Error loading environment variables\n");
+            exit(1);
+        }
+
+        // Update the loaded conf with any option args
+        optind = 1;
+        loadFromCLI(argc, argv, conf);
     }
 
-    // Update the loaded conf with the current environment
-    if(n3n_config_load_env(conf)!=0) {
-        printf("Error loading environment variables\n");
-        exit(1);
-    }
-
-    // Update the loaded conf with any option args
-    optind = 1;
-    loadFromCLI(argc, argv, conf);
-
-    subcmd_lookup(cmd_top, subargc, subargv, defname, conf);
+    // Do the selected subcmd
+    cmd.subcmd->fn(cmd.argc, cmd.argv, conf);
 }
 
 /* ************************************** */
@@ -743,7 +839,7 @@ static void daemonize () {
 
 static bool keep_on_running = true;
 
-#if defined(__linux__) || defined(_WIN32)
+#ifndef _WIN32
 static void term_handler (int sig) {
     static int called = 0;
 
@@ -757,11 +853,19 @@ static void term_handler (int sig) {
 
     keep_on_running = false;
 }
-#endif /* defined(__linux__) || defined(_WIN32) */
+#endif
 
 #ifdef _WIN32
+// Note well, this gets called from a brand new thread, thus is completely
+// different to how signals work in POSIX
 BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
-    term_handler(sig);
+    // Tell the mainloop to exit next time it wakes
+    keep_on_running = false;
+
+    // TODO: Ensure that any running select will immediately return by
+    // closing one of the file handles that it is selecting on
+    // (cannot simply use eee->sock as the we cannot send a shutdown
+    // message to the supernode)
 
     switch(sig) {
         case CTRL_CLOSE_EVENT:
@@ -780,7 +884,7 @@ BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
 int main (int argc, char* argv[]) {
 
     int rc;
-    n2n_edge_t *eee;              /* single instance for this program */
+    struct n3n_runtime_data *eee;              /* single instance for this program */
     n2n_edge_conf_t conf;         /* generic N2N edge config */
     uint8_t runlevel = 0;         /* bootstrap: runlevel */
     uint8_t seek_answer = 1;      /*            expecting answer from supernode */
@@ -803,9 +907,6 @@ int main (int argc, char* argv[]) {
 
     // Do this early to register all internals
     n3n_initfuncs();
-
-    /* Defaults */
-    edge_init_conf_defaults(&conf);
 
     n3n_config(argc, argv, "edge", &conf);
 
@@ -854,9 +955,9 @@ int main (int argc, char* argv[]) {
     }
 
     if(edge_verify_conf(&conf) != 0)
-        cmd_help_about(0, NULL, NULL, NULL);
+        cmd_help_about(0, NULL, NULL);
 
-    traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", PACKAGE_VERSION, PACKAGE_BUILDDATE);
+    traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", VERSION, BUILDDATE);
 
 #ifdef HAVE_LIBCRYPTO
     traceEvent(TRACE_NORMAL, "using %s", OpenSSL_version(0));
@@ -1030,7 +1131,7 @@ int main (int argc, char* argv[]) {
         }
         seek_answer = 1;
 
-        resolve_check(eee->resolve_parameter, 0 /* no intermediate resolution requirement at this point */, now);
+        resolve_check(eee->resolve_parameter, false /* no intermediate resolution requirement at this point */, now);
     }
     // allow a higher number of pings for first regular round of ping
     // to quicker get an inital 'supernode selection criterion overview'
@@ -1085,7 +1186,7 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_WARNING, "running as root is discouraged, check out the -u/-g options");
 #endif /* _WIN32 */
 
-#ifdef __linux__
+#ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
     signal(SIGTERM, term_handler);
     signal(SIGINT,  term_handler);

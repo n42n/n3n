@@ -24,16 +24,16 @@ docmd "${BINDIR}"/apps/supernode -v
 # TODO: probe the api endpoint, waiting for the supernode to be available?
 sleep 0.1
 
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 communities
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 packetstats
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 edges --raw
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_communities
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_packetstats
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_edges --raw
 
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 verbose
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 -k $AUTH --write verbose 1
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_verbose
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH set_verbose 1
 
-# looks strange, but we are querying the state of the "stop" verb
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 stop
+# Test with bad auth
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 set_verbose 1
+echo $?
 
 # stop it
-docmd "${TOPDIR}"/scripts/n3n-ctl -t 5645 -k $AUTH --write stop
-
+docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH stop

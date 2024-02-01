@@ -18,7 +18,7 @@ docmd() {
 
 docmd "$BINDIR"/apps/edge test hashing
 
-docmd "$BINDIR"/apps/edge test config load_dump /dev/null
+docmd "$BINDIR"/apps/edge test config roundtrip
 
 docmd "$BINDIR"/apps/edge tools keygen logan 007
 docmd "$BINDIR"/apps/edge tools keygen secretFed

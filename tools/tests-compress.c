@@ -61,7 +61,7 @@ static void init_compression_for_benchmark (void) {
         exit(1);
     }
 
-#ifdef N2N_HAVE_ZSTD
+#ifdef N2N_HAVE_LIBZSTD
     // zstd does not require initialization. if it were required, this would be a good place
 #endif
 }
@@ -71,7 +71,7 @@ static void deinit_compression_for_benchmark (void) {
 
     // lzo1x does not require de-initialization. if it were required, this would be a good place
 
-#ifdef N2N_HAVE_ZSTD
+#ifdef N2N_HAVE_LIBZSTD
     // zstd does not require de-initialization. if it were required, this would be a good place
 #endif
 }
@@ -108,7 +108,7 @@ void test_lzo1x () {
 void test_zstd () {
     char *test_name = "zstd";
 
-#ifdef N2N_HAVE_ZSTD
+#ifdef N2N_HAVE_LIBZSTD
     uint8_t compression_buffer[N2N_PKT_BUF_SIZE]; // size allows enough of a reserve required for compression
     lzo_uint compression_len = sizeof(compression_buffer);
 

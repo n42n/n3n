@@ -66,15 +66,22 @@ built version.
 
 ### How can I know if peer-to-peer connection has successfully been established?
 
-The edge also offers a local udp management port at which it provides some information about connected _peers_ allowing a peer-to-peer connection, and _pending peers_ whose connections are forwarded through the supernode.
+The edge also offers a local udp management port at which it provides some
+information about connected _peers_ allowing a peer-to-peer connection, and
+_pending peers_ whose connections are forwarded through the supernode.
 
-The edge's management port defaults to 5644 and can be changed using edge's
-`management.port` config option. Connecting using the following command
-(localhost only)
+The edge will always be listening for HTTP/JsonRPC communications on a unix
+socket in /run/n3n - the `n3nctl` tool can be used to request status:
 
-`netcat -u localhost 5644`
+`n3nctl edges`
 
-answers every new line, i.e. pressing [ENTER] key, with current information. The edge even understands some simple commands, try `help`.
+Since the `n3nctl` tool needs python, it may not always be possible to use.
+It is also possible to use a suitable `curl` command with the `--unix-socket`
+option.
+
+Alternatively, the edge can be started with a `management.port` config option
+to specify a TCP port, and any web browser can be used to inspect the status.
+(from localhost only)
 
 
 ### The edge repeatedly throws an "Authentication error. MAC or IP address already in use or not released yet by supernode" message. What is wrong?

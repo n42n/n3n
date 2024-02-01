@@ -19,11 +19,12 @@
  */
 
 
-#include "config.h"  // for HAVE_ZSTD
+#include "config.h"  // for HAVE_LIBZSTD
 
 
-#ifdef HAVE_ZSTD
+#ifdef HAVE_LIBZSTD
 
+#include <n3n/logging.h> // for traceEvent
 #include <n3n/transform.h>   // for n3n_transform_register
 
 #include "n2n.h"
@@ -117,12 +118,6 @@ static int transop_decode_zstd (n2n_trans_op_t *arg,
 }
 
 
-static void transop_tick_zstd (n2n_trans_op_t *arg, time_t now) {
-
-    // no tick action
-}
-
-
 // zstd initialization function
 int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
@@ -131,7 +126,6 @@ int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     memset(ttt, 0, sizeof(*ttt));
     ttt->transform_id = N2N_COMPRESSION_ID_ZSTD;
 
-    ttt->tick         = transop_tick_zstd;
     ttt->deinit       = transop_deinit_zstd;
     ttt->fwd          = transop_encode_zstd;
     ttt->rev          = transop_decode_zstd;
@@ -160,4 +154,4 @@ void n3n_initfuncs_transform_zstd () {
     n3n_transform_register(&transform);
 }
 
-#endif // HAVE_ZSTD
+#endif // HAVE_LIBZSTD

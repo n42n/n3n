@@ -14,8 +14,8 @@ struct n3n_transform {
     struct n3n_transform *next;
     char *name;                 // The name of this config section
     char *desc;                 // A short description for this section
-    bool is_compress;           // this transform is not an encryption
     int id;
+    bool is_compress;           // this transform is not an encryption
 };
 
 // Register a transform implementation

@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
+#
+# Converts the stdin text file to a c strbuf_t structure, on stdout
+#
+
+use FileHandle;
+
+sub usage {
+    print "Usage: file2strbufc filename varname\n";
+    exit 1;
+}
+
+sub main {
+    my $filename = $ARGV[0] || usage();
+    my $varname = $ARGV[1] || usage();
+
+    my $fh = FileHandle->new($filename) || die "could not open $filename";
+    local $/ = undef;
+    my $data = <$fh>;
+    $fh->close();
+
+    my $size = length($data);
+
+    printf("/* #embed \"%s\" */\n",$filename);
+    printf("static strbuf_t %s = {\n",$varname);
+    printf("    .capacity = %i,\n",$size+1); # add one for nul terminator
+    printf("    .wr_pos = %i,\n",$size);
+    printf("    .str = {");
+
+    for my $pos (0..length($data)-1) {
+        my $ch = substr($data, $pos, 1);
+
+        my $sep;
+        if ($pos % 16 == 0) {
+            print "\n        ";
+            $sep = " ";
+        } else {
+            $sep = "";
+        }
+        printf("0x%02x,%s", ord($ch), $sep);
+    }
+
+    # nul terminate (
+    print "0x00,\n";
+
+    print "    }\n";
+    print "};\n";
+}
+main();

@@ -249,7 +249,7 @@ int tuntap_open (tuntap_dev *device,
 
     close(nl_fd);
 
-    device->ip_addr = ntohl(v4subnet.net_addr);
+    device->ip_addr = v4subnet.net_addr;
 
     return device->fd;
 }

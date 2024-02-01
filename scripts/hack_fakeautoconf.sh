@@ -11,6 +11,11 @@ cat <<EOF >include/config.h.in
 // not actually a config input
 EOF
 
+cat <<EOF >include/config.h
+// Created by hack fake autoconf for windows
+// not actually a config header
+EOF
+
 cat <<EOF >configure
 #!/bin/sh
 echo Created by hack fake autoconf for windows
@@ -27,12 +32,8 @@ CONFIG_PREFIX=/usr/local
 CC=gcc
 AR=ar
 WINDRES=windres
-CFLAGS=$CFLAGS -g -O2
-LDFLAGS=$LDFLAGS
-LDLIBS_EXTRA=-lnetapi32 -lws2_32 -liphlpapi
-EOF
 
-cat <<EOF >include/config.h
-#define PACKAGE_VERSION "FIXME"
-#define PACKAGE_BUILDDATE "$(date)"
+CFLAGS+=$CFLAGS -g -O2
+LDFLAGS+=$LDFLAGS
+LDLIBS_EXTRA+=-lnetapi32 -lws2_32 -liphlpapi
 EOF

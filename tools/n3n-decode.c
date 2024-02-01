@@ -242,7 +242,7 @@ int main (int argc, char* argv[]) {
     FILE *outf = stdout;
 
     /* Init configuration */
-    edge_init_conf_defaults(&conf);
+    edge_init_conf_defaults(&conf,"_TEST");
 
     while((c = getopt(argc, argv,
                       "k:i:B:w:c:v"

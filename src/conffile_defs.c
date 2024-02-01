@@ -206,7 +206,7 @@ static struct n3n_conf_option section_connection[] = {
 static struct n3n_conf_option section_daemon[] = {
     {
         .name = "userid",
-        .type = n3n_conf_uint32,
+        .type = n3n_conf_userid,
         .offset = offsetof(n2n_edge_conf_t, userid),
         .desc = "The user id",
         .help = "numeric user ID to use when privileges are dropped "
@@ -214,7 +214,7 @@ static struct n3n_conf_option section_daemon[] = {
     },
     {
         .name = "groupid",
-        .type = n3n_conf_uint32,
+        .type = n3n_conf_groupid,
         .offset = offsetof(n2n_edge_conf_t, groupid),
         .desc = "The group id",
         .help = "numeric group ID to use when privileges are dropped "
@@ -265,6 +265,7 @@ static struct n3n_conf_option section_logging[] = {
     {
         .name = "verbose",
         .type = n3n_conf_verbose,
+        .offset = -1,
         .desc = "Set the logging verbosity",
         .help = "This is a number between 0 and 4, defaulting to 2 for "
                 "normal amounts of logging."
@@ -288,8 +289,7 @@ static struct n3n_conf_option section_management[] = {
         .offset = offsetof(n2n_edge_conf_t, mgmt_port),
         .desc = "The management UDP port",
         .help = "binds the edge management system to the given UDP port. "
-                "Defaults to 5644.  Use this if you need to run multiple "
-                "instance of edge; or something else is bound to that port.",
+                "Use this if you wish to use the TCP API.",
 
     },
     {.name = NULL},

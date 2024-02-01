@@ -13,21 +13,51 @@
 ###
 [
     {
+        "rx_pkt": 0,
         "tx_pkt": 0,
-        "type": "forward"
+        "type": "transop"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "p2p"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "super"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "super_broadcast"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "tuntap_error"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "multicast_drop"
     },
     {
         "tx_pkt": 0,
-        "type": "broadcast"
+        "type": "sn_fwd"
+    },
+    {
+        "tx_pkt": 0,
+        "type": "sn_broadcast"
     },
     {
         "nak": 0,
-        "rx_pkt": 0,
-        "type": "reg_super"
+        "tx_pkt": 0,
+        "type": "sn_reg"
     },
     {
         "tx_pkt": 0,
-        "type": "errors"
+        "type": "sn_errors"
     }
 ]
 
@@ -35,30 +65,15 @@
 []
 
 ###
-[
-    {
-        "traceLevel": 3
-    }
-]
+3
 
 ###
-[
-    {
-        "traceLevel": 1
-    }
-]
+1
 
 ###
-[
-    {
-        "keep_running": 1
-    }
-]
+This request requires an authentication key
 
+0
 ###
-[
-    {
-        "keep_running": 0
-    }
-]
+0
 

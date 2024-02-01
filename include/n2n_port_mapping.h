@@ -23,16 +23,16 @@
 
 #include <stdint.h>
 
-#ifdef HAVE_MINIUPNP
+#ifdef HAVE_LIBMINIUPNPC
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 #include <miniupnpc/upnperrors.h>
-#endif // HAVE_MINIUPNP
+#endif // HAVE_LIBMINIUPNPC
 
 
-#ifdef HAVE_NATPMP
+#ifdef HAVE_LIBNATPMP
 #include "natpmp.h"
-#endif // HAVE_NATPMP
+#endif // HAVE_LIBNATPMP
 
 
 void n2n_set_port_mapping (const uint16_t port);

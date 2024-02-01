@@ -5,6 +5,7 @@ name: Quick Tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   smoketest:
@@ -12,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -23,11 +24,12 @@ jobs:
         run: |
           ./autogen.sh
           ./configure
+          make -j4 all
           make test
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tests-smoketest
           path: tests
@@ -37,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -67,6 +69,7 @@ jobs:
             CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
             LDFLAGS="--coverage"
           make build-dep
+          make -j4 all
           make test
 
       - name: Generate coverage reports
@@ -76,7 +79,7 @@ jobs:
         shell: bash
 
       - name: Upload gcovr report artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage
@@ -95,7 +98,7 @@ jobs:
 #    runs-on: windows-latest
 #
 #    steps:
-#      - uses: actions/checkout@v3
+#      - uses: actions/checkout@v4
 #        with:
 #          fetch-depth: 0
 #      - name: Fix Checkout
@@ -114,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Fix Checkout

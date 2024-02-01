@@ -61,7 +61,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
         char buf[256];
         FILE *fd;
 
-        device->ip_addr = ntohl(v4subnet.net_addr);
+        device->ip_addr = v4subnet.net_addr;
 
         if(device_mac && device_mac[0] != '\0') {
             // FIXME - this is not tested, might be wrong syntax for OS X

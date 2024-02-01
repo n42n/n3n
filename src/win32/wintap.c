@@ -291,9 +291,10 @@ int open_wintap (struct tuntap_dev *device,
 
     device->mtu = mtu;
 
-    in_addr_t addr = htonl(device->ip_addr);
+    in_addr_t addr = v4subnet.net_addr;
+
     char addr_buf[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &addr, &addr_buf, sizeof(addr_buf));
+    inet_ntop(AF_INET, &addr, (char *)&addr_buf, sizeof(addr_buf));
 
     printf("Open device [name=%s][ip=%s][ifName=%s][MTU=%d][mac=%02X:%02X:%02X:%02X:%02X:%02X]\n",
            device->device_name, addr_buf, device->ifName, device->mtu,
@@ -322,22 +323,29 @@ int open_wintap (struct tuntap_dev *device,
     }
 
     if(system(cmd) == 0) {
-        device->ip_addr = ntohl(v4subnet.net_addr);
-    } else
-        printf("WARNING: Unable to set device %s IP address [%s]\n",
-               device->ifName, cmd);
+        device->ip_addr = v4subnet.net_addr;
+    } else {
+        printf("ERROR: Unable to set IP address [%s]\n", cmd);
+        return -1;
+    }
 
     /* ****************** */
 
     /* MTU */
 
+#ifdef _WIN64
+    // TODO: this doesnt work on winXP, confirm on Win10
     _snprintf(cmd, sizeof(cmd),
               "netsh interface ipv4 set subinterface \"%s\" mtu=%d store=persistent > nul",
               device->ifName, mtu);
 
-    if(system(cmd) != 0)
-        printf("WARNING: Unable to set device %s parameters MTU=%d store=persistent [%s]\n",
-               device->ifName, mtu, cmd);
+    // TODO: this sets the ipv4 mtu, for some reason, windows has different
+    // MTU per protocol
+
+    if(system(cmd) != 0) {
+        printf("WARNING: Unable to set MTU [%s]\n", mtu, cmd);
+    }
+#endif
 
     /* ****************** */
 
@@ -382,8 +390,10 @@ int open_wintap (struct tuntap_dev *device,
     /* set driver media status to 'connected' (i.e. set the interface up) */
     if(!DeviceIoControl(device->device_handle, TAP_IOCTL_SET_MEDIA_STATUS,
                         &status, sizeof (status),
-                        &status, sizeof (status), &len, NULL))
-        printf("WARNING: Unable to enable TAP adapter\n");
+                        &status, sizeof (status), &len, NULL)) {
+        printf("ERROR: Unable to enable TAP adapter\n");
+        return -1;
+    }
 
     /*
      * Initialize overlapped structures

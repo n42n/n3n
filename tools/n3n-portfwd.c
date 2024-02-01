@@ -57,6 +57,8 @@
 #endif
 #endif
 
+// FIXME, this tool needs porting to JsonRPC
+#define N2N_EDGE_MGMT_PORT        5644
 
 typedef struct n2n_portfwd_conf {
     uint16_t port;                        /* management port */
@@ -288,17 +290,17 @@ int main (int argc, char* argv[]) {
     print_n3n_version();
 
     // ensure prerequisites
-#ifndef HAVE_MINIUPNP
+#ifndef HAVE_LIBMINIUPNPC
     traceEvent(TRACE_WARNING, "no miniupnp support compiled");
 #else
     traceEvent(TRACE_NORMAL, "compiled with miniupnp support");
 #endif
-#ifndef HAVE_NATPMP
+#ifndef HAVE_LIBNATPMP
     traceEvent(TRACE_WARNING, "no natpmp support compiled");
 #else
     traceEvent(TRACE_NORMAL, "compiled with natpmp support");
 #endif
-#if !defined(HAVE_MINIUPNP) && !defined(HAVE_NATPMP)
+#if !defined(HAVE_LIBMINIUPNPC) && !defined(HAVE_LIBNATPMP)
     traceEvent(TRACE_WARNING, "no port forwarding method found");
     return -1;
 #endif

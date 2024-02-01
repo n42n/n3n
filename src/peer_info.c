@@ -9,6 +9,7 @@
 #include <n2n_define.h> // for TIME_STAMP_FRAME
 #include <n3n/logging.h> // for traceEvent
 #include <stdbool.h>
+#include "management.h" // for mgmt_event_post
 #include "peer_info.h"
 
 // returns an initial time stamp for use with replay protection
@@ -60,7 +61,7 @@ size_t purge_peer_list (struct peer_info **peer_list,
                 }
             }
             HASH_DEL(*peer_list, scan);
-            mgmt_event_post(N2N_EVENT_PEER,N2N_EVENT_PEER_PURGE,scan);
+            mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_PURGE,scan);
             /* FIXME: generates events for more than just p2p */
             retval++;
             free(scan);
@@ -81,7 +82,7 @@ size_t clear_peer_list (struct peer_info ** peer_list) {
             free(scan->ip_addr);
         }
         HASH_DEL(*peer_list, scan);
-        mgmt_event_post(N2N_EVENT_PEER,N2N_EVENT_PEER_CLEAR,scan);
+        mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_CLEAR,scan);
         /* FIXME: generates events for more than just p2p */
         retval++;
         free(scan);

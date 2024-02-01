@@ -1,6 +1,8 @@
 /*
 
         (C) 2007-22 - Luca Deri <deri@ntop.org>
+ * Copyright (C) 2024 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
 
  */
 
@@ -35,46 +37,6 @@
 
 /* ************************************* */
 
-struct ip {
-#if BYTE_ORDER == LITTLE_ENDIAN
-    u_char ip_hl : 4,                   /* header length */
-           ip_v : 4;                    /* version */
-#else
-    u_char ip_v : 4,                    /* version */
-           ip_hl : 4;                   /* header length */
-#endif
-    u_char ip_tos;                      /* type of service */
-    short ip_len;                       /* total length */
-    u_short ip_id;                      /* identification */
-    short ip_off;                       /* fragment offset field */
-#define IP_DF 0x4000                    /* dont fragment flag */
-#define IP_MF 0x2000                    /* more fragments flag */
-#define IP_OFFMASK 0x1fff               /* mask for fragmenting bits */
-    u_char ip_ttl;                      /* time to live */
-    u_char ip_p;                        /* protocol */
-    u_short ip_sum;                     /* checksum */
-    struct  in_addr ip_src,ip_dst;      /* source and dest address */
-};
-
-
-/* ************************************* */
-
-
-typedef struct tuntap_dev {
-    HANDLE device_handle;
-    char            *device_name;
-    char            *ifName;
-    int if_idx;
-    OVERLAPPED overlap_read, overlap_write;
-    n2n_mac_t mac_addr;
-    uint32_t ip_addr;
-    unsigned int mtu;
-    unsigned int metric;
-    unsigned int metric_original;
-} tuntap_dev;
-
-
-/* ************************************* */
 
 
 #define index(a, b) strchr(a, b)

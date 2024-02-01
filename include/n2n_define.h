@@ -64,7 +64,6 @@
 #define LAST_SEEN_SN_NEW                 (LAST_SEEN_SN_INACTIVE - 3 * RE_REG_AND_PURGE_FREQUENCY) /* sec, indicates supernodes with unsure status, must be tested to check if they are active */
 
 #define IFACE_UPDATE_INTERVAL            (30) /* sec. How long it usually takes to get an IP lease. */
-#define TRANSOP_TICK_INTERVAL            (10) /* sec */
 
 #define SORT_COMMUNITIES_INTERVAL        90 /* sec. until supernode sorts communities' hash list again */
 
@@ -119,18 +118,18 @@ enum federation {IS_NO_FEDERATION = 0,IS_FEDERATION = 1};
 #define N2N_EDGE_MGMT_PORT        5644
 #define N2N_SN_MGMT_PORT          5645
 
-enum n2n_event_topic {
-    N2N_EVENT_DEBUG = 0,
-    N2N_EVENT_TEST = 1,
-    N2N_EVENT_PEER = 2,
+enum n3n_event_topic {
+    N3N_EVENT_DEBUG = 0,
+    N3N_EVENT_TEST = 1,
+    N3N_EVENT_PEER = 2,
 };
 
-#define N2N_EVENT_PEER_PURGE    1
-#define N2N_EVENT_PEER_CLEAR    2
-#define N2N_EVENT_PEER_DEL_P2P  3
-#define N2N_EVENT_PEER_ADD_P2P  4
+#define N3N_EVENT_PEER_PURGE    1
+#define N3N_EVENT_PEER_CLEAR    2
+#define N3N_EVENT_PEER_DEL_P2P  3
+#define N3N_EVENT_PEER_ADD_P2P  4
 
-#define N2N_MGMT_PASSWORD  "n3n"               /* default password for management port access (so far, json only) */
+#define N3N_MGMT_PASSWORD  "n3n"               /* default password for management port access (so far, json only) */
 
 
 #define N2N_TCP_BACKLOG_QUEUE_SIZE   3         /* number of concurrently pending connections to be accepted */
@@ -145,7 +144,6 @@ enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
 #define N2N_NETMASK_STR_SIZE      16 /* dotted decimal 12 numbers + 3 dots */
 #define N2N_MACNAMSIZ             18 /* AA:BB:CC:DD:EE:FF + NULL*/
 
-#define N2N_EDGE_DEFAULT_DEV_NAME    "edge0"
 #define N2N_EDGE_DEFAULT_V4MASKLEN   24               /* default netmask for edge ip address... */
 
 #define N2N_SN_LPORT_DEFAULT 7654
@@ -174,7 +172,6 @@ enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
 #define N2N_COMMUNITY_SIZE         20
 #define N2N_PRIVATE_PUBLIC_KEY_SIZE 32
 #define N2N_USER_KEY_LINE_STARTER  '*'
-#define N2N_MAC_SIZE               6
 #define N2N_NO_REG_COOKIE          0x00000000
 #define N2N_FORWARDED_REG_COOKIE   0x00001000
 #define N2N_PORT_REG_COOKIE        0x00004000
@@ -192,14 +189,6 @@ enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
 #define N2N_IFNAMSIZ               64
 #else
 #define N2N_IFNAMSIZ               16 /* 15 chars * NULL */
-#endif
-
-#ifdef _MSC_VER
-#define N2N_THREAD_RETURN_DATATYPE       DWORD WINAPI
-#define N2N_THREAD_PARAMETER_DATATYPE    LPVOID
-#else
-#define N2N_THREAD_RETURN_DATATYPE        void*
-#define N2N_THREAD_PARAMETER_DATATYPE     void*
 #endif
 
 #define SN_SELECTION_CRITERION_DATA_TYPE    uint64_t

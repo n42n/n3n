@@ -28,15 +28,17 @@ enum n3n_conf_type {
     n3n_conf_filter_rule,
     n3n_conf_ip_subnet,
     n3n_conf_ip_mode,
+    n3n_conf_userid,
+    n3n_conf_groupid,
 };
 
 struct n3n_conf_option {
     char *name;                 // The name used to configure this option
-    enum n3n_conf_type type;    // Which parser/validator to use
     int length;                 // Max length for string copy types
     int offset;                 // offset within the conf structure of value
     char *desc;                 // Short description
     char *help;                 // lengthy description
+    enum n3n_conf_type type;    // Which parser/validator to use
 };
 
 struct n3n_conf_section {
@@ -51,6 +53,7 @@ void n3n_config_register_section (char *, char *, struct n3n_conf_option[]);
 int n3n_config_set_option (void *, char *, char *, char *);
 
 void n3n_config_dump (void *, FILE *, int);
+void n3n_config_debug_addr (void *, FILE *);
 
 int n3n_config_load_env (void *);
 

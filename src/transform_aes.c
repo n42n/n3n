@@ -225,12 +225,6 @@ static int setup_aes_key (transop_aes_t *priv, const uint8_t *password, ssize_t 
 }
 
 
-static void transop_tick_aes (n2n_trans_op_t *arg, time_t now) {
-
-    // no tick action
-}
-
-
 // AES initialization function
 int n2n_transop_aes_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
@@ -241,7 +235,6 @@ int n2n_transop_aes_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     memset(ttt, 0, sizeof(*ttt));
     ttt->transform_id = N2N_TRANSFORM_ID_AES;
 
-    ttt->tick         = transop_tick_aes;
     ttt->deinit       = transop_deinit_aes;
     ttt->fwd          = transop_encode_aes;
     ttt->rev          = transop_decode_aes;

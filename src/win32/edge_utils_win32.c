@@ -113,7 +113,7 @@ HANDLE startTunReadThread (struct tunread_arg *arg) {
 
 
 
-int get_best_interface_ip (n2n_edge_t * eee, dec_ip_str_t *ip_addr){
+int get_best_interface_ip (struct n3n_runtime_data * eee, dec_ip_str_t *ip_addr){
     DWORD interface_index = -1;
     DWORD dwRetVal = 0;
     PIP_ADAPTER_INFO pAdapterInfo = NULL, pAdapter = NULL;
