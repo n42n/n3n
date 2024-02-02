@@ -328,8 +328,7 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
 
         case 'V': /* version text */
-            strncpy(sss->version, _optarg, sizeof(n2n_version_t));
-            sss->version[sizeof(n2n_version_t) - 1] = '\0';
+            set_option_wrap(&sss->conf, "supernode", "version_string", _optarg);
             break;
         case 'c': /* community file */
             sss->community_file = calloc(1, strlen(_optarg) + 1);

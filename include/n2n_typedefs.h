@@ -487,6 +487,7 @@ typedef struct n2n_edge_conf {
 
     // Supernode specific config
     bool spoofing_protection;                                /* false if overriding MAC/IP spoofing protection (cli option '-M') */
+    n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
 } n2n_edge_conf_t;
 
 
@@ -580,7 +581,6 @@ struct n3n_runtime_data {
     network_traffic_filter_t         *network_traffic_filter;
 
     // Supernode specific data
-    n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
     n2n_mac_t mac_addr;
     int tcp_sock;                                           /* auxiliary socket for optional TCP connections */
     n2n_tcp_connection_t                   *tcp_connections;/* list of established TCP connections */

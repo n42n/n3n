@@ -767,10 +767,10 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
 
     sss->conf.is_supernode = true;
     sss->conf.spoofing_protection = true;
-
-    strncpy(sss->version, VERSION, sizeof(n2n_version_t));
-    sss->version[sizeof(n2n_version_t) - 1] = '\0';
     sss->conf.daemon = true; /* By defult run as a daemon. */
+
+    strncpy(sss->conf.version, VERSION, sizeof(n2n_version_t));
+    sss->conf.version[sizeof(n2n_version_t) - 1] = '\0';
 
     sss->conf.bind_address = malloc(sizeof(*sss->conf.bind_address));
     memset(sss->conf.bind_address, 0, sizeof(*sss->conf.bind_address));
@@ -2432,7 +2432,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 pi.load = sn_selection_criterion_gather_data(sss);
 
-                snprintf(pi.version, sizeof(pi.version), "%s", sss->version);
+                snprintf(pi.version, sizeof(pi.version), "%s", sss->conf.version);
                 pi.uptime = now - sss->start_time;
 
                 encode_PEER_INFO(encbuf, &encx, &cmn2, &pi);

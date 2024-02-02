@@ -305,6 +305,17 @@ static struct n3n_conf_option section_supernode[] = {
                 "non-username-password-authenticating communities. "
                 "Defaults to enabled.",
     },
+    {
+        .name = "version",
+        .type = n3n_conf_strncpy,
+        .length = sizeof(n2n_version_t),
+        .offset = offsetof(n2n_edge_conf_t, version),
+        .desc = "Version text",
+        .help = "Modify the supernode version string which is distributed to "
+                "edges and shown in the management port output "
+                "(max 19 letters, defaults to the build version).",
+
+    },
     {.name = NULL},
 };
 
