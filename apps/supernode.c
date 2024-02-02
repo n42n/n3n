@@ -56,7 +56,6 @@
 
 static struct n3n_runtime_data sss_node;
 
-void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn);
 void calculate_shared_secrets (struct n3n_runtime_data *sss);
 int load_allowed_sn_community (struct n3n_runtime_data *sss);
 
