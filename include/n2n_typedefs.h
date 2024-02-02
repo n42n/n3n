@@ -592,7 +592,7 @@ struct n3n_runtime_data {
     struct sn_community                    *federation;
     n2n_private_public_key_t private_key;                     /* private federation key derived from federation name */
     uint32_t dynamic_key_time;                                /* UTC time of last dynamic key generation (second accuracy) */
-    uint8_t override_spoofing_protection;                                /* set if overriding MAC/IP spoofing protection (cli option '-M') */
+    bool spoofing_protection;                                /* false if overriding MAC/IP spoofing protection (cli option '-M') */
 };
 
 typedef struct node_supernode_association {

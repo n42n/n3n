@@ -766,6 +766,7 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
     memset(sss, 0, sizeof(struct n3n_runtime_data));
 
     sss->conf.is_supernode = true;
+    sss->spoofing_protection = true;
 
     strncpy(sss->version, VERSION, sizeof(n2n_version_t));
     sss->version[sizeof(n2n_version_t) - 1] = '\0';
@@ -1027,8 +1028,10 @@ static int handle_remote_auth (struct n3n_runtime_data *sss, const n2n_auth_t *r
     }
 
     switch(remote_auth->scheme) {
-        // we do not handle n2n_auth_none because the edge always edge always uses either id or user/password
-        // auth_none is sn-internal only (skipping MAC/IP address spoofing protection)
+        // we do not handle n2n_auth_none because the edge always uses either
+        // id or user/password
+        // auth_none is sn-internal only (skipping MAC/IP address spoofing
+        // protection)
         case n2n_auth_none:
         case n2n_auth_simple_id:
             // zero_token answer
@@ -1120,9 +1123,11 @@ static int update_edge (struct n3n_runtime_data *sss,
 
                 // store the submitted auth token
                 memcpy(&(scan->auth), &(reg->auth), sizeof(n2n_auth_t));
-                // manually set to type 'auth_none' if cli option disables MAC/IP address spoofing protection
-                // for id based auth communities. This will be obsolete when handling public keys only (v4.0?)
-                if((reg->auth.scheme == n2n_auth_simple_id) && (sss->override_spoofing_protection))
+                // manually set to type 'auth_none' if cli option disables
+                // MAC/IP address spoofing protection for id based auth
+                // communities. This will be obsolete when handling public
+                // keys only (v4.0?)
+                if((reg->auth.scheme == n2n_auth_simple_id) && (!sss->spoofing_protection))
                     scan->auth.scheme = n2n_auth_none;
 
                 HASH_ADD_PEER(comm->edges, scan);
