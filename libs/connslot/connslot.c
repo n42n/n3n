@@ -54,6 +54,11 @@ void *memmem(void *haystack, size_t haystack_len, void * needle, size_t needle_l
 }
 #endif
 
+#ifndef _WIN32
+// something something, posix, something something lies
+#define closesocket(fh) close(fh)
+#endif
+
 void conn_zero(conn_t *conn) {
     conn->fd = -1;
     conn->state = CONN_EMPTY;
@@ -239,7 +244,7 @@ int conn_iswriter(conn_t *conn) {
 }
 
 void conn_close(conn_t *conn) {
-    close(conn->fd);
+    closesocket(conn->fd);
     conn_zero(conn);
 }
 
@@ -407,6 +412,20 @@ int slots_listen_unix(slots_t *slots, char *path) {
     return 0;
 }
 #endif
+
+/*
+ * Close any listening sockets.
+ * We dont check for or care about any errors as this is assumed to be used
+ * during a shutdown event.
+ * (Mostly, as a signaling feature for windows and its signals/select
+ * brain damage)
+ */
+void slots_listen_close(slots_t *slots) {
+    for (int i=0; i < SLOTS_LISTEN; i++) {
+        closesocket(slots->listen[i]);
+        slots->listen[i] = -1;
+    }
+}
 
 int slots_fdset(slots_t *slots, fd_set *readers, fd_set *writers) {
     int i;

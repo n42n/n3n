@@ -60,6 +60,7 @@ void slots_free(slots_t *slots);
 slots_t *slots_malloc(int nr_slots);
 int slots_listen_tcp(slots_t *, int, bool);
 int slots_listen_unix(slots_t *, char *);
+void slots_listen_close(slots_t *);
 int slots_fdset(slots_t *, fd_set *, fd_set *);
 int slots_accept(slots_t *, int);
 int slots_closeidle(slots_t *);

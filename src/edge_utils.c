@@ -2998,7 +2998,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             if(slots_ready < 0) {
                 traceEvent(
                     TRACE_ERROR,
-                    "error: slots_fdset_loop = %i", slots_ready
+                    "slots_fdset_loop returns %i (Is daemon exiting?)", slots_ready
                     );
             } else if(slots_ready > 0) {
                 // A linear scan is not ideal, but this is a select() loop

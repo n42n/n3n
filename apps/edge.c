@@ -742,16 +742,28 @@ static void term_handler (int sig) {
 #endif
 
 #ifdef _WIN32
+struct n3n_runtime_data *windows_stop_eee;
+
 // Note well, this gets called from a brand new thread, thus is completely
 // different to how signals work in POSIX
 BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
     // Tell the mainloop to exit next time it wakes
     keep_on_running = false;
 
-    // TODO: Ensure that any running select will immediately return by
-    // closing one of the file handles that it is selecting on
-    // (cannot simply use eee->sock as the we cannot send a shutdown
-    // message to the supernode)
+    traceEvent(TRACE_INFO, "starting stopping");
+    // The windows environment claims to support signals, but they dont
+    // interrupt a running select() statement.  Also, this console handler
+    // is run in its own thread, so it is also not interrupting the select()
+    // This is clearly contrary to how select was designed to be used and it
+    // makes process termination annoying, so we need a workaround.
+    //
+    // Since windows usually has a managment TCP port listening in the
+    // select fdset, we can close that - this immediately causes the select
+    // to return with activity on that file descriptor and allows the
+    // mainloop to notice that we are no longer wanting to run.
+    //
+    // something something, darkside
+    slots_listen_close(windows_stop_eee->mgmt_slots);
 
     switch(sig) {
         case CTRL_CLOSE_EVENT:
@@ -1078,6 +1090,7 @@ int main (int argc, char* argv[]) {
     signal(SIGINT,  term_handler);
 #endif
 #ifdef _WIN32
+    windows_stop_eee = eee;
     SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
 #endif
 
