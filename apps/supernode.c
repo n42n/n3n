@@ -324,7 +324,7 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
         }
         case 'M': /* override spoofing protection */
-            sss->spoofing_protection = false;
+            sss->conf.spoofing_protection = false;
             break;
 
         case 'V': /* version text */
@@ -612,7 +612,7 @@ int main (int argc, char * const argv[]) {
         traceEvent(TRACE_WARNING, "using default federation name; FOR TESTING ONLY, usage of a custom federation name (-F) is highly recommended!");
     }
 
-    if(!sss_node.spoofing_protection) {
+    if(!sss_node.conf.spoofing_protection) {
         traceEvent(
             TRACE_WARNING,
             "disabled MAC and IP address spoofing protection; "

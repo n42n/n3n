@@ -766,7 +766,7 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
     memset(sss, 0, sizeof(struct n3n_runtime_data));
 
     sss->conf.is_supernode = true;
-    sss->spoofing_protection = true;
+    sss->conf.spoofing_protection = true;
 
     strncpy(sss->version, VERSION, sizeof(n2n_version_t));
     sss->version[sizeof(n2n_version_t) - 1] = '\0';
@@ -1127,7 +1127,7 @@ static int update_edge (struct n3n_runtime_data *sss,
                 // MAC/IP address spoofing protection for id based auth
                 // communities. This will be obsolete when handling public
                 // keys only (v4.0?)
-                if((reg->auth.scheme == n2n_auth_simple_id) && (!sss->spoofing_protection))
+                if((reg->auth.scheme == n2n_auth_simple_id) && (!sss->conf.spoofing_protection))
                     scan->auth.scheme = n2n_auth_none;
 
                 HASH_ADD_PEER(comm->edges, scan);
