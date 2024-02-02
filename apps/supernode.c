@@ -206,14 +206,9 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
 
         case 'l': { /* supernode:port */
-            n2n_sock_t *socket;
-            struct peer_info *anchor_sn;
-            size_t length;
-            int rv = -1;
-            int skip_add;
             char *double_column = strchr(_optarg, ':');
 
-            length = strlen(_optarg);
+            size_t length = strlen(_optarg);
             if(length >= N2N_EDGE_SN_HOST_SIZE) {
                 traceEvent(TRACE_WARNING, "size of -l argument too long: %zu; maximum size is %d", length, N2N_EDGE_SN_HOST_SIZE);
                 return 1;
@@ -224,8 +219,8 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
                 return 1;
             }
 
-            socket = (n2n_sock_t *)calloc(1, sizeof(n2n_sock_t));
-            rv = supernode2sock(socket, _optarg);
+            n2n_sock_t *socket = (n2n_sock_t *)calloc(1, sizeof(n2n_sock_t));
+            int rv = supernode2sock(socket, _optarg);
 
             if(rv < -2) { /* we accept resolver failure as it might resolve later */
                 traceEvent(TRACE_WARNING, "invalid supernode parameter");
@@ -233,23 +228,32 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
                 return 1;
             }
 
-            if(sss->federation != NULL) {
-                skip_add = SN_ADD;
-                anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), socket, null_mac, &skip_add);
-
-                if(anchor_sn != NULL) {
-                    anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-                    if(anchor_sn->ip_addr) {
-                        peer_info_init(anchor_sn, null_mac);
-                        // This is the only place where the default purgeable
-                        // is overwritten after an _alloc or _init
-                        anchor_sn->purgeable = false;
-
-                        strncpy(anchor_sn->ip_addr, _optarg, N2N_EDGE_SN_HOST_SIZE - 1);
-                        memcpy(&(anchor_sn->sock), socket, sizeof(n2n_sock_t));
-                    }
-                }
+            if(!sss->federation) {
+                free(socket);
+                break;
             }
+
+            int skip_add = SN_ADD;
+            struct peer_info *anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), socket, null_mac, &skip_add);
+
+            if(!anchor_sn) {
+                free(socket);
+                break;
+            }
+
+            anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+            if(!anchor_sn->ip_addr) {
+                free(socket);
+                break;
+            }
+
+            peer_info_init(anchor_sn, null_mac);
+            // This is the only place where the default purgeable
+            // is overwritten after an _alloc or _init
+            anchor_sn->purgeable = false;
+
+            strncpy(anchor_sn->ip_addr, _optarg, N2N_EDGE_SN_HOST_SIZE - 1);
+            memcpy(&(anchor_sn->sock), socket, sizeof(n2n_sock_t));
 
             free(socket);
             break;
