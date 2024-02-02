@@ -790,26 +790,49 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
     sss->max_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
 
     sss->federation = (struct sn_community *)calloc(1, sizeof(struct sn_community));
-    /* Initialize the federation */
-    if(sss->federation) {
-        if(getenv("N2N_FEDERATION"))
-            snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1,"*%s", getenv("N2N_FEDERATION"));
-        else
-            strncpy(sss->federation->community, (char*)FEDERATION_NAME, N2N_COMMUNITY_SIZE);
-        sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
-        /* enable the flag for federation */
-        sss->federation->is_federation = true;
-        sss->federation->purgeable = false;
-        /* header encryption enabled by default */
-        sss->federation->header_encryption = HEADER_ENCRYPTION_ENABLED;
-        /*setup the encryption key */
-        packet_header_setup_key(sss->federation->community,
-                                &(sss->federation->header_encryption_ctx_static),
-                                &(sss->federation->header_encryption_ctx_dynamic),
-                                &(sss->federation->header_iv_ctx_static),
-                                &(sss->federation->header_iv_ctx_dynamic));
-        sss->federation->edges = NULL;
+    if(!sss->federation) {
+        abort();
     }
+
+    /* Initialize the federation */
+    if(getenv("N2N_FEDERATION")) {
+        snprintf(
+            sss->federation->community,
+            N2N_COMMUNITY_SIZE - 1,
+            "*%s",
+            getenv("N2N_FEDERATION")
+            );
+    } else {
+        strncpy(
+            sss->federation->community,
+            (char*)FEDERATION_NAME,
+            N2N_COMMUNITY_SIZE
+            );
+    }
+    sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
+    /* enable the flag for federation */
+    sss->federation->is_federation = true;
+    sss->federation->purgeable = false;
+    /* header encryption enabled by default */
+    sss->federation->header_encryption = HEADER_ENCRYPTION_ENABLED;
+    /*setup the encryption key */
+    packet_header_setup_key(sss->federation->community,
+                            &(sss->federation->header_encryption_ctx_static),
+                            &(sss->federation->header_encryption_ctx_dynamic),
+                            &(sss->federation->header_iv_ctx_static),
+                            &(sss->federation->header_iv_ctx_dynamic));
+    sss->federation->edges = NULL;
+
+    HASH_ADD_STR(sss->communities, community, sss->federation);
+
+    uint32_t num_communities = HASH_COUNT(sss->communities);
+
+    traceEvent(
+        TRACE_INFO,
+        "added federation '%s' to the list of communities [total: %u]",
+        (char*)sss->federation->community,
+        num_communities
+        );
 
     n2n_srand(n2n_seed());
 

@@ -465,25 +465,6 @@ static int loadFromFile (const char *path, struct n3n_runtime_data *sss) {
 
 /* *************************************************** */
 
-/* Add the federation to the communities list of a supernode */
-static int add_federation_to_communities (struct n3n_runtime_data *sss) {
-
-    uint32_t num_communities = 0;
-
-    if(sss->federation != NULL) {
-        HASH_ADD_STR(sss->communities, community, sss->federation);
-
-        num_communities = HASH_COUNT(sss->communities);
-
-        traceEvent(TRACE_INFO, "added federation '%s' to the list of communities [total: %u]",
-                   (char*)sss->federation->community, num_communities);
-    }
-
-    return 0;
-}
-
-/* *************************************************** */
-
 #ifdef __linux__
 static void dump_registrations (int signo) {
 
@@ -564,7 +545,6 @@ int main (int argc, char * const argv[]) {
     n3n_initfuncs();
 
     sn_init_defaults(&sss_node);
-    add_federation_to_communities(&sss_node);
 
     if((argc >= 2) && (argv[1][0] != '-')) {
         rc = loadFromFile(argv[1], &sss_node);
