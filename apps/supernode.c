@@ -324,7 +324,7 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
         }
         case 'M': /* override spoofing protection */
-            sss->conf.spoofing_protection = false;
+            set_option_wrap(&sss->conf, "supernode", "spoofing_protection", "false");
             break;
 
         case 'V': /* version text */

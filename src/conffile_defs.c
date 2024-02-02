@@ -295,6 +295,19 @@ static struct n3n_conf_option section_management[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_option section_supernode[] = {
+    {
+        .name = "spoofing_protection",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, spoofing_protection),
+        .desc = "Configure spoofing protection",
+        .help = "MAC and IP address spoofing protection for all "
+                "non-username-password-authenticating communities. "
+                "Defaults to enabled.",
+    },
+    {.name = NULL},
+};
+
 static struct n3n_conf_option section_tuntap[] = {
     {
         .name = "address",
@@ -362,6 +375,11 @@ void n3n_initfuncs_conffile_defs () {
         "tuntap",
         "Settings specific to the local tuntap device",
         section_tuntap
+        );
+    n3n_config_register_section(
+        "supernode",
+        "Supernode specific settings",
+        section_supernode
         );
     n3n_config_register_section(
         "management",
