@@ -754,7 +754,7 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
     strncpy((char*)comm->community, cmn, N2N_COMMUNITY_SIZE);
     comm->community[N2N_COMMUNITY_SIZE - 1] = '\0';
-    comm->is_federation = IS_NO_FEDERATION;
+    comm->is_federation = false;
 
     return 0; /* OK */
 }
@@ -798,7 +798,7 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
             strncpy(sss->federation->community, (char*)FEDERATION_NAME, N2N_COMMUNITY_SIZE);
         sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
         /* enable the flag for federation */
-        sss->federation->is_federation = IS_FEDERATION;
+        sss->federation->is_federation = true;
         sss->federation->purgeable = false;
         /* header encryption enabled by default */
         sss->federation->header_encryption = HEADER_ENCRYPTION_ENABLED;
@@ -1278,7 +1278,7 @@ int subnet_available (struct n3n_runtime_data *sss,
         if(cmn == comm) {
             continue;
         }
-        if(cmn->is_federation == IS_FEDERATION) {
+        if(cmn->is_federation) {
             continue;
         }
         if((net_id <= (cmn->auto_ip_net.net_addr + ~bitlen2mask(cmn->auto_ip_net.net_bitlen)))
@@ -1468,7 +1468,7 @@ static int purge_expired_communities (struct n3n_runtime_data *sss,
 
     HASH_ITER(hh, sss->communities, comm, tmp_comm) {
         // federation is taken care of in re_register_and_purge_supernodes()
-        if(comm->is_federation == IS_FEDERATION)
+        if(comm->is_federation)
             continue;
 
         // purge the community's local peers
@@ -1985,7 +1985,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             ack.cookie = reg.cookie;
             memcpy(ack.srcMac, sss->mac_addr, sizeof(n2n_mac_t));
 
-            if(comm->is_federation != IS_FEDERATION) { /* alternatively, do not send zero tap ip address in federation REGISTER_SUPER */
+            if(!comm->is_federation) { /* alternatively, do not send zero tap ip address in federation REGISTER_SUPER */
                 if((reg.dev_addr.net_addr == 0) || (reg.dev_addr.net_addr == 0xFFFFFFFF) || (reg.dev_addr.net_bitlen == 0) ||
                    ((reg.dev_addr.net_addr & 0xFFFF0000) == 0xA9FE0000 /* 169.254.0.0 */)) {
                     memset(&ipaddr, 0, sizeof(n2n_ip_subnet_t));
@@ -2000,7 +2000,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             memcpy(&ack.sock, &sender, sizeof(sender));
 
             /* Add sender's data to federation (or update it) */
-            if(comm->is_federation == IS_FEDERATION) {
+            if(comm->is_federation) {
                 skip_add = SN_ADD;
                 p = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), &(ack.sock), reg.edgeMac, &skip_add);
                 p->last_seen = now;
@@ -2045,7 +2045,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             // check authentication
             ret_value = update_edge_no_change;
-            if(comm->is_federation != IS_FEDERATION) { /* REVISIT: auth among supernodes is not implemented yet */
+            if(!comm->is_federation) { /* REVISIT: auth among supernodes is not implemented yet */
                 if(cmn.flags & N2N_FLAGS_FROM_SUPERNODE) {
                     ret_value = update_edge(sss, &cmn, &reg, comm, &(ack.sock), socket_fd, &(ack.auth), SN_ADD_SKIP, now);
                 } else {
@@ -2107,7 +2107,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                     // dynamic key time handling if appropriate
                     ack.key_time = 0;
-                    if(comm->is_federation == IS_FEDERATION) {
+                    if(comm->is_federation) {
                         if(reg.key_time > sss->dynamic_key_time) {
                             traceEvent(TRACE_DEBUG, "setting new key time");
                             // have all edges re_register (using old dynamic key)
@@ -2182,7 +2182,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 1) || (comm->is_federation == IS_FEDERATION)) {
+            if((from_supernode == 1) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER: should not come from a supernode or federation.");
                 return -1;
             }
@@ -2233,7 +2233,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 0) || (comm->is_federation == IS_NO_FEDERATION)) {
+            if((from_supernode == 0) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK, should not come from an edge or regular community");
                 return -1;
             }
@@ -2333,7 +2333,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                        sock_to_cstr(sockbuf, &sender));
 
             HASH_FIND_PEER(comm->edges, nak.srcMac, peer);
-            if(comm->is_federation == IS_NO_FEDERATION) {
+            if(comm->is_federation) {
                 if(peer != NULL) {
                     // this is a NAK for one of the edges conencted to this supernode, forward,
                     // i.e. re-assemble (memcpy from udpbuf to nakbuf could be sufficient as well)
@@ -2545,7 +2545,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             HASH_FIND_PEER(comm->edges, pi.srcMac, peer);
             if(peer != NULL) {
-                if((comm->is_federation == IS_NO_FEDERATION) && (!is_null_mac(pi.srcMac))) {
+                if((comm->is_federation) && (!is_null_mac(pi.srcMac))) {
                     // snoop on the information to use for supernode forwarding (do not wait until first remote REGISTER_SUPER)
                     update_node_supernode_association(comm, &(pi.mac), sender_sock, sock_size, now);
 

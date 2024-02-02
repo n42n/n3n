@@ -96,7 +96,6 @@
 
 /* Federation name and indicators */
 #define FEDERATION_NAME "*Federation"
-enum federation {IS_NO_FEDERATION = 0,IS_FEDERATION = 1};
 
 /* Header encryption indicators */
 #define HEADER_ENCRYPTION_UNKNOWN             0

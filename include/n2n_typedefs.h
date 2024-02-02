@@ -619,7 +619,7 @@ typedef struct sn_user {
 
 struct sn_community {
     char community[N2N_COMMUNITY_SIZE];
-    uint8_t is_federation;                                /* if not-zero, then the current community is the federation of supernodes */
+    bool is_federation;                                /* if true, then the current community is the federation of supernodes */
     bool purgeable;                                       /* indicates purgeable community (fixed-name, predetermined (-c parameter) communties usually are unpurgeable) */
     uint8_t header_encryption;                            /* Header encryption indicator. */
     he_context_t          *header_encryption_ctx_static;  /* Header encryption cipher context. */
