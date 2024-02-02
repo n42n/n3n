@@ -297,6 +297,16 @@ static struct n3n_conf_option section_management[] = {
 
 static struct n3n_conf_option section_supernode[] = {
     {
+        .name = "community_file",
+        .type = n3n_conf_strdup,
+        .offset = offsetof(n2n_edge_conf_t, community_file),
+        .desc = "Community list filename",
+        .help = "Optionally, the supernode can be configured with a list of "
+                "allowed communities, defined ip address ranges for each one "
+                "and User/Password based authentication details. "
+                "See the documentation for the file format description.",
+    },
+    {
         .name = "spoofing_protection",
         .type = n3n_conf_bool,
         .offset = offsetof(n2n_edge_conf_t, spoofing_protection),

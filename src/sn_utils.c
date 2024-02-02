@@ -249,7 +249,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     uint8_t bitlen;
     in_addr_t net;
     uint32_t mask;
-    FILE *fd = fopen(sss->community_file, "r");
+    FILE *fd = fopen(sss->conf.community_file, "r");
 
     struct sn_community *comm, *tmp_comm, *last_added_comm = NULL;
     struct peer_info *edge, *tmp_edge;
@@ -264,7 +264,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     int has_net;
 
     if(fd == NULL) {
-        traceEvent(TRACE_WARNING, "File %s not found", sss->community_file);
+        traceEvent(TRACE_WARNING, "File %s not found", sss->conf.community_file);
         return -1;
     }
 
@@ -464,15 +464,15 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     fclose(fd);
 
     if((num_regex + num_communities) == 0) {
-        traceEvent(TRACE_WARNING, "file %s does not contain any valid community names or regular expressions", sss->community_file);
+        traceEvent(TRACE_WARNING, "file %s does not contain any valid community names or regular expressions", sss->conf.community_file);
         return -2;
     }
 
     traceEvent(TRACE_NORMAL, "loaded %u fixed-name communities from %s",
-               num_communities, sss->community_file);
+               num_communities, sss->conf.community_file);
 
     traceEvent(TRACE_NORMAL, "loaded %u regular expressions for community name matching from %s",
-               num_regex, sss->community_file);
+               num_regex, sss->conf.community_file);
 
     // calculate allowed user's shared secrets (shared with federation)
     calculate_shared_secrets(sss);
@@ -895,7 +895,7 @@ void sn_term (struct n3n_runtime_data *sss) {
 
     free(sss->conf.bind_address);
 
-    free(sss->community_file);
+    free(sss->conf.community_file);
 
     // TODO: merge config, then:
     // free(sss->conf.sessiondir);

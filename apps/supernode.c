@@ -331,9 +331,7 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             set_option_wrap(&sss->conf, "supernode", "version_string", _optarg);
             break;
         case 'c': /* community file */
-            sss->community_file = calloc(1, strlen(_optarg) + 1);
-            if(sss->community_file)
-                strcpy(sss->community_file, _optarg);
+            set_option_wrap(&sss->conf, "supernode", "community_file", _optarg);
             break;
 
         case ']': /* password for management port */ {
@@ -592,7 +590,7 @@ int main (int argc, char * const argv[]) {
         help(1); /* short help */
     }
 
-    if(sss_node.community_file)
+    if(sss_node.conf.community_file)
         load_allowed_sn_community(&sss_node);
 
 #ifndef _WIN32

@@ -488,6 +488,7 @@ typedef struct n2n_edge_conf {
     // Supernode specific config
     bool spoofing_protection;                                /* false if overriding MAC/IP spoofing protection (cli option '-M') */
     n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
+    char *community_file;
 } n2n_edge_conf_t;
 
 
@@ -587,7 +588,6 @@ struct n3n_runtime_data {
     n2n_ip_subnet_t min_auto_ip_net;                        /* Address range of auto_ip service. */
     n2n_ip_subnet_t max_auto_ip_net;                        /* Address range of auto_ip service. */
     int lock_communities;                                    /* If true, only loaded and matching communities can be used. */
-    char                                   *community_file;
     struct sn_community                    *communities;
     struct sn_community_regular_expression *rules;
     struct sn_community                    *federation;
