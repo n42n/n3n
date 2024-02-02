@@ -26,6 +26,7 @@
 #include <n3n/conffile.h>      // for n3n_config_set_option
 #include <n3n/initfuncs.h>     // for n3n_initfuncs()
 #include <n3n/logging.h>       // for traceEvent
+#include <n3n/supernode.h>     // for load_allowed_sn_community, calculate_s...
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
 #include <stdint.h>            // for uint8_t, uint32_t
@@ -55,10 +56,6 @@
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
 static struct n3n_runtime_data sss_node;
-
-void calculate_shared_secrets (struct n3n_runtime_data *sss);
-int load_allowed_sn_community (struct n3n_runtime_data *sss);
-
 
 /** Help message to print if the command line arguments are not valid. */
 static void help (int level) {

@@ -14,6 +14,7 @@
 #include <n2n_typedefs.h>   // for n3n_runtime_data
 
 int load_allowed_sn_community (struct n3n_runtime_data *sss);
+void calculate_shared_secrets (struct n3n_runtime_data *sss);
 
 #endif
 
