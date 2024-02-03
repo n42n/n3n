@@ -415,7 +415,7 @@ static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
 // for the string - or may return a static string.  A return of NULL means
 // that the option could not be rendered.
 // Buffer overflow is handled simplisticly by simply filling the buffer.
-static char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
+static const char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
     void *valvoid = NULL;
 
     // Entries that cannot be set via a pointer are marked with
@@ -711,7 +711,7 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
         // TODO: if type == n3n_conf_filter_rule ...
 
         char buf[100];
-        char *p = stringify_option(conf, option, buf, sizeof(buf));
+        char const *p = stringify_option(conf, option, buf, sizeof(buf));
 
         if(!p) {
             // couldnt stringify this option
