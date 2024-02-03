@@ -3239,12 +3239,12 @@ int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
     char buf[1024];
     snprintf(buf, sizeof(buf), "%s/%s", basedir, conf->sessionname);
+    conf->sessiondir = strdup(buf);
+
     if(mkdir_p(buf, 0755, conf->userid, conf->groupid) == -1) {
         traceEvent(TRACE_ERROR, "cannot mkdir %s", buf);
         return -1;
     }
-
-    conf->sessiondir = strdup(buf);
 
     traceEvent(TRACE_NORMAL, "sessiondir: %s", conf->sessiondir);
 
