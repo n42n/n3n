@@ -1217,3 +1217,43 @@ struct n3n_subcmd_result n3n_subcmd_parse (int argc, char **argv, char *getopts,
 
     return cmd;
 }
+
+void n3n_config_from_getopt (const struct n3n_config_getopt *map, void *conf, int optkey, char *optarg) {
+    int i = 0;
+    while(map[i].optkey) {
+        if(optkey != map[i].optkey) {
+            i++;
+            continue;
+        }
+
+        if((!optarg && !map[i].value) || !map[i].section || !map[i].option) {
+            printf("Internal error with option_map for -%c\n", optkey);
+            abort();
+        }
+
+        if(!optarg) {
+            optarg = map[i].value;
+        }
+
+        int rv = n3n_config_set_option(
+            conf,
+            map[i].section,
+            map[i].option,
+            optarg
+            );
+        if(rv==0) {
+            return;
+        }
+
+        traceEvent(
+            TRACE_WARNING,
+            "Error setting %s.%s=%s\n",
+            map[i].section,
+            map[i].option,
+            optarg);
+        return;
+    }
+
+    // Should only happen if the caller has a bad getopt loop
+    printf("unknown option -%c", (char)optkey);
+}

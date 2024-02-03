@@ -93,5 +93,15 @@ struct n3n_subcmd_result {
 
 void n3n_subcmd_help (struct n3n_subcmd_def *, int, bool);
 struct n3n_subcmd_result n3n_subcmd_parse (int, char **, char *, const struct option *, struct n3n_subcmd_def *);
+
+struct n3n_config_getopt {
+    int optkey;
+    char *section;
+    char *option;
+    char *value;    // if no optarg, then use this for the value
+    char *help;
+};
+
+void n3n_config_from_getopt (const struct n3n_config_getopt *map, void *conf, int optkey, char *optarg);
 #endif
 

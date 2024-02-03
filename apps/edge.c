@@ -99,13 +99,7 @@ static const struct option long_options[] = {
     { NULL,                  0,                 NULL,  0  }
 };
 
-static const struct option_map_def {
-    int optkey;
-    char *section;
-    char *option;
-    char *value;    // if no optarg, then use this for the value
-    char *help;
-} option_map[] = {
+static const struct n3n_config_getopt option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'V', NULL, NULL, NULL, "       Show the version" },
@@ -130,35 +124,6 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
     }
 
     traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
-}
-
-static void set_from_option_map (n2n_edge_conf_t *conf, int optkey, char *optarg) {
-    int i = 0;
-    while(option_map[i].optkey) {
-        if(optkey != option_map[i].optkey) {
-            i++;
-            continue;
-        }
-
-        if((!optarg && !option_map[i].value) || !option_map[i].section || !option_map[i].option) {
-            printf("Internal error with option_map for -%c\n", optkey);
-            exit(1);
-        }
-
-        if(!optarg) {
-            optarg = option_map[i].value;
-        }
-
-        set_option_wrap(
-            conf,
-            option_map[i].section,
-            option_map[i].option,
-            optarg
-            );
-        return;
-    }
-
-    printf("unknown option -%c", (char)optkey);
 }
 
 /* *************************************************** */
@@ -217,7 +182,7 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
                 break;
 
             default: {
-                set_from_option_map(conf, c, optarg);
+                n3n_config_from_getopt(option_map, conf, c, optarg);
             }
         }
     }
