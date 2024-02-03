@@ -14,31 +14,17 @@ Short descriptions of these scripts are below.
 
 ## End user scripts
 
-### `n3n-ctl`
+### `n3nctl`
 
 This python script provides an easy command line interface to the running
-n3n processes.  It uses UDP communications to talk to the Management API.
-By specifying the right UDP port, it can talk to both the edge and the
-supernode daemons.
+n3n processes.  It uses the management API and if there is only one daemon
+running on the system, it will attempt to automatically locate it and talk
+to its Unix domain socket.  it can talk to both the edge and the supernode
+daemons.
 
 Example:
-- `scripts/n3n-ctl --help`
-- `scripts/n3n-ctl help`
-
-### `n3n-httpd`
-
-This python script is a simple http gateway to the running edge.  It provides
-a proxy for REST-like HTTP requests to talk to the Management API.
-
-By default it runs on port 8080.
-
-It also provides a simple HTML page showing some edge information, which when
-run with default settings can be seen at http://localhost:8080/ (Also
-a http://localhost:8080/supernode.html page for the supernode)
-
-Example:
-- `scripts/n3n-httpd --help`
-- `scripts/n3n-httpd 8087`
+- `scripts/n3nctl --help`
+- `scripts/n3nctl help`
 
 ## Build and Development scripts
 

@@ -25,12 +25,15 @@ Beyond this access barrier you may want to use payload encryption `-A_` at the e
 
 ### Can I get a list of connected edge nodes and their community and source IP address from the supernode?
 
-The supernode provides basic information via its localhost udp management port. It defaults to 5645 and can be changed using supernode's `-t` command line option.
+How to get this information is described in [the management
+API](ManagementAPI.md) doc.
 
-You can request the current status by just sending a new line, i.e. pressing [ENTER] key, running the following command (localhost only)
+If enabled (by giving a `management.port` option), it can be simply seen with
+any web browser:
 
-`netcat -u localhost 5645`
-
+eg.
+- with `-Omanagement.port=5645`
+- navigate to http://localhost:5645
 
 ### Is there support for multiple supernodes?
 
@@ -66,12 +69,8 @@ built version.
 
 ### How can I know if peer-to-peer connection has successfully been established?
 
-The edge also offers a local udp management port at which it provides some
-information about connected _peers_ allowing a peer-to-peer connection, and
-_pending peers_ whose connections are forwarded through the supernode.
-
-The edge will always be listening for HTTP/JsonRPC communications on a unix
-socket in /run/n3n - the `n3nctl` tool can be used to request status:
+How to get this information is described in [the management
+API](ManagementAPI.md) doc.
 
 `n3nctl edges`
 

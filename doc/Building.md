@@ -90,9 +90,11 @@ In order to run n3n on Windows, you will need the following:
 - If OpenSSL has been linked dynamically, the corresponding `.dll` file should be available
   onto the target computer.
 
-The `edge.exe` program reads the `edge.conf` file located into the current directory if no option is provided.
+The `edge.exe` program reads the `%USERPROFILE%\n3n\edge.conf` file if no
+session name option is provided.
 
-The `supernode.exe` program reads the `supernode.conf` file located into the current directory if no option is provided.
+The `supernode.exe` program reads the `%UERPROFILE%\n3n\supernode.conf` file if
+no session name option is provided.
 
 Example [edge.conf](edge.conf.sample)
 and [supernode.conf](supernode.conf.sample) are available.

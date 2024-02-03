@@ -24,7 +24,11 @@ The two block ciphers Twofish and AES are used in CTS mode.
 
 n3n has all four ciphers built-in as basic versions. Some of them optionally compile to faster versions by the means of available hardware support (AES-NI, SSE, AVX – please see the [Building document](./Building.md) for details. Depending on your platform, AES and ChaCha20 might also draw notable acceleration from optionally compiling with openSSL 1.1 support.
 
-The`-k <key>` command line parameter supplies the key. As even non-privileged users might get to see the command line parameters (try `ps -Af | grep edge`), the key can also be supplied through the `N2N_KEY` environment variable: `sudo N2N_KEY=mysecretpass edge -c mynetwork -a 192.168.100.1 -f -l supernode.ntop.org:7777`.
+The`-k <key>` command line parameter supplies the key. As even non-privileged
+users might get to see the command line parameters (try `ps -Af | grep edge`),
+the key can also be supplied through the `N2N_KEY` environment variable: `sudo
+N2N_KEY=mysecretpass edge start -c mynetwork -a 192.168.100.1 -f -l
+supernode.ntop.org:7777`.
 
 Providing `-k <key>` without specifying any cipher by `-A_` will default to AES encryption.
 

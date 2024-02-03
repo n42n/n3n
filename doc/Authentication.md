@@ -59,15 +59,38 @@ ntop[0-1][0-9]
    ...
 ```
 
-This example also lists another user `sister` (with the same secret password `007`). The users become part of the preceding community name, `netleo` in this case. The public keys are cryptographically tied only to the user name, not to the community name. That way, to switch a user from one community to another, her line can easily be copied from one community section to another. By the way, do not forget to provide the `community.list` file to the supernode through the `-c community.list` parameter.
+This example also lists another user `sister` (with the same secret password
+`007`). The users become part of the preceding community name, `netleo` in this
+case. The public keys are cryptographically tied only to the user name, not to
+the community name. That way, to switch a user from one community to another,
+her line can easily be copied from one community section to another. By the
+way, do not forget to provide the `community.list` file to the supernode
+through the `supernode.community_file` option.
 
-Current supernode behavior does not limit the simultaneous usage of usernames, i.e. one username can be used from several edges at the same time. However, it is recommended to use a distinct username and password for each edge or computer. Your management port output will be much more meaningful then with the `HINT` column showing the related username. Also, the auto IP address feature, i.e. not using `-a <IP address>` at the edge, will more likely assign unique addresses as those depend on the username.
+Current supernode behavior does not limit the simultaneous usage of usernames,
+i.e. one username can be used from several edges at the same time. However, it
+is recommended to use a distinct username and password for each edge or
+computer. Your management output will be much more meaningful then with the
+`HINT` column showing the related username. Also, the auto IP address feature,
+(i.e. not using a static ip at the edge) will more likely assign unique
+addresses as those depend on the username.
 
 If a user chooses a new password or needs to be excluded from accessing the community (stolen edge scenario), the corresponding line of the `community.list` file can be replaced with a newly generated one or be deleted respectively. Restarting the supernode or issuing the `reload_communities` command to the management port is required after performing changes to make the supernode(s) read in this data again.
 
-When using this feature federation-wide, i.e. across several supernodes, please make sure to keep all supernodes' `community.list` files in sync. So, if you delete or change a user one supernode (or add it), you need to do it at all supernodes. There is no built-in sync for the `community.list` files across the federation. External tools such as _Syncthing_ or your very own script-driven scp-based-file-distribution might be of assistance. Also, with every change, you need to restart the supernode or issue the `reload_communites` command to the management port as outlined above.
+When using this feature federation-wide, i.e. across several supernodes, please
+make sure to keep all supernodes' `community.list` files in sync. So, if you
+delete or change a user one supernode (or add it), you need to do it at all
+supernodes. There is no built-in sync for the `community.list` files across the
+federation. External tools such as _Syncthing_ or your very own script-driven
+scp-based-file-distribution might be of assistance. Also, with every change,
+you need to restart the supernode or issue the `reload_communites` command to
+the management API as outlined above.
 
-With a view to the detailed explanations below, your supernode(s) should have a non-default federation name given by the `-F <federation name>` command line parameter, e.g. `-F secretFed`. Alternatively, it can be passed through the environment variable `N2N_FEDERATION`. It is used to derive a private key at the supernode side and is only to be shared among supernodes.
+With a view to the detailed explanations below, your supernode(s) should have a
+non-default federation name given by the `-F <federation name>` command line
+parameter, e.g. `-F secretFed`. Alternatively, it can be passed through the
+environment variable `N2N_FEDERATION`. It is used to derive a private key at
+the supernode side and is only to be shared among supernodes.
 
 
 #### Edge
@@ -80,6 +103,7 @@ Continuing the given example, the edge could be invoked by:
 
 ```
 [user@host n3n]$ sudo ./edge \
+    start \
     -l <supernode:port> \
     -c netleo \
     -Oconnection.description=logan \
@@ -109,6 +133,7 @@ Considering all this, our example expands to:
 
 ```
 [user@host n3n]$ sudo ./edge \
+    start \
     -l <supernode:port> \
     -c netleo \
     -Oconnection.description=logan \

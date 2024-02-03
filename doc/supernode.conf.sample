@@ -1,15 +1,16 @@
 #
-#        The configuration file is similar to the command line, with one option per line. An equal
-#        sign '=' should be used between key and value. Example: -p=7777
-#        This file contains a basic configuration example, please refer to the help (-h) for the full
-#        list of available options.
+# The configuration file is basically an INI file, with multiple sections
+# and one option per line.  An equal sign '=' is used between the option
+# name and the value.
 #
-#       -p
-#        Sets the UDP listening port. 
+# This file contains a basic configuration example, please refer to the
+# help (edge help config) for the full description of all options.
 #
--p=7777
-#
-#        -c
+
+[connection]
+#        Sets the UDP listening port.
+bind=7777
+
+[supernode]
 #        Optionally specifies the allowed communities as listed in community.list file.
-#
-# -c=community.list
+#community_file=/etc/n3n/community.list

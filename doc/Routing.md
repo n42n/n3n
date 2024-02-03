@@ -8,7 +8,8 @@ In this context, the `server` is the edge node which provides access to the remo
 
 In order to enable routing, the `server` must be configured as follows:
 
-1. Add the `-r` option to the edge options to enable routing
+1. Add the `filter.allow_routing=true` option to the edge options to enable
+   routing
 2. Enable packet forwarding with `sudo sysctl -w net.ipv4.ip_forward=1`
 3. Enable IP masquerading: `sudo iptables -t nat -A POSTROUTING -j MASQUERADE`
 
