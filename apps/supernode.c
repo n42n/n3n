@@ -179,30 +179,20 @@ static void help (int level) {
 #define GETOPTS "p:l:t:a:c:F:vhMV:m:fu:g:O:"
 
 static const struct option long_options[] = {
-    {"communities",         required_argument, NULL, 'c'},
-    {"foreground",          no_argument,       NULL, 'f'},
-    {"local-port",          required_argument, NULL, 'p'},
-    {"mgmt-port",           required_argument, NULL, 't'},
     {"autoip",              required_argument, NULL, 'a'},
+    {"communities",         required_argument, NULL, 'c'},
+    {"help",                no_argument,       NULL, 'h'},
     {"verbose",             no_argument,       NULL, 'v'},
-    {"help",                no_argument,       NULL, '@'}, /* special character '@' to identify long help case */
-    {"management-password", required_argument, NULL, ']' }, /*                  ']'             management port password */
+    {"version",             no_argument,       NULL, 'V'},
     {NULL,                  0,                 NULL, 0}
 };
 
 static const struct n3n_config_getopt option_map[] = {
-    { 'M',  "supernode",    "spoofing_protection",  "false" },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
-    { 'V',  "supernode",    "version_string",       NULL },
-    { ']',  "management",   "password",             NULL },
     { 'a', NULL, NULL, NULL, "<arg>  Autoip network range" },
     { 'c',  "supernode",    "community_file",       NULL },
     { 'f',  "daemon",       "background",           "false" },
-    { 'g',  "daemon",       "groupid",              NULL },
     { 'l', NULL, NULL, NULL, "<hostname>:<port>  Set a federated supernode" },
-    { 'p',  "connection",   "bind",                 NULL },
-    { 't',  "management",   "port",                 NULL },
-    { 'u',  "daemon",       "userid",               NULL },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { .optkey = 0 }
 };
