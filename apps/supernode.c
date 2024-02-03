@@ -174,6 +174,33 @@ static void help (int level) {
     exit(0);
 }
 
+/* *************************************************** */
+
+static const struct option long_options[] = {
+    {"communities",         required_argument, NULL, 'c'},
+    {"foreground",          no_argument,       NULL, 'f'},
+    {"local-port",          required_argument, NULL, 'p'},
+    {"mgmt-port",           required_argument, NULL, 't'},
+    {"autoip",              required_argument, NULL, 'a'},
+    {"verbose",             no_argument,       NULL, 'v'},
+    {"help",                no_argument,       NULL, '@'}, /* special character '@' to identify long help case */
+    {"management-password", required_argument, NULL, ']' }, /*                  ']'             management port password */
+    {NULL,                  0,                 NULL, 0}
+};
+
+static const struct n3n_config_getopt option_map[] = {
+    { 'M',  "supernode",    "spoofing_protection",  "false" },
+    { 'V',  "supernode",    "version_string",       NULL },
+    { ']',  "management",   "password",             NULL },
+    { 'c',  "supernode",    "community_file",       NULL },
+    { 'f',  "daemon",       "background",           "false" },
+    { 'g',  "daemon",       "groupid",              NULL },
+    { 'p',  "connection",   "bind",                 NULL },
+    { 't',  "management",   "port",                 NULL },
+    { 'u',  "daemon",       "userid",               NULL },
+    { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
+    { .optkey = 0 }
+};
 
 /* *************************************************** */
 
@@ -192,15 +219,6 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
     //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, _optarg ? _optarg : "");
 
     switch(optkey) {
-        case 'p': { /* local-port */
-            set_option_wrap(&sss->conf, "connection", "bind", _optarg);
-            break;
-        }
-
-        case 't': /* mgmt-port */
-            set_option_wrap(&sss->conf, "management", "port", _optarg);
-            break;
-
         case 'l': { /* supernode:port */
             char *double_column = strchr(_optarg, ':');
 
@@ -296,13 +314,6 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
 
             break;
         }
-        case 'u': /* unprivileged uid */
-            set_option_wrap(&sss->conf, "daemon", "userid", _optarg);
-            break;
-
-        case 'g': /* unprivileged uid */
-            set_option_wrap(&sss->conf, "daemon", "groupid", _optarg);
-            break;
         case 'F': { /* federation name */
             snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", _optarg);
             sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
@@ -319,24 +330,6 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
 
             break;
         }
-        case 'M': /* override spoofing protection */
-            set_option_wrap(&sss->conf, "supernode", "spoofing_protection", "false");
-            break;
-
-        case 'V': /* version text */
-            set_option_wrap(&sss->conf, "supernode", "version_string", _optarg);
-            break;
-        case 'c': /* community file */
-            set_option_wrap(&sss->conf, "supernode", "community_file", _optarg);
-            break;
-
-        case ']': /* password for management port */ {
-            set_option_wrap(&sss->conf, "management", "password", _optarg);
-            break;
-        }
-        case 'f': /* foreground */
-            set_option_wrap(&sss->conf, "daemon", "background", "false");
-            break;
         case 'h': /* quick reference */
             return 2;
 
@@ -348,27 +341,12 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
 
         default:
-            traceEvent(TRACE_WARNING, "unknown option -%c:", (char) optkey);
-            return 2;
+            n3n_config_from_getopt(option_map, &sss->conf, optkey, optarg);
     }
 
     return 0;
 }
 
-
-/* *********************************************** */
-
-static const struct option long_options[] = {
-    {"communities",         required_argument, NULL, 'c'},
-    {"foreground",          no_argument,       NULL, 'f'},
-    {"local-port",          required_argument, NULL, 'p'},
-    {"mgmt-port",           required_argument, NULL, 't'},
-    {"autoip",              required_argument, NULL, 'a'},
-    {"verbose",             no_argument,       NULL, 'v'},
-    {"help",                no_argument,       NULL, '@'}, /* special character '@' to identify long help case */
-    {"management-password", required_argument, NULL, ']' }, /*                  ']'             management port password */
-    {NULL,                  0,                 NULL, 0}
-};
 
 /* *************************************************** */
 
