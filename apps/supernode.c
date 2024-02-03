@@ -217,8 +217,16 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
 static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
 
     //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, _optarg ? _optarg : "");
+    struct n2n_edge_conf *conf = &sss->conf;
 
     switch(optkey) {
+        case 'O': { // Set any config option
+            char *section = strtok(optarg, ".");
+            char *option = strtok(NULL, "=");
+            char *value = strtok(NULL, "");
+            set_option_wrap(conf, section, option, value);
+            break;
+        }
         case 'l': { /* supernode:port */
             char *double_column = strchr(_optarg, ':');
 
@@ -341,7 +349,7 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
             break;
 
         default:
-            n3n_config_from_getopt(option_map, &sss->conf, optkey, optarg);
+            n3n_config_from_getopt(option_map, conf, optkey, optarg);
     }
 
     return 0;
@@ -356,11 +364,7 @@ static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *
     u_char c;
 
     while((c = getopt_long(argc, argv,
-                           "p:l:t:a:c:F:vhMV:"
-                           "m:"
-                           "f"
-                           "u:g:"
-                           ,
+                           "p:l:t:a:c:F:vhMV:m:fu:g:O:",
                            long_options, NULL)) != '?') {
         if(c == 255) {
             break;
