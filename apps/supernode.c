@@ -681,12 +681,6 @@ int main (int argc, char * argv[]) {
     }
 #endif
 
-    struct sockaddr_in local_address;
-    memset(&local_address, 0, sizeof(local_address));
-    local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(sss_node.conf.mgmt_port);
-    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
     sss_node.mgmt_slots = slots_malloc(5);
     if(!sss_node.mgmt_slots) {
         abort();
