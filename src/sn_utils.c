@@ -762,6 +762,7 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
 /** Initialise the supernode structure */
 int sn_init_defaults (struct n3n_runtime_data *sss) {
+    // TODO: this should accept a conf parameter, not a sss
 
     memset(sss, 0, sizeof(struct n3n_runtime_data));
 
@@ -857,8 +858,8 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
     }
     if(pw != NULL) {
         // If we find one, use that as our default
-        conf->userid = pw->pw_uid;
-        conf->groupid = pw->pw_gid;
+        sss->conf.userid = pw->pw_uid;
+        sss->conf.groupid = pw->pw_gid;
     }
 #endif
 
