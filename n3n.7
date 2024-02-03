@@ -8,7 +8,8 @@ layer 3 encapsulation with data transform capabilities such as encryption and
 compression. This guide also discusses the differences of version 3 of n2n from
 version 2.
 .SH PROTOCOLS
-n2n-3 basically uses the same set of messages to communicate with edges and
+n3n is aiming to remain protocol compatible with n2n-3.  n2n-3, in turn
+basically uses the same set of messages to communicate with edges and
 supernodes. However, due to slight packet format changes, the n2n-3 messages
 are not compatible with n2n-2. There is no backward compatibility for n2n-2.
 .SH ENCRYPTION
@@ -70,13 +71,10 @@ is found, the edge tries to connect to another supernode. It cycles through the 
 f supernodes which over and over again is sorted according to reported workload.
 
 .SH MANAGEMENT CONSOLE
-Edge and supernode in n2n-3 provide a UDP-based management console. Both listen
-on the localhost address 127.0.0.1. Commands can be sent to the programs by
-sending to the UDP socket. Responses are returned to the socket from which
-commands were issued. This only works from the computer on which the programs
-are running. Statistics can be retrieved and commands issued. The netcat utility
-is all that is required; but more sophisticated tools could be built on the
-interface.
+Edge and supernode in n3n provide a JsonRPC management API. On a unix system,
+they both create Unix domain sockets in /run/n3n based on the session name
+given to the running daemon.  The script n3nctl can be used to query these, as
+well as generic curl commands, or - by enabling the TCP port - any web browser.
 
 .SH SUPERNODE AUTHENTICATION
 The supernode federation name serves as private key shared between the supernodes only.
@@ -120,10 +118,17 @@ Answers the QUERY_PEER; it also covers the special case of the PING query, inter
 called PONG.
 .SH AUTHORS
 .TP
-Richard Andrews andrews (at) ntop.org - main author of n2n-2
+Hamish Coleman
+hamish (at) zot.org - n3n maintainer
+.TP
+Richard Andrews
+andrews (at) ntop.org - n2n-1 maintainer and main author of n2n-2
 .TP
 Luca Deri
-deri (at) ntop.org - code inherited from n2n-1
+deri (at) ntop.org - original author of n2n
+.TP
+Don Bindner
+(--) - significant contributions to n2n-1
 .SH SEE ALSO
 ifconfig(8) edge(8) supernode(1)
 .br
