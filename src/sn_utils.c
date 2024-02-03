@@ -859,16 +859,27 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
 #ifndef _WIN32
     struct passwd *pw = NULL;
-    // Search a couple of usernames for one to use
-    pw = getpwnam("n3n");
-    if(pw == NULL) {
-        pw = getpwnam("nobody");
+
+    // The supernod can run with no additional privs, so the default is
+    // just to run as the user who starts it.
+    // It should not be running as root, so detect that and change the
+    // defaults
+
+    conf->userid = getuid();
+    conf->groupid = getgid();
+    if((conf->userid == 0) || (conf->groupid == 0)) {
+        // Search a couple of usernames for one to use
+        pw = getpwnam("n3n");
+        if(pw == NULL) {
+            pw = getpwnam("nobody");
+        }
+        if(pw != NULL) {
+            // If we find one, use that as our default
+            conf->userid = pw->pw_uid;
+            conf->groupid = pw->pw_gid;
+        }
     }
-    if(pw != NULL) {
-        // If we find one, use that as our default
-        conf->userid = pw->pw_uid;
-        conf->groupid = pw->pw_gid;
-    }
+
 #endif
 }
 
