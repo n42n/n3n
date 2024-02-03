@@ -1037,7 +1037,10 @@ int main (int argc, char* argv[]) {
     }
 
     if((getuid() == 0) || (getgid() == 0))
-        traceEvent(TRACE_WARNING, "running as root is discouraged, check out the -u/-g options");
+        traceEvent(
+            TRACE_WARNING,
+            "running as root is discouraged, check out the userid/groupid options"
+            );
 #endif /* _WIN32 */
 
 #ifndef _WIN32

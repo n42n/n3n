@@ -642,19 +642,6 @@ int main (int argc, char * const argv[]) {
     scan->socket_fd = sss_node.sock;
 
 #ifndef _WIN32
-    /*
-     * If no uid/gid is specified on the commandline, use the uid/gid of the
-     * first found out of user "n2n" or "nobody"
-     */
-    if(((pw = getpwnam("n3n")) != NULL) || ((pw = getpwnam("nobody")) != NULL)) {
-        /*
-         * If the uid/gid is not set from the CLI, set it from getpwnam
-         * otherwise reset it to zero
-         * (TODO: this looks wrong)
-         */
-        sss_node.conf.userid = sss_node.conf.userid == 0 ? pw->pw_uid : 0;
-        sss_node.conf.groupid = sss_node.conf.groupid == 0 ? pw->pw_gid : 0;
-    }
 
     /*
      * If we have a non-zero requested uid/gid, attempt to switch to use
@@ -672,7 +659,10 @@ int main (int argc, char * const argv[]) {
     }
 
     if((getuid() == 0) || (getgid() == 0)) {
-        traceEvent(TRACE_WARNING, "running as root is discouraged, check out the -u/-g options");
+        traceEvent(
+            TRACE_WARNING,
+            "running as root is discouraged, check out the userid/groupid options"
+            );
     }
 #endif
 

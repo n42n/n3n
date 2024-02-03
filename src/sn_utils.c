@@ -848,6 +848,20 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
 
     sss->conf.mgmt_password = N3N_MGMT_PASSWORD;
 
+#ifndef _WIN32
+    struct passwd *pw = NULL;
+    // Search a couple of usernames for one to use
+    pw = getpwnam("n3n");
+    if(pw == NULL) {
+        pw = getpwnam("nobody");
+    }
+    if(pw != NULL) {
+        // If we find one, use that as our default
+        conf->userid = pw->pw_uid;
+        conf->groupid = pw->pw_gid;
+    }
+#endif
+
     return 0; /* OK */
 }
 
