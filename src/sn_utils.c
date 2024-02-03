@@ -789,7 +789,11 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
     sa->sin_addr.s_addr = htonl(INADDR_ANY);
 
+#ifdef _WIN32
+    // Cannot rely on having unix domain sockets on windows
     conf->mgmt_port = N2N_SN_MGMT_PORT;
+#endif
+
     sss->sock = -1;
     sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
     sss->min_auto_ip_net.net_addr = ntohl(sss->min_auto_ip_net.net_addr);

@@ -667,11 +667,13 @@ int main (int argc, char * argv[]) {
         abort();
     }
 
-    if(slots_listen_tcp(sss_node.mgmt_slots, sss_node.conf.mgmt_port, false)!=0) {
-        perror("slots_listen_tcp");
-        exit(1);
+    if(sss_node.conf.mgmt_port) {
+        if(slots_listen_tcp(sss_node.mgmt_slots, sss_node.conf.mgmt_port, false)!=0) {
+            perror("slots_listen_tcp");
+            exit(1);
+        }
+        traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
     }
-    traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
 
     n3n_config_setup_sessiondir(&sss_node.conf);
 
