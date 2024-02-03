@@ -209,171 +209,162 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
     traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
 }
 
-static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
+/* *************************************************** */
 
-    //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, _optarg ? _optarg : "");
+/* read command line options */
+static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *sss) {
     struct n2n_edge_conf *conf = &sss->conf;
+    // TODO: refactor the getopt to only need conf, and avoid passing sss
 
-    switch(optkey) {
-        case 'O': { // Set any config option
-            char *section = strtok(optarg, ".");
-            char *option = strtok(NULL, "=");
-            char *value = strtok(NULL, "");
-            set_option_wrap(conf, section, option, value);
-            break;
-        }
-        case 'l': { /* supernode:port */
-            char *double_column = strchr(_optarg, ':');
+    int c = 0;
+    while(c != -1) {
+        c = getopt_long(
+            argc,
+            argv,
+            GETOPTS,
+            long_options,
+            NULL
+            );
 
-            size_t length = strlen(_optarg);
-            if(length >= N2N_EDGE_SN_HOST_SIZE) {
-                traceEvent(TRACE_WARNING, "size of -l argument too long: %zu; maximum size is %d", length, N2N_EDGE_SN_HOST_SIZE);
-                return 1;
+        //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optarg ? optarg : "");
+
+        switch(c) {
+            case 'O': { // Set any config option
+                char *section = strtok(optarg, ".");
+                char *option = strtok(NULL, "=");
+                char *value = strtok(NULL, "");
+                set_option_wrap(conf, section, option, value);
+                break;
             }
+            case 'l': { /* supernode:port */
+                char *double_column = strchr(optarg, ':');
 
-            if(!double_column) {
-                traceEvent(TRACE_WARNING, "invalid -l format, missing port");
-                return 1;
-            }
+                size_t length = strlen(optarg);
+                if(length >= N2N_EDGE_SN_HOST_SIZE) {
+                    traceEvent(TRACE_WARNING, "size of -l argument too long: %zu; maximum size is %d", length, N2N_EDGE_SN_HOST_SIZE);
+                    break;
+                }
 
-            n2n_sock_t *socket = (n2n_sock_t *)calloc(1, sizeof(n2n_sock_t));
-            int rv = supernode2sock(socket, _optarg);
+                if(!double_column) {
+                    traceEvent(TRACE_WARNING, "invalid -l format, missing port");
+                    break;
+                }
 
-            if(rv < -2) { /* we accept resolver failure as it might resolve later */
-                traceEvent(TRACE_WARNING, "invalid supernode parameter");
-                free(socket);
-                return 1;
-            }
+                n2n_sock_t *socket = (n2n_sock_t *)calloc(1, sizeof(n2n_sock_t));
+                int rv = supernode2sock(socket, optarg);
 
-            if(!sss->federation) {
+                if(rv < -2) { /* we accept resolver failure as it might resolve later */
+                    traceEvent(TRACE_WARNING, "invalid supernode parameter");
+                    free(socket);
+                    break;
+                }
+
+                if(!sss->federation) {
+                    free(socket);
+                    break;
+                }
+
+                int skip_add = SN_ADD;
+                struct peer_info *anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), socket, null_mac, &skip_add);
+
+                if(!anchor_sn) {
+                    free(socket);
+                    break;
+                }
+
+                anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+                if(!anchor_sn->ip_addr) {
+                    free(socket);
+                    break;
+                }
+
+                peer_info_init(anchor_sn, null_mac);
+                // This is the only place where the default purgeable
+                // is overwritten after an _alloc or _init
+                anchor_sn->purgeable = false;
+
+                strncpy(anchor_sn->ip_addr, optarg, N2N_EDGE_SN_HOST_SIZE - 1);
+                memcpy(&(anchor_sn->sock), socket, sizeof(n2n_sock_t));
+
                 free(socket);
                 break;
             }
 
-            int skip_add = SN_ADD;
-            struct peer_info *anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), socket, null_mac, &skip_add);
+            case 'a': {
+                dec_ip_str_t ip_min_str = {'\0'};
+                dec_ip_str_t ip_max_str = {'\0'};
+                in_addr_t net_min, net_max;
+                uint8_t bitlen;
+                uint32_t mask;
 
-            if(!anchor_sn) {
-                free(socket);
+                if(sscanf(optarg, "%15[^\\-]-%15[^/]/%hhu", ip_min_str, ip_max_str, &bitlen) != 3) {
+                    traceEvent(TRACE_WARNING, "bad net-net/bit format '%s'.", optarg);
+                    break;
+                }
+
+                net_min = inet_addr(ip_min_str);
+                net_max = inet_addr(ip_max_str);
+                mask = bitlen2mask(bitlen);
+                if((net_min == (in_addr_t)(-1)) || (net_min == INADDR_NONE) || (net_min == INADDR_ANY)
+                   || (net_max == (in_addr_t)(-1)) || (net_max == INADDR_NONE) || (net_max == INADDR_ANY)
+                   || (ntohl(net_min) >  ntohl(net_max))
+                   || ((ntohl(net_min) & ~mask) != 0) || ((ntohl(net_max) & ~mask) != 0)) {
+                    traceEvent(TRACE_WARNING, "bad network range '%s...%s/%u' in '%s', defaulting to '%s...%s/%d'",
+                               ip_min_str, ip_max_str, bitlen, optarg,
+                               N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
+                    break;
+                }
+
+                if((bitlen > 30) || (bitlen == 0)) {
+                    traceEvent(TRACE_WARNING, "bad prefix '%hhu' in '%s', defaulting to '%s...%s/%d'",
+                               bitlen, optarg,
+                               N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
+                    break;
+                }
+
+                traceEvent(TRACE_NORMAL, "the network range for community ip address service is '%s...%s/%hhu'", ip_min_str, ip_max_str, bitlen);
+
+                sss->min_auto_ip_net.net_addr = ntohl(net_min);
+                sss->min_auto_ip_net.net_bitlen = bitlen;
+                sss->max_auto_ip_net.net_addr = ntohl(net_max);
+                sss->max_auto_ip_net.net_bitlen = bitlen;
+
+                break;
+            }
+            case 'F': { /* federation name */
+                snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", optarg);
+                sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
+                sss->federation->purgeable = false;
+                break;
+            }
+            case 'm': {/* MAC address */
+                str2mac(sss->mac_addr, optarg);
+
+                // clear multicast bit
+                sss->mac_addr[0] &= ~0x01;
+                // set locally-assigned bit
+                sss->mac_addr[0] |= 0x02;
+
                 break;
             }
 
-            anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-            if(!anchor_sn->ip_addr) {
-                free(socket);
+            case 'v': /* verbose */
+                setTraceLevel(getTraceLevel() + 1);
                 break;
-            }
 
-            peer_info_init(anchor_sn, null_mac);
-            // This is the only place where the default purgeable
-            // is overwritten after an _alloc or _init
-            anchor_sn->purgeable = false;
+            case -1: // dont try to set from option map the end sentinal
+                break;
 
-            strncpy(anchor_sn->ip_addr, _optarg, N2N_EDGE_SN_HOST_SIZE - 1);
-            memcpy(&(anchor_sn->sock), socket, sizeof(n2n_sock_t));
-
-            free(socket);
-            break;
+            default:
+                n3n_config_from_getopt(option_map, conf, c, optarg);
         }
-
-        case 'a': {
-            dec_ip_str_t ip_min_str = {'\0'};
-            dec_ip_str_t ip_max_str = {'\0'};
-            in_addr_t net_min, net_max;
-            uint8_t bitlen;
-            uint32_t mask;
-
-            if(sscanf(_optarg, "%15[^\\-]-%15[^/]/%hhu", ip_min_str, ip_max_str, &bitlen) != 3) {
-                traceEvent(TRACE_WARNING, "bad net-net/bit format '%s'.", _optarg);
-                return 2;
-            }
-
-            net_min = inet_addr(ip_min_str);
-            net_max = inet_addr(ip_max_str);
-            mask = bitlen2mask(bitlen);
-            if((net_min == (in_addr_t)(-1)) || (net_min == INADDR_NONE) || (net_min == INADDR_ANY)
-               || (net_max == (in_addr_t)(-1)) || (net_max == INADDR_NONE) || (net_max == INADDR_ANY)
-               || (ntohl(net_min) >  ntohl(net_max))
-               || ((ntohl(net_min) & ~mask) != 0) || ((ntohl(net_max) & ~mask) != 0)) {
-                traceEvent(TRACE_WARNING, "bad network range '%s...%s/%u' in '%s', defaulting to '%s...%s/%d'",
-                           ip_min_str, ip_max_str, bitlen, _optarg,
-                           N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
-                return 2;
-            }
-
-            if((bitlen > 30) || (bitlen == 0)) {
-                traceEvent(TRACE_WARNING, "bad prefix '%hhu' in '%s', defaulting to '%s...%s/%d'",
-                           bitlen, _optarg,
-                           N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
-                return 2;
-            }
-
-            traceEvent(TRACE_NORMAL, "the network range for community ip address service is '%s...%s/%hhu'", ip_min_str, ip_max_str, bitlen);
-
-            sss->min_auto_ip_net.net_addr = ntohl(net_min);
-            sss->min_auto_ip_net.net_bitlen = bitlen;
-            sss->max_auto_ip_net.net_addr = ntohl(net_max);
-            sss->max_auto_ip_net.net_bitlen = bitlen;
-
-            break;
-        }
-        case 'F': { /* federation name */
-            snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", _optarg);
-            sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
-            sss->federation->purgeable = false;
-            break;
-        }
-        case 'm': {/* MAC address */
-            str2mac(sss->mac_addr, _optarg);
-
-            // clear multicast bit
-            sss->mac_addr[0] &= ~0x01;
-            // set locally-assigned bit
-            sss->mac_addr[0] |= 0x02;
-
-            break;
-        }
-        case 'h': /* quick reference */
-            return 2;
-
-        case '@': /* long help */
-            return 3;
-
-        case 'v': /* verbose */
-            setTraceLevel(getTraceLevel() + 1);
-            break;
-
-        default:
-            n3n_config_from_getopt(option_map, conf, optkey, optarg);
     }
-
-    return 0;
 }
 
 /********************************************************************/
 
 static struct n3n_subcmd_def cmd_top[]; // Forward define
 
-/* *************************************************** */
-
-/* read command line options */
-static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *sss) {
-
-    u_char c;
-
-    while((c = getopt_long(argc, argv,
-                           GETOPTS,
-                           long_options, NULL)) != '?') {
-        if(c == 255) {
-            break;
-        }
-        help(setOption(c, optarg, sss));
-    }
-
-    return 0;
-}
-
-/* *************************************************** */
 
 static void cmd_help_about (int argc, char **argv, void *conf) {
     printf("n3n - a peer to peer VPN for when you have noLAN\n"
