@@ -119,8 +119,8 @@ static struct n3n_conf_option section_connection[] = {
         .help = "[address]:[port] to bind. This can be useful to allow home "
                 "router's port forwarding to point to a known port, or when "
                 "coupled with a local ip address can help with restriction to "
-                "a certain LAN or WiFi interface.  By default, the edge binds "
-                "to any interface.",
+                "a certain LAN or WiFi interface.  By default, the daemon "
+                "binds to any interface. (both edge and supernode)",
     },
     {
         .name = "connect_tcp",

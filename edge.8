@@ -16,9 +16,9 @@ Edge is the edge node daemon for n3n which creates a TAP interface to expose
 the n3n virtual LAN. On startup the edge will load any config file, then any
 environment variables and then load the settings from the command line.
 
-Once it has the full config loaded, it will registers with the supernode and
-create and setup the TAP interface so it can
-begin to find other nodes in the community.
+Once it has the full config loaded, it will register with the supernode and
+create and setup the TAP interface so it can begin to find other nodes in the
+community.
 
 See the CONFIG and EXAMPLE sections for the use of the config file.
 
@@ -37,6 +37,8 @@ Sets any config option value.
 .TP
 \fB\-h\fR, \fB\--help\fR
 Show some quick usage notes.
+.TP
+.SH
 Options related to the network community being joined.
 .TP
 \fB\-c \fR<\fIcommunity\fR>, \fB\-\-community\fR=<\fIcommunity\fR>
