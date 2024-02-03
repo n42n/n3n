@@ -103,5 +103,5 @@ struct n3n_config_getopt {
 };
 
 void n3n_config_from_getopt (const struct n3n_config_getopt *map, void *conf, int optkey, char *optarg);
+void n3n_config_help_options (const struct n3n_config_getopt *map, const struct option *long_options);
 #endif
-

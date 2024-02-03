@@ -232,51 +232,7 @@ static void cmd_help_config (int argc, char **argv, void *conf) {
 }
 
 static void cmd_help_options (int argc, char **argv, void *conf) {
-    int i;
-
-    printf(" option    config\n");
-    i = 0;
-    while(option_map[i].optkey) {
-        if(isprint(option_map[i].optkey)) {
-            printf(" -%c ", option_map[i].optkey);
-            if(option_map[i].help) {
-                // Dont generate any text, just use the help text
-                // (This is used for options that have no true mapping)
-                printf("%s\n", option_map[i].help);
-                i++;
-                continue;
-            }
-            if(!option_map[i].value) {
-                // We are expecting an arg with this option
-                printf("<arg>");
-            } else {
-                printf("     ");
-            }
-            printf("  %s.%s=", option_map[i].section, option_map[i].option);
-            if(!option_map[i].value) {
-                printf("<arg>");
-            } else {
-                printf("%s", option_map[i].value);
-            }
-            printf("\n");
-        }
-        i++;
-    }
-    printf("\n");
-    printf(" short  long\n");
-
-    i = 0;
-    while(long_options[i].name) {
-        if(isprint(long_options[i].val)) {
-            printf(" -%c     --%s", long_options[i].val, long_options[i].name);
-            if(long_options[i].has_arg == required_argument) {
-                printf("=<arg>");
-            }
-            printf("\n");
-        }
-        i++;
-    }
-
+    n3n_config_help_options (option_map, long_options);
     exit(0);
 }
 

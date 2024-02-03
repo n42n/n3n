@@ -1257,3 +1257,50 @@ void n3n_config_from_getopt (const struct n3n_config_getopt *map, void *conf, in
     // Should only happen if the caller has a bad getopt loop
     printf("unknown option -%c", (char)optkey);
 }
+
+void n3n_config_help_options (const struct n3n_config_getopt *map, const struct option *long_options) {
+    int i;
+
+    printf(" option    config\n");
+    i = 0;
+    while(map[i].optkey) {
+        if(isprint(map[i].optkey)) {
+            printf(" -%c ", map[i].optkey);
+            if(map[i].help) {
+                // Dont generate any text, just use the help text
+                // (This is used for options that have no true mapping)
+                printf("%s\n", map[i].help);
+                i++;
+                continue;
+            }
+            if(!map[i].value) {
+                // We are expecting an arg with this option
+                printf("<arg>");
+            } else {
+                printf("     ");
+            }
+            printf("  %s.%s=", map[i].section, map[i].option);
+            if(!map[i].value) {
+                printf("<arg>");
+            } else {
+                printf("%s", map[i].value);
+            }
+            printf("\n");
+        }
+        i++;
+    }
+    printf("\n");
+    printf(" short  long\n");
+
+    i = 0;
+    while(long_options[i].name) {
+        if(isprint(long_options[i].val)) {
+            printf(" -%c     --%s", long_options[i].val, long_options[i].name);
+            if(long_options[i].has_arg == required_argument) {
+                printf("=<arg>");
+            }
+            printf("\n");
+        }
+        i++;
+    }
+}
