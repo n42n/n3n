@@ -481,7 +481,7 @@ static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runt
     }
 
     // Now that we might need it, setup some default config
-    sn_init_defaults(sss);
+    sn_init_conf_defaults(sss, cmd.sessionname);
 
     if(cmd.subcmd->session_arg) {
         // the cmd structure can request the normal loading of config
@@ -673,10 +673,18 @@ int main (int argc, char * argv[]) {
     }
     traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
 
-    // TODO: merge conf and then can:
-    // n3n_config_setup_sessiondir(&sss->conf);
-    //
-    // also slots_listen_unix()
+    n3n_config_setup_sessiondir(&sss_node.conf);
+
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", sss_node.conf.sessiondir);
+
+    if(slots_listen_unix(sss_node.mgmt_slots, unixsock)!=0) {
+        perror("slots_listen_tcp");
+        exit(1);
+    }
+    chown(unixsock, sss_node.conf.userid, sss_node.conf.groupid);
+#endif
 
     HASH_ITER(hh, sss_node.federation->edges, scan, tmp)
     scan->socket_fd = sss_node.sock;

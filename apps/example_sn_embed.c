@@ -18,6 +18,7 @@
  */
 
 
+#include <n3n/supernode.h>  // for sn_init_conf_defaults
 #include <stdbool.h>
 #include <stdlib.h>      // for exit
 #include "n2n.h"         // for n2n_edge, open_socket, run_sn_loop, sn_init
@@ -41,7 +42,7 @@ int main () {
     initWin32();
 #endif
 
-    sn_init_defaults(&sss_node);
+    sn_init_conf_defaults(&sss_node,"supernode");
     sss_node.conf.daemon = false;   // Whether to daemonize
     int lport = 1234; // Main UDP listen port
 

@@ -761,27 +761,35 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
 
 /** Initialise the supernode structure */
-int sn_init_defaults (struct n3n_runtime_data *sss) {
+void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     // TODO: this should accept a conf parameter, not a sss
+    n2n_edge_conf_t *conf = &sss->conf;
 
     memset(sss, 0, sizeof(struct n3n_runtime_data));
 
-    sss->conf.is_supernode = true;
-    sss->conf.spoofing_protection = true;
-    sss->conf.daemon = true; /* By defult run as a daemon. */
+    // Record the session name we used
+    if(sessionname) {
+        conf->sessionname = sessionname;
+    } else {
+        conf->sessionname = "NULL";
+    }
 
-    strncpy(sss->conf.version, VERSION, sizeof(n2n_version_t));
-    sss->conf.version[sizeof(n2n_version_t) - 1] = '\0';
+    conf->is_supernode = true;
+    conf->spoofing_protection = true;
+    conf->daemon = true; /* By defult run as a daemon. */
 
-    sss->conf.bind_address = malloc(sizeof(*sss->conf.bind_address));
-    memset(sss->conf.bind_address, 0, sizeof(*sss->conf.bind_address));
+    strncpy(conf->version, VERSION, sizeof(n2n_version_t));
+    conf->version[sizeof(n2n_version_t) - 1] = '\0';
 
-    struct sockaddr_in *sa = (struct sockaddr_in *)sss->conf.bind_address;
+    conf->bind_address = malloc(sizeof(*conf->bind_address));
+    memset(conf->bind_address, 0, sizeof(*conf->bind_address));
+
+    struct sockaddr_in *sa = (struct sockaddr_in *)conf->bind_address;
     sa->sin_family = AF_INET;
     sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
     sa->sin_addr.s_addr = htonl(INADDR_ANY);
 
-    sss->conf.mgmt_port = N2N_SN_MGMT_PORT;
+    conf->mgmt_port = N2N_SN_MGMT_PORT;
     sss->sock = -1;
     sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
     sss->min_auto_ip_net.net_addr = ntohl(sss->min_auto_ip_net.net_addr);
@@ -838,16 +846,16 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
     n2n_srand(n2n_seed());
 
     /* Random auth token */
-    sss->conf.auth.scheme = n2n_auth_simple_id;
-    memrnd(sss->conf.auth.token, N2N_AUTH_ID_TOKEN_SIZE);
-    sss->conf.auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+    conf->auth.scheme = n2n_auth_simple_id;
+    memrnd(conf->auth.token, N2N_AUTH_ID_TOKEN_SIZE);
+    conf->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 
     /* Random MAC address */
     memrnd(sss->mac_addr, N2N_MAC_SIZE);
     sss->mac_addr[0] &= ~0x01; /* Clear multicast bit */
     sss->mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
-    sss->conf.mgmt_password = N3N_MGMT_PASSWORD;
+    conf->mgmt_password = N3N_MGMT_PASSWORD;
 
 #ifndef _WIN32
     struct passwd *pw = NULL;
@@ -858,12 +866,10 @@ int sn_init_defaults (struct n3n_runtime_data *sss) {
     }
     if(pw != NULL) {
         // If we find one, use that as our default
-        sss->conf.userid = pw->pw_uid;
-        sss->conf.groupid = pw->pw_gid;
+        conf->userid = pw->pw_uid;
+        conf->groupid = pw->pw_gid;
     }
 #endif
-
-    return 0; /* OK */
 }
 
 
@@ -935,8 +941,18 @@ void sn_term (struct n3n_runtime_data *sss) {
 
     free(sss->conf.community_file);
 
-    // TODO: merge config, then:
-    // free(sss->conf.sessiondir);
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", sss->conf.sessiondir);
+    unlink(unixsock);
+    rmdir(sss->conf.sessiondir);
+#else
+    _rmdir(sss->conf.sessiondir);
+#endif
+    // Ignore errors in the unlink/rmdir as they could simply be that the
+    // paths were chown/chmod by the administrator
+
+    free(sss->conf.sessiondir);
 
     slots_free(sss->mgmt_slots);
 

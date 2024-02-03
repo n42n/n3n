@@ -3201,7 +3201,8 @@ static int mkdir_p (const char *pathname, int mode, int uid, int gid) {
     return 0;
 }
 
-static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
+// TODO: why is this in the edge file? it is used in both edge and supernode
+int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
     if(!conf->sessionname) {
         traceEvent(TRACE_NORMAL, "cannot setup sessiondir: no sessionname");
         return -1;

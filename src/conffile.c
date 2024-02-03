@@ -1133,7 +1133,7 @@ static void subcmd_help_simple (struct n3n_subcmd_def *p) {
     exit(1);
 }
 
-struct n3n_subcmd_result subcmd_lookup (struct n3n_subcmd_def *top, int argc, char **argv) {
+static struct n3n_subcmd_result subcmd_lookup (struct n3n_subcmd_def *top, int argc, char **argv) {
     struct n3n_subcmd_result r;
     struct n3n_subcmd_def *p = top;
     while(p->name) {

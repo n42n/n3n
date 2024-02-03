@@ -150,7 +150,6 @@ int quick_edge_init (char *device_name, char *community_name,
                      char *supernode_ip_address_port,
                      bool *keep_on_running);
 int comm_init (struct sn_community *comm, char *cmn);
-int sn_init_defaults (struct n3n_runtime_data *sss);
 void sn_init (struct n3n_runtime_data *sss);
 void sn_term (struct n3n_runtime_data *sss);
 struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add);

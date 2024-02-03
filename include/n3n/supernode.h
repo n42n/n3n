@@ -15,6 +15,7 @@
 
 int load_allowed_sn_community (struct n3n_runtime_data *sss);
 void calculate_shared_secrets (struct n3n_runtime_data *sss);
+void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname);
 
 #endif
 
