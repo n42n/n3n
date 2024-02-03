@@ -232,7 +232,7 @@ static void cmd_help_config (int argc, char **argv, void *conf) {
 }
 
 static void cmd_help_options (int argc, char **argv, void *conf) {
-    n3n_config_help_options (option_map, long_options);
+    n3n_config_help_options(option_map, long_options);
     exit(0);
 }
 
