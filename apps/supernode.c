@@ -176,6 +176,8 @@ static void help (int level) {
 
 /* *************************************************** */
 
+#define GETOPTS "p:l:t:a:c:F:vhMV:m:fu:g:O:"
+
 static const struct option long_options[] = {
     {"communities",         required_argument, NULL, 'c'},
     {"foreground",          no_argument,       NULL, 'f'},
@@ -190,11 +192,14 @@ static const struct option long_options[] = {
 
 static const struct n3n_config_getopt option_map[] = {
     { 'M',  "supernode",    "spoofing_protection",  "false" },
+    { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'V',  "supernode",    "version_string",       NULL },
     { ']',  "management",   "password",             NULL },
+    { 'a', NULL, NULL, NULL, "<arg>  Autoip network range" },
     { 'c',  "supernode",    "community_file",       NULL },
     { 'f',  "daemon",       "background",           "false" },
     { 'g',  "daemon",       "groupid",              NULL },
+    { 'l', NULL, NULL, NULL, "<hostname>:<port>  Set a federated supernode" },
     { 'p',  "connection",   "bind",                 NULL },
     { 't',  "management",   "port",                 NULL },
     { 'u',  "daemon",       "userid",               NULL },
@@ -355,6 +360,9 @@ static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
     return 0;
 }
 
+/********************************************************************/
+
+static struct n3n_subcmd_def cmd_top[]; // Forward define
 
 /* *************************************************** */
 
@@ -364,7 +372,7 @@ static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *
     u_char c;
 
     while((c = getopt_long(argc, argv,
-                           "p:l:t:a:c:F:vhMV:m:fu:g:O:",
+                           GETOPTS,
                            long_options, NULL)) != '?') {
         if(c == 255) {
             break;
@@ -377,73 +385,154 @@ static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *
 
 /* *************************************************** */
 
-static char *trim (char *s) {
-
-    char *end;
-
-    while(isspace(s[0]) || (s[0] == '"') || (s[0] == '\'')) {
-        s++;
-    }
-
-    if(s[0] == 0) {
-        return s;
-    }
-
-    end = &s[strlen(s) - 1];
-    while(end > s && (isspace(end[0])|| (end[0] == '"') || (end[0] == '\''))) {
-        end--;
-    }
-    end[1] = 0;
-
-    return s;
+static void cmd_help_about (int argc, char **argv, void *conf) {
+    printf("n3n - a peer to peer VPN for when you have noLAN\n"
+           "\n"
+           " usage: FIXME\n"
+          );
+    exit(0);
 }
 
-/* *************************************************** */
+static void cmd_help_commands (int argc, char **argv, void *conf) {
+    n3n_subcmd_help(cmd_top, 1, true);
+    exit(0);
+}
 
-/* parse the configuration file */
-static int loadFromFile (const char *path, struct n3n_runtime_data *sss) {
+static void cmd_help_config (int argc, char **argv, void *conf) {
+    printf("Full config file description is available using the edge:\n");
+    printf("    edge help config\n");
+    exit(0);
+}
 
-    char buffer[4096], *line;
-    char *line_vec[3];
-    int tmp;
+static void cmd_help_options (int argc, char **argv, void *conf) {
+    n3n_config_help_options (option_map, long_options);
+    exit(0);
+}
 
-    FILE *fd;
+static void cmd_help_version (int argc, char **argv, void *conf) {
+    print_n3n_version();
+    exit(0);
+}
 
-    fd = fopen(path, "r");
+static void cmd_start (int argc, char **argv, void *conf) {
+    // Simply avoid triggering the "Unknown sub com" message
+    return;
+}
 
-    if(fd == NULL) {
-        traceEvent(TRACE_WARNING, "config file %s not found", path);
-        return -1;
+static struct n3n_subcmd_def cmd_help[] = {
+    {
+        .name = "about",
+        .help = "Basic command help",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_about,
+    },
+    {
+        .name = "commands",
+        .help = "Show all possible commandline commands",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_commands,
+    },
+    {
+        .name = "config",
+        .help = "All config file help text",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_config,
+    },
+    {
+        .name = "options",
+        .help = "Describe all commandline options ",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_options,
+    },
+    {
+        .name = "version",
+        .help = "Show the version",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_version,
+    },
+    { .name = NULL }
+};
+
+static struct n3n_subcmd_def cmd_top[] = {
+    {
+        .name = "help",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_help,
+    },
+    {
+        .name = "start",
+        .help = "[sessionname] - starts daemon",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_start,
+        .session_arg = true,
+    },
+    { .name = NULL }
+};
+
+// Almost, but not quite, the same as the edge version
+// TODO: refactor them to be the same, and then reuse the implementation
+static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runtime_data *sss) {
+    n2n_edge_conf_t *conf = &sss->conf;
+
+    struct n3n_subcmd_result cmd = n3n_subcmd_parse(
+        argc,
+        argv,
+        GETOPTS,
+        long_options,
+        cmd_top
+        );
+
+    switch(cmd.type) {
+        case n3n_subcmd_result_unknown:
+            // Shouldnt happen
+            abort();
+        case n3n_subcmd_result_version:
+            cmd_help_version(0, NULL, NULL);
+        case n3n_subcmd_result_about:
+            cmd_help_about(0, NULL, NULL);
+        case n3n_subcmd_result_ok:
+            break;
     }
 
-    // we mess around with optind, better save it
-    tmp = optind;
+    // If no session name has been found, use the default
+    if(!cmd.sessionname) {
+        cmd.sessionname = defname;
+    }
 
-    while((line = fgets(buffer, sizeof(buffer), fd)) != NULL) {
-        line = trim(line);
+    // Now that we might need it, setup some default config
+    sn_init_defaults(sss);
 
-        if(strlen(line) < 2 || line[0] == '#') {
-            continue;
+    if(cmd.subcmd->session_arg) {
+        // the cmd structure can request the normal loading of config
+
+        int r = n3n_config_load_file(conf, cmd.sessionname);
+        if(r == -1) {
+            printf("Error loading config file\n");
+            exit(1);
+        }
+        if(r == -2) {
+            printf(
+                "Warning: no config file found for session '%s'\n",
+                cmd.sessionname
+                );
         }
 
-        // executable, cannot be omitted, content can be anything
-        line_vec[0] = line;
-        // first token, e.g. `-p`, eventually followed by a whitespace or '=' delimiter
-        line_vec[1] = strtok(line, "\t =");
-        // separate parameter option, if present
-        line_vec[2] = strtok(NULL, "\t ");
+        // Update the loaded conf with the current environment
+        if(n3n_config_load_env(conf)!=0) {
+            printf("Error loading environment variables\n");
+            exit(1);
+        }
 
-        // not to duplicate the option parser code, call loadFromCLI and pretend we have no option read yet
-        optind = 0;
-        // if separate second token present (optional argument, not part of first), then announce 3 vector members
-        loadFromCLI(line_vec[2] ? 3 : 2, line_vec, sss);
+        // Update the loaded conf with any option args
+        optind = 1;
+        loadFromCLI(argc, argv, sss);
     }
 
-    fclose(fd);
-    optind = tmp;
-
-    return 0;
+    // Do the selected subcmd
+    cmd.subcmd->fn(cmd.argc, cmd.argv, conf);
 }
+
+
 
 /* *************************************************** */
 
@@ -511,12 +600,8 @@ static void term_handler (int sig)
 /* *************************************************** */
 
 /** Main program entry point from kernel. */
-int main (int argc, char * const argv[]) {
+int main (int argc, char * argv[]) {
 
-    int rc;
-#ifndef _WIN32
-    struct passwd *pw = NULL;
-#endif
     struct peer_info *scan, *tmp;
 
 #ifdef _WIN32
@@ -526,27 +611,7 @@ int main (int argc, char * const argv[]) {
     // Do this early to register all internals
     n3n_initfuncs();
 
-    sn_init_defaults(&sss_node);
-
-    if((argc >= 2) && (argv[1][0] != '-')) {
-        rc = loadFromFile(argv[1], &sss_node);
-        if(argc > 2) {
-            rc = loadFromCLI(argc, argv, &sss_node);
-        }
-    } else if(argc > 1) {
-        rc = loadFromCLI(argc, argv, &sss_node);
-    } else
-
-#ifdef _WIN32
-        // load from current directory
-        rc = loadFromFile("supernode.conf", &sss_node);
-#else
-        rc = -1;
-#endif
-
-    if(rc < 0) {
-        help(1); /* short help */
-    }
+    n3n_sn_config(argc, argv, "supernode", &sss_node);
 
     if(sss_node.conf.community_file)
         load_allowed_sn_community(&sss_node);
