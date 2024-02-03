@@ -57,123 +57,6 @@
 
 static struct n3n_runtime_data sss_node;
 
-/** Help message to print if the command line arguments are not valid. */
-static void help (int level) {
-
-    if(level == 0) /* no help required */
-        return;
-
-    printf("\n");
-    print_n3n_version();
-
-    if(level == 1) {
-        /* short help */
-
-        printf("   basic usage:  supernode <config file> (see supernode.conf)\n"
-               "\n"
-               "            or   supernode "
-               "[optional parameters, at least one] "
-               "\n                      "
-               "\n technically, all parameters are optional, but the supernode executable"
-               "\n requires at least one parameter to run, .e.g. -v or -f, as otherwise this"
-               "\n short help text is displayed"
-               "\n\n  -h    shows a quick reference including all available options"
-               "\n --help gives a detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-
-    } else if(level == 2) {
-        /* quick reference */
-
-        printf(" general usage:  supernode <config file> (see supernode.conf)\n"
-               "\n"
-               "            or   supernode "
-               "[-p [<local bind ip address>:]<local port>] "
-               "\n                           "
-               "[-F <federation name>] "
-               "\n options for under-        "
-               "[-l <supernode host:port>] "
-               "\n lying connection          "
-               "[-m <mac address>] "
-               "[-M] "
-               "[-V <version text>] "
-               "\n\n overlay network           "
-               "[-c <community list file>] "
-               "\n configuration             "
-               "[-a <net ip>-<net ip>/<cidr suffix>] "
-               "\n\n local options             "
-               "[-t <management port>] "
-               "\n                           "
-               "[--management-password <pw>] "
-               "[-v] "
-               "\n                           "
-               "[-u <numerical user id>]"
-               "[-g <numerical group id>]"
-               "\n\n meaning of the            "
-               "[-M]  disable MAC and IP address spoofing protection"
-               "\n flag options              "
-               "[-f]  do not fork but run in foreground"
-               "\n                           "
-               "[-v]  make more verbose, repeat as required"
-               "\n                           "
-               "\n technically, all parameters are optional, but the supernode executable"
-               "\n requires at least one parameter to run, .e.g. -v or -f, as otherwise a"
-               "\n short help text is displayed"
-               "\n\n  -h    shows this quick reference including all available options"
-               "\n --help gives a detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-
-    } else {
-        /* long help */
-
-        printf(" general usage:  supernode <config file> (see supernode.conf)\n"
-               "\n"
-               "            or   supernode [optional parameters, at least one]\n\n"
-               );
-        printf(" OPTIONS FOR THE UNDERLYING NETWORK CONNECTION\n");
-        printf(" ---------------------------------------------\n\n");
-        printf(" -p [<ip>:]<port>  | fixed local UDP port (defaults to %u) and optionally\n"
-               "                   | bind to specified local IP address only ('any' by default)\n", N2N_SN_LPORT_DEFAULT);
-        printf(" -F <fed name>     | name of the supernode's federation, defaults to\n"
-               "                   | '%s'\n", (char *)FEDERATION_NAME);
-        printf(" -l <host:port>    | ip address or name, and port of known supernode\n");
-        printf(" -m <mac>          | fixed MAC address for the supernode, e.g.\n"
-               "                   | '-m 10:20:30:40:50:60', random otherwise\n");
-        printf(" -M                | disable MAC and IP address spoofing protection for all\n"
-               "                   | non-username-password-authenticating communities\n");
-        printf(" -V <version text> | sends a custom supernode version string of max 19 letters \n"
-               "                   | length to edges, visible in their management port output\n");
-        printf("\n");
-        printf(" TAP DEVICE AND OVERLAY NETWORK CONFIGURATION\n");
-        printf(" --------------------------------------------\n\n");
-        printf(" -c <path>         | file containing the allowed communities\n");
-        printf(" -a <net-net/n>    | subnet range for auto ip address service, e.g.\n"
-               "                   | '-a 192.168.0.0-192.168.255.0/24', defaults\n"
-               "                   | to '10.128.255.0-10.255.255.0/24'\n");
-        printf("\n");
-        printf(" LOCAL OPTIONS\n");
-        printf(" -------------\n\n");
-        printf(" -f                | do not fork and run as a daemon, rather run in foreground\n");
-        printf(" -t <port>         | management UDP port, for multiple supernodes on a machine,\n"
-               "                   | defaults to %u\n", N2N_SN_MGMT_PORT);
-        printf(" --management_...  | management port password, defaults to '%s'\n"
-               " ...password <pw>  | \n", N3N_MGMT_PASSWORD);
-        printf(" -v                | make more verbose, repeat as required\n");
-        printf(" -u <UID>          | numeric user ID to use when privileges are dropped\n");
-        printf(" -g <GID>          | numeric group ID to use when privileges are dropped\n");
-        printf("\n technically, all parameters are optional, but the supernode executable"
-               "\n requires at least one parameter to run, .e.g. -v or -f, as otherwise a"
-               "\n short help text is displayed"
-               "\n\n  -h    shows a quick reference including all available options"
-               "\n --help gives this detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-    }
-
-    exit(0);
-}
-
 /* *************************************************** */
 
 #define GETOPTS "p:l:t:a:c:F:vhMV:m:fu:g:O:"
@@ -188,11 +71,13 @@ static const struct option long_options[] = {
 };
 
 static const struct n3n_config_getopt option_map[] = {
+    { 'F', NULL, NULL, NULL, "<arg>  Set the supernode federation name" },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'a', NULL, NULL, NULL, "<arg>  Autoip network range" },
     { 'c',  "supernode",    "community_file",       NULL },
     { 'f',  "daemon",       "background",           "false" },
     { 'l', NULL, NULL, NULL, "<hostname>:<port>  Set a federated supernode" },
+    { 'm', NULL, NULL, NULL, "<arg>  Hardcode the supernode virtual MAC addr" },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { .optkey = 0 }
 };
@@ -237,6 +122,8 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 break;
             }
             case 'l': { /* supernode:port */
+                // FIXME: needs a generic parser option
+
                 char *double_column = strchr(optarg, ':');
 
                 size_t length = strlen(optarg);
@@ -291,6 +178,8 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
             }
 
             case 'a': {
+                // FIXME: needs a generic parser option
+
                 dec_ip_str_t ip_min_str = {'\0'};
                 dec_ip_str_t ip_max_str = {'\0'};
                 in_addr_t net_min, net_max;
@@ -332,12 +221,16 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 break;
             }
             case 'F': { /* federation name */
+                // FIXME: needs a generic parser option
+
                 snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", optarg);
                 sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
                 sss->federation->purgeable = false;
                 break;
             }
             case 'm': {/* MAC address */
+                // FIXME: needs a generic parser option
+
                 str2mac(sss->mac_addr, optarg);
 
                 // clear multicast bit
@@ -369,7 +262,19 @@ static struct n3n_subcmd_def cmd_top[]; // Forward define
 static void cmd_help_about (int argc, char **argv, void *conf) {
     printf("n3n - a peer to peer VPN for when you have noLAN\n"
            "\n"
-           " usage: FIXME\n"
+           " usage: supernode [options...] [command] [command args]\n"
+           "\n"
+           " e.g: supernode start [sessionname]\n"
+           "\n"
+           "  Loads the config based on the sessionname (default 'supernode.conf')\n"
+           "  Any commandline options override the config loaded\n"
+           "\n"
+           "Some commands for more help:\n"
+           "\n"
+           " supernode help commands\n"
+           " supernode help options\n"
+           " supernode help\n"
+           "\n"
            );
     exit(0);
 }
