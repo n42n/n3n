@@ -19,21 +19,21 @@ docmd() {
 }
 
 # start it running in the background
-docmd "${BINDIR}"/apps/supernode -v
+docmd "${BINDIR}"/apps/supernode start ci_sn -v
 
 # TODO: probe the api endpoint, waiting for the supernode to be available?
 sleep 0.1
 
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_communities
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_packetstats
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_edges --raw
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn get_communities
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn get_packetstats
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn get_edges --raw
 
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 get_verbose
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH set_verbose 1
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn get_verbose
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn -k $AUTH set_verbose 1
 
 # Test with bad auth
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 set_verbose 1
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn set_verbose 1
 echo $?
 
 # stop it
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH stop
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn -k $AUTH stop
