@@ -51,6 +51,17 @@ struct n3n_conf_section {
     struct n3n_conf_option *options;
 };
 
+void n3n_config_register_section (char *, char *, struct n3n_conf_option[]);
+
+int n3n_config_set_option (void *, char *, char *, char *);
+
+void n3n_config_dump (void *, FILE *, int);
+void n3n_config_debug_addr (void *, FILE *);
+
+int n3n_config_load_env (void *);
+
+int n3n_config_load_file (void *, char *);
+
 enum n3n_subcmd_type {
     n3n_subcmd_type_nest = 1,
     n3n_subcmd_type_fn
@@ -79,17 +90,6 @@ struct n3n_subcmd_result {
     enum n3n_subcmd_result_type type;
     struct n3n_subcmd_def *subcmd;
 };
-
-void n3n_config_register_section (char *, char *, struct n3n_conf_option[]);
-
-int n3n_config_set_option (void *, char *, char *, char *);
-
-void n3n_config_dump (void *, FILE *, int);
-void n3n_config_debug_addr (void *, FILE *);
-
-int n3n_config_load_env (void *);
-
-int n3n_config_load_file (void *, char *);
 
 void n3n_subcmd_help (struct n3n_subcmd_def *, int, bool);
 struct n3n_subcmd_result n3n_subcmd_parse (int, char **, char *, const struct option *, struct n3n_subcmd_def *);
