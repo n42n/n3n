@@ -29,6 +29,7 @@
 #include <n3n/edge.h>                // for edge_conf_add_supernode
 #include <n3n/ethernet.h>            // for is_null_mac
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/metrics.h>
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
 #include <n3n/strings.h>             // for sock_to_cstr
 #include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
@@ -91,6 +92,63 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
                                           const n2n_desc_t *dev_desc,
                                           const n2n_sock_t *peer,
                                           time_t when);
+
+/* ************************************** */
+
+static struct n3n_metrics_item edge_utils_metrics_items[] = {
+    {
+        .name = "tx_p2p",
+        .offset = offsetof(struct n2n_edge_stats, tx_p2p),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_p2p",
+        .offset = offsetof(struct n2n_edge_stats, rx_p2p),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_sup",
+        .offset = offsetof(struct n2n_edge_stats, tx_sup),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_sup",
+        .offset = offsetof(struct n2n_edge_stats, rx_sup),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_sup_broadcast",
+        .offset = offsetof(struct n2n_edge_stats, tx_sup_broadcast),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_sup_broadcast",
+        .offset = offsetof(struct n2n_edge_stats, rx_sup_broadcast),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_multicast_drop",
+        .offset = offsetof(struct n2n_edge_stats, tx_multicast_drop),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_multicast_drop",
+        .offset = offsetof(struct n2n_edge_stats, rx_multicast_drop),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_tuntap_error",
+        .offset = offsetof(struct n2n_edge_stats, tx_tuntap_error),
+        .size = n3n_metrics_uint32,
+    },
+    { },
+};
+
+static struct n3n_metrics_module edge_utils_metrics_module = {
+    .name = "edge_utils",
+    .item = edge_utils_metrics_items,
+    .enabled = true,
+};
 
 /* ************************************** */
 
@@ -2882,6 +2940,9 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 
     *eee->keep_running = true;
     update_supernode_reg(eee, time(NULL));
+
+    edge_utils_metrics_module.data = &eee->stats;
+    n3n_metrics_register(&edge_utils_metrics_module);
 
     /* Main loop
      *
