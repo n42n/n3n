@@ -61,6 +61,7 @@ void sb_dump(strbuf_t *);
 struct strbuf_metrics {
     uint32_t zero;
     uint32_t alloc;
+    uint32_t realloc;
     uint32_t realloc_full;
     uint32_t append_full;
     uint32_t append_trunc;

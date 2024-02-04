@@ -68,6 +68,7 @@ strbuf_t *sb_malloc(size_t size, size_t size_max) {
  * @return the allocated buffer or NULL
  */
 strbuf_t *sb_realloc(strbuf_t **pp, size_t size) {
+    STRBUF_METRIC(realloc);
     size_t headersize = sizeof(strbuf_t);
     strbuf_t *p = *pp;
     if (size > p->capacity_max) {
