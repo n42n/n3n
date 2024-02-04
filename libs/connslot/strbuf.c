@@ -22,11 +22,17 @@
 
 #include "strbuf.h"
 
+#ifdef METRICS
+struct strbuf_metrics strbuf_metrics;
+#endif
+
+
 /**
  * Reset the strbuf to show as empty, without changing any allocations
  * @param p is the buffer to initialise
  */
 void sb_zero(strbuf_t *p) {
+    STRBUF_METRIC(zero);
     p->wr_pos = 0;
     p->rd_pos = 0;
     p->str[0] = 0;
@@ -40,6 +46,7 @@ void sb_zero(strbuf_t *p) {
  * @return the allocated buffer or NULL
  */
 strbuf_t *sb_malloc(size_t size) {
+    STRBUF_METRIC(alloc);
     size_t headersize = sizeof(strbuf_t);
     strbuf_t *p = malloc(headersize+size);
     if (p) {
@@ -64,6 +71,7 @@ strbuf_t *sb_realloc(strbuf_t **pp, size_t size) {
     size_t headersize = sizeof(strbuf_t);
     strbuf_t *p = *pp;
     if (size > p->capacity_max) {
+        STRBUF_METRIC(realloc_full);
         size = p->capacity_max;
     }
 
@@ -130,11 +138,13 @@ size_t sb_append(strbuf_t *p, void *buf, ssize_t bufsize) {
     ssize_t avail = sb_avail(p);
     if (avail <= 0) {
         // Cannot append to a full buffer
+        STRBUF_METRIC(append_full);
         return -1;
     }
 
     if (avail < bufsize) {
         // Truncate the new data to fit
+        STRBUF_METRIC(append_trunc);
         bufsize = avail;
     }
 

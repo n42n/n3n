@@ -5,7 +5,7 @@
 
 all: libconnslot.a
 
-CFLAGS+=-Wall -Wextra -Werror -g
+CFLAGS+=-Wall -Wextra -Werror -g -DMETRICS
 
 COVERAGEDIR?=coverage
 ifdef COVERAGE
