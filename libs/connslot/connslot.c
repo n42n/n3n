@@ -259,6 +259,57 @@ void conn_close(conn_t *conn) {
     conn_zero(conn);
 }
 
+void conn_dump(strbuf_t **buf, conn_t *conn) {
+    sb_reprintf(
+        buf,
+        "%i:%i@%i;%li ",
+        conn->fd,
+        conn->state,
+        conn->reply_sendpos,
+        conn->activity
+    );
+
+    if (conn->request) {
+        sb_reprintf(
+            buf,
+            "%p:%u/%u ",
+            conn->request,
+            conn->request->wr_pos,
+            conn->request->capacity
+        );
+    } else {
+        sb_reprintf(buf, "NULL ");
+    }
+
+    if (conn->reply) {
+        sb_reprintf(
+            buf,
+            "%p:%u/%u ",
+            conn->reply,
+            conn->reply->wr_pos,
+            conn->reply->capacity
+        );
+    } else {
+        sb_reprintf(buf, "NULL ");
+    }
+
+    if (conn->reply_header) {
+        sb_reprintf(
+            buf,
+            "%p:%u/%u ",
+            conn->reply_header,
+            conn->reply_header->wr_pos,
+            conn->reply_header->capacity
+        );
+    } else {
+        sb_reprintf(buf, "NULL ");
+    }
+
+    sb_reprintf(buf, "\n");
+
+    // TODO: strbuf capacity_max and contents?
+}
+
 void slots_free(slots_t *slots) {
     for (int i=0; i < slots->nr_slots; i++) {
         conn_t *conn = &slots->conn[i];
@@ -598,4 +649,26 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
     slots->nr_open = nr_open;
 
     return nr_ready;
+}
+
+void slots_dump(strbuf_t **buf, slots_t *slots) {
+    if (!slots) {
+        sb_reprintf(buf, "NULL\n");
+        return;
+    }
+    sb_reprintf(
+        buf,
+        "slots: %i/%i, timeout=%i, listen=",
+        slots->nr_open,
+        slots->nr_slots,
+        slots->timeout
+    );
+
+    for (int i=0; i < SLOTS_LISTEN; i++) {
+        sb_reprintf(buf, "%i,", slots->listen[i]);
+    }
+    sb_reprintf(buf, "\n");
+    for (int i=0; i < slots->nr_slots; i++) {
+        conn_dump(buf, &slots->conn[i]);
+    }
 }

@@ -67,4 +67,5 @@ int slots_fdset(slots_t *, fd_set *, fd_set *);
 int slots_accept(slots_t *, int);
 int slots_closeidle(slots_t *);
 int slots_fdset_loop(slots_t *, fd_set *, fd_set *);
+void slots_dump(strbuf_t **, slots_t *);
 #endif
