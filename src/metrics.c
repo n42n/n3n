@@ -74,6 +74,11 @@ static struct n3n_metrics_item strbuf_metrics_items[] = {
         .size = n3n_metrics_uint32,
     },
     {
+        .name = "realloc",
+        .offset = offsetof(struct strbuf_metrics, realloc),
+        .size = n3n_metrics_uint32,
+    },
+    {
         .name = "realloc_full",
         .offset = offsetof(struct strbuf_metrics, realloc_full),
         .size = n3n_metrics_uint32,
