@@ -30,7 +30,6 @@
     "type": "super_broadcast"
   },
   {
-    "rx_pkt": 0,
     "tx_pkt": 0,
     "type": "tuntap_error"
   }
