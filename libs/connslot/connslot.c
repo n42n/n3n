@@ -116,6 +116,7 @@ void conn_read(conn_t *conn) {
         return;
     }
 
+    // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
 
     // case protocol==HTTP
@@ -155,6 +156,7 @@ void conn_read(conn_t *conn) {
         p+=15; // Skip the field name
         unsigned int content_length = strtoul(p, NULL, 10);
         expected_length = body_pos + content_length;
+        // FIXME: what if Content-Length: is larger than unsigned int?
     }
 
     // By this point we must have an expected_length
@@ -238,6 +240,7 @@ ssize_t conn_write(conn_t *conn) {
         sb_zero(conn->request);
     }
 
+    // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
     return sent;
 }
@@ -258,17 +261,13 @@ void conn_close(conn_t *conn) {
 }
 
 void conn_dump(strbuf_t **buf, conn_t *conn) {
-    // different arch have different sizes for time_t,
-    // so to avoid needing different format strings, we just cheat
-    long long int activity = conn->activity;
-
     sb_reprintf(
         buf,
-        "%i:%i@%i;%lli ",
+        "%i:%i@%i;%i ",
         conn->fd,
         conn->state,
         conn->reply_sendpos,
-        activity
+        conn->activity
     );
 
     if (conn->request) {
@@ -557,6 +556,7 @@ int slots_accept(slots_t *slots, int listen_nr) {
 #endif
 
     slots->nr_open++;
+    // This will truncate the time to a int - usually 32bits
     slots->conn[i].activity = time(NULL);
     slots->conn[i].fd = client;
     return i;
@@ -565,13 +565,15 @@ int slots_accept(slots_t *slots, int listen_nr) {
 int slots_closeidle(slots_t *slots) {
     int i;
     int nr_closed = 0;
-    int min_activity = time(NULL) - slots->timeout;
+    int now = time(NULL);
 
     for (i=0; i<slots->nr_slots; i++) {
         if (slots->conn[i].fd == -1) {
             continue;
         }
-        if (slots->conn[i].activity < min_activity) {
+        int delta_t = now - slots->conn[i].activity;
+        if (delta_t > slots->timeout) {
+            // TODO: metrics timeouts ++
             conn_close(&slots->conn[i]);
             nr_closed++;
         }

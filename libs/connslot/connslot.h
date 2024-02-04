@@ -36,7 +36,7 @@ typedef struct conn {
     strbuf_t *request;      // Request from remote
     strbuf_t *reply_header; // not shared reply data
     strbuf_t *reply;        // shared reply data (const struct)
-    time_t activity;        // timestamp of last txn
+    int activity;           // truncated timestamp of last txn
     int fd;
     unsigned int reply_sendpos;
     enum conn_state state;
