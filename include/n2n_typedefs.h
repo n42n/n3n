@@ -502,7 +502,6 @@ struct n2n_edge_stats {
     uint32_t tx_multicast_drop;
     uint32_t rx_multicast_drop;
     uint32_t tx_tuntap_error;
-    uint32_t rx_tuntap_error;
     uint32_t sn_errors;         /* Number of errors encountered. */
     uint32_t sn_reg;            /* Number of REGISTER_SUPER requests received. */
     uint32_t sn_reg_nak;        /* Number of REGISTER_SUPER requests declined. */

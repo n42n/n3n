@@ -662,10 +662,8 @@ static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, con
     sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"tuntap_error\","
-                "\"tx_pkt\":%u,"
-                "\"rx_pkt\":%u},",
-                eee->stats.tx_tuntap_error,
-                eee->stats.rx_tuntap_error);
+                "\"tx_pkt\":%u},",
+                eee->stats.tx_tuntap_error);
 
     sb_reprintf(&conn->request,
                 "{"
