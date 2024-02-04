@@ -258,13 +258,17 @@ void conn_close(conn_t *conn) {
 }
 
 void conn_dump(strbuf_t **buf, conn_t *conn) {
+    // different arch have different sizes for time_t,
+    // so to avoid needing different format strings, we just cheat
+    long long int activity = conn->activity;
+
     sb_reprintf(
         buf,
-        "%i:%i@%i;%li ",
+        "%i:%i@%i;%lli ",
         conn->fd,
         conn->state,
         conn->reply_sendpos,
-        conn->activity
+        activity
     );
 
     if (conn->request) {
