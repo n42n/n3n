@@ -911,8 +911,6 @@ static void render_metrics_page (struct n3n_runtime_data *eee, conn_t *conn) {
 static void render_index_page (struct n3n_runtime_data *eee, conn_t *conn) {
     // TODO:
     // - could allow overriding of built in text with an external file
-    // - there is a race condition if multiple users are fetching the
-    //   page and have partial writes (same for render_script_page)
     conn->reply = &management_index;
     generate_http_headers(conn, "text/html", 200);
 }
