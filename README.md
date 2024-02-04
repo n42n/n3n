@@ -28,14 +28,14 @@ compatiblilty with that.
 - Any new self-contained tools or modules are licensed GPL-2.0-only.
 - Existing code is licensed GPL-3-only.
 - There are multiple distinct copyright holders throughout the codebase.
-- There is no Contributor Licence Agreement and thus there is no single body that
-  can take ownership of the code and/or change the licensing.
+- There is no Contributor Licence Agreement and thus there is no single body
+  that can take ownership of the code and/or change the licensing.
 
 ## Quick Setup
 
-Beward that while Debian (and those based on it) Linux distributions do appear
-to provide n2n as a package, it is based on an antique version and is not
-compatible with this.
+Beware that while the Debian distribution (and those based on it) do appear
+to provide n2n as a package, it is based on the antique 1.2 version from 2008
+and is not compatible with this version.
 
 Alternatively, up-to-date packages for most distributions are available as
 part of the [latest release](https://github.com/n42n/n3n/releases/latest).
@@ -43,22 +43,34 @@ part of the [latest release](https://github.com/n42n/n3n/releases/latest).
 On host1 run:
 
 ```sh
-$ sudo edge -c mynetwork -k mysecretpass -a 192.168.100.1 -f -l supernode.ntop.org:7777 start
+$ sudo edge start \
+    -c mynetwork \
+    -k mysecretpass \
+    -a 192.168.100.1 \
+    -f \
+    -l supernode.ntop.org:7777
 ```
 
 On host2 run:
 
 ```sh
-$ sudo edge -c mynetwork -k mysecretpass -a 192.168.100.2 -f -l supernode.ntop.org:7777 start
+$ sudo edge start \
+    -c mynetwork \
+    -k mysecretpass \
+    -a 192.168.100.2 \
+    -f \
+    -l supernode.ntop.org:7777
 ```
 
-Now the two hosts can ping each other.
+Now the two hosts can ping each other.  For a longer-term setup, we suggest
+you use a config file with the settings.
 
-**IMPORTANT** It is strongly advised to choose a custom community name (`-c`)
-and a secret encryption key (`-k`) in order to prevent other users from
-connecting to your computer. For the privacy of your data sent and to reduce
-the server load of `supernode.ntop.org`, it is also suggested to set up a
-custom supernode as explained below.
+**IMPORTANT** It is strongly advised to choose a custom community name (the
+`community.name` option) and a secret encryption key (the `community.key`
+option) in order to prevent other users from connecting to your computer. For
+the privacy of your data sent and to reduce the server load of
+`supernode.ntop.org`, it is also suggested to set up a custom supernode as
+explained below.
 
 
 ## Setting up a Custom Supernode
@@ -70,14 +82,16 @@ below) on your firewall (usually `iptables`).
 1. Install the n3n package
 2. Edit `/etc/n3n/supernode.conf` and add the following:
    ```
-   -p=1234
+   [connection]
+   bind=1234
    ```
 3. Start the supernode service with `sudo systemctl start supernode`
 4. Optionally enable supernode start on boot: `sudo systemctl enable supernode`
 
 Now the supernode service should be up and running on port 1234. On your edge
 nodes you can now specify `-l your_supernode_ip:1234` to use it. All the edge
-nodes must use the same supernode.
+nodes must use the same supernode (or be part of the same
+[supernode federation](doc/Federation.md))
 
 
 ## Manual Compilation
@@ -93,7 +107,8 @@ make
 make install
 ```
 
-For Windows, MacOS, optimizations and general building options, please check out [Building documentation](doc/Building.md) for compilation and running.
+For Windows, MacOS, optimizations and general building options, please check
+out [Building documentation](doc/Building.md) for compilation and running.
 
 **IMPORTANT** It is generally recommended to use the [latest stable
 release](https://github.com/n42n/n3n/releases). Please note that the current
@@ -106,14 +121,17 @@ _Issues_ section is appreciated.
 
 ## Security Considerations
 
-When payload encryption is enabled (provide a key using `-k`), the supernode will not be able to decrypt
-the traffic exchanged between two edge nodes but it will know that edge A is talking with edge B.
+When payload encryption is enabled (provide a key using `community.key`), the
+supernode will not be able to decrypt the traffic exchanged between two edge
+nodes but it will know that edge A is talking with edge B.
 
-The choice of encryption schemes that can be applied to payload has recently been enhanced. Please have
-a look at [Crypto description](doc/Crypto.md) for a quick comparison chart to help make a choice. n2n edge nodes use 
-AES encryption by default. Other ciphers can be chosen using the `-A_` option.
+There are multiple encryption options to choose from. Please have a look at
+[Crypto description](doc/Crypto.md) for a quick comparison chart to help make a
+choice. n3n edge nodes use AES encryption by default. Other ciphers can be
+chosen using the `community.cipher` option.
 
-A benchmark of the encryption methods is available when compiled from source with `tools/n2n-benchmark`.
+A benchmark of the encryption methods is available when compiled from source
+with `tools/n2n-benchmark`.
 
 The header which contains some metadata like the virtual MAC address of the
 edge nodes, their IP address, their real hostname and the community name
@@ -123,25 +141,29 @@ option to the edges.
 
 ## Advanced Configuration
 
-More information about communities, support for multiple supernodes, routing, traffic restrictions and on how to run an edge as 
-a service is available in the [more detailed documentation](doc/Advanced.md).
+More information about communities, support for multiple supernodes, routing,
+traffic restrictions and on how to run an edge as a service is available in the
+[more detailed documentation](doc/Advanced.md).
 
 
 ## Contribution
 
 You can contribute to n2n in various ways:
 
-- Update an [open issue](https://github.com/n42n/n3n/issues) or create a new one with detailed information
+- Update an [open issue](https://github.com/n42n/n3n/issues) or create a new
+  one with detailed information
 - Propose new features
 - Improve the documentation
 - Provide pull requests with enhancements
 
-For details about the internals of n2n check out the [Hacking guide](doc/Hacking.md).
+For details about the internals of n2n check out the [Hacking
+guide](doc/Hacking.md).
 
 
 ## Further Readings and Related Projects
 
-Answers to frequently asked questions can be found in our [FAQ document](doc/Faq.md).
+Answers to frequently asked questions can be found in our [FAQ
+document](doc/Faq.md).
 
 ---
 
