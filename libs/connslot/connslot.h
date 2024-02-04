@@ -52,14 +52,14 @@ typedef struct slots {
 } slots_t;
 
 void conn_zero(conn_t *);
-int conn_init(conn_t *);
+int conn_init(conn_t *, size_t, size_t);
 void conn_read(conn_t *);
 ssize_t conn_write(conn_t *);
 int conn_iswriter(conn_t *);
 void conn_close(conn_t *);
 
 void slots_free(slots_t *slots);
-slots_t *slots_malloc(int nr_slots);
+slots_t *slots_malloc(int nr_slots, size_t, size_t);
 int slots_listen_tcp(slots_t *, int, bool);
 int slots_listen_unix(slots_t *, char *);
 void slots_listen_close(slots_t *);

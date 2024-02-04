@@ -567,7 +567,7 @@ int main (int argc, char * argv[]) {
     }
 #endif
 
-    sss_node.mgmt_slots = slots_malloc(5);
+    sss_node.mgmt_slots = slots_malloc(5, 3000, 500);
     if(!sss_node.mgmt_slots) {
         abort();
     }

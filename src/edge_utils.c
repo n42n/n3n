@@ -3252,7 +3252,7 @@ int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
-    eee->mgmt_slots = slots_malloc(5);
+    eee->mgmt_slots = slots_malloc(5, 3000, 500);
     if(!eee->mgmt_slots) {
         abort();
     }

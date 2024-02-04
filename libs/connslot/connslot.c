@@ -74,10 +74,9 @@ void conn_zero(conn_t *conn) {
     }
 }
 
-int conn_init(conn_t *conn) {
-    // TODO: make capacity flexible
-    conn->request = sb_malloc(48, 1000);
-    conn->reply_header = sb_malloc(48, 1000);
+int conn_init(conn_t *conn, size_t request_max, size_t reply_header_max) {
+    conn->request = sb_malloc(48, request_max);
+    conn->reply_header = sb_malloc(48, reply_header_max);
 
     conn_zero(conn);
 
@@ -255,6 +254,7 @@ int conn_iswriter(conn_t *conn) {
 void conn_close(conn_t *conn) {
     closesocket(conn->fd);
     conn_zero(conn);
+    // TODO: could shrink the size here, maybe in certain circumstances?
 }
 
 void conn_dump(strbuf_t **buf, conn_t *conn) {
@@ -336,7 +336,7 @@ void slots_free(slots_t *slots) {
     free(slots);
 }
 
-slots_t *slots_malloc(int nr_slots) {
+slots_t *slots_malloc(int nr_slots, size_t req_max, size_t reply_header_max) {
     size_t bytes = sizeof(slots_t) + nr_slots * sizeof(conn_t);
     slots_t *slots = malloc(bytes);
     if (!slots) {
@@ -355,7 +355,7 @@ slots_t *slots_malloc(int nr_slots) {
 
     int r = 0;
     for (int i=0; i < nr_slots; i++) {
-        r += conn_init(&slots->conn[i]);
+        r += conn_init(&slots->conn[i], req_max, reply_header_max);
     }
 
     if (r!=0) {

@@ -62,7 +62,7 @@ void send_str(int fd, char *s) {
 
 #define NR_SLOTS 5
 void httpd_test(int port) {
-    slots_t *slots = slots_malloc(NR_SLOTS);
+    slots_t *slots = slots_malloc(NR_SLOTS, 1000, 1000);
     if (!slots) {
         abort();
     }
