@@ -464,31 +464,30 @@ typedef struct n2n_edge_conf {
     struct sockaddr *bind_address;                   /**< The address to bind to if provided */
     n2n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
     uint32_t mgmt_port;     // TODO: ports are actually uint16_t
-    bool connect_tcp;                                /** connection to supernode 0 = UDP; 1 = TCP */
-    uint8_t sn_selection_strategy;                  /**< encodes currently chosen supernode selection strategy. */
-    n2n_auth_t auth;
     uint32_t metric;                                /**< Network interface metric (Windows only). */
+    n2n_auth_t auth;
     filter_rule_t            *network_traffic_filter_rules;
     char * mgmt_password;
     uint32_t userid;
     uint32_t groupid;
+    bool connect_tcp;                                /** connection to supernode 0 = UDP; 1 = TCP */
+    uint8_t sn_selection_strategy;                  /**< encodes currently chosen supernode selection strategy. */
     bool daemon;
     uint8_t number_max_sn_pings;                    /**< Number of maximum concurrently allowed supernode pings. */
     char device_mac[N2N_MACNAMSIZ];
+    bool is_edge;
+    bool is_supernode;
+    char *sessionname;              // the name of this session
+    char *sessiondir;              // path to use for session files
     int mtu;
     devstr_t tuntap_dev_name;
     struct n2n_ip_subnet tuntap_v4;
-    char *sessionname;              // the name of this session
-    char *sessiondir;              // path to use for session files
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
-
-    bool is_edge;
-    bool is_supernode;
 
     // Supernode specific config
     bool spoofing_protection;                                /* false if overriding MAC/IP spoofing protection (cli option '-M') */
-    n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
     char *community_file;
+    n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
 } n2n_edge_conf_t;
 
 
@@ -543,18 +542,17 @@ struct n3n_runtime_data {
     n2n_trans_op_t transop_lzo;                                          /**< The transop for LZO  compression */
     n2n_trans_op_t transop_zstd;                                         /**< The transop for ZSTD compression */
     n2n_edge_callbacks_t cb;                                             /**< API callbacks */
-    void                             *user_data;                         /**< Can hold user data */
     SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_data;
 
     /* Sockets */
     /* supernode socket is in        eee->curr_sn->sock (of type n2n_sock_t) */
-    int sock;
     slots_t *mgmt_slots;
+    int sock;
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    n2n_sock_t multicast_peer;                                           /**< Multicast peer group (for local edges) */
     int udp_multicast_sock;                                              /**< socket for local multicast registrations. */
-    int multicast_joined;                                                /**< 1 if the group has been joined.*/
+    n2n_sock_t multicast_peer;                                           /**< Multicast peer group (for local edges) */
+    bool multicast_joined;                                               /**< 1 if the group has been joined.*/
 #endif
 
     /* Peers */
@@ -581,17 +579,17 @@ struct n3n_runtime_data {
     network_traffic_filter_t         *network_traffic_filter;
 
     // Supernode specific data
-    n2n_mac_t mac_addr;
     int tcp_sock;                                           /* auxiliary socket for optional TCP connections */
+    n2n_mac_t mac_addr;
+    bool lock_communities;                                    /* If true, only loaded and matching communities can be used. */
+    uint32_t dynamic_key_time;                                /* UTC time of last dynamic key generation (second accuracy) */
     n2n_tcp_connection_t                   *tcp_connections;/* list of established TCP connections */
     n2n_ip_subnet_t min_auto_ip_net;                        /* Address range of auto_ip service. */
     n2n_ip_subnet_t max_auto_ip_net;                        /* Address range of auto_ip service. */
-    int lock_communities;                                    /* If true, only loaded and matching communities can be used. */
     struct sn_community                    *communities;
     struct sn_community_regular_expression *rules;
     struct sn_community                    *federation;
     n2n_private_public_key_t private_key;                     /* private federation key derived from federation name */
-    uint32_t dynamic_key_time;                                /* UTC time of last dynamic key generation (second accuracy) */
 };
 
 typedef struct node_supernode_association {

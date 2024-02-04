@@ -1223,7 +1223,7 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
             } else {
                 traceEvent(TRACE_NORMAL, "successfully joined multicast group %s:%u",
                            N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
-                eee->multicast_joined = 1;
+                eee->multicast_joined = true;
             }
         }
     }

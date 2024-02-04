@@ -84,9 +84,9 @@ enum n3n_subcmd_result_type {
     n3n_subcmd_result_ok
 };
 struct n3n_subcmd_result {
-    int argc;
     char **argv;
     char *sessionname;
+    int argc;
     enum n3n_subcmd_result_type type;
     struct n3n_subcmd_def *subcmd;
 };

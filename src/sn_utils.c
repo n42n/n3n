@@ -481,7 +481,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     calculate_dynamic_keys(sss);
 
     // no new communities will be allowed
-    sss->lock_communities = 1;
+    sss->lock_communities = true;
 
     return 0;
 }
