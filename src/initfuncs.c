@@ -7,6 +7,7 @@
 
 // prototype any internal (non-public) initfuncs
 void n3n_initfuncs_conffile_defs ();
+void n3n_initfuncs_metrics ();
 void n3n_initfuncs_peer_info ();
 void n3n_initfuncs_transform ();
 
@@ -17,6 +18,7 @@ void n3n_initfuncs () {
     //   them externally or the linker will never link that object
 
     n3n_initfuncs_conffile_defs();
+    n3n_initfuncs_metrics();
     n3n_initfuncs_peer_info();
     n3n_initfuncs_transform();
 }

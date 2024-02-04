@@ -14,10 +14,10 @@
 
 // Tests are silent and return if everything is OK, or abort if issues
 void strbuf_tests() {
-    strbuf_t *p = sb_malloc(10);
+    strbuf_t *p = sb_malloc(9,10);
     assert(p);
     assert(p->wr_pos==0);
-    assert(p->capacity==10);
+    assert(p->capacity==9);
     assert(p->capacity_max==10);
 
     int r;
@@ -84,6 +84,8 @@ void strbuf_tests() {
     assert(p->wr_pos==14);
     assert(p->capacity==15);
     assert(!strncmp(p->str, "0x0a0x14Z01024", 15));
+
+    // TODO: could assert on the metrics counter values too
 
     free(p);
 }

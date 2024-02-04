@@ -58,3 +58,48 @@ void n3n_metrics_render (strbuf_t **reply) {
         }
     }
 }
+
+/**********************************************************/
+// Register some metrics captured by external libraries
+
+static struct n3n_metrics_item strbuf_metrics_items[] = {
+    {
+        .name = "zero",
+        .offset = offsetof(struct strbuf_metrics, zero),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "alloc",
+        .offset = offsetof(struct strbuf_metrics, alloc),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "realloc_full",
+        .offset = offsetof(struct strbuf_metrics, realloc_full),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "append_full",
+        .offset = offsetof(struct strbuf_metrics, append_full),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "append_trunc",
+        .offset = offsetof(struct strbuf_metrics, append_trunc),
+        .size = n3n_metrics_uint32,
+    },
+    { },
+};
+
+static struct n3n_metrics_module strbuf_metrics_module = {
+    .name = "strbuf",
+    .data = &strbuf_metrics,
+    .item = strbuf_metrics_items,
+    .enabled = true,
+};
+
+/**********************************************************/
+
+void n3n_initfuncs_metrics() {
+    n3n_metrics_register(&strbuf_metrics_module);
+}

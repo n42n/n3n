@@ -79,8 +79,7 @@ void httpd_test(int port) {
     }
 #endif
 
-    strbuf_t *reply = sb_malloc(48);
-    reply->capacity_max = 1000;
+    strbuf_t *reply = sb_malloc(48,1000);
     sb_printf(reply, "Hello World\n");
 
 #ifndef _WIN32

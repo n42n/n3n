@@ -45,13 +45,13 @@ void sb_zero(strbuf_t *p) {
  * @param size is the storage capacity to allocate
  * @return the allocated buffer or NULL
  */
-strbuf_t *sb_malloc(size_t size) {
+strbuf_t *sb_malloc(size_t size, size_t size_max) {
     STRBUF_METRIC(alloc);
     size_t headersize = sizeof(strbuf_t);
     strbuf_t *p = malloc(headersize+size);
     if (p) {
         p->capacity = size;
-        p->capacity_max = size;
+        p->capacity_max = size_max;
         sb_zero(p);
     }
     return p;

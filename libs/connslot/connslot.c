@@ -76,10 +76,8 @@ void conn_zero(conn_t *conn) {
 
 int conn_init(conn_t *conn) {
     // TODO: make capacity flexible
-    conn->request = sb_malloc(48);
-    conn->request->capacity_max = 1000;
-    conn->reply_header = sb_malloc(48);
-    conn->reply_header->capacity_max = 1000;
+    conn->request = sb_malloc(48, 1000);
+    conn->reply_header = sb_malloc(48, 1000);
 
     conn_zero(conn);
 
