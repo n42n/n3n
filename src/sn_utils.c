@@ -2917,6 +2917,9 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
 
         }
 
+        // check for timed out slots
+        slots_closeidle(slots);
+
         // If anything we recieved caused us to stop..
         if(!(*sss->keep_running))
             break;

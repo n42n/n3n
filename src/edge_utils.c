@@ -2939,10 +2939,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         rc = select(max_sock + 1, &readers, &writers, NULL, &wait_time);
         now = time(NULL);
 
-        if(rc == 0) {
-            // check for timed out slots
-            slots_closeidle(slots);
-        }
         if(rc > 0) {
             // any or all of the FDs could have input; check them all
 
@@ -3019,6 +3015,9 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 }
             }
         }
+
+        // check for timed out slots
+        slots_closeidle(slots);
 
         // If anything we recieved caused us to stop..
         if(!(*eee->keep_running))
