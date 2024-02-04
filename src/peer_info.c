@@ -48,7 +48,7 @@ static struct n3n_metrics_module metrics_module = {
     .enabled = true,
 };
 
-void n3n_initfuncs_peer_info() {
+void n3n_initfuncs_peer_info () {
     n3n_metrics_register(&metrics_module);
 }
 
@@ -80,7 +80,7 @@ struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
     return peer;
 }
 
-void peer_info_free(struct peer_info *p) {
+void peer_info_free (struct peer_info *p) {
     metrics.free++;
     free(p);
 }

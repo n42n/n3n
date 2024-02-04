@@ -16,7 +16,7 @@ void n3n_metrics_register (struct n3n_metrics_module *module) {
     registered_metrics = module;
 }
 
-static void metric_stringify(strbuf_t **buf, const struct n3n_metrics_item item, void *data) {
+static void metric_stringify (strbuf_t **buf, const struct n3n_metrics_item item, void *data) {
     if(item.offset < 0) {
         sb_reprintf(buf, "offset<0");
         return;
@@ -105,6 +105,6 @@ static struct n3n_metrics_module strbuf_metrics_module = {
 
 /**********************************************************/
 
-void n3n_initfuncs_metrics() {
+void n3n_initfuncs_metrics () {
     n3n_metrics_register(&strbuf_metrics_module);
 }
