@@ -27,10 +27,11 @@ static void metric_stringify (strbuf_t **buf, const struct n3n_metrics_item item
         case n3n_metrics_invalid:
             sb_reprintf(buf, "n3n_metrics_invalid");
             return;
-        case n3n_metrics_uint32:
+        case n3n_metrics_uint32: {
             uint32_t *val = (uint32_t *)valvoid;
             sb_reprintf(buf, "%u", *val);
             return;
+        }
     }
 }
 
