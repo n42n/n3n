@@ -11,6 +11,7 @@
 #include <connslot/jsonrpc.h>   // for jsonrpc_t, jsonrpc_parse
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/metrics.h> // for n3n_metrics_render
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community
 #include <pearson.h>     // for pearson_hash_64
@@ -896,6 +897,14 @@ static void render_todo_page (struct n3n_runtime_data *eee, conn_t *conn) {
     generate_http_headers(conn, "text/plain", 501);
 }
 
+static void render_metrics_page (struct n3n_runtime_data *eee, conn_t *conn) {
+    n3n_metrics_render(&conn->request);
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+    generate_http_headers(conn, "text/plain", 501);
+}
+
 #include "management_index.html.h"
 
 // Generate the output for the human user interface
@@ -929,7 +938,7 @@ static const struct mgmt_api_endpoint api_endpoints[] = {
     { "GET / ", render_index_page, "Human interface" },
     { "GET /events/", event_subscribe, "Subscribe to events" },
     { "GET /help ", render_help_page, "Describe available endpoints" },
-    { "GET /metrics ", render_todo_page, "Fetch metrics data" },
+    { "GET /metrics ", render_metrics_page, "Fetch metrics data" },
     { "GET /script.js ", render_script_page, "javascript helpers" },
     { "GET /status ", render_todo_page, "Quick health check" },
 };

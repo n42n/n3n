@@ -1,0 +1,60 @@
+/**
+ * Copyright (C) 2024 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
+ *
+ * code for generically displaying and enumerating metrics
+ */
+
+#include <connslot/strbuf.h>
+#include <n3n/metrics.h>
+#include <stdint.h>
+
+static struct n3n_metrics_module *registered_metrics;
+
+void n3n_metrics_register (struct n3n_metrics_module *module) {
+    module->next = registered_metrics;
+    registered_metrics = module;
+}
+
+static void metric_stringify(strbuf_t **buf, const struct n3n_metrics_item item, void *data) {
+    if(item.offset < 0) {
+        sb_reprintf(buf, "offset<0");
+        return;
+    }
+    void *valvoid = (char *)data + item.offset;
+
+    switch(item.size) {
+        case n3n_metrics_invalid:
+            sb_reprintf(buf, "n3n_metrics_invalid");
+            return;
+        case n3n_metrics_uint32:
+            uint32_t *val = (uint32_t *)valvoid;
+            sb_reprintf(buf, "%u", *val);
+            return;
+    }
+}
+
+void n3n_metrics_render (strbuf_t **reply) {
+    sb_zero(*reply);
+    sb_reprintf(reply, "Temporary testing format for metric output!\n");
+
+    struct n3n_metrics_module *module;
+    for(module = registered_metrics; module; module = module->next) {
+        sb_reprintf(reply, "[%s]\n", module->name);
+        if(!module->item) {
+            continue;
+        }
+        if(!module->data) {
+            continue;
+        }
+        if(!module->enabled) {
+            continue;
+        }
+
+        for(int i = 0; module->item[i].name; i++) {
+            sb_reprintf(reply, "%s=", module->item[i].name);
+            metric_stringify(reply, module->item[i], module->data);
+            sb_reprintf(reply, "\n");
+        }
+    }
+}

@@ -28,6 +28,8 @@ enum __attribute__((__packed__)) conn_state {
     CONN_READING,
     CONN_READY,
     CONN_SENDING,
+    CONN_CLOSED,
+    CONN_ERROR,
 };
 
 typedef struct conn {

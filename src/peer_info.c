@@ -8,9 +8,51 @@
 #include <n2n.h>        // for time_stamp
 #include <n2n_define.h> // for TIME_STAMP_FRAME
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/metrics.h> // for traceEvent
 #include <stdbool.h>
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
+
+static struct metrics {
+    uint32_t init;
+    uint32_t alloc;
+    uint32_t free;
+} metrics;
+
+static struct n3n_metrics_item metrics_items[] = {
+    {
+        .name = "alloc",
+        .desc = "peer_info_malloc() is called",
+        .offset = offsetof(struct metrics, alloc),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "free",
+        .desc = "peer_info_free() is called",
+        .offset = offsetof(struct metrics, free),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "init",
+        .desc = "peer_info_init() is called",
+        .offset = offsetof(struct metrics, init),
+        .size = n3n_metrics_uint32,
+    },
+    { },
+};
+
+static struct n3n_metrics_module metrics_module = {
+    .name = "peer_info",
+    .data = &metrics,
+    .item = metrics_items,
+    .enabled = true,
+};
+
+void n3n_initfuncs_peer_info() {
+    n3n_metrics_register(&metrics_module);
+}
+
+/* ************************************** */
 
 // returns an initial time stamp for use with replay protection
 uint64_t initial_time_stamp (void) {
@@ -19,12 +61,14 @@ uint64_t initial_time_stamp (void) {
 }
 
 void peer_info_init (struct peer_info *peer, const n2n_mac_t mac) {
+    metrics.init++;
     peer->purgeable = true;
     peer->last_valid_time_stamp = initial_time_stamp();
     memcpy(peer->mac_addr, mac, sizeof(n2n_mac_t));
 }
 
 struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
+    metrics.alloc++;
     struct peer_info *peer;
     peer = (struct peer_info*)calloc(1, sizeof(struct peer_info));
     if(!peer) {
@@ -34,6 +78,11 @@ struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
     peer_info_init(peer, mac);
 
     return peer;
+}
+
+void peer_info_free(struct peer_info *p) {
+    metrics.free++;
+    free(p);
 }
 
 /** Purge old items from the peer_list, eventually close the related socket, and
@@ -64,7 +113,7 @@ size_t purge_peer_list (struct peer_info **peer_list,
             mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_PURGE,scan);
             /* FIXME: generates events for more than just p2p */
             retval++;
-            free(scan);
+            peer_info_free(scan);
         }
     }
 
@@ -85,7 +134,7 @@ size_t clear_peer_list (struct peer_info ** peer_list) {
         mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_CLEAR,scan);
         /* FIXME: generates events for more than just p2p */
         retval++;
-        free(scan);
+        peer_info_free(scan);
     }
 
     return retval;
@@ -123,7 +172,7 @@ int find_and_remove_peer (struct peer_info **head, const n2n_mac_t mac) {
     HASH_FIND_PEER(*head, mac, peer);
     if(peer) {
         HASH_DEL(*head, peer);
-        free(peer);
+        peer_info_free(peer);
         return(1);
     }
 

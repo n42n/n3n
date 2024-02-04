@@ -103,8 +103,19 @@ void conn_read(conn_t *conn) {
     ssize_t size = sb_read(conn->fd, conn->request);
 
     if (size == 0) {
-        // TODO: confirm what other times we can get zero on a ready fd
-        conn->state = CONN_EMPTY;
+        // As we are dealing with non blocking sockets, and have made a non
+        // zero-sized read request, the only time we get a zero back is if the
+        // far end has closed
+        conn->state = CONN_CLOSED;
+        return;
+    }
+
+    if (size == -1) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            conn->state = CONN_EMPTY;
+            return;
+        }
+        conn->state = CONN_ERROR;
         return;
     }
 
@@ -557,21 +568,24 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
             // possibly sets state to CONN_READY
         }
 
-        // After a read, we could be CONN_EMPTY or CONN_READY
-        // we reach state CONN_READY once there is a full request buf
-        if (slots->conn[i].state == CONN_READY) {
-            nr_ready++;
-            // TODO:
-            // - parse request
-            // - possibly callback to generate reply
-        }
-
-        // We cannot have got here if it started as an empty slot, so
-        // it must have transitioned to empty - close the slot
-        if (slots->conn[i].state == CONN_EMPTY) {
-            slots->nr_open--;
-            conn_close(&slots->conn[i]);
-            continue;
+        switch (slots->conn[i].state) {
+            case CONN_READY:
+                // After a read, we could be CONN_EMPTY or CONN_READY
+                // we reach state CONN_READY once there is a full request buf
+                nr_ready++;
+                // TODO:
+                // - parse request
+                // - possibly callback to generate reply
+                break;
+            case CONN_ERROR:
+                // Slots with errors are dead to us
+                /* fallsthrough */
+            case CONN_CLOSED:
+                slots->nr_open--;
+                conn_close(&slots->conn[i]);
+                continue;
+            default:
+                break;
         }
 
         if (FD_ISSET(slots->conn[i].fd, writers)) {

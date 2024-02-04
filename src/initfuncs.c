@@ -8,6 +8,7 @@
 // prototype any internal (non-public) initfuncs
 void n3n_initfuncs_conffile_defs ();
 void n3n_initfuncs_transform ();
+void n3n_initfuncs_peer_info ();
 
 void n3n_initfuncs () {
     // TODO:
@@ -17,4 +18,5 @@ void n3n_initfuncs () {
 
     n3n_initfuncs_conffile_defs();
     n3n_initfuncs_transform();
+    n3n_initfuncs_peer_info();
 }
