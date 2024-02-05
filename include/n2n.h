@@ -117,7 +117,6 @@ char* inaddrtoa (ipstr_t out, struct in_addr addr);
 char* intoa (uint32_t addr, char* buf, uint16_t buf_len);
 uint32_t bitlen2mask (uint8_t bitlen);
 uint8_t mask2bitlen (uint32_t mask);
-int str2mac (uint8_t * outmac /* 6 bytes */, const char * s);
 uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_broadcast (const n2n_mac_t dest_mac);
 char* msg_type2str (uint16_t msg_type);

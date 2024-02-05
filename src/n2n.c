@@ -282,6 +282,7 @@ void print_n3n_version () {
 
 /* *********************************************** */
 
+// TODO: move to a strings helper source file
 static uint8_t hex2byte (const char * s) {
 
     char tmp[3];
@@ -292,6 +293,7 @@ static uint8_t hex2byte (const char * s) {
     return((uint8_t)strtol(tmp, NULL, 16));
 }
 
+// TODO: move to a ethernet/strings helper source file
 extern int str2mac (uint8_t * outmac /* 6 bytes */, const char * s) {
 
     size_t i;
