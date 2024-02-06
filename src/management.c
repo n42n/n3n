@@ -921,6 +921,21 @@ static void render_script_page (struct n3n_runtime_data *eee, conn_t *conn) {
     generate_http_headers(conn, "text/javascript", 200);
 }
 
+static void render_debug_slots (struct n3n_runtime_data *eee, conn_t *conn) {
+    int status;
+    sb_zero(conn->request);
+    if(eee->conf.enable_debug_pages) {
+        slots_dump(&conn->request, eee->mgmt_slots);
+        status = 200;
+    } else {
+        sb_printf(conn->request, "enable_debug_pages is false\n");
+        status = 403;
+    }
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+    generate_http_headers(conn, "text/plain", status);
+}
+
 static void render_help_page (struct n3n_runtime_data *eee, conn_t *conn);
 
 struct mgmt_api_endpoint {
@@ -932,6 +947,7 @@ struct mgmt_api_endpoint {
 static const struct mgmt_api_endpoint api_endpoints[] = {
     { "POST /v1 ", handle_jsonrpc, "JsonRPC" },
     { "GET / ", render_index_page, "Human interface" },
+    { "GET /debug/slots ", render_debug_slots, "Internal slots dump" },
     { "GET /events/", event_subscribe, "Subscribe to events" },
     { "GET /help ", render_help_page, "Describe available endpoints" },
     { "GET /metrics ", render_metrics_page, "Fetch metrics data" },

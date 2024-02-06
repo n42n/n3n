@@ -275,6 +275,16 @@ static struct n3n_conf_option section_logging[] = {
 
 static struct n3n_conf_option section_management[] = {
     {
+        .name = "enable_debug_pages",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, enable_debug_pages),
+        .desc = "Allow access to debugging management pages",
+        .help = "Some of the management interface provided information that "
+                "is only intended for use during debugging.  To reduce the "
+                "information exposed normally, these pages are not enabled "
+                "by default.",
+    },
+    {
         .name = "password",
         .type = n3n_conf_strdup,
         .offset = offsetof(n2n_edge_conf_t, mgmt_password),

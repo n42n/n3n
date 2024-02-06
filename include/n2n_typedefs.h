@@ -464,6 +464,7 @@ typedef struct n2n_edge_conf {
     struct sockaddr *bind_address;                   /**< The address to bind to if provided */
     n2n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
     uint32_t mgmt_port;     // TODO: ports are actually uint16_t
+    bool enable_debug_pages;
     uint32_t metric;                                /**< Network interface metric (Windows only). */
     n2n_auth_t auth;
     filter_rule_t            *network_traffic_filter_rules;
