@@ -317,6 +317,14 @@ static struct n3n_conf_option section_supernode[] = {
                 "See the documentation for the file format description.",
     },
     {
+        .name = "macaddr",
+        .type = n3n_conf_macaddr,
+        .offset = offsetof(n2n_edge_conf_t, sn_mac_addr),
+        .desc = "fixed MAC address for the supernode",
+        .help = "This is used as an identifier for the supernode in protocol "
+                "packets.  If not configed, a random value will be selected.",
+    },
+    {
         .name = "spoofing_protection",
         .type = n3n_conf_bool,
         .offset = offsetof(n2n_edge_conf_t, spoofing_protection),

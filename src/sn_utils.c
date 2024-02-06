@@ -736,7 +736,7 @@ static int try_forward (struct n3n_runtime_data * sss,
             } else {
                 // forwarding packet to all federated supernodes
                 traceEvent(TRACE_DEBUG, "unknown mac address, broadcasting packet to all federated supernodes");
-                try_broadcast(sss, NULL, cmn, sss->mac_addr, from_supernode, pktbuf, pktsize, now);
+                try_broadcast(sss, NULL, cmn, sss->conf.sn_mac_addr, from_supernode, pktbuf, pktsize, now);
             }
         } else {
             traceEvent(TRACE_DEBUG, "unknown mac address in packet from a supernode, dropping the packet");
@@ -855,9 +855,9 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     conf->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 
     /* Random MAC address */
-    memrnd(sss->mac_addr, N2N_MAC_SIZE);
-    sss->mac_addr[0] &= ~0x01; /* Clear multicast bit */
-    sss->mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
+    memrnd(sss->conf.sn_mac_addr, N2N_MAC_SIZE);
+    sss->conf.sn_mac_addr[0] &= ~0x01; /* Clear multicast bit */
+    sss->conf.sn_mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
     conf->mgmt_password = N3N_MGMT_PASSWORD;
 
@@ -1500,7 +1500,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             reg.key_time = sss->dynamic_key_time;
 
             idx = 0;
-            encode_mac(reg.edgeMac, &idx, sss->mac_addr);
+            encode_mac(reg.edgeMac, &idx, sss->conf.sn_mac_addr);
 
             idx = 0;
             encode_REGISTER_SUPER(pktbuf, &idx, &cmn, &reg);
@@ -2041,7 +2041,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 }
             }
 
-            if(!memcmp(reg.edgeMac, sss->mac_addr, sizeof(n2n_mac_t))) {
+            if(!memcmp(reg.edgeMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t))) {
                 traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER from self, ignoring");
                 return -1;
             }
@@ -2052,7 +2052,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             memcpy(cmn2.community, cmn.community, sizeof(n2n_community_t));
 
             ack.cookie = reg.cookie;
-            memcpy(ack.srcMac, sss->mac_addr, sizeof(n2n_mac_t));
+            memcpy(ack.srcMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t));
 
             if(!comm->is_federation) { /* alternatively, do not send zero tap ip address in federation REGISTER_SUPER */
                 if((reg.dev_addr.net_addr == 0) || (reg.dev_addr.net_addr == 0xFFFFFFFF) || (reg.dev_addr.net_bitlen == 0) ||
@@ -2495,7 +2495,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 pi.aflags = 0;
                 memcpy(pi.mac, query.targetMac, sizeof(n2n_mac_t));
-                memcpy(pi.srcMac, sss->mac_addr, sizeof(n2n_mac_t));
+                memcpy(pi.srcMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t));
 
                 memcpy(&pi.sock, &sender, sizeof(sender));
 

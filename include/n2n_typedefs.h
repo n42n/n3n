@@ -489,6 +489,7 @@ typedef struct n2n_edge_conf {
     bool spoofing_protection;                                /* false if overriding MAC/IP spoofing protection (cli option '-M') */
     char *community_file;
     n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
+    n2n_mac_t sn_mac_addr;
 } n2n_edge_conf_t;
 
 

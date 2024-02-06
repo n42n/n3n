@@ -386,6 +386,16 @@ try_uint32:
             // just try interpreting the string value as an integer
             goto try_uint32;
         }
+        case n3n_conf_macaddr: {
+            n2n_mac_t *val = (n2n_mac_t *)valvoid;
+            str2mac((uint8_t *)val, value);
+
+            // clear multicast bit
+            *val[0] &= ~0x01;
+            // set locally-assigned bit
+            *val[0] |= 0x02;
+            return 0;
+        }
     }
     return -1;
 }
@@ -576,6 +586,14 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             }
             return NULL;
         }
+        case n3n_conf_macaddr: {
+            n2n_mac_t *val = (n2n_mac_t *)valvoid;
+            if(buflen < N2N_MACSTR_SIZE) {
+                return NULL;
+            }
+            macaddr_str(buf, *val);
+            return buf;
+        }
     }
 
     return NULL;
@@ -648,6 +666,10 @@ static int option_storagesize (struct n3n_conf_option *option) {
         }
         case n3n_conf_ip_mode: {
             uint8_t *val = (uint8_t *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_macaddr: {
+            n2n_mac_t *val = (n2n_mac_t *)valvoid;
             return sizeof(*val);
         }
     }

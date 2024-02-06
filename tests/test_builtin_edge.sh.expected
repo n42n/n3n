@@ -39,10 +39,12 @@ verbose=2
 
 ####################
 [management]
+enable_debug_pages=false
 port=0
 
 ####################
 [supernode]
+macaddr=00:00:00:00:00:00
 spoofing_protection=false
 
 ####################

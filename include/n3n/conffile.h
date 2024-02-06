@@ -33,6 +33,7 @@ enum n3n_conf_type {
     n3n_conf_ip_mode,
     n3n_conf_userid,
     n3n_conf_groupid,
+    n3n_conf_macaddr,       // TODO: conf has another macaddr string type
 };
 
 struct n3n_conf_option {

@@ -77,7 +77,6 @@ static const struct n3n_config_getopt option_map[] = {
     { 'c',  "supernode",    "community_file",       NULL },
     { 'f',  "daemon",       "background",           "false" },
     { 'l', NULL, NULL, NULL, "<hostname>:<port>  Set a federated supernode" },
-    { 'm', NULL, NULL, NULL, "<arg>  Hardcode the supernode virtual MAC addr" },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { .optkey = 0 }
 };
@@ -226,18 +225,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", optarg);
                 sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
                 sss->federation->purgeable = false;
-                break;
-            }
-            case 'm': {/* MAC address */
-                // FIXME: needs a generic parser option
-
-                str2mac(sss->mac_addr, optarg);
-
-                // clear multicast bit
-                sss->mac_addr[0] &= ~0x01;
-                // set locally-assigned bit
-                sss->mac_addr[0] |= 0x02;
-
                 break;
             }
 
