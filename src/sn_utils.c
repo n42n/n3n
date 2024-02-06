@@ -784,15 +784,52 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     conf->bind_address = malloc(sizeof(*conf->bind_address));
     memset(conf->bind_address, 0, sizeof(*conf->bind_address));
 
-    struct sockaddr_in *sa = (struct sockaddr_in *)conf->bind_address;
-    sa->sin_family = AF_INET;
-    sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
-    sa->sin_addr.s_addr = htonl(INADDR_ANY);
-
 #ifdef _WIN32
     // Cannot rely on having unix domain sockets on windows
     conf->mgmt_port = N2N_SN_MGMT_PORT;
 #endif
+    conf->mgmt_password = N3N_MGMT_PASSWORD;
+
+    /* Random auth token */
+    conf->auth.scheme = n2n_auth_simple_id;
+    memrnd(conf->auth.token, N2N_AUTH_ID_TOKEN_SIZE);
+    conf->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+
+#ifndef _WIN32
+    struct passwd *pw = NULL;
+
+    // The supernod can run with no additional privs, so the default is
+    // just to run as the user who starts it.
+    // It should not be running as root, so detect that and change the
+    // defaults
+
+    conf->userid = getuid();
+    conf->groupid = getgid();
+    if((conf->userid == 0) || (conf->groupid == 0)) {
+        // Search a couple of usernames for one to use
+        pw = getpwnam("n3n");
+        if(pw == NULL) {
+            pw = getpwnam("nobody");
+        }
+        if(pw != NULL) {
+            // If we find one, use that as our default
+            conf->userid = pw->pw_uid;
+            conf->groupid = pw->pw_gid;
+        }
+    }
+
+#endif
+
+
+    /* Random MAC address */
+    memrnd(sss->conf.sn_mac_addr, N2N_MAC_SIZE);
+    sss->conf.sn_mac_addr[0] &= ~0x01; /* Clear multicast bit */
+    sss->conf.sn_mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
+
+    struct sockaddr_in *sa = (struct sockaddr_in *)conf->bind_address;
+    sa->sin_family = AF_INET;
+    sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
+    sa->sin_addr.s_addr = htonl(INADDR_ANY);
 
     sss->sock = -1;
     sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
@@ -848,43 +885,6 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
         );
 
     n2n_srand(n2n_seed());
-
-    /* Random auth token */
-    conf->auth.scheme = n2n_auth_simple_id;
-    memrnd(conf->auth.token, N2N_AUTH_ID_TOKEN_SIZE);
-    conf->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
-
-    /* Random MAC address */
-    memrnd(sss->conf.sn_mac_addr, N2N_MAC_SIZE);
-    sss->conf.sn_mac_addr[0] &= ~0x01; /* Clear multicast bit */
-    sss->conf.sn_mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
-
-    conf->mgmt_password = N3N_MGMT_PASSWORD;
-
-#ifndef _WIN32
-    struct passwd *pw = NULL;
-
-    // The supernod can run with no additional privs, so the default is
-    // just to run as the user who starts it.
-    // It should not be running as root, so detect that and change the
-    // defaults
-
-    conf->userid = getuid();
-    conf->groupid = getgid();
-    if((conf->userid == 0) || (conf->groupid == 0)) {
-        // Search a couple of usernames for one to use
-        pw = getpwnam("n3n");
-        if(pw == NULL) {
-            pw = getpwnam("nobody");
-        }
-        if(pw != NULL) {
-            // If we find one, use that as our default
-            conf->userid = pw->pw_uid;
-            conf->groupid = pw->pw_gid;
-        }
-    }
-
-#endif
 }
 
 
