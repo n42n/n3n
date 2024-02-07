@@ -3467,9 +3467,7 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
 
 int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
 
-    struct peer_info *sn;
     n2n_sock_t sock;
-    int skip_add;
     int rv = -1;
 
     memset(&sock, 0, sizeof(sock));
@@ -3481,19 +3479,26 @@ int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
         return 1;
     }
 
-    skip_add = SN_ADD;
-    sn = add_sn_to_list_by_mac_or_sock(&(conf->supernodes), &sock, null_mac, &skip_add);
+    int skip_add = SN_ADD;
+    struct peer_info *sn = add_sn_to_list_by_mac_or_sock(&(conf->supernodes), &sock, null_mac, &skip_add);
 
-    if(sn != NULL) {
-        sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-
-        if(sn->ip_addr != NULL) {
-            strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
-            memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
-            memcpy(sn->mac_addr, null_mac, sizeof(n2n_mac_t));
-            sn->purgeable = false;
-        }
+    if(!sn) {
+        return 1;
     }
+
+    sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+    if(!sn->ip_addr) {
+        // FIXME: add to list, but left half initialised
+        return 1;
+    }
+
+    peer_info_init(sn, null_mac);
+    // This is one of only two places where the default purgeable
+    // is overwritten after an _alloc or _init
+    sn->purgeable = false;
+
+    strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
+    memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
 
     traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
     conf->sn_num++;

@@ -130,15 +130,14 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 }
 
                 char *double_column = strchr(optarg, ':');
+                if(!double_column) {
+                    traceEvent(TRACE_WARNING, "invalid -l format, missing port");
+                    break;
+                }
 
                 size_t length = strlen(optarg);
                 if(length >= N2N_EDGE_SN_HOST_SIZE) {
                     traceEvent(TRACE_WARNING, "size of -l argument too long: %zu; maximum size is %d", length, N2N_EDGE_SN_HOST_SIZE);
-                    break;
-                }
-
-                if(!double_column) {
-                    traceEvent(TRACE_WARNING, "invalid -l format, missing port");
                     break;
                 }
 
@@ -161,11 +160,12 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
 
                 anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
                 if(!anchor_sn->ip_addr) {
+                    // FIXME: add to list, but left half initialised
                     break;
                 }
 
                 peer_info_init(anchor_sn, null_mac);
-                // This is the only place where the default purgeable
+                // This is one of only two places where the default purgeable
                 // is overwritten after an _alloc or _init
                 anchor_sn->purgeable = false;
 
