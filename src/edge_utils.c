@@ -3468,34 +3468,32 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
 int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
 
     struct peer_info *sn;
-    n2n_sock_t *sock;
+    n2n_sock_t sock;
     int skip_add;
     int rv = -1;
 
-    sock = (n2n_sock_t*)calloc(1,sizeof(n2n_sock_t));
-    rv = supernode2sock(sock, ip_and_port);
+    memset(&sock, 0, sizeof(sock));
+
+    rv = supernode2sock(&sock, ip_and_port);
 
     if(rv < -2) { /* we accept resolver failure as it might resolve later */
         traceEvent(TRACE_WARNING, "invalid supernode parameter.");
-        free(sock);
         return 1;
     }
 
     skip_add = SN_ADD;
-    sn = add_sn_to_list_by_mac_or_sock(&(conf->supernodes), sock, null_mac, &skip_add);
+    sn = add_sn_to_list_by_mac_or_sock(&(conf->supernodes), &sock, null_mac, &skip_add);
 
     if(sn != NULL) {
         sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
 
         if(sn->ip_addr != NULL) {
             strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
-            memcpy(&(sn->sock), sock, sizeof(n2n_sock_t));
+            memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
             memcpy(sn->mac_addr, null_mac, sizeof(n2n_mac_t));
             sn->purgeable = false;
         }
     }
-
-    free(sock);
 
     traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
     conf->sn_num++;

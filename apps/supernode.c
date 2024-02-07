@@ -142,26 +142,25 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                     break;
                 }
 
-                n2n_sock_t *socket = (n2n_sock_t *)calloc(1, sizeof(n2n_sock_t));
-                int rv = supernode2sock(socket, optarg);
+                n2n_sock_t sock;
+                memset(&sock, 0, sizeof(sock));
+
+                int rv = supernode2sock(&sock, optarg);
 
                 if(rv < -2) { /* we accept resolver failure as it might resolve later */
                     traceEvent(TRACE_WARNING, "invalid supernode parameter");
-                    free(socket);
                     break;
                 }
 
                 int skip_add = SN_ADD;
-                struct peer_info *anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), socket, null_mac, &skip_add);
+                struct peer_info *anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), &sock, null_mac, &skip_add);
 
                 if(!anchor_sn) {
-                    free(socket);
                     break;
                 }
 
                 anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
                 if(!anchor_sn->ip_addr) {
-                    free(socket);
                     break;
                 }
 
@@ -171,9 +170,8 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 anchor_sn->purgeable = false;
 
                 strncpy(anchor_sn->ip_addr, optarg, N2N_EDGE_SN_HOST_SIZE - 1);
-                memcpy(&(anchor_sn->sock), socket, sizeof(n2n_sock_t));
+                memcpy(&(anchor_sn->sock), &sock, sizeof(sock));
 
-                free(socket);
                 break;
             }
 
