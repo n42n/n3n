@@ -46,9 +46,7 @@ class UnixHandler(urllib.request.BaseHandler):
         try:
             h.request(req.get_method(), req.selector, req.data, headers)
 
-        except FileNotFoundError as e:
-            raise e
-        except OSError as err:  # timeout error
+        except TimeoutError as err:  # timeout error
             raise urllib.error.URLError(err)
         r = h.getresponse()
 
@@ -341,6 +339,9 @@ def main():
         exit(1)
     except FileNotFoundError:
         print("Could not find unix socket (is the session running?)")
+        exit(1)
+    except ConnectionRefusedError:
+        print("Connection refused (is the session running?)")
         exit(1)
     except socket.timeout as e:
         print(e)
