@@ -35,8 +35,15 @@ if [ -d "$TOPDIR/.git" ]; then
     VER_SHORT="$VER_GIT_SHORT"
     VER_HASH=$(git rev-parse --short HEAD)
     VER=$(git describe --abbrev=7 --dirty)
-    DATE=$(git log -1 --format=%cd)
-    # TODO - if dirty, use the current date, not the last commit date
+
+    git diff --quiet
+    if [ $? -eq 0 ]; then
+        # In a clean build dir, use the last commit date
+        DATE=$(git log -1 --format=%cd)
+    else
+        # if dirty, use the current date
+        DATE=$(date)
+    fi
 else
     # If there is no .git directory in our TOPDIR, we fall back on relying on
     # the VERSION file
