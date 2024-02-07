@@ -141,6 +141,8 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                     break;
                 }
 
+                // TODO: This is almost identical to edge_conf_add_supernode()
+
                 n2n_sock_t sock;
                 memset(&sock, 0, sizeof(sock));
 
@@ -158,19 +160,23 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                     break;
                 }
 
+                // FIXME: what if ->ip_addr is already set?
                 anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
                 if(!anchor_sn->ip_addr) {
                     // FIXME: add to list, but left half initialised
                     break;
                 }
+                strncpy(anchor_sn->ip_addr, optarg, N2N_EDGE_SN_HOST_SIZE - 1);
+                memcpy(&(anchor_sn->sock), &sock, sizeof(sock));
 
-                peer_info_init(anchor_sn, null_mac);
+                // If it added an entry, it is already peer_info_init()
+                if(skip_add != SN_ADD_ADDED) {
+                    peer_info_init(anchor_sn, null_mac);
+                }
+
                 // This is one of only two places where the default purgeable
                 // is overwritten after an _alloc or _init
                 anchor_sn->purgeable = false;
-
-                strncpy(anchor_sn->ip_addr, optarg, N2N_EDGE_SN_HOST_SIZE - 1);
-                memcpy(&(anchor_sn->sock), &sock, sizeof(sock));
 
                 break;
             }

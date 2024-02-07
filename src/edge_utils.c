@@ -3486,19 +3486,23 @@ int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
         return 1;
     }
 
+    // FIXME: what if ->ip_addr is already set?
     sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
     if(!sn->ip_addr) {
         // FIXME: add to list, but left half initialised
         return 1;
     }
+    strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
+    memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
 
-    peer_info_init(sn, null_mac);
+    // If it added an entry, it is already peer_info_init()
+    if(skip_add != SN_ADD_ADDED) {
+        peer_info_init(sn, null_mac);
+    }
+
     // This is one of only two places where the default purgeable
     // is overwritten after an _alloc or _init
     sn->purgeable = false;
-
-    strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
-    memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
 
     traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
     conf->sn_num++;
