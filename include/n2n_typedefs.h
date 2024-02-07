@@ -490,6 +490,7 @@ typedef struct n2n_edge_conf {
     char *community_file;
     n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
     n2n_mac_t sn_mac_addr;
+    n2n_community_t sn_federation;
 } n2n_edge_conf_t;
 
 
@@ -617,7 +618,7 @@ typedef struct sn_user {
 } sn_user_t;
 
 struct sn_community {
-    char community[N2N_COMMUNITY_SIZE];
+    n2n_community_t community;
     bool is_federation;                                /* if true, then the current community is the federation of supernodes */
     bool purgeable;                                       /* indicates purgeable community (fixed-name, predetermined (-c parameter) communties usually are unpurgeable) */
     uint8_t header_encryption;                            /* Header encryption indicator. */

@@ -317,6 +317,18 @@ static struct n3n_conf_option section_supernode[] = {
                 "See the documentation for the file format description.",
     },
     {
+        .name = "federation",
+        .type = n3n_conf_strncpy,
+        .length = sizeof(n2n_community_t)-1,    // Leave room for prefix
+        .offset = offsetof(n2n_edge_conf_t, sn_federation),
+        .desc = "name of the supernode's federation",
+        .help = "This is a shared key amungst all the supernodes belonging to "
+                "the same federated group.  It defaults to 'Federation', but "
+                "that should only be used for testing.  The Environment "
+                "variable N3N_FEDERATION can also be used to set thi.",
+
+    },
+    {
         .name = "macaddr",
         .type = n3n_conf_macaddr,
         .offset = offsetof(n2n_edge_conf_t, sn_mac_addr),

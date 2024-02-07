@@ -137,7 +137,7 @@ close_conn:
 
 
 // generate shared secrets for user authentication; can be done only after
-// federation name is known (-F) and community list completely read (-c)
+// federation name is known and community list completely read
 void calculate_shared_secrets (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm;
@@ -795,6 +795,14 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     memrnd(conf->auth.token, N2N_AUTH_ID_TOKEN_SIZE);
     conf->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 
+    /* Initialize the federation name */
+    // TODO: the edge has a separate function for getenv() defaults
+    char *federation = getenv("N3N_FEDERATION");
+    if(!federation) {
+        federation = FEDERATION_NAME_DEFAULT;
+    }
+    strncpy(conf->sn_federation, federation, sizeof(conf->sn_federation));
+
 #ifndef _WIN32
     struct passwd *pw = NULL;
 
@@ -844,45 +852,15 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
         abort();
     }
 
-    /* Initialize the federation */
-    if(getenv("N2N_FEDERATION")) {
-        snprintf(
-            sss->federation->community,
-            N2N_COMMUNITY_SIZE - 1,
-            "*%s",
-            getenv("N2N_FEDERATION")
-            );
-    } else {
-        strncpy(
-            sss->federation->community,
-            (char*)FEDERATION_NAME,
-            N2N_COMMUNITY_SIZE
-            );
-    }
-    sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
+    // Setup the fields of the federation record
+    // Note that this is not really conf, so it probably should move
+    //
     /* enable the flag for federation */
     sss->federation->is_federation = true;
     sss->federation->purgeable = false;
     /* header encryption enabled by default */
     sss->federation->header_encryption = HEADER_ENCRYPTION_ENABLED;
-    /*setup the encryption key */
-    packet_header_setup_key(sss->federation->community,
-                            &(sss->federation->header_encryption_ctx_static),
-                            &(sss->federation->header_encryption_ctx_dynamic),
-                            &(sss->federation->header_iv_ctx_static),
-                            &(sss->federation->header_iv_ctx_dynamic));
     sss->federation->edges = NULL;
-
-    HASH_ADD_STR(sss->communities, community, sss->federation);
-
-    uint32_t num_communities = HASH_COUNT(sss->communities);
-
-    traceEvent(
-        TRACE_INFO,
-        "added federation '%s' to the list of communities [total: %u]",
-        (char*)sss->federation->community,
-        num_communities
-        );
 
     n2n_srand(n2n_seed());
 }

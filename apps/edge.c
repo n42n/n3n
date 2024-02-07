@@ -741,7 +741,7 @@ int main (int argc, char* argv[]) {
                     "FOR TESTING ONLY, usage of a custom federation name and "
                     "key (auth.pubkey) is highly recommended!"
                     );
-                generate_private_key(*(conf.federation_public_key), &FEDERATION_NAME[1]);
+                generate_private_key(*(conf.federation_public_key), FEDERATION_NAME_DEFAULT);
                 generate_public_key(*(conf.federation_public_key), *(conf.federation_public_key));
             }
         }

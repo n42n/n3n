@@ -87,10 +87,9 @@ you need to restart the supernode or issue the `reload_communites` command to
 the management API as outlined above.
 
 With a view to the detailed explanations below, your supernode(s) should have a
-non-default federation name given by the `-F <federation name>` command line
-parameter, e.g. `-F secretFed`. Alternatively, it can be passed through the
-environment variable `N2N_FEDERATION`. It is used to derive a private key at
-the supernode side and is only to be shared among supernodes.
+non-default federation name given by the `supernode.federation` config option.
+It is used to derive a private key at the supernode side and is only to be
+shared among supernodes.
 
 
 #### Edge

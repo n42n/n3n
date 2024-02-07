@@ -23,6 +23,7 @@
 #include <ctype.h>             // for isspace
 #include <errno.h>             // for errno
 #include <getopt.h>            // for required_argument, getopt_long, no_arg...
+#include <header_encryption.h> // for packet_header_setup_key
 #include <n3n/conffile.h>      // for n3n_config_set_option
 #include <n3n/initfuncs.h>     // for n3n_initfuncs()
 #include <n3n/logging.h>       // for traceEvent
@@ -71,7 +72,6 @@ static const struct option long_options[] = {
 };
 
 static const struct n3n_config_getopt option_map[] = {
-    { 'F', NULL, NULL, NULL, "<arg>  Set the supernode federation name" },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'a', NULL, NULL, NULL, "<arg>  Autoip network range" },
     { 'c',  "supernode",    "community_file",       NULL },
@@ -123,6 +123,12 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
             case 'l': { /* supernode:port */
                 // FIXME: needs a generic parser option
 
+                if(!sss->federation) {
+                    // Should never happen - sn_init_conf_defaults is called
+                    // first and aborts if it cannot malloc it
+                    break;
+                }
+
                 char *double_column = strchr(optarg, ':');
 
                 size_t length = strlen(optarg);
@@ -141,11 +147,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
 
                 if(rv < -2) { /* we accept resolver failure as it might resolve later */
                     traceEvent(TRACE_WARNING, "invalid supernode parameter");
-                    free(socket);
-                    break;
-                }
-
-                if(!sss->federation) {
                     free(socket);
                     break;
                 }
@@ -217,14 +218,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 sss->max_auto_ip_net.net_addr = ntohl(net_max);
                 sss->max_auto_ip_net.net_bitlen = bitlen;
 
-                break;
-            }
-            case 'F': { /* federation name */
-                // FIXME: needs a generic parser option
-
-                snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", optarg);
-                sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
-                sss->federation->purgeable = false;
                 break;
             }
 
@@ -500,9 +493,36 @@ int main (int argc, char * argv[]) {
     }
 #endif
 
+    /* Initialize the federation name from conf */
+    sss_node.federation->community[0] = '*';
+    memcpy(
+        &sss_node.federation->community[1],
+        sss_node.conf.sn_federation,
+        N2N_COMMUNITY_SIZE - 2
+        );
+    sss_node.federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
+
+    /*setup the encryption key */
+    packet_header_setup_key(sss_node.federation->community,
+                            &(sss_node.federation->header_encryption_ctx_static),
+                            &(sss_node.federation->header_encryption_ctx_dynamic),
+                            &(sss_node.federation->header_iv_ctx_static),
+                            &(sss_node.federation->header_iv_ctx_dynamic));
+
+    HASH_ADD_STR(sss_node.communities, community, sss_node.federation);
+
+    uint32_t num_communities = HASH_COUNT(sss_node.communities);
+
+    traceEvent(
+        TRACE_INFO,
+        "added federation '%s' to the list of communities [total: %u]",
+        (char*)sss_node.federation->community,
+        num_communities
+        );
+
     // warn on default federation name
-    if(!strcmp(sss_node.federation->community, FEDERATION_NAME)) {
-        traceEvent(TRACE_WARNING, "using default federation name; FOR TESTING ONLY, usage of a custom federation name (-F) is highly recommended!");
+    if(!strcmp(&sss_node.federation->community[1], FEDERATION_NAME_DEFAULT)) {
+        traceEvent(TRACE_WARNING, "The default federation name is FOR TESTING ONLY - use of a custom setting for supernode.federation is highly recommended!");
     }
 
     if(!sss_node.conf.spoofing_protection) {

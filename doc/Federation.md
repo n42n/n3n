@@ -24,7 +24,13 @@ Optionally, more anchor supernodes of the same federation can be provided to an 
 
 Supernodes should be able to communicate among each other as regular edges already do. For this purpose, a special community called federation was introduced. The federation feature provides some mechanisms to inter-connect the supernodes of the network enhancing backup, fail-over and load-sharing, without any visible behavioral change.
 
-The default name for the federation is `*Federation`. Internally, a mandatory special character is prepended to the name: that way, an edge won't be able to provide a regular community with the same name of the federation. Optionally, a user can choose a federation name (same on all supernodes) and provide it via `-F mySecretFed` option to the supernode. Alternatively, the federation name can be passed through the environment variable `N2N_FEDERATION`.
+The default name for the federation is `Federation`. Internally, a mandatory
+special character is prepended to the name (`*`) that way, there is no way for
+a regular community with the same name as the federation to conflict.
+Optionally, a user can choose a federation name (same on all supernodes) and
+provide it via the  `supernode.federation` option to the supernode.  Finally,
+the federation name can be passed through the environment variable
+`N3N_FEDERATION`.
 
 Federated supernodes register to each other using REGISTER_SUPER message type. The answer, REGISTER_SUPER_ACK, contains a payload with information about other supernodes in the network.
 
