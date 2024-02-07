@@ -36,8 +36,7 @@ if [ -d "$TOPDIR/.git" ]; then
     VER_HASH=$(git rev-parse --short HEAD)
     VER=$(git describe --abbrev=7 --dirty)
 
-    git diff --quiet
-    if [ $? -eq 0 ]; then
+    if git diff --quiet; then
         # In a clean build dir, use the last commit date
         DATE=$(git log -1 --format=%cd)
     else
