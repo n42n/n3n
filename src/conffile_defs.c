@@ -16,7 +16,7 @@ static struct n3n_conf_option section_auth[] = {
         .type = n3n_conf_privatekey,
         .offset = offsetof(n2n_edge_conf_t, shared_secret),
         .desc = "Password for user-password edge authentication",
-        .help = "If the environment contains N2N_PASSWORD then that is used "
+        .help = "If the environment contains N3N_PASSWORD then that is used "
                 "as the default for this setting."
     },
     {

@@ -823,18 +823,18 @@ int n3n_config_load_env (void *conf) {
     char *s;
     int rc = 0;
 
-    s = getenv("N2N_KEY");
+    s = getenv("N3N_KEY");
     if(s) {
         rc += n3n_config_set_option(conf, "community", "key", s);
         rc += n3n_config_set_option(conf, "community", "cipher", "AES");
     }
 
-    s = getenv("N2N_COMMUNITY");
+    s = getenv("N3N_COMMUNITY");
     if(s) {
         rc += n3n_config_set_option(conf, "community", "name", s);
     }
 
-    s = getenv("N2N_PASSWORD");
+    s = getenv("N3N_PASSWORD");
     if(s) {
         rc += n3n_config_set_option(conf, "auth", "password", s);
     }

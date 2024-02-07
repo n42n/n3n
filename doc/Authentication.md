@@ -142,7 +142,10 @@ Considering all this, our example expands to:
     -k mySecretKey
 ```
 
-You might want to consider the use of [`.conf` files](ConfigurationFiles.md) to accomodate all the command line parameters more easily. Alternatively, the `N2N_PASSWORD` environment variable can be used to set the password without having it show up as part of the command line.
+You might want to consider the use of [`.conf` files](ConfigurationFiles.md) to
+accomodate all the command line parameters more easily. Alternatively, the
+`N3N_PASSWORD` environment variable can be used to set the password without
+having it show up as part of the command line.
 
 
 #### How Does It Work?
