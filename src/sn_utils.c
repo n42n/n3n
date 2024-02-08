@@ -840,11 +840,9 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     sa->sin_addr.s_addr = htonl(INADDR_ANY);
 
     sss->sock = -1;
-    sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
-    sss->min_auto_ip_net.net_addr = ntohl(sss->min_auto_ip_net.net_addr);
+    sss->min_auto_ip_net.net_addr = ntohl(inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT));
     sss->min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
-    sss->max_auto_ip_net.net_addr = inet_addr(N2N_SN_MAX_AUTO_IP_NET_DEFAULT);
-    sss->max_auto_ip_net.net_addr = ntohl(sss->max_auto_ip_net.net_addr);
+    sss->max_auto_ip_net.net_addr = ntohl(inet_addr(N2N_SN_MAX_AUTO_IP_NET_DEFAULT));
     sss->max_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
 
     sss->federation = (struct sn_community *)calloc(1, sizeof(struct sn_community));

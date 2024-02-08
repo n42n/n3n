@@ -134,14 +134,26 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 net_min = inet_addr(ip_min_str);
                 net_max = inet_addr(ip_max_str);
                 mask = bitlen2mask(bitlen);
-                if((net_min == (in_addr_t)(-1)) || (net_min == INADDR_NONE) || (net_min == INADDR_ANY)
-                   || (net_max == (in_addr_t)(-1)) || (net_max == INADDR_NONE) || (net_max == INADDR_ANY)
-                   || (ntohl(net_min) >  ntohl(net_max))
-                   || ((ntohl(net_min) & ~mask) != 0) || ((ntohl(net_max) & ~mask) != 0)) {
-                    traceEvent(TRACE_WARNING, "bad network range '%s...%s/%u' in '%s', defaulting to '%s...%s/%d'",
-                               ip_min_str, ip_max_str, bitlen, optarg,
-                               N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
-                    break;
+
+                switch(net_min) {
+                    case INADDR_NONE:
+                    case INADDR_ANY:
+                        goto badaddr;
+                    default:
+                        break;
+                }
+                switch(net_max) {
+                    case INADDR_NONE:
+                    case INADDR_ANY:
+                        goto badaddr;
+                    default:
+                        break;
+                }
+                if((ntohl(net_min) > ntohl(net_max))) {
+                    goto badaddr;
+                }
+                if(((ntohl(net_min) & ~mask) != 0) || ((ntohl(net_max) & ~mask) != 0)) {
+                    goto badaddr;
                 }
 
                 if((bitlen > 30) || (bitlen == 0)) {
@@ -159,6 +171,20 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 sss->max_auto_ip_net.net_bitlen = bitlen;
 
                 break;
+badaddr:
+                traceEvent(
+                    TRACE_WARNING,
+                    "bad network range '%s...%s/%u' in '%s', defaulting to '%s...%s/%d'",
+                    ip_min_str,
+                    ip_max_str,
+                    bitlen,
+                    optarg,
+                    N2N_SN_MIN_AUTO_IP_NET_DEFAULT,
+                    N2N_SN_MAX_AUTO_IP_NET_DEFAULT,
+                    N2N_SN_AUTO_IP_NET_BIT_DEFAULT
+                    );
+                break;
+
             }
 
             case 'v': /* verbose */
