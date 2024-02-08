@@ -25,10 +25,10 @@ sudo chown "$USER" /run/n3n
 # start it running in the background
 docmd "${BINDIR}"/apps/supernode start ci_sn1 \
     -Oconnection.bind=7001 \
-    -l localhost:7002
+    -Osupernode.peer=localhost:7002
 docmd "${BINDIR}"/apps/supernode start ci_sn2 \
     -Oconnection.bind=7002 \
-    -l localhost:7001
+    -Osupernode.peer=localhost:7001
 
 # TODO: probe the api endpoint, waiting for the supernode to be available?
 sleep 0.1

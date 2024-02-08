@@ -337,6 +337,14 @@ static struct n3n_conf_option section_supernode[] = {
                 "packets.  If not configed, a random value will be selected.",
     },
     {
+        .name = "peer",
+        .type = n3n_conf_supernode,
+        .offset = offsetof(n2n_edge_conf_t, sn_edges),
+        .desc = "Add a federated supernode",
+        .help = "Multiple federated supernodes can be specified, each one as"
+                "a host:port string, which will be resolved if needed.",
+    },
+    {
         .name = "spoofing_protection",
         .type = n3n_conf_bool,
         .offset = offsetof(n2n_edge_conf_t, spoofing_protection),

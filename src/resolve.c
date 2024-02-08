@@ -58,7 +58,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     if(!supernode_host) {
         traceEvent(
             TRACE_WARNING,
-            "supernode2sock sees malformed supernode parameter (-l <host:port>) %s",
+            "malformed supernode parameter (should be <host:port>) %s",
             addrIn
             );
         return -4;
@@ -69,7 +69,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     if(!supernode_port) {
         traceEvent(
             TRACE_WARNING,
-            "supernode2sock sees malformed supernode parameter (-l <host:port>) %s",
+            "malformed supernode parameter (should be <host:port>) %s",
             addrIn
             );
         return -3;

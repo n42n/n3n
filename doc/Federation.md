@@ -8,17 +8,25 @@ To enhance resilience in terms of backup and fail-over, also for load-balancing,
 
 ### Form a Federation
 
-To form a federation, multiple supernodes need to be aware of each other. To get them connected, an additional `-l` option from command line is required at the supernode.
+To form a federation, multiple supernodes need to be aware of each other. To
+get them connected, an additional `supernode.peer` option is required at
+the supernode.
 
-This option takes the IP address (or name) and the UDP port of another known supernode, e.g. `-l 192.168.1.1:1234`.
+This option takes the IP address (or name) and the UDP port of another known
+supernode, e.g. `192.168.1.1:1234`.  As the number of federated supernodes
+increases, it gets more convenient to use a config file for this option.
 
 ### Use a Federation
 
 Federated supernodes take care of propagating their knowledge about other supernodes to all other supernodes and the edges.
 
-So, in the first place, edges only need to connect to one supernode (called anchor supernode) using `-l` option. This supernode needs to be present at start-up.
+So, in the first place, edges only need to connect to one supernode (called
+anchor supernode) using `community.supernode` option. This supernode needs to
+be present at start-up.
 
-Optionally, more anchor supernodes of the same federation can be provided to an edge using several `-l` options. This will counter scenarios with reduced assured initial supernode availability.
+Optionally, more anchor supernodes of the same federation can be provided to an
+edge using several `community.supernode` options. This will counter scenarios
+with reduced assured initial supernode availability.
 
 ## How It Works
 

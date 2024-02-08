@@ -1,6 +1,6 @@
-### test: ./apps/supernode start ci_sn1 -Oconnection.bind=7001 -l localhost:7002
+### test: ./apps/supernode start ci_sn1 -Oconnection.bind=7001 -Osupernode.peer=localhost:7002
 
-### test: ./apps/supernode start ci_sn2 -Oconnection.bind=7002 -l localhost:7001
+### test: ./apps/supernode start ci_sn2 -Oconnection.bind=7002 -Osupernode.peer=localhost:7001
 
 ### test: ./scripts/n3nctl -s ci_sn1 get_communities
 [

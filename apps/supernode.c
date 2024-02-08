@@ -75,7 +75,6 @@ static const struct n3n_config_getopt option_map[] = {
     { 'a', NULL, NULL, NULL, "<arg>  Autoip network range" },
     { 'c',  "supernode",    "community_file",       NULL },
     { 'f',  "daemon",       "background",           "false" },
-    { 'l', NULL, NULL, NULL, "<hostname>:<port>  Set a federated supernode" },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { .optkey = 0 }
 };
@@ -117,18 +116,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 char *option = strtok(NULL, "=");
                 char *value = strtok(NULL, "");
                 set_option_wrap(conf, section, option, value);
-                break;
-            }
-            case 'l': { /* supernode:port */
-                // FIXME: needs a generic parser option
-
-                if(!sss->federation) {
-                    // Should never happen - sn_init_conf_defaults is called
-                    // first and aborts if it cannot malloc it
-                    break;
-                }
-
-                n3n_peer_add_by_hostname(&conf->sn_edges, optarg);
                 break;
             }
 
