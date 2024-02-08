@@ -63,7 +63,6 @@ static struct n3n_runtime_data sss_node;
 
 static const struct option long_options[] = {
     {"autoip",              required_argument, NULL, 'a'},
-    {"communities",         required_argument, NULL, 'c'},
     {"help",                no_argument,       NULL, 'h'},
     {"verbose",             no_argument,       NULL, 'v'},
     {"version",             no_argument,       NULL, 'V'},
@@ -73,7 +72,6 @@ static const struct option long_options[] = {
 static const struct n3n_config_getopt option_map[] = {
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'a', NULL, NULL, NULL, "<arg>  Autoip network range" },
-    { 'c',  "supernode",    "community_file",       NULL },
     { 'f',  "daemon",       "background",           "false" },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { .optkey = 0 }
