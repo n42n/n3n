@@ -604,8 +604,10 @@ int main (int argc, char * argv[]) {
     chown(unixsock, sss_node.conf.userid, sss_node.conf.groupid);
 #endif
 
-    HASH_ITER(hh, sss_node.federation->edges, scan, tmp)
-    scan->socket_fd = sss_node.sock;
+    // Add our freshly opened socket to any edges added by federation
+    HASH_ITER(hh, sss_node.federation->edges, scan, tmp) {
+        scan->socket_fd = sss_node.sock;
+    }
 
 #ifndef _WIN32
 
