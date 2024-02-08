@@ -129,18 +129,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                     break;
                 }
 
-                char *double_column = strchr(optarg, ':');
-                if(!double_column) {
-                    traceEvent(TRACE_WARNING, "invalid -l format, missing port");
-                    break;
-                }
-
-                size_t length = strlen(optarg);
-                if(length >= N2N_EDGE_SN_HOST_SIZE) {
-                    traceEvent(TRACE_WARNING, "size of -l argument too long: %zu; maximum size is %d", length, N2N_EDGE_SN_HOST_SIZE);
-                    break;
-                }
-
                 // TODO: This is almost identical to edge_conf_add_supernode()
 
                 n2n_sock_t sock;
