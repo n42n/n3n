@@ -1,6 +1,6 @@
-### test: ./apps/supernode start ci_sn1 -Oconnection.bind=7001 -l localhost:7002 -v
+### test: ./apps/supernode start ci_sn1 -Oconnection.bind=7001 -l localhost:7002
 
-### test: ./apps/supernode start ci_sn2 -Oconnection.bind=7002 -l localhost:7001 -v
+### test: ./apps/supernode start ci_sn2 -Oconnection.bind=7002 -l localhost:7001
 
 ### test: ./scripts/n3nctl -s ci_sn1 get_communities
 [
@@ -156,16 +156,16 @@
     }
 ]
 
-### test: ./scripts/n3nctl -s ci_sn1 get_verbose
-3
-
-### test: ./scripts/n3nctl -s ci_sn1 -k n3n set_verbose 1
-1
-
 ### test: ./scripts/n3nctl -s ci_sn1 set_verbose 1
 This request requires an authentication key
 
 0
+### test: ./scripts/n3nctl -s ci_sn1 get_verbose
+2
+
+### test: ./scripts/n3nctl -s ci_sn1 -k n3n set_verbose 1
+1
+
 ### test: ./scripts/n3nctl -s ci_sn1 -k n3n stop
 0
 
