@@ -490,6 +490,7 @@ typedef struct n2n_edge_conf {
     n2n_version_t version;                                  /* version string sent to edges along with PEER_INFO a.k.a. PONG */
     n2n_mac_t sn_mac_addr;
     n2n_community_t sn_federation;
+    struct peer_info *sn_edges;     // SN federation storage during configure
 } n2n_edge_conf_t;
 
 

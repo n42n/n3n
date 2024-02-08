@@ -128,7 +128,7 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                     break;
                 }
 
-                n3n_peer_add_by_hostname(&sss->federation->edges, optarg);
+                n3n_peer_add_by_hostname(&conf->sn_edges, optarg);
                 break;
             }
 
@@ -479,6 +479,10 @@ int main (int argc, char * argv[]) {
     if(!strcmp(&sss_node.federation->community[1], FEDERATION_NAME_DEFAULT)) {
         traceEvent(TRACE_WARNING, "The default federation name is FOR TESTING ONLY - use of a custom setting for supernode.federation is highly recommended!");
     }
+
+    // After configuration phase, move the federation edges to their runtime
+    // place
+    sss_node.federation->edges = sss_node.conf.sn_edges;
 
     if(!sss_node.conf.spoofing_protection) {
         traceEvent(
