@@ -722,6 +722,7 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
             // special case for this multi-value item
             // TODO: this breaks layering, but I cannot think of a simple
             // alternative
+            fprintf(f, "#%s=\n", option->name);
             void *valvoid = (char *)conf + option->offset;
             struct peer_info **supernodes = (struct peer_info **)valvoid;
             struct peer_info *scan, *tmp;

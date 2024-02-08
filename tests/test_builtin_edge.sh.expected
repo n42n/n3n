@@ -10,6 +10,7 @@ OK
 ####################
 [community]
 header_encryption=unknown
+#supernode=
 
 
 ####################
@@ -45,6 +46,8 @@ port=0
 ####################
 [supernode]
 macaddr=00:00:00:00:00:00
+#peer=
+
 spoofing_protection=false
 
 ####################
