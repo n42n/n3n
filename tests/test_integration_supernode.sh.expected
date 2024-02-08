@@ -1,6 +1,8 @@
-###
+### test: ./apps/supernode start ci_sn1 -Oconnection.bind=7001 -l localhost:7002 -v
 
-###
+### test: ./apps/supernode start ci_sn2 -Oconnection.bind=7002 -l localhost:7001 -v
+
+### test: ./scripts/n3nctl -s ci_sn1 get_communities
 [
     {
         "community": "-/-",
@@ -10,7 +12,17 @@
     }
 ]
 
-###
+### test: ./scripts/n3nctl -s ci_sn2 get_communities
+[
+    {
+        "community": "-/-",
+        "ip4addr": "",
+        "is_federation": 1,
+        "purgeable": 0
+    }
+]
+
+### test: ./scripts/n3nctl -s ci_sn1 get_packetstats
 [
     {
         "rx_pkt": 0,
@@ -51,7 +63,7 @@
     },
     {
         "nak": 0,
-        "tx_pkt": 0,
+        "tx_pkt": 1,
         "type": "sn_reg"
     },
     {
@@ -60,19 +72,103 @@
     }
 ]
 
-###
-[]
+### test: ./scripts/n3nctl -s ci_sn2 get_packetstats
+[
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "transop"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "p2p"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "super"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "super_broadcast"
+    },
+    {
+        "tx_pkt": 0,
+        "type": "tuntap_error"
+    },
+    {
+        "rx_pkt": 0,
+        "tx_pkt": 0,
+        "type": "multicast_drop"
+    },
+    {
+        "tx_pkt": 0,
+        "type": "sn_fwd"
+    },
+    {
+        "tx_pkt": 0,
+        "type": "sn_broadcast"
+    },
+    {
+        "nak": 0,
+        "tx_pkt": 1,
+        "type": "sn_reg"
+    },
+    {
+        "tx_pkt": 0,
+        "type": "sn_errors"
+    }
+]
 
-###
+### test: ./scripts/n3nctl -s ci_sn1 get_edges --raw
+[
+    {
+        "community": "-/-",
+        "desc": "",
+        "ip4addr": "",
+        "last_p2p": 0,
+        "last_seen": 0,
+        "last_sent_query": 0,
+        "local": 0,
+        "macaddr": "",
+        "mode": "sn",
+        "purgeable": 0,
+        "sockaddr": "127.0.0.1:7002"
+    }
+]
+
+### test: ./scripts/n3nctl -s ci_sn2 get_edges --raw
+[
+    {
+        "community": "-/-",
+        "desc": "",
+        "ip4addr": "",
+        "last_p2p": 0,
+        "last_seen": 0,
+        "last_sent_query": 0,
+        "local": 0,
+        "macaddr": "",
+        "mode": "sn",
+        "purgeable": 0,
+        "sockaddr": "127.0.0.1:7001"
+    }
+]
+
+### test: ./scripts/n3nctl -s ci_sn1 get_verbose
 3
 
-###
+### test: ./scripts/n3nctl -s ci_sn1 -k n3n set_verbose 1
 1
 
-###
+### test: ./scripts/n3nctl -s ci_sn1 set_verbose 1
 This request requires an authentication key
 
 0
-###
+### test: ./scripts/n3nctl -s ci_sn1 -k n3n stop
+0
+
+### test: ./scripts/n3nctl -s ci_sn2 -k n3n stop
 0
 
