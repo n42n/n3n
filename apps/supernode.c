@@ -42,7 +42,6 @@
 
 // FIXME, including private headers
 #include "../src/peer_info.h"         // for peer_info, peer_info_init
-#include "../src/resolve.h"           // for supernode2sock
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -128,43 +127,7 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                     break;
                 }
 
-                // TODO: This is almost identical to edge_conf_add_supernode()
-
-                n2n_sock_t sock;
-                memset(&sock, 0, sizeof(sock));
-
-                int rv = supernode2sock(&sock, optarg);
-
-                if(rv < -2) { /* we accept resolver failure as it might resolve later */
-                    traceEvent(TRACE_WARNING, "invalid supernode parameter");
-                    break;
-                }
-
-                int skip_add = SN_ADD;
-                struct peer_info *anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), &sock, null_mac, &skip_add);
-
-                if(!anchor_sn) {
-                    break;
-                }
-
-                // FIXME: what if ->ip_addr is already set?
-                anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-                if(!anchor_sn->ip_addr) {
-                    // FIXME: add to list, but left half initialised
-                    break;
-                }
-                strncpy(anchor_sn->ip_addr, optarg, N2N_EDGE_SN_HOST_SIZE - 1);
-                memcpy(&(anchor_sn->sock), &sock, sizeof(sock));
-
-                // If it added an entry, it is already peer_info_init()
-                if(skip_add != SN_ADD_ADDED) {
-                    peer_info_init(anchor_sn, null_mac);
-                }
-
-                // This is one of only two places where the default purgeable
-                // is overwritten after an _alloc or _init
-                anchor_sn->purgeable = false;
-
+                n3n_peer_add_by_hostname(&sss->federation->edges, optarg);
                 break;
             }
 
@@ -394,6 +357,8 @@ static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runt
 /* *************************************************** */
 
 #ifdef __linux__
+// TODO: this uses internal peer_info structures, move it to src/ or replace
+// it with a mangement api
 static void dump_registrations (int signo) {
 
     struct sn_community *comm, *ctmp;
@@ -458,8 +423,6 @@ static void term_handler (int sig)
 
 /** Main program entry point from kernel. */
 int main (int argc, char * argv[]) {
-
-    struct peer_info *scan, *tmp;
 
 #ifdef _WIN32
     initWin32();
@@ -592,6 +555,8 @@ int main (int argc, char * argv[]) {
 #endif
 
     // Add our freshly opened socket to any edges added by federation
+    // TODO: this uses internal peer_info struct, move it to sn_utils?
+    struct peer_info *scan, *tmp;
     HASH_ITER(hh, sss_node.federation->edges, scan, tmp) {
         scan->socket_fd = sss_node.sock;
     }

@@ -18,6 +18,7 @@ static struct metrics {
     uint32_t init;
     uint32_t alloc;
     uint32_t free;
+    uint32_t hostname;
 } metrics;
 
 static struct n3n_metrics_item metrics_items[] = {
@@ -31,6 +32,12 @@ static struct n3n_metrics_item metrics_items[] = {
         .name = "free",
         .desc = "peer_info_free() is called",
         .offset = offsetof(struct metrics, free),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "hostname",
+        .desc = "n3n_peer_add_by_hostname() is called",
+        .offset = offsetof(struct metrics, hostname),
         .size = n3n_metrics_uint32,
     },
     {
@@ -233,11 +240,12 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
         peer_info_init(sn, null_mac);
     }
 
-    // This is one of only two places where the default purgeable
-    // is overwritten after an _alloc or _init
+    // This is the only peer_info where the default purgeable=true
+    // is overwritten
     sn->purgeable = false;
 
     traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
+    metrics.hostname++;
 
     return 0;
 }
