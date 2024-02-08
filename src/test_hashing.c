@@ -138,8 +138,6 @@ static int test_pearson_256 (int level) {
 int test_hashing (int level) {
     int result = 0;
 
-    pearson_hash_init();
-
     char *test_name = "environment";
     if(level) {
         printf(

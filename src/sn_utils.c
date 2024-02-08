@@ -868,9 +868,6 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
-
-    pearson_hash_init();
-
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
     }

@@ -469,8 +469,6 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
     sn_selection_criterion_common_data_default(eee);
 
-    pearson_hash_init();
-
     // always initialize compression transforms so we can at least decompress
     rc = n2n_transop_lzo_init(&eee->conf, &eee->transop_lzo);
     if(rc) goto edge_init_error; /* error message is printed in lzo_init */
