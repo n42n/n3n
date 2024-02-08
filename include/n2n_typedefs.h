@@ -456,7 +456,6 @@ typedef struct n2n_edge_conf {
     uint8_t header_encryption;                       /**< Header encryption indicator. */
     uint8_t transop_id;                              /**< The transop to use. */
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
-    uint8_t sn_num;                                  /**< Number of supernode addresses defined. */
     uint32_t tos;                                    /** TOS for sent packets */
     char                     *encrypt_key;
     uint32_t register_interval;                      /**< Interval for supernode registration, also used for UDP NAT hole punching. */

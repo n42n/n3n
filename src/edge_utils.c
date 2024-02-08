@@ -157,10 +157,6 @@ int edge_verify_conf (const n2n_edge_conf_t *conf) {
     if(conf->community_name[0] == 0)
         return -1;
 
-    // REVISIT: are the following two conditions equal? if so, remove one. but note that sn_num is used elsewhere
-    if(conf->sn_num == 0)
-        return -2;
-
     if(HASH_COUNT(conf->supernodes) == 0)
         return -5;
 
@@ -3503,7 +3499,6 @@ int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
     sn->purgeable = false;
 
     traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
-    conf->sn_num++;
 
     return 0;
 }
