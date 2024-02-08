@@ -38,7 +38,6 @@
 #include <time.h>              // for time
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
 #include "n2n.h"               // for n2n_edge, sn_community
-#include "pearson.h"           // for pearson_hash_64
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
 // FIXME, including private headers

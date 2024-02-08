@@ -157,6 +157,6 @@ int test_hashing (int level) {
     result += test_pearson_32(level);
     result += test_pearson_16(level);
 
-    return 0;
+    return result;
 }
 

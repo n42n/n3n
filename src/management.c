@@ -14,7 +14,6 @@
 #include <n3n/metrics.h> // for n3n_metrics_render
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community
-#include <pearson.h>     // for pearson_hash_64
 #include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
 #include <stdio.h>       // for snprintf, NULL, size_t
