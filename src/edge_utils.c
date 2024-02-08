@@ -26,7 +26,7 @@
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/conffile.h>            // for n3n_config_load_env
-#include <n3n/edge.h>                // for edge_conf_add_supernode
+#include <n3n/peer_info.h>           // for n3n_peer_add_by_hostname
 #include <n3n/ethernet.h>            // for is_null_mac
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/metrics.h>
@@ -3459,52 +3459,6 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
 
 /* ************************************** */
 
-int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
-
-    n2n_sock_t sock;
-    int rv = -1;
-
-    memset(&sock, 0, sizeof(sock));
-
-    rv = supernode2sock(&sock, ip_and_port);
-
-    if(rv < -2) { /* we accept resolver failure as it might resolve later */
-        traceEvent(TRACE_WARNING, "invalid supernode parameter.");
-        return 1;
-    }
-
-    int skip_add = SN_ADD;
-    struct peer_info *sn = add_sn_to_list_by_mac_or_sock(&(conf->supernodes), &sock, null_mac, &skip_add);
-
-    if(!sn) {
-        return 1;
-    }
-
-    // FIXME: what if ->ip_addr is already set?
-    sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-    if(!sn->ip_addr) {
-        // FIXME: add to list, but left half initialised
-        return 1;
-    }
-    strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
-    memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
-
-    // If it added an entry, it is already peer_info_init()
-    if(skip_add != SN_ADD_ADDED) {
-        peer_info_init(sn, null_mac);
-    }
-
-    // This is one of only two places where the default purgeable
-    // is overwritten after an _alloc or _init
-    sn->purgeable = false;
-
-    traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
-
-    return 0;
-}
-
-/* ************************************** */
-
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
                      in_addr_t local_ip_address,
@@ -3523,7 +3477,7 @@ int quick_edge_init (char *device_name, char *community_name,
     conf.transop_id = N2N_TRANSFORM_ID_AES;
     conf.compression = N2N_COMPRESSION_ID_NONE;
     snprintf((char*)conf.community_name, sizeof(conf.community_name), "%s", community_name);
-    edge_conf_add_supernode(&conf, supernode_ip_address_port);
+    n3n_peer_add_by_hostname(&conf.supernodes, supernode_ip_address_port);
 
     /* Validate configuration */
     if(edge_verify_conf(&conf) != 0)

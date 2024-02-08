@@ -20,7 +20,6 @@ typedef struct n2n_edge_conf n2n_edge_conf_t;
 
 
 /* Edge conf */
-int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port);
 int edge_verify_conf (const n2n_edge_conf_t *conf);
 void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname);
 void edge_term_conf (n2n_edge_conf_t *conf);

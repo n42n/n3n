@@ -7,7 +7,7 @@
 
 #include <ctype.h>              // for isprint and friends
 #include <n3n/conffile.h>
-#include <n3n/edge.h>           // for edge_conf_add_supernode
+#include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/logging.h>        // for setTraceLevel
 #include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <n3n/network_traffic_filter.h>
@@ -175,7 +175,8 @@ try_uint32:
             return -1;
         }
         case n3n_conf_supernode: {
-            return edge_conf_add_supernode(conf, value);
+            struct peer_info **supernodes = (struct peer_info **)valvoid;
+            return n3n_peer_add_by_hostname(supernodes, value);
         }
         case n3n_conf_privatekey: {
             n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
