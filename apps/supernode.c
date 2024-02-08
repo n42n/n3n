@@ -27,6 +27,7 @@
 #include <n3n/conffile.h>      // for n3n_config_set_option
 #include <n3n/initfuncs.h>     // for n3n_initfuncs()
 #include <n3n/logging.h>       // for traceEvent
+#include <n3n/peer_info.h>     // for n3n_peer_add_by_hostname
 #include <n3n/supernode.h>     // for load_allowed_sn_community, calculate_s...
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
