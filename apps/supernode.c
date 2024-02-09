@@ -518,13 +518,13 @@ int main (int argc, char * argv[]) {
         &sss_node.min_auto_ip_net.net_addr,
         ip_min_str,
         sizeof(ip_min_str)
-    );
+        );
     inet_ntop(
         AF_INET,
         &sss_node.max_auto_ip_net.net_addr,
         ip_max_str,
         sizeof(ip_max_str)
-    );
+        );
 
     traceEvent(
         TRACE_NORMAL,
