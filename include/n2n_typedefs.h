@@ -491,6 +491,8 @@ typedef struct n2n_edge_conf {
     n2n_mac_t sn_mac_addr;
     n2n_community_t sn_federation;
     struct peer_info *sn_edges;     // SN federation storage during configure
+    n2n_ip_subnet_t sn_min_auto_ip_net;                        /* Address range of auto_ip service. */
+    n2n_ip_subnet_t sn_max_auto_ip_net;                        /* Address range of auto_ip service. */
 } n2n_edge_conf_t;
 
 
@@ -587,8 +589,6 @@ struct n3n_runtime_data {
     bool lock_communities;                                    /* If true, only loaded and matching communities can be used. */
     uint32_t dynamic_key_time;                                /* UTC time of last dynamic key generation (second accuracy) */
     n2n_tcp_connection_t                   *tcp_connections;/* list of established TCP connections */
-    n2n_ip_subnet_t min_auto_ip_net;                        /* Address range of auto_ip service. */
-    n2n_ip_subnet_t max_auto_ip_net;                        /* Address range of auto_ip service. */
     struct sn_community                    *communities;
     struct sn_community_regular_expression *rules;
     struct sn_community                    *federation;

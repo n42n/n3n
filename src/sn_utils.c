@@ -840,10 +840,10 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     sa->sin_addr.s_addr = htonl(INADDR_ANY);
 
     sss->sock = -1;
-    sss->min_auto_ip_net.net_addr = ntohl(inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT));
-    sss->min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
-    sss->max_auto_ip_net.net_addr = ntohl(inet_addr(N2N_SN_MAX_AUTO_IP_NET_DEFAULT));
-    sss->max_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
+    conf->sn_min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
+    conf->sn_min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
+    conf->sn_max_auto_ip_net.net_addr = inet_addr(N2N_SN_MAX_AUTO_IP_NET_DEFAULT);
+    conf->sn_max_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
 
     sss->federation = (struct sn_community *)calloc(1, sizeof(struct sn_community));
     if(!sss->federation) {
@@ -1341,21 +1341,27 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
     uint32_t net_id, net_id_i, mask, net_increment;
     uint32_t no_subnets;
     uint8_t success;
+    in_addr_t net_min;
+    in_addr_t net_max;
     in_addr_t net;
 
-    mask = bitlen2mask(sss->min_auto_ip_net.net_bitlen);
+
+    mask = bitlen2mask(sss->conf.sn_min_auto_ip_net.net_bitlen);
+    net_min = ntohl(sss->conf.sn_min_auto_ip_net.net_addr);
+    net_max = ntohl(sss->conf.sn_max_auto_ip_net.net_addr);
+
     // number of possible sub-networks
-    no_subnets   = (sss->max_auto_ip_net.net_addr - sss->min_auto_ip_net.net_addr);
-    no_subnets >>= (32 - sss->min_auto_ip_net.net_bitlen);
+    no_subnets   = net_max - net_min;
+    no_subnets >>= (32 - sss->conf.sn_min_auto_ip_net.net_bitlen);
     no_subnets  += 1;
 
     // proposal for sub-network to choose
     net_id    = pearson_hash_32((const uint8_t *)comm->community, N2N_COMMUNITY_SIZE) % no_subnets;
-    net_id    = sss->min_auto_ip_net.net_addr + (net_id << (32 - sss->min_auto_ip_net.net_bitlen));
+    net_id    = net_min + (net_id << (32 - sss->conf.sn_min_auto_ip_net.net_bitlen));
 
     // check for availability starting from net_id, then downwards, ...
     net_increment = (~mask+1);
-    for(net_id_i = net_id; net_id_i >= sss->min_auto_ip_net.net_addr; net_id_i -= net_increment) {
+    for(net_id_i = net_id; net_id_i >= net_min; net_id_i -= net_increment) {
         success = subnet_available(sss, comm, net_id_i, mask);
         if(success) {
             break;
@@ -1363,7 +1369,7 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
     }
     // ... then upwards
     if(!success) {
-        for(net_id_i = net_id + net_increment; net_id_i <= sss->max_auto_ip_net.net_addr; net_id_i += net_increment) {
+        for(net_id_i = net_id + net_increment; net_id_i <= net_max; net_id_i += net_increment) {
             success = subnet_available(sss, comm, net_id_i, mask);
             if(success) {
                 break;
@@ -1373,7 +1379,7 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
 
     if(success) {
         comm->auto_ip_net.net_addr = net_id_i;
-        comm->auto_ip_net.net_bitlen = sss->min_auto_ip_net.net_bitlen;
+        comm->auto_ip_net.net_bitlen = sss->conf.sn_min_auto_ip_net.net_bitlen;
         net = htonl(comm->auto_ip_net.net_addr);
         traceEvent(TRACE_INFO, "assigned sub-network %s/%u to community '%s'",
                    inet_ntoa(*(struct in_addr *) &net),

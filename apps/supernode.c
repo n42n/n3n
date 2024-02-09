@@ -148,10 +148,10 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                         break;
                 }
 
-                sss->min_auto_ip_net.net_addr = ntohl(net_min);
-                sss->min_auto_ip_net.net_bitlen = bitlen;
-                sss->max_auto_ip_net.net_addr = ntohl(net_max);
-                sss->max_auto_ip_net.net_bitlen = bitlen;
+                conf->sn_min_auto_ip_net.net_addr = net_min;
+                conf->sn_min_auto_ip_net.net_bitlen = bitlen;
+                conf->sn_max_auto_ip_net.net_addr = net_max;
+                conf->sn_max_auto_ip_net.net_bitlen = bitlen;
 
                 break;
 badaddr:
@@ -487,25 +487,25 @@ int main (int argc, char * argv[]) {
             );
     }
 
-    if(sss_node.min_auto_ip_net.net_bitlen != sss_node.max_auto_ip_net.net_bitlen) {
+    if(sss_node.conf.sn_min_auto_ip_net.net_bitlen != sss_node.conf.sn_max_auto_ip_net.net_bitlen) {
         traceEvent(
             TRACE_ERROR,
             "mismatched auto IP subnet (%i != %i)",
-            sss_node.min_auto_ip_net.net_bitlen,
-            sss_node.max_auto_ip_net.net_bitlen
+            sss_node.conf.sn_min_auto_ip_net.net_bitlen,
+            sss_node.conf.sn_max_auto_ip_net.net_bitlen
             );
         exit(1);
     }
-    if(sss_node.min_auto_ip_net.net_bitlen > 30 || sss_node.min_auto_ip_net.net_bitlen == 0) {
+    if(sss_node.conf.sn_min_auto_ip_net.net_bitlen > 30 || sss_node.conf.sn_min_auto_ip_net.net_bitlen == 0) {
         traceEvent(
             TRACE_ERROR,
             "invalid auto IP subnet (0 > %i > 30)",
-            sss_node.min_auto_ip_net.net_bitlen
+            sss_node.conf.sn_min_auto_ip_net.net_bitlen
             );
         exit(1);
     }
 
-    if(ntohl(sss_node.min_auto_ip_net.net_addr) > ntohl(sss_node.max_auto_ip_net.net_bitlen)) {
+    if(ntohl(sss_node.conf.sn_min_auto_ip_net.net_addr) > ntohl(sss_node.conf.sn_max_auto_ip_net.net_bitlen)) {
         traceEvent(TRACE_ERROR, "auto IP min cannot be > max");
         exit(1);
     }
@@ -515,23 +515,23 @@ int main (int argc, char * argv[]) {
 
     inet_ntop(
         AF_INET,
-        &sss_node.min_auto_ip_net.net_addr,
+        &sss_node.conf.sn_min_auto_ip_net.net_addr,
         ip_min_str,
         sizeof(ip_min_str)
         );
     inet_ntop(
         AF_INET,
-        &sss_node.max_auto_ip_net.net_addr,
+        &sss_node.conf.sn_max_auto_ip_net.net_addr,
         ip_max_str,
         sizeof(ip_max_str)
         );
 
     traceEvent(
         TRACE_NORMAL,
-        "the network range for community ip address service is '%s...%s/%hhu'",
+        "auto ip address range is '%s...%s/%hhu'",
         ip_min_str,
         ip_max_str,
-        sss_node.min_auto_ip_net.net_bitlen
+        sss_node.conf.sn_min_auto_ip_net.net_bitlen
         );
 
     calculate_shared_secrets(&sss_node);
