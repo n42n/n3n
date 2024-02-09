@@ -124,7 +124,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 dec_ip_str_t ip_max_str = {'\0'};
                 in_addr_t net_min, net_max;
                 uint8_t bitlen;
-                uint32_t mask;
 
                 if(sscanf(optarg, "%15[^\\-]-%15[^/]/%hhu", ip_min_str, ip_max_str, &bitlen) != 3) {
                     traceEvent(TRACE_WARNING, "bad net-net/bit format '%s'.", optarg);
@@ -133,7 +132,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
 
                 net_min = inet_addr(ip_min_str);
                 net_max = inet_addr(ip_max_str);
-                mask = bitlen2mask(bitlen);
 
                 switch(net_min) {
                     case INADDR_NONE:
@@ -149,21 +147,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                     default:
                         break;
                 }
-                if((ntohl(net_min) > ntohl(net_max))) {
-                    goto badaddr;
-                }
-                if(((ntohl(net_min) & ~mask) != 0) || ((ntohl(net_max) & ~mask) != 0)) {
-                    goto badaddr;
-                }
-
-                if((bitlen > 30) || (bitlen == 0)) {
-                    traceEvent(TRACE_WARNING, "bad prefix '%hhu' in '%s', defaulting to '%s...%s/%d'",
-                               bitlen, optarg,
-                               N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
-                    break;
-                }
-
-                traceEvent(TRACE_NORMAL, "the network range for community ip address service is '%s...%s/%hhu'", ip_min_str, ip_max_str, bitlen);
 
                 sss->min_auto_ip_net.net_addr = ntohl(net_min);
                 sss->min_auto_ip_net.net_bitlen = bitlen;
@@ -503,6 +486,53 @@ int main (int argc, char * argv[]) {
             "is recommended instead!"
             );
     }
+
+    if(sss_node.min_auto_ip_net.net_bitlen != sss_node.max_auto_ip_net.net_bitlen) {
+        traceEvent(
+            TRACE_ERROR,
+            "mismatched auto IP subnet (%i != %i)",
+            sss_node.min_auto_ip_net.net_bitlen,
+            sss_node.max_auto_ip_net.net_bitlen
+            );
+        exit(1);
+    }
+    if(sss_node.min_auto_ip_net.net_bitlen > 30 || sss_node.min_auto_ip_net.net_bitlen == 0) {
+        traceEvent(
+            TRACE_ERROR,
+            "invalid auto IP subnet (0 > %i > 30)",
+            sss_node.min_auto_ip_net.net_bitlen
+            );
+        exit(1);
+    }
+
+    if(ntohl(sss_node.min_auto_ip_net.net_addr) > ntohl(sss_node.max_auto_ip_net.net_bitlen)) {
+        traceEvent(TRACE_ERROR, "auto IP min cannot be > max");
+        exit(1);
+    }
+
+    dec_ip_str_t ip_min_str = {'\0'};
+    dec_ip_str_t ip_max_str = {'\0'};
+
+    inet_ntop(
+        AF_INET,
+        &sss_node.min_auto_ip_net.net_addr,
+        ip_min_str,
+        sizeof(ip_min_str)
+    );
+    inet_ntop(
+        AF_INET,
+        &sss_node.max_auto_ip_net.net_addr,
+        ip_max_str,
+        sizeof(ip_max_str)
+    );
+
+    traceEvent(
+        TRACE_NORMAL,
+        "the network range for community ip address service is '%s...%s/%hhu'",
+        ip_min_str,
+        ip_max_str,
+        sss_node.min_auto_ip_net.net_bitlen
+        );
 
     calculate_shared_secrets(&sss_node);
 
