@@ -28,7 +28,6 @@ pkg:
 	install -m644 ../../supernode.1.gz ${N2N_BUILD}/usr/share/man/man1/
 	install -m644 ../../n3n.7.gz ${N2N_BUILD}/usr/share/man/man7/
 	install -m644 ../../doc/*.sample ${N2N_BUILD}/usr/share/doc/n3n/examples/
-	install -m644 ../../doc/community.list ${N2N_BUILD}/usr/share/doc/n3n/examples/
 	install -m644 ../../doc/*.md ${N2N_BUILD}/usr/share/doc/n3n/
 	@/bin/rm -f ../n3n*.deb
 	DEBEMAIL=builder@example.com dch -v ${PACKAGE_VERSION} --no-auto-nmu Auto Build
