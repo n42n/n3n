@@ -31,6 +31,7 @@
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/metrics.h>
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
+#include <n3n/random.h>              // for n3n_rand, n3n_rand_sqr
 #include <n3n/strings.h>             // for sock_to_cstr
 #include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
 #include <stdbool.h>
@@ -51,7 +52,6 @@
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
 #include "portable_endian.h"         // for be16toh, htobe16
-#include "random_numbers.h"          // for n2n_rand, n2n_rand_sqr
 #include "resolve.h"                 // for resolve_create_thread, resolve_c...
 #include "sn_selection.h"            // for sn_selection_criterion_common_da...
 #include "speck.h"                   // for speck_128_decrypt, speck_128_enc...
@@ -1284,7 +1284,7 @@ void send_query_peer (struct n3n_runtime_data * eee,
 
         // skip a random number of supernodes between top and remaining
         n_o_skip_sn = HASH_COUNT(eee->conf.supernodes) - n_o_pings;
-        n_o_skip_sn = (n_o_skip_sn < 0) ? 0 : n2n_rand_sqr(n_o_skip_sn);
+        n_o_skip_sn = (n_o_skip_sn < 0) ? 0 : n3n_rand_sqr(n_o_skip_sn);
         HASH_ITER(hh, eee->conf.supernodes, peer, tmp) {
             if(n_o_top_sn) {
                 n_o_top_sn--;
@@ -1331,7 +1331,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     }
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
-    eee->curr_sn->last_cookie = n2n_rand();
+    eee->curr_sn->last_cookie = n3n_rand();
 
     reg.cookie = eee->curr_sn->last_cookie;
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
@@ -1614,7 +1614,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
     if(eee->sn_wait == 2) {
         // remaining 1/4 is greater than 1/10 fast retry allowance;
         // '%' might be expensive but does not happen all too often
-        off = n2n_rand() % ((eee->conf.register_interval * 3) / 4);
+        off = n3n_rand() % ((eee->conf.register_interval * 3) / 4);
     }
 
     check_join_multicast_group(eee);
