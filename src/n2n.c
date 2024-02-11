@@ -22,6 +22,7 @@
 #include <errno.h>           // for errno
 #include <n3n/ethernet.h>    // for is_null_mac, N2N_MACSTR_SIZE
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/random.h>      // for n3n_rand
 #include <n3n/strings.h>     // for ip_subnet_to_str, sock_to_cstr
 #include <stdbool.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
@@ -29,7 +30,6 @@
 #include <sys/time.h>        // for gettimeofday, timeval
 #include <time.h>            // for time, localtime, strftime
 #include "n2n.h"
-#include "random_numbers.h"  // for n2n_rand
 #include "sn_selection.h"    // for sn_selection_criterion_default
 #include "uthash.h"          // for UT_hash_handle, HASH_DEL, HASH_ITER, HAS...
 
@@ -396,12 +396,12 @@ int sock_equal (const n2n_sock_t * a,
 int memrnd (uint8_t *address, size_t len) {
 
     for(; len >= 4; len -= 4) {
-        *(uint32_t*)address = n2n_rand();
+        *(uint32_t*)address = n3n_rand();
         address += 4;
     }
 
     for(; len > 0; len--) {
-        *address = n2n_rand();
+        *address = n3n_rand();
         address++;
     }
 

@@ -22,6 +22,7 @@
 #include <getopt.h>            // for getopt_long
 #include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h>       // for traceEvent
+#include <n3n/random.h>        // for n3n_rand
 #include <signal.h>            // for signal, SIGINT, SIGPIPE, SIGTERM, SIG_IGN
 #include <stdbool.h>
 #include <stdint.h>            // for uint16_t, uint32_t, uint8_t
@@ -357,7 +358,7 @@ reset_main_loop:
         // check if we need to send info request again
         if(now > last_info_req + INFO_INTERVAL) {
             // send info read request
-            while(!(tag_info = ((uint32_t)n2n_rand()) >> 23));
+            while(!(tag_info = ((uint32_t)n3n_rand()) >> 23));
             msg_len = 0;
             msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
                                 "r %u info\n", tag_info);

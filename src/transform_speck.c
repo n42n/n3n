@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/random.h>      // for n3n_rand
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
 #include <stdlib.h>          // for size_t, calloc, free
@@ -28,7 +29,6 @@
 #include "n2n.h"             // for n2n_trans_op_t
 #include "n2n_wire.h"        // for encode_uint64
 #include "pearson.h"         // for pearson_hash_256
-#include "random_numbers.h"  // for n2n_rand
 #include "speck.h"           // for N2N_SPECK_IVEC_SIZE, speck_ctr, speck_de...
 
 
@@ -80,8 +80,8 @@ static int transop_encode_speck (n2n_trans_op_t *arg,
             traceEvent(TRACE_DEBUG, "encode_speck %lu bytes", in_len);
 
             // generate and encode the iv
-            encode_uint64(outbuf, &idx, n2n_rand());
-            encode_uint64(outbuf, &idx, n2n_rand());
+            encode_uint64(outbuf, &idx, n3n_rand());
+            encode_uint64(outbuf, &idx, n3n_rand());
 
             // encrypt the payload and write the ciphertext after the iv
             // len is set to the length of the cipher plain text to be encrpyted

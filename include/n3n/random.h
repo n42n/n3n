@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2024 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,47 +18,15 @@
  *
  */
 
-// TODO: separate this file into public and private definitions
-
-#ifndef RND_H
-#define RND_H
+#ifndef _N3N_RANDOM_H_
+#define _N3N_RANDOM_H_
 
 
 #include <stdint.h>   // for uint64_t, uint32_t
 
+uint64_t n3n_rand (void);
 
-// syscall and inquiring random number from hardware generators might fail, so we will retry
-#define RND_RETRIES      1000
-
-#if defined (__linux__)
-#include <syscall.h>  // for SYS_getrandom
-#ifdef SYS_getrandom
-#define GRND_NONBLOCK       1
-#endif
-#endif
-
-#if defined (__RDRND__) || defined (__RDSEED__)
-#include <immintrin.h>  /* _rdrand64_step, rdseed4_step */
-#endif
-
-#ifdef _WIN32
-#include "../src/win32/defs.h"  // FIXME: untangle include paths
-#include <wincrypt.h>   // HCTYPTPROV, Crypt*-functions
-#endif
+uint32_t n3n_rand_sqr (uint32_t max_n);
 
 
-typedef struct rn_generator_state_t {
-    uint64_t a, b;
-} rn_generator_state_t;
-
-typedef struct splitmix64_state_t {
-    uint64_t s;
-} splitmix64_state_t;
-
-
-uint64_t n2n_rand (void);
-
-uint32_t n2n_rand_sqr (uint32_t max_n);
-
-
-#endif // RND_H
+#endif // _N3N_RANDOM_H_

@@ -23,6 +23,7 @@
 #include <errno.h>              // for errno, EAFNOSUPPORT
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
+#include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community, calculate_...
 #include <stdbool.h>
@@ -1466,7 +1467,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             cmn.flags = N2N_FLAGS_FROM_SUPERNODE;
             memcpy(cmn.community, comm->community, N2N_COMMUNITY_SIZE);
 
-            reg.cookie = n2n_rand();
+            reg.cookie = n3n_rand();
             peer->last_cookie = reg.cookie;
 
             reg.dev_addr.net_addr = ntohl(peer->dev_addr.net_addr);
@@ -2056,7 +2057,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             /* Skip random numbers of supernodes before payload assembling, calculating an appropriate random_number.
              * That way, all supernodes have a chance to be propagated with REGISTER_SUPER_ACK. */
             skip = HASH_COUNT(sss->federation->edges) - (int)(REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE / REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE);
-            skip = (skip < 0) ? 0 : n2n_rand_sqr(skip);
+            skip = (skip < 0) ? 0 : n3n_rand_sqr(skip);
 
             /* Assembling supernode list for REGISTER_SUPER_ACK payload */
             payload = (n2n_REGISTER_SUPER_ACK_payload_t*)payload_buf;

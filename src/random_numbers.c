@@ -20,11 +20,44 @@
 
 
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/random.h>
 #include <errno.h>   // for errno, EAGAIN
 #include <stddef.h>  // for NULL, size_t
 #include <time.h>    // for clock, time
 #include <unistd.h>  // for syscall
-#include "random_numbers.h"
+
+// syscall and inquiring random number from hardware generators might fail, so
+// we will retry
+#define RND_RETRIES      1000
+
+
+#if defined (__linux__)
+#include <syscall.h>  // for SYS_getrandom
+#ifdef SYS_getrandom
+#define GRND_NONBLOCK       1
+#endif
+#endif
+
+#if defined (__RDRND__) || defined (__RDSEED__)
+#include <immintrin.h>  /* _rdrand64_step, rdseed4_step */
+// may need x86intrin.h with gcc
+// see https://gcc.gnu.org/legacy-ml/gcc-bugs/2015-11/msg01051.html
+#endif
+
+#ifdef _WIN32
+#include "win32/defs.h"  // FIXME: untangle include paths
+#include <wincrypt.h>   // HCTYPTPROV, Crypt*-functions
+#endif
+
+typedef struct rn_generator_state_t {
+    uint64_t a, b;
+} rn_generator_state_t;
+
+typedef struct splitmix64_state_t {
+    uint64_t s;
+} splitmix64_state_t;
+
+
 
 
 // the following code offers an alterate pseudo random number generator
@@ -54,7 +87,7 @@ static uint64_t splitmix64 (splitmix64_state_t *state) {
 }
 
 
-static int n2n_srand (uint64_t seed) {
+static int n3n_srand (uint64_t seed) {
 
     uint8_t i;
     splitmix64_state_t smstate = { seed };
@@ -74,7 +107,7 @@ static int n2n_srand (uint64_t seed) {
 
     // stabilize in unlikely case of weak state with only a few bits set
     for(i = 0; i < 32; i++)
-        n2n_rand();
+        n3n_rand();
 
     return 0;
 }
@@ -83,7 +116,7 @@ static int n2n_srand (uint64_t seed) {
 // the following code of xorshift128p was taken from
 // https://en.wikipedia.org/wiki/Xorshift as of July, 2019
 // and thus is considered public domain
-uint64_t n2n_rand (void) {
+uint64_t n3n_rand (void) {
 
     uint64_t t       = rn_current_state.a;
     uint64_t const s = rn_current_state.b;
@@ -100,8 +133,8 @@ uint64_t n2n_rand (void) {
 
 // the following code tries to gather some entropy from several sources
 // for use as seed. Note, that this code does not set the random generator
-// state yet, a call to   n2n_srand (n2n_seed())   would do
-static uint64_t n2n_seed (void) {
+// state yet, a call to   n3n_srand (n3n_seed())   would do
+static uint64_t n3n_seed (void) {
 
     uint64_t seed = 0;   /* this could even go uninitialized */
     uint64_t ret = 0;    /* this could even go uninitialized */
@@ -119,7 +152,7 @@ static uint64_t n2n_seed (void) {
         // if successful, rc should contain the requested number of random bytes
         if(rc != sizeof(seed)) {
             if(errno != EAGAIN) {
-                traceEvent(TRACE_ERROR, "n2n_seed faced error errno=%u from getrandom syscall.", errno);
+                traceEvent(TRACE_ERROR, "n3n_seed faced error errno=%u from getrandom syscall.", errno);
                 break;
             }
         }
@@ -127,7 +160,7 @@ static uint64_t n2n_seed (void) {
 
     // if we still see an EAGAIN error here, we must have run out of retries
     if(errno == EAGAIN) {
-        traceEvent(TRACE_ERROR, "n2n_seed saw getrandom syscall indicate not being able to provide enough entropy yet.");
+        traceEvent(TRACE_ERROR, "n3n_seed saw getrandom syscall indicate not being able to provide enough entropy yet.");
     }
 #endif
 
@@ -149,7 +182,7 @@ static uint64_t n2n_seed (void) {
         // continue loop to try again otherwise
     }
     if(j == RND_RETRIES) {
-        traceEvent(TRACE_ERROR, "n2n_seed was not able to get a hardware generated random number from RDRND.");
+        traceEvent(TRACE_ERROR, "n3n_seed was not able to get a hardware generated random number from RDRND.");
     }
 #endif
 
@@ -166,7 +199,7 @@ static uint64_t n2n_seed (void) {
         // continue loop to try again otherwise
     }
     if(k == RND_RETRIES) {
-        traceEvent(TRACE_ERROR, "n2n_seed was not able to get a hardware generated random number from RDSEED.");
+        traceEvent(TRACE_ERROR, "n3n_seed was not able to get a hardware generated random number from RDSEED.");
     }
 #endif
 #endif
@@ -238,14 +271,14 @@ static int32_t int_sqrt (int val) {
 
 
 // returns a random number from [0, max_n] with higher probability towards the borders
-uint32_t n2n_rand_sqr (uint32_t max_n) {
+uint32_t n3n_rand_sqr (uint32_t max_n) {
 
     uint32_t raw_max = 0;
     uint32_t raw_rnd = 0;
     int32_t ret     = 0;
 
     raw_max = (max_n+2) * (max_n+2);
-    raw_rnd = n2n_rand() % (raw_max);
+    raw_rnd = n3n_rand() % (raw_max);
 
     ret = int_sqrt(raw_rnd) / 2;
     ret = (raw_rnd & 1) ? ret : -ret;
@@ -261,5 +294,5 @@ uint32_t n2n_rand_sqr (uint32_t max_n) {
 
 void n3n_initfuncs_random () {
     /* Random seed */
-    n2n_srand(n2n_seed());
+    n3n_srand(n3n_seed());
 }

@@ -23,6 +23,7 @@
 #include <getopt.h>            // for getopt_long, optind, optarg
 #include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h>       // for traceEvent
+#include <n3n/random.h>        // for n3n_rand
 #include <signal.h>            // for signal, SIGINT, SIGPIPE, SIGTERM, SIG_IGN
 #include <stdbool.h>
 #include <stdint.h>            // for uint8_t, uint16_t, uint32_t
@@ -946,7 +947,7 @@ reset_main_loop:
         // check if we need to send info request again
         if(now > last_info_req + INFO_INTERVAL) {
             // send info read request
-            while(!(tag_info = ((uint32_t)n2n_rand()) >> 23));
+            while(!(tag_info = ((uint32_t)n3n_rand()) >> 23));
             msg_len = 0;
             msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
                                 "r %u info\n", tag_info);
@@ -963,7 +964,7 @@ reset_main_loop:
                 // REVISIT: send unsubscribe request to management port if required to re-subscribe
 
                 // send subscribe request to management port, generate fresh tag
-                while(!(tag_route_ip = ((uint32_t)n2n_rand()) >> 23)); /* >> 23: tags too long can crash the mgmt */
+                while(!(tag_route_ip = ((uint32_t)n3n_rand()) >> 23)); /* >> 23: tags too long can crash the mgmt */
                 msg_len = 0;
                 msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
                                     "s %u:1:%s peer\n", tag_route_ip, rrr.password);
