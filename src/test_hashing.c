@@ -13,6 +13,7 @@
 #include "pearson.h"   // for pearson_hash_128, pearson_hash_16, pearson_has...
 
 
+/* *INDENT-OFF* */
 static uint8_t PKT_CONTENT[]={
   0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
   0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
@@ -31,6 +32,7 @@ static uint8_t PKT_CONTENT[]={
   0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
   0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 };
+/* *INDENT-ON* */
 
 static const uint16_t expected_pearson_hash_16 = 0x8be;
 static const uint32_t expected_pearson_hash_32 = 0x2ea108be;
