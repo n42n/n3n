@@ -63,7 +63,7 @@
     },
     {
         "nak": 0,
-        "tx_pkt": 1,
+        "tx_pkt": 0,
         "type": "sn_reg"
     },
     {
@@ -129,10 +129,8 @@
         "desc": "",
         "ip4addr": "",
         "last_p2p": 0,
-        "last_seen": 0,
         "last_sent_query": 0,
         "local": 0,
-        "macaddr": "",
         "mode": "sn",
         "purgeable": 0,
         "sockaddr": "127.0.0.1:7002"
@@ -146,10 +144,8 @@
         "desc": "",
         "ip4addr": "",
         "last_p2p": 0,
-        "last_seen": 0,
         "last_sent_query": 0,
         "local": 0,
-        "macaddr": "",
         "mode": "sn",
         "purgeable": 0,
         "sockaddr": "127.0.0.1:7001"

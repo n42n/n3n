@@ -45,6 +45,8 @@ port=0
 
 ####################
 [supernode]
+auto_ip_max=0.0.0.0/0
+auto_ip_min=0.0.0.0/0
 macaddr=00:00:00:00:00:00
 #peer=
 
