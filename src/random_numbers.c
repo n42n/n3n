@@ -45,7 +45,7 @@
 #endif
 
 #ifdef _WIN32
-#include "win32/defs.h"  // FIXME: untangle include paths
+#include "win32/defs.h"
 #include <wincrypt.h>   // HCTYPTPROV, Crypt*-functions
 #endif
 
