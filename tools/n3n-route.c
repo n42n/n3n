@@ -21,6 +21,7 @@
 
 #include <errno.h>             // for errno
 #include <getopt.h>            // for getopt_long, optind, optarg
+#include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h>       // for traceEvent
 #include <signal.h>            // for signal, SIGINT, SIGPIPE, SIGTERM, SIG_IGN
 #include <stdbool.h>
@@ -33,7 +34,6 @@
 #include <unistd.h>            // for getpid, STDIN_FILENO, _exit, geteuid
 #include "json.h"              // for _jsonpair, json_object_t, _jsonvalue
 #include "n2n.h"               // for inaddrtoa, traceEvent, TRACE_WARNING
-#include "random_numbers.h"    // for n2n_rand, n2n_seed, n2n_srand
 #include "uthash.h"            // for UT_hash_handle, HASH_ADD, HASH_DEL
 
 #ifdef __linux__
@@ -820,6 +820,9 @@ int main (int argc, char* argv[]) {
     ipstr_t ip_str;
     n2n_route_t *route, *tmp_route;
 
+    // Do this early to register all internals
+    n3n_initfuncs();
+
     // version
     print_n3n_version();
 
@@ -834,7 +837,6 @@ int main (int argc, char* argv[]) {
     rrr.port = N2N_EDGE_MGMT_PORT;
     rrr.routes = NULL;
     setTraceLevel(2); /* NORMAL, should already be default */
-    n2n_srand(n2n_seed());
 
     // get command line options and eventually overwrite initialized conf
     while((c = getopt_long(argc, argv, "t:p:g:n:vV", NULL, NULL)) != '?') {

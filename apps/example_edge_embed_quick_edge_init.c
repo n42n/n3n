@@ -19,10 +19,10 @@
  */
 
 
+#include <n3n/initfuncs.h>   // for n3n_initfuncs
 #include <n3n/logging.h>     // for setTraceLevel
 #include <stdbool.h>
 #include "n2n.h"             // for quick_edge_init
-#include "random_numbers.h"  // for n2n_seed, n2n_srand
 
 
 /*
@@ -40,11 +40,11 @@ int main (int argc, char* argv[]) {
     char *supernode      = (char*)"7.8.9.10:1234";
     bool keep_on_running = true;
 
+    // Do this early to register all internals
+    n3n_initfuncs();
+
     /* Increase tracelevel to see what's happening */
     setTraceLevel(10);
-
-    /* Random seed */
-    n2n_srand(n2n_seed());
 
     /*
        NOTE

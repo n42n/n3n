@@ -43,7 +43,6 @@
 #include "auth.h"                    // for generate_private_key, generate_p...
 #include "n2n.h"                     // for n2n_edge_conf_t, n3n_runtime_data, fil...
 #include "portable_endian.h"         // for htobe32
-#include "random_numbers.h"          // for n2n_seed, n2n_srand
 #include "sn_selection.h"            // for sn_selection_sort, sn_selection_...
 #include "speck.h"                   // for speck_init, speck_context_t
 #include "uthash.h"                  // for UT_hash_handle, HASH_ADD, HASH_C...
@@ -774,9 +773,6 @@ int main (int argc, char* argv[]) {
 
     traceEvent(TRACE_NORMAL, "using compression: %s.", n3n_compression_id2str(conf.compression));
     traceEvent(TRACE_NORMAL, "using %s cipher.", n3n_transform_id2str(conf.transop_id));
-
-    /* Random seed */
-    n2n_srand(n2n_seed());
 
 #ifndef _WIN32
     /* If running suid root then we need to setuid before using the force. */

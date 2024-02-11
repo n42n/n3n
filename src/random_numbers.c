@@ -54,7 +54,7 @@ static uint64_t splitmix64 (splitmix64_state_t *state) {
 }
 
 
-int n2n_srand (uint64_t seed) {
+static int n2n_srand (uint64_t seed) {
 
     uint8_t i;
     splitmix64_state_t smstate = { seed };
@@ -101,7 +101,7 @@ uint64_t n2n_rand (void) {
 // the following code tries to gather some entropy from several sources
 // for use as seed. Note, that this code does not set the random generator
 // state yet, a call to   n2n_srand (n2n_seed())   would do
-uint64_t n2n_seed (void) {
+static uint64_t n2n_seed (void) {
 
     uint64_t seed = 0;   /* this could even go uninitialized */
     uint64_t ret = 0;    /* this could even go uninitialized */
@@ -266,4 +266,9 @@ uint32_t n2n_rand_sqr (uint32_t max_n) {
         ret = max_n;
 
     return ret;
+}
+
+void n3n_initfuncs_random () {
+    /* Random seed */
+    n2n_srand(n2n_seed());
 }

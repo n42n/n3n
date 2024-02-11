@@ -43,7 +43,6 @@
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
 #include "peer_info.h"          // for purge_peer_list, clear_peer_list
 #include "portable_endian.h"    // for be16toh, htobe16
-#include "random_numbers.h"     // for n2n_rand, n2n_rand_sqr, n2n_seed, n2n...
 #include "resolve.h"            // for resolve_create_thread, resolve_cancel...
 #include "sn_selection.h"       // for sn_selection_criterion_gather_data
 #include "speck.h"              // for speck_128_encrypt, speck_context_t
@@ -859,8 +858,6 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     /* header encryption enabled by default */
     sss->federation->header_encryption = HEADER_ENCRYPTION_ENABLED;
     sss->federation->edges = NULL;
-
-    n2n_srand(n2n_seed());
 }
 
 

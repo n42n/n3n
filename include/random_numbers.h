@@ -16,6 +16,7 @@
  *
  */
 
+// TODO: separate this file into public and private definitions
 
 #ifndef RND_H
 #define RND_H
@@ -53,11 +54,7 @@ typedef struct splitmix64_state_t {
 } splitmix64_state_t;
 
 
-int n2n_srand (uint64_t seed);
-
 uint64_t n2n_rand (void);
-
-uint64_t n2n_seed (void);
 
 uint32_t n2n_rand_sqr (uint32_t max_n);
 
