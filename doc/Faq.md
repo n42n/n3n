@@ -12,7 +12,11 @@ We do not explicitly release Windows binaries, but the automated test workflow c
 
 ### I want to setup a supernode that only I can use. Perhaps even password protected?
 
-Please think of the community-name as password and start the supernode with the `-c <community file>` parameter where the `<community file>` is the path to a simple text file containing a single line with the name of your secret community. It will be the only community allowed. Only edge nodes from that community can join (`-c <community name>` at the edge).
+Please think of the community-name as password and start the supernode with the
+`supernode.community_file` options pointing at a simple text file containing a
+single line with the name of your secret community. It will be the only
+community allowed. Only edge nodes from that community can join (`-c <community
+name>` at the edge).
 
 If you additionally want to prevent open transmission of your secret community
 name via the network, **all** edge nodes should use

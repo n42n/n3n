@@ -187,7 +187,14 @@ The scheme applied tries to maintain compatibility with current packet format an
 
 Decryption checks all known communities (several in case of supernode, only one at edge) as keys. On success, the emerging magic number along with a reasonable header's length value will reveal the correct community whose name will be copied back to the original fields allowing for regular packet handling.
 
-Thus, header encryption will only work with previously determined community names introduced to the supernode by `-c <path>` parameter. Also, it should be clear that header encryption is a per-community decision, i.e. all nodes and the supernode need to have it enabled. However, the supernode supports encrypted and unencrypted communities in parallel, it determines their status online at arrival of the first packet. Use a fresh community name for encrypted communities; do not use a previously used one of former unecrypted communities: their names were transmitted openly.
+Thus, header encryption will only work with previously determined community
+names introduced to the supernode by the `supernode.community_file` option.
+Also, it should be clear that header encryption is a per-community decision,
+i.e. all nodes and the supernode need to have it enabled. However, the
+supernode supports encrypted and unencrypted communities in parallel, it
+determines their status online at arrival of the first packet. Use a fresh
+community name for encrypted communities; do not use a previously used one of
+former unecrypted communities: their names were transmitted openly.
 
 ### Checksum
 
