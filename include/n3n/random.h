@@ -29,4 +29,11 @@ uint64_t n3n_rand (void);
 uint32_t n3n_rand_sqr (uint32_t max_n);
 
 
+struct n3n_rand_seeds_def {
+    char *name;
+    uint64_t (*seed)();
+};
+
+extern const struct n3n_rand_seeds_def n3n_rand_seeds[];
+
 #endif // _N3N_RANDOM_H_

@@ -130,95 +130,156 @@ uint64_t n3n_rand (void) {
     return t + s;
 }
 
+#ifdef SYS_getrandom
+static uint64_t seed_getrandom() {
+    int retries = RND_RETRIES;
+    int rc;
+    uint64_t seed;
+
+    while(retries--) {
+        rc = syscall(SYS_getrandom, &seed, sizeof(seed), GRND_NONBLOCK);
+        if(rc == sizeof(seed)) {
+            return seed;
+        }
+        if(rc != -1) {
+            // Dunno, still warming up?
+            continue;
+        }
+        if(errno != EAGAIN) {
+            traceEvent(TRACE_ERROR, "getrandom() error errno=%u", errno);
+            return 0;
+        }
+    }
+
+    // if we get here, we must have run out of retries
+    if(errno == EAGAIN) {
+        traceEvent(
+            TRACE_ERROR,
+            "getrandom syscall indicate not being able to provide enough entropy yet."
+            );
+    }
+    return 0;
+}
+#endif
+
+#ifdef __RDRND__
+// __RDRND__ is set only if architecturual feature is set, e.g. compiled with -march=native
+static uint64_t seed_rdrnd() {
+    uint64_t seed;
+    size_t j = 0;
+    for(j = 0; j < RND_RETRIES; j++) {
+        if(_rdrand64_step((unsigned long long*)&seed)) {
+            // success!
+            return seed;
+        }
+        // continue loop to try again otherwise
+    }
+
+    traceEvent(
+        TRACE_ERROR,
+        "unable to get a hardware generated random number from RDRND."
+        );
+    return 0;
+}
+#endif
+
+#ifdef __RDSEED__
+#if __GNUC__ > 4
+// __RDSEED__ is set only if architecturual feature is set, e.g. compile with -march=native
+static uint64_t seed_rdseed() {
+    uint64_t seed;
+    size_t k = 0;
+    for(k = 0; k < RND_RETRIES; k++) {
+        if(_rdseed64_step((unsigned long long*)&seed)) {
+            // success!
+            return seed;
+        }
+        // continue loop to try again otherwise
+    }
+
+    traceEvent(
+        TRACE_ERROR,
+        "unable to get a hardware generated random number from RDSEED."
+        );
+    return 0;
+}
+#endif
+#endif
+
+#ifdef _WIN32
+static uint64_t seed_CryptGenRandom() {
+    uint64_t seed;
+    HCRYPTPROV crypto_provider;
+    CryptAcquireContext(&crypto_provider, NULL, NULL,
+                        PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
+    CryptGenRandom(crypto_provider, 8, &seed);
+    CryptReleaseContext(crypto_provider, 0);
+    return seed;
+}
+#endif
+
+static uint64_t seed_time() {
+    return time(NULL);
+}
+
+static uint64_t seed_clock() {
+    uint64_t seed = clock();    /* ticks since program start */
+    seed *= 18444244737;
+    return seed;
+}
+
+const struct n3n_rand_seeds_def n3n_rand_seeds[] = {
+#ifdef SYS_getrandom
+    {
+        .name = "SYS_getrandom",
+        .seed = &seed_getrandom,
+    },
+#endif
+#ifdef __RDRND__
+    {
+        .name = "RDRND",
+        .seed = &seed_rdrnd,
+    },
+#endif
+#ifdef __RDSEED__
+#if __GNUC__ > 4
+    {
+        .name = "RDSEED",
+        .seed = &seed_rdseed,
+    },
+#endif
+#endif
+#ifdef _WIN32
+    {
+        .name = "CryptGenRandom",
+        .seed = &seed_CryptGenRandom,
+    },
+#endif
+    {
+        .name = "time",
+        .seed = &seed_time
+    },
+    {
+        .name = "clock",
+        .seed = &seed_clock
+    },
+};
 
 // the following code tries to gather some entropy from several sources
 // for use as seed. Note, that this code does not set the random generator
 // state yet, a call to   n3n_srand (n3n_seed())   would do
 static uint64_t n3n_seed (void) {
 
-    uint64_t seed = 0;   /* this could even go uninitialized */
     uint64_t ret = 0;    /* this could even go uninitialized */
 
-    // Note that each block goes with separate counter variables i, j, k as
-    // we do not know which one (or more) of them actually will be compiled
-
-
-
-#ifdef SYS_getrandom
-    size_t i = 0;
-    int rc = -1;
-    for(i = 0; (i < RND_RETRIES) && (rc != sizeof(seed)); i++) {
-        rc = syscall(SYS_getrandom, &seed, sizeof(seed), GRND_NONBLOCK);
-        // if successful, rc should contain the requested number of random bytes
-        if(rc != sizeof(seed)) {
-            if(errno != EAGAIN) {
-                traceEvent(TRACE_ERROR, "n3n_seed faced error errno=%u from getrandom syscall.", errno);
-                break;
-            }
-        }
+    int i;
+    for(i = 0; i < sizeof(n3n_rand_seeds) / sizeof(n3n_rand_seeds[0]); i++) {
+        // A zero return, means there was an issue (TODO: report that?)
+        // as we want randomness, it does no harm to add up even uninitialized
+        // values or erroneously arbitrary values returned from the syscall
+        // for the first time
+        ret += n3n_rand_seeds[i].seed();
     }
-
-    // if we still see an EAGAIN error here, we must have run out of retries
-    if(errno == EAGAIN) {
-        traceEvent(TRACE_ERROR, "n3n_seed saw getrandom syscall indicate not being able to provide enough entropy yet.");
-    }
-#endif
-
-    // as we want randomness, it does no harm to add up even uninitialized values or
-    // erroneously arbitrary values returned from the syscall for the first time
-    ret += seed;
-
-    // __RDRND__ is set only if architecturual feature is set, e.g. compiled with -march=native
-#ifdef __RDRND__
-    size_t j = 0;
-    for(j = 0; j < RND_RETRIES; j++) {
-        if(_rdrand64_step((unsigned long long*)&seed)) {
-            // success!
-            // from now on, we keep this inside the loop because in case of failure
-            // and with unchanged values, we do not want to double the previous value
-            ret += seed;
-            break;
-        }
-        // continue loop to try again otherwise
-    }
-    if(j == RND_RETRIES) {
-        traceEvent(TRACE_ERROR, "n3n_seed was not able to get a hardware generated random number from RDRND.");
-    }
-#endif
-
-    // __RDSEED__ ist set only if architecturual feature is set, e.g. compile with -march=native
-#ifdef __RDSEED__
-#if __GNUC__ > 4
-    size_t k = 0;
-    for(k = 0; k < RND_RETRIES; k++) {
-        if(_rdseed64_step((unsigned long long*)&seed)) {
-            // success!
-            ret += seed;
-            break;
-        }
-        // continue loop to try again otherwise
-    }
-    if(k == RND_RETRIES) {
-        traceEvent(TRACE_ERROR, "n3n_seed was not able to get a hardware generated random number from RDSEED.");
-    }
-#endif
-#endif
-
-#ifdef _WIN32
-    HCRYPTPROV crypto_provider;
-    CryptAcquireContext(&crypto_provider, NULL, NULL,
-                        PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
-    CryptGenRandom(crypto_provider, 8, &seed);
-    CryptReleaseContext(crypto_provider, 0);
-    ret += seed;
-#endif
-
-    seed  = time(NULL);             /* UTC in seconds */
-    ret  += seed;
-
-    seed  = clock();               /* ticks since program start */
-    seed *= 18444244737;
-    ret  += seed;
 
     return ret;
 }
