@@ -106,25 +106,14 @@ static uint64_t n2n_seed (void) {
     uint64_t seed = 0;   /* this could even go uninitialized */
     uint64_t ret = 0;    /* this could even go uninitialized */
 
-    // each block goes with separate counter variables i, j, k because
+    // Note that each block goes with separate counter variables i, j, k as
     // we do not know which one (or more) of them actually will be compiled
+
+
+
 #ifdef SYS_getrandom
     size_t i = 0;
     int rc = -1;
-#endif
-
-#ifdef __RDRND__
-    size_t j = 0;
-#endif
-
-#ifdef __RDSEED__
-#if __GNUC__ > 4
-    size_t k = 0;
-#endif
-#endif
-
-
-#ifdef SYS_getrandom
     for(i = 0; (i < RND_RETRIES) && (rc != sizeof(seed)); i++) {
         rc = syscall(SYS_getrandom, &seed, sizeof(seed), GRND_NONBLOCK);
         // if successful, rc should contain the requested number of random bytes
@@ -148,6 +137,7 @@ static uint64_t n2n_seed (void) {
 
     // __RDRND__ is set only if architecturual feature is set, e.g. compiled with -march=native
 #ifdef __RDRND__
+    size_t j = 0;
     for(j = 0; j < RND_RETRIES; j++) {
         if(_rdrand64_step((unsigned long long*)&seed)) {
             // success!
@@ -166,6 +156,7 @@ static uint64_t n2n_seed (void) {
     // __RDSEED__ ist set only if architecturual feature is set, e.g. compile with -march=native
 #ifdef __RDSEED__
 #if __GNUC__ > 4
+    size_t k = 0;
     for(k = 0; k < RND_RETRIES; k++) {
         if(_rdseed64_step((unsigned long long*)&seed)) {
             // success!
