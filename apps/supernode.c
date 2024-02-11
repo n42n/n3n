@@ -133,6 +133,25 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
 static struct n3n_subcmd_def cmd_top[]; // Forward define
 
 
+static void cmd_debug_config_addr (int argc, char **argv, void *conf) {
+    n3n_config_debug_addr(conf, stdout);
+    exit(0);
+}
+
+static void cmd_debug_config_dump (int argc, char **argv, void *conf) {
+    int level=1;
+    if(argv[1]) {
+        level = atoi(argv[1]);
+    }
+    n3n_config_dump(conf, stdout, level);
+    exit(0);
+}
+
+static void cmd_debug_config_load_dump (int argc, char **argv, void *conf) {
+    n3n_config_dump(conf, stdout, 1);
+    exit(0);
+}
+
 static void cmd_help_about (int argc, char **argv, void *conf) {
     printf("n3n - a peer to peer VPN for when you have noLAN\n"
            "\n"
@@ -179,6 +198,38 @@ static void cmd_start (int argc, char **argv, void *conf) {
     return;
 }
 
+static struct n3n_subcmd_def cmd_debug_config[] = {
+    {
+        .name = "addr",
+        .help = "show internal config addresses and sizes",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_config_addr,
+    },
+    {
+        .name = "dump",
+        .help = "[level] - just dump the default config",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_config_dump,
+    },
+    {
+        .name = "load_dump",
+        .help = "[sessionname] - load from all normal sources, then dump",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_config_load_dump,
+        .session_arg = true,
+    },
+    { .name = NULL }
+};
+
+static struct n3n_subcmd_def cmd_debug[] = {
+    {
+        .name = "config",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_debug_config,
+    },
+    { .name = NULL }
+};
+
 static struct n3n_subcmd_def cmd_help[] = {
     {
         .name = "about",
@@ -214,6 +265,11 @@ static struct n3n_subcmd_def cmd_help[] = {
 };
 
 static struct n3n_subcmd_def cmd_top[] = {
+    {
+        .name = "debug",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_debug,
+    },
     {
         .name = "help",
         .type = n3n_subcmd_type_nest,
