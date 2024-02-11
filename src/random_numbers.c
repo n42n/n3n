@@ -131,7 +131,7 @@ uint64_t n3n_rand (void) {
 }
 
 #ifdef SYS_getrandom
-static uint64_t seed_getrandom() {
+static uint64_t seed_getrandom () {
     int retries = RND_RETRIES;
     int rc;
     uint64_t seed;
@@ -164,7 +164,7 @@ static uint64_t seed_getrandom() {
 
 #ifdef __RDRND__
 // __RDRND__ is set only if architecturual feature is set, e.g. compiled with -march=native
-static uint64_t seed_rdrnd() {
+static uint64_t seed_rdrnd () {
     uint64_t seed;
     size_t j = 0;
     for(j = 0; j < RND_RETRIES; j++) {
@@ -186,7 +186,7 @@ static uint64_t seed_rdrnd() {
 #ifdef __RDSEED__
 #if __GNUC__ > 4
 // __RDSEED__ is set only if architecturual feature is set, e.g. compile with -march=native
-static uint64_t seed_rdseed() {
+static uint64_t seed_rdseed () {
     uint64_t seed;
     size_t k = 0;
     for(k = 0; k < RND_RETRIES; k++) {
@@ -207,7 +207,7 @@ static uint64_t seed_rdseed() {
 #endif
 
 #ifdef _WIN32
-static uint64_t seed_CryptGenRandom() {
+static uint64_t seed_CryptGenRandom () {
     uint64_t seed;
     HCRYPTPROV crypto_provider;
     CryptAcquireContext(&crypto_provider, NULL, NULL,
@@ -218,11 +218,11 @@ static uint64_t seed_CryptGenRandom() {
 }
 #endif
 
-static uint64_t seed_time() {
+static uint64_t seed_time () {
     return time(NULL);
 }
 
-static uint64_t seed_clock() {
+static uint64_t seed_clock () {
     uint64_t seed = clock();    /* ticks since program start */
     seed *= 18444244737;
     return seed;
