@@ -62,7 +62,6 @@ static struct n3n_runtime_data sss_node;
 #define GETOPTS "p:l:t:a:c:F:vhMV:m:fu:g:O:"
 
 static const struct option long_options[] = {
-    {"autoip",              required_argument, NULL, 'a'},
     {"help",                no_argument,       NULL, 'h'},
     {"verbose",             no_argument,       NULL, 'v'},
     {"version",             no_argument,       NULL, 'V'},
@@ -71,7 +70,6 @@ static const struct option long_options[] = {
 
 static const struct n3n_config_getopt option_map[] = {
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
-    { 'a', NULL, NULL, NULL, "<arg>  Autoip network range" },
     { 'f',  "daemon",       "background",           "false" },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { .optkey = 0 }
@@ -115,59 +113,6 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
                 char *value = strtok(NULL, "");
                 set_option_wrap(conf, section, option, value);
                 break;
-            }
-
-            case 'a': {
-                // FIXME: needs a generic parser option
-
-                dec_ip_str_t ip_min_str = {'\0'};
-                dec_ip_str_t ip_max_str = {'\0'};
-                in_addr_t net_min, net_max;
-                uint8_t bitlen;
-
-                if(sscanf(optarg, "%15[^\\-]-%15[^/]/%hhu", ip_min_str, ip_max_str, &bitlen) != 3) {
-                    traceEvent(TRACE_WARNING, "bad net-net/bit format '%s'.", optarg);
-                    break;
-                }
-
-                net_min = inet_addr(ip_min_str);
-                net_max = inet_addr(ip_max_str);
-
-                switch(net_min) {
-                    case INADDR_NONE:
-                    case INADDR_ANY:
-                        goto badaddr;
-                    default:
-                        break;
-                }
-                switch(net_max) {
-                    case INADDR_NONE:
-                    case INADDR_ANY:
-                        goto badaddr;
-                    default:
-                        break;
-                }
-
-                conf->sn_min_auto_ip_net.net_addr = net_min;
-                conf->sn_min_auto_ip_net.net_bitlen = bitlen;
-                conf->sn_max_auto_ip_net.net_addr = net_max;
-                conf->sn_max_auto_ip_net.net_bitlen = bitlen;
-
-                break;
-badaddr:
-                traceEvent(
-                    TRACE_WARNING,
-                    "bad network range '%s...%s/%u' in '%s', defaulting to '%s...%s/%d'",
-                    ip_min_str,
-                    ip_max_str,
-                    bitlen,
-                    optarg,
-                    N2N_SN_MIN_AUTO_IP_NET_DEFAULT,
-                    N2N_SN_MAX_AUTO_IP_NET_DEFAULT,
-                    N2N_SN_AUTO_IP_NET_BIT_DEFAULT
-                    );
-                break;
-
             }
 
             case 'v': /* verbose */

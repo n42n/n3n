@@ -307,6 +307,26 @@ static struct n3n_conf_option section_management[] = {
 
 static struct n3n_conf_option section_supernode[] = {
     {
+        .name = "auto_ip_max",
+        .type = n3n_conf_ip_subnet,
+        .offset = offsetof(n2n_edge_conf_t, sn_max_auto_ip_net),
+        .desc = "End of the auto ip subnet range",
+        .help = "Used when the supernode is issuing IPv4 address (see the "
+                "auto_ip_min option for details).",
+    },
+    {
+        .name = "auto_ip_min",
+        .type = n3n_conf_ip_subnet,
+        .offset = offsetof(n2n_edge_conf_t, sn_min_auto_ip_net),
+        .desc = "Start of the auto ip subnet range",
+        .help = "When the supernode is issuing IPv4 addresses to the edges "
+                "(with the edge tuntap.address_mode option) this configures "
+                "the start of the range that the supernode will use. The "
+                "supernode will pseudo-randomly choose a subnet from within "
+                "this range for each community. See also the auto_ip_max "
+                "option.",
+    },
+    {
         .name = "community_file",
         .type = n3n_conf_strdup,
         .offset = offsetof(n2n_edge_conf_t, community_file),

@@ -34,24 +34,13 @@ all of them with:
 .B supernode help options
 .RE
 .TP
-.SH Generic Options
+.SH OPTIONS
 .TP
 \fB\-O \fR<\fIsection\fR>.<\fIoption\fR>=<\fIvalue\fR>
 Sets any config option value.
 .TP
 \fB\-h\fR, \fB\--help\fR
 Show some quick usage notes.
-.TP
-.SH OPTIONS
-.TP
-\fB\-a \fR<\fInet-net/n\fR>, \fB\-\-autoip\fR=<net-net/n\fR>
-subnet range for auto ip address service,
-.br
-e.g.  '-a 192.168.0.0-192.168.255.0/24',
-.br
-defaults to '10.128.255.0-10.255.255.0/24'
-.TP
-.SH DAEMON OPTIONS
 .TP
 \fB\-f\fR, \fB\-\-foreground\fR
 disable daemon mode (UNIX) and run in foreground.
@@ -60,6 +49,7 @@ disable daemon mode (UNIX) and run in foreground.
 increase logging verbosity
 
 .SH ALLOWED COMMUNITIES FILE
+Specified with \fB\-Osupernode.community_file=\fR option (or in a config file)
 This file is a plain text file.  Comments are introduced with a hash at the
 beginning of the line.  A line that begins with an asterisk is a user
 authentication definition and adds an allowed user to the most recently defined
