@@ -264,6 +264,7 @@ const struct n3n_rand_seeds_def n3n_rand_seeds[] = {
         .seed = &seed_clock
     },
 };
+const int n3n_rand_seeds_size = sizeof(n3n_rand_seeds);
 
 // the following code tries to gather some entropy from several sources
 // for use as seed. Note, that this code does not set the random generator

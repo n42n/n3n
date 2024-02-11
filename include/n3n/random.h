@@ -35,5 +35,6 @@ struct n3n_rand_seeds_def {
 };
 
 extern const struct n3n_rand_seeds_def n3n_rand_seeds[];
+extern const int n3n_rand_seeds_size;
 
 #endif // _N3N_RANDOM_H_

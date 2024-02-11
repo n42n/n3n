@@ -22,12 +22,14 @@
 #include <ctype.h>                   // for isspace
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
+#include <inttypes.h>                // for PRIu64
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/edge.h>
 #include <n3n/ethernet.h>            // for macaddr_str, macstr_t
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/tests.h>               // for test_hashing
+#include <n3n/random.h>              // for n3n_rand_seeds, n3n_rand_seeds_s...
 #include <n3n/transform.h>           // for n3n_transform_lookup_id
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
@@ -265,6 +267,21 @@ static void cmd_debug_config_load_dump (int argc, char **argv, void *conf) {
     exit(0);
 }
 
+static void cmd_debug_random_seed (int argc, char **argv, void *conf) {
+    int level=0;
+    if(argv[1]) {
+        level = atoi(argv[1]);
+    }
+    for(int i = 0; i < n3n_rand_seeds_size / sizeof(n3n_rand_seeds[0]); i++) {
+        printf("%s", n3n_rand_seeds[i].name);
+        if(level) {
+            printf(" %" PRIu64, n3n_rand_seeds[i].seed());
+        }
+        printf("\n");
+    }
+    exit(0);
+}
+
 static void cmd_test_config_roundtrip (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
     if(!argv[1]) {
@@ -402,11 +419,26 @@ static struct n3n_subcmd_def cmd_debug_config[] = {
     { .name = NULL }
 };
 
+static struct n3n_subcmd_def cmd_debug_random[] = {
+    {
+        .name = "seed",
+        .help = "show which random number seed generators are compiled",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_random_seed,
+    },
+    { .name = NULL }
+};
+
 static struct n3n_subcmd_def cmd_debug[] = {
     {
         .name = "config",
         .type = n3n_subcmd_type_nest,
         .nest = cmd_debug_config,
+    },
+    {
+        .name = "random",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_debug_random,
     },
     { .name = NULL }
 };
