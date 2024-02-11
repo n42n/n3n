@@ -103,4 +103,4 @@ and compared with the expected output.
 ### `scripts/test_integration_supernode.sh`
 
 This starts a supernode and runs an integration test on the Json API using
-the `n3n-ctl` command.
+the `n3nctl` command.
