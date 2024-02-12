@@ -3,9 +3,6 @@
 To help deployment and better handle locally different configurations, n3n
 supports the use of configuration files for `edge` and `supernode`.
 
-(Note that the `supernode` is using a legacy config file format that is
-not discussed here)
-
 The daemon will attempt to locate a configuration file based on the
 "sessionname" - which defaults to "edge" for the edge daemon.  This would
 result in a config file called "edge.conf", which is located in "/etc/n3n" (or

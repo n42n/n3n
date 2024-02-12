@@ -21,6 +21,7 @@ typedef char macstr_t[N2N_MACSTR_SIZE];
 uint8_t is_null_mac (const n2n_mac_t dest_mac);
 
 char* macaddr_str (macstr_t buf, const n2n_mac_t mac);
+int str2mac (uint8_t * outmac /* 6 bytes */, const char * s);
 
 #endif
 

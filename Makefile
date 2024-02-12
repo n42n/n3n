@@ -90,6 +90,7 @@ N2N_OBJS=\
 	src/json.o \
 	src/logging.o \
 	src/management.o \
+	src/metrics.o \
 	src/minilzo.o \
 	src/n2n.o \
 	src/n2n_port_mapping.o \

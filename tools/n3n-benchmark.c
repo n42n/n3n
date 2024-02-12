@@ -20,6 +20,7 @@
 
 
 #include <n3n/edge.h>
+#include <n3n/initfuncs.h> // for n3n_initfuncs
 #include <n3n/logging.h> // for traceEvent
 #include <stdint.h>      // for uint8_t, uint64_t
 #include <stdio.h>       // for printf, fflush, size_t, NULL, stdout
@@ -28,7 +29,7 @@
 #include "curve25519.h"  // for curve25519
 #include "n2n.h"         // for n2n_trans_op_t, n2n_common_t, n2n_edge_conf_t
 #include "n2n_wire.h"    // for decode_PACKET, decode_common, encode_PACKET
-#include "pearson.h"     // for pearson_hash_64, pearson_hash_init
+#include "pearson.h"     // for pearson_hash_64
 
 #ifndef _MSC_VER
 /* MinGW has undefined function gettimeofday() warnings without this header
@@ -66,6 +67,9 @@ int main (int argc, char * argv[]) {
     n2n_trans_op_t transop_speck;
     n2n_edge_conf_t conf;
 
+    // Do this early to register all internals
+    n3n_initfuncs();
+
     print_n3n_version();
 
     /* Init configuration */
@@ -73,8 +77,6 @@ int main (int argc, char * argv[]) {
 
     strncpy((char*)conf.community_name, "abc123def456", sizeof(conf.community_name));
     conf.encrypt_key = strdup("SoMEVer!S$cUREPassWORD");
-
-    pearson_hash_init();
 
     /* Init transops */
     n2n_transop_null_init(&conf, &transop_null);

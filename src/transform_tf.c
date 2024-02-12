@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/random.h>      // for n3n_rand
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
 #include <stdlib.h>          // for calloc, free
@@ -28,7 +29,6 @@
 #include "n2n.h"             // for n2n_trans_op_t
 #include "n2n_wire.h"        // for encode_uint64, encode_buf
 #include "pearson.h"         // for pearson_hash_256
-#include "random_numbers.h"  // for n2n_rand
 #include "tf.h"              // for TF_BLOCK_SIZE, tf_cbc_decrypt, tf_cbc_en...
 
 
@@ -94,8 +94,8 @@ static int transop_encode_tf (n2n_trans_op_t *arg,
             traceEvent(TRACE_DEBUG, "transop_encode_tf %lu bytes plaintext", in_len);
 
             // full block sized random value (128 bit)
-            encode_uint64(assembly, &idx, n2n_rand());
-            encode_uint64(assembly, &idx, n2n_rand());
+            encode_uint64(assembly, &idx, n3n_rand());
+            encode_uint64(assembly, &idx, n3n_rand());
 
             // adjust for maybe differently chosen TF_PREAMBLE_SIZE
             idx = TF_PREAMBLE_SIZE;

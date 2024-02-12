@@ -1,5 +1,7 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
+ * Copyright (C) 2024 Hamish Coleman
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,17 +18,23 @@
  *
  */
 
+#ifndef _N3N_RANDOM_H_
+#define _N3N_RANDOM_H_
 
-#include <stddef.h>  // for size_t
-#include <stdint.h>  // for uint8_t, uint16_t, uint32_t, uint64_t
+
+#include <stdint.h>   // for uint64_t, uint32_t
+
+uint64_t n3n_rand (void);
+
+uint32_t n3n_rand_sqr (uint32_t max_n);
 
 
-void pearson_hash_256 (uint8_t *out, const uint8_t *in, size_t len);
+struct n3n_rand_seeds_def {
+    char *name;
+    uint64_t (*seed)();
+};
 
-void pearson_hash_128 (uint8_t *out, const uint8_t *in, size_t len);
+extern const struct n3n_rand_seeds_def n3n_rand_seeds[];
+extern const int n3n_rand_seeds_size;
 
-uint64_t pearson_hash_64 (const uint8_t *in, size_t len);
-
-uint32_t pearson_hash_32 (const uint8_t *in, size_t len);
-
-uint16_t pearson_hash_16 (const uint8_t *in, size_t len);
+#endif // _N3N_RANDOM_H_

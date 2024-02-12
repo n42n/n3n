@@ -39,6 +39,17 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     struct addrinfo * ainfo = NULL;
     struct sockaddr_in * saddr;
 
+    size_t length = strlen(addrIn);
+    if(length >= N2N_EDGE_SN_HOST_SIZE) {
+        traceEvent(
+            TRACE_WARNING,
+            "size of supernode argument too long: %zu; maximum size is %d",
+            length,
+            N2N_EDGE_SN_HOST_SIZE
+            );
+        return -5;;
+    }
+
     sn->family = AF_INVALID;
 
     memcpy(addr, addrIn, N2N_EDGE_SN_HOST_SIZE);
@@ -47,7 +58,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     if(!supernode_host) {
         traceEvent(
             TRACE_WARNING,
-            "supernode2sock sees malformed supernode parameter (-l <host:port>) %s",
+            "malformed supernode parameter (should be <host:port>) %s",
             addrIn
             );
         return -4;
@@ -58,7 +69,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     if(!supernode_port) {
         traceEvent(
             TRACE_WARNING,
-            "supernode2sock sees malformed supernode parameter (-l <host:port>) %s",
+            "malformed supernode parameter (should be <host:port>) %s",
             addrIn
             );
         return -3;

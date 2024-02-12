@@ -36,7 +36,6 @@ cp supernode.1.gz $RPM_BUILD_ROOT/usr/share/man/man1
 cp edge.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
 cp packages/lib/systemd/system/*.service $RPM_BUILD_ROOT/lib/systemd/system/
 cp doc/*.sample $RPM_BUILD_ROOT/usr/share/doc/n3n/examples
-cp doc/community.list $RPM_BUILD_ROOT/usr/share/doc/n3n/examples
 
 find $RPM_BUILD_ROOT -name ".git" | xargs /bin/rm -rf
 find $RPM_BUILD_ROOT -name ".svn" | xargs /bin/rm -rf
@@ -60,7 +59,7 @@ rm -fr $RPM_BUILD_ROOT
 /lib/systemd/system/supernode.service
 /usr/share/doc/n3n/examples/supernode.conf.sample
 /usr/share/doc/n3n/examples/edge.conf.sample
-/usr/share/doc/n3n/examples/community.list
+/usr/share/doc/n3n/examples/community.list.sample
 
 # Set the default attributes of all of the files specified to have an
 # owner and group of root and to inherit the permissions of the file

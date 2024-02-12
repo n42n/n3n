@@ -117,7 +117,6 @@ char* inaddrtoa (ipstr_t out, struct in_addr addr);
 char* intoa (uint32_t addr, char* buf, uint16_t buf_len);
 uint32_t bitlen2mask (uint8_t bitlen);
 uint8_t mask2bitlen (uint32_t mask);
-int str2mac (uint8_t * outmac /* 6 bytes */, const char * s);
 uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
 uint8_t is_broadcast (const n2n_mac_t dest_mac);
 char* msg_type2str (uint16_t msg_type);
@@ -150,11 +149,9 @@ int quick_edge_init (char *device_name, char *community_name,
                      char *supernode_ip_address_port,
                      bool *keep_on_running);
 int comm_init (struct sn_community *comm, char *cmn);
-int sn_init_defaults (struct n3n_runtime_data *sss);
 void sn_init (struct n3n_runtime_data *sss);
 void sn_term (struct n3n_runtime_data *sss);
 struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add);
-int run_sn_loop (struct n3n_runtime_data *sss);
 int assign_one_ip_subnet (struct n3n_runtime_data *sss, struct sn_community *comm);
 
 #endif /* _N2N_H_ */

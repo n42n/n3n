@@ -16,7 +16,7 @@ static struct n3n_conf_option section_auth[] = {
         .type = n3n_conf_privatekey,
         .offset = offsetof(n2n_edge_conf_t, shared_secret),
         .desc = "Password for user-password edge authentication",
-        .help = "If the environment contains N2N_PASSWORD then that is used "
+        .help = "If the environment contains N3N_PASSWORD then that is used "
                 "as the default for this setting."
     },
     {
@@ -119,8 +119,8 @@ static struct n3n_conf_option section_connection[] = {
         .help = "[address]:[port] to bind. This can be useful to allow home "
                 "router's port forwarding to point to a known port, or when "
                 "coupled with a local ip address can help with restriction to "
-                "a certain LAN or WiFi interface.  By default, the edge binds "
-                "to any interface.",
+                "a certain LAN or WiFi interface.  By default, the daemon "
+                "binds to any interface. (both edge and supernode)",
     },
     {
         .name = "connect_tcp",
@@ -275,6 +275,16 @@ static struct n3n_conf_option section_logging[] = {
 
 static struct n3n_conf_option section_management[] = {
     {
+        .name = "enable_debug_pages",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, enable_debug_pages),
+        .desc = "Allow access to debugging management pages",
+        .help = "Some of the management interface provided information that "
+                "is only intended for use during debugging.  To reduce the "
+                "information exposed normally, these pages are not enabled "
+                "by default.",
+    },
+    {
         .name = "password",
         .type = n3n_conf_strdup,
         .offset = offsetof(n2n_edge_conf_t, mgmt_password),
@@ -290,6 +300,88 @@ static struct n3n_conf_option section_management[] = {
         .desc = "The management UDP port",
         .help = "binds the edge management system to the given UDP port. "
                 "Use this if you wish to use the TCP API.",
+
+    },
+    {.name = NULL},
+};
+
+static struct n3n_conf_option section_supernode[] = {
+    {
+        .name = "auto_ip_max",
+        .type = n3n_conf_ip_subnet,
+        .offset = offsetof(n2n_edge_conf_t, sn_max_auto_ip_net),
+        .desc = "End of the auto ip subnet range",
+        .help = "Used when the supernode is issuing IPv4 address (see the "
+                "auto_ip_min option for details).",
+    },
+    {
+        .name = "auto_ip_min",
+        .type = n3n_conf_ip_subnet,
+        .offset = offsetof(n2n_edge_conf_t, sn_min_auto_ip_net),
+        .desc = "Start of the auto ip subnet range",
+        .help = "When the supernode is issuing IPv4 addresses to the edges "
+                "(with the edge tuntap.address_mode option) this configures "
+                "the start of the range that the supernode will use. The "
+                "supernode will pseudo-randomly choose a subnet from within "
+                "this range for each community. See also the auto_ip_max "
+                "option.",
+    },
+    {
+        .name = "community_file",
+        .type = n3n_conf_strdup,
+        .offset = offsetof(n2n_edge_conf_t, community_file),
+        .desc = "Community list filename",
+        .help = "Optionally, the supernode can be configured with a list of "
+                "allowed communities, defined ip address ranges for each one "
+                "and User/Password based authentication details. "
+                "See the documentation for the file format description.",
+    },
+    {
+        .name = "federation",
+        .type = n3n_conf_strncpy,
+        .length = sizeof(n2n_community_t)-1,    // Leave room for prefix
+        .offset = offsetof(n2n_edge_conf_t, sn_federation),
+        .desc = "name of the supernode's federation",
+        .help = "This is a shared key amungst all the supernodes belonging to "
+                "the same federated group.  It defaults to 'Federation', but "
+                "that should only be used for testing.  The Environment "
+                "variable N3N_FEDERATION can also be used to set thi.",
+
+    },
+    {
+        .name = "macaddr",
+        .type = n3n_conf_macaddr,
+        .offset = offsetof(n2n_edge_conf_t, sn_mac_addr),
+        .desc = "fixed MAC address for the supernode",
+        .help = "This is used as an identifier for the supernode in protocol "
+                "packets.  If not configed, a random value will be selected.",
+    },
+    {
+        .name = "peer",
+        .type = n3n_conf_supernode,
+        .offset = offsetof(n2n_edge_conf_t, sn_edges),
+        .desc = "Add a federated supernode",
+        .help = "Multiple federated supernodes can be specified, each one as"
+                "a host:port string, which will be resolved if needed.",
+    },
+    {
+        .name = "spoofing_protection",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, spoofing_protection),
+        .desc = "Configure spoofing protection",
+        .help = "MAC and IP address spoofing protection for all "
+                "non-username-password-authenticating communities. "
+                "Defaults to enabled.",
+    },
+    {
+        .name = "version",
+        .type = n3n_conf_strncpy,
+        .length = sizeof(n2n_version_t),
+        .offset = offsetof(n2n_edge_conf_t, version),
+        .desc = "Version text",
+        .help = "Modify the supernode version string which is distributed to "
+                "edges and shown in the management port output "
+                "(max 19 letters, defaults to the build version).",
 
     },
     {.name = NULL},
@@ -362,6 +454,11 @@ void n3n_initfuncs_conffile_defs () {
         "tuntap",
         "Settings specific to the local tuntap device",
         section_tuntap
+        );
+    n3n_config_register_section(
+        "supernode",
+        "Supernode specific settings",
+        section_supernode
         );
     n3n_config_register_section(
         "management",

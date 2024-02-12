@@ -28,7 +28,7 @@ address=1.2.3.4
 # Specifies the n3n community name the edge belongs to.
 name=mynetwork
 
-# Sets the encryption key (ASCII). The environment variable N2N_KEY=<key>
+# Sets the encryption key (ASCII). The environment variable N3N_KEY=<key>
 # can be used and will take precedence over the config file.
 key=mypassword
 

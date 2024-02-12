@@ -23,8 +23,9 @@
 #include <errno.h>              // for errno, EAFNOSUPPORT
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
+#include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
-#include <n3n/supernode.h>      // for load_allowed_sn_community
+#include <n3n/supernode.h>      // for load_allowed_sn_community, calculate_...
 #include <stdbool.h>
 #include <stdint.h>             // for uint8_t, uint32_t, uint16_t, uint64_t
 #include <stdio.h>              // for sscanf, snprintf, fclose, fgets, fopen
@@ -43,7 +44,6 @@
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
 #include "peer_info.h"          // for purge_peer_list, clear_peer_list
 #include "portable_endian.h"    // for be16toh, htobe16
-#include "random_numbers.h"     // for n2n_rand, n2n_rand_sqr, n2n_seed, n2n...
 #include "resolve.h"            // for resolve_create_thread, resolve_cancel...
 #include "sn_selection.h"       // for sn_selection_criterion_gather_data
 #include "speck.h"              // for speck_128_encrypt, speck_context_t
@@ -137,7 +137,7 @@ close_conn:
 
 
 // generate shared secrets for user authentication; can be done only after
-// federation name is known (-F) and community list completely read (-c)
+// federation name is known and community list completely read
 void calculate_shared_secrets (struct n3n_runtime_data *sss) {
 
     struct sn_community *comm, *tmp_comm;
@@ -249,7 +249,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     uint8_t bitlen;
     in_addr_t net;
     uint32_t mask;
-    FILE *fd = fopen(sss->community_file, "r");
+    FILE *fd = fopen(sss->conf.community_file, "r");
 
     struct sn_community *comm, *tmp_comm, *last_added_comm = NULL;
     struct peer_info *edge, *tmp_edge;
@@ -264,7 +264,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     int has_net;
 
     if(fd == NULL) {
-        traceEvent(TRACE_WARNING, "File %s not found", sss->community_file);
+        traceEvent(TRACE_WARNING, "File %s not found", sss->conf.community_file);
         return -1;
     }
 
@@ -464,15 +464,15 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     fclose(fd);
 
     if((num_regex + num_communities) == 0) {
-        traceEvent(TRACE_WARNING, "file %s does not contain any valid community names or regular expressions", sss->community_file);
+        traceEvent(TRACE_WARNING, "file %s does not contain any valid community names or regular expressions", sss->conf.community_file);
         return -2;
     }
 
     traceEvent(TRACE_NORMAL, "loaded %u fixed-name communities from %s",
-               num_communities, sss->community_file);
+               num_communities, sss->conf.community_file);
 
     traceEvent(TRACE_NORMAL, "loaded %u regular expressions for community name matching from %s",
-               num_regex, sss->community_file);
+               num_regex, sss->conf.community_file);
 
     // calculate allowed user's shared secrets (shared with federation)
     calculate_shared_secrets(sss);
@@ -481,7 +481,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     calculate_dynamic_keys(sss);
 
     // no new communities will be allowed
-    sss->lock_communities = 1;
+    sss->lock_communities = true;
 
     return 0;
 }
@@ -736,7 +736,7 @@ static int try_forward (struct n3n_runtime_data * sss,
             } else {
                 // forwarding packet to all federated supernodes
                 traceEvent(TRACE_DEBUG, "unknown mac address, broadcasting packet to all federated supernodes");
-                try_broadcast(sss, NULL, cmn, sss->mac_addr, from_supernode, pktbuf, pktsize, now);
+                try_broadcast(sss, NULL, cmn, sss->conf.sn_mac_addr, from_supernode, pktbuf, pktsize, now);
             }
         } else {
             traceEvent(TRACE_DEBUG, "unknown mac address in packet from a supernode, dropping the packet");
@@ -754,85 +754,116 @@ int comm_init (struct sn_community *comm, char *cmn) {
 
     strncpy((char*)comm->community, cmn, N2N_COMMUNITY_SIZE);
     comm->community[N2N_COMMUNITY_SIZE - 1] = '\0';
-    comm->is_federation = IS_NO_FEDERATION;
+    comm->is_federation = false;
 
     return 0; /* OK */
 }
 
 
 /** Initialise the supernode structure */
-int sn_init_defaults (struct n3n_runtime_data *sss) {
-
-    pearson_hash_init();
+void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
+    // TODO: this should accept a conf parameter, not a sss
+    n2n_edge_conf_t *conf = &sss->conf;
 
     memset(sss, 0, sizeof(struct n3n_runtime_data));
 
-    sss->conf.is_supernode = true;
+    // Record the session name we used
+    if(sessionname) {
+        conf->sessionname = sessionname;
+    } else {
+        conf->sessionname = "NULL";
+    }
 
-    strncpy(sss->version, VERSION, sizeof(n2n_version_t));
-    sss->version[sizeof(n2n_version_t) - 1] = '\0';
-    sss->conf.daemon = true; /* By defult run as a daemon. */
+    conf->is_supernode = true;
+    conf->spoofing_protection = true;
+    conf->daemon = true; /* By defult run as a daemon. */
 
-    sss->conf.bind_address = malloc(sizeof(*sss->conf.bind_address));
-    memset(sss->conf.bind_address, 0, sizeof(*sss->conf.bind_address));
+    strncpy(conf->version, VERSION, sizeof(n2n_version_t));
+    conf->version[sizeof(n2n_version_t) - 1] = '\0';
 
-    struct sockaddr_in *sa = (struct sockaddr_in *)sss->conf.bind_address;
+    conf->bind_address = malloc(sizeof(*conf->bind_address));
+    memset(conf->bind_address, 0, sizeof(*conf->bind_address));
+
+#ifdef _WIN32
+    // Cannot rely on having unix domain sockets on windows
+    conf->mgmt_port = N2N_SN_MGMT_PORT;
+#endif
+    conf->mgmt_password = N3N_MGMT_PASSWORD;
+
+    /* Random auth token */
+    conf->auth.scheme = n2n_auth_simple_id;
+    memrnd(conf->auth.token, N2N_AUTH_ID_TOKEN_SIZE);
+    conf->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+
+    /* Initialize the federation name */
+    // TODO: the edge has a separate function for getenv() defaults
+    char *federation = getenv("N3N_FEDERATION");
+    if(!federation) {
+        federation = FEDERATION_NAME_DEFAULT;
+    }
+    strncpy(conf->sn_federation, federation, sizeof(conf->sn_federation));
+
+#ifndef _WIN32
+    struct passwd *pw = NULL;
+
+    // The supernod can run with no additional privs, so the default is
+    // just to run as the user who starts it.
+    // It should not be running as root, so detect that and change the
+    // defaults
+
+    conf->userid = getuid();
+    conf->groupid = getgid();
+    if((conf->userid == 0) || (conf->groupid == 0)) {
+        // Search a couple of usernames for one to use
+        pw = getpwnam("n3n");
+        if(pw == NULL) {
+            pw = getpwnam("nobody");
+        }
+        if(pw != NULL) {
+            // If we find one, use that as our default
+            conf->userid = pw->pw_uid;
+            conf->groupid = pw->pw_gid;
+        }
+    }
+
+#endif
+
+
+    /* Random MAC address */
+    memrnd(sss->conf.sn_mac_addr, N2N_MAC_SIZE);
+    sss->conf.sn_mac_addr[0] &= ~0x01; /* Clear multicast bit */
+    sss->conf.sn_mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
+
+    struct sockaddr_in *sa = (struct sockaddr_in *)conf->bind_address;
     sa->sin_family = AF_INET;
     sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
     sa->sin_addr.s_addr = htonl(INADDR_ANY);
 
-    sss->conf.mgmt_port = N2N_SN_MGMT_PORT;
     sss->sock = -1;
-    sss->min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
-    sss->min_auto_ip_net.net_addr = ntohl(sss->min_auto_ip_net.net_addr);
-    sss->min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
-    sss->max_auto_ip_net.net_addr = inet_addr(N2N_SN_MAX_AUTO_IP_NET_DEFAULT);
-    sss->max_auto_ip_net.net_addr = ntohl(sss->max_auto_ip_net.net_addr);
-    sss->max_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
+    conf->sn_min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
+    conf->sn_min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
+    conf->sn_max_auto_ip_net.net_addr = inet_addr(N2N_SN_MAX_AUTO_IP_NET_DEFAULT);
+    conf->sn_max_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
 
     sss->federation = (struct sn_community *)calloc(1, sizeof(struct sn_community));
-    /* Initialize the federation */
-    if(sss->federation) {
-        if(getenv("N2N_FEDERATION"))
-            snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1,"*%s", getenv("N2N_FEDERATION"));
-        else
-            strncpy(sss->federation->community, (char*)FEDERATION_NAME, N2N_COMMUNITY_SIZE);
-        sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
-        /* enable the flag for federation */
-        sss->federation->is_federation = IS_FEDERATION;
-        sss->federation->purgeable = false;
-        /* header encryption enabled by default */
-        sss->federation->header_encryption = HEADER_ENCRYPTION_ENABLED;
-        /*setup the encryption key */
-        packet_header_setup_key(sss->federation->community,
-                                &(sss->federation->header_encryption_ctx_static),
-                                &(sss->federation->header_encryption_ctx_dynamic),
-                                &(sss->federation->header_iv_ctx_static),
-                                &(sss->federation->header_iv_ctx_dynamic));
-        sss->federation->edges = NULL;
+    if(!sss->federation) {
+        abort();
     }
 
-    n2n_srand(n2n_seed());
-
-    /* Random auth token */
-    sss->conf.auth.scheme = n2n_auth_simple_id;
-    memrnd(sss->conf.auth.token, N2N_AUTH_ID_TOKEN_SIZE);
-    sss->conf.auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
-
-    /* Random MAC address */
-    memrnd(sss->mac_addr, N2N_MAC_SIZE);
-    sss->mac_addr[0] &= ~0x01; /* Clear multicast bit */
-    sss->mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
-
-    sss->conf.mgmt_password = N3N_MGMT_PASSWORD;
-
-    return 0; /* OK */
+    // Setup the fields of the federation record
+    // Note that this is not really conf, so it probably should move
+    //
+    /* enable the flag for federation */
+    sss->federation->is_federation = true;
+    sss->federation->purgeable = false;
+    /* header encryption enabled by default */
+    sss->federation->header_encryption = HEADER_ENCRYPTION_ENABLED;
+    sss->federation->edges = NULL;
 }
 
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
-
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
     }
@@ -894,10 +925,20 @@ void sn_term (struct n3n_runtime_data *sss) {
 
     free(sss->conf.bind_address);
 
-    free(sss->community_file);
+    free(sss->conf.community_file);
 
-    // TODO: merge config, then:
-    // free(sss->conf.sessiondir);
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", sss->conf.sessiondir);
+    unlink(unixsock);
+    rmdir(sss->conf.sessiondir);
+#else
+    _rmdir(sss->conf.sessiondir);
+#endif
+    // Ignore errors in the unlink/rmdir as they could simply be that the
+    // paths were chown/chmod by the administrator
+
+    free(sss->conf.sessiondir);
 
     slots_free(sss->mgmt_slots);
 
@@ -1027,8 +1068,10 @@ static int handle_remote_auth (struct n3n_runtime_data *sss, const n2n_auth_t *r
     }
 
     switch(remote_auth->scheme) {
-        // we do not handle n2n_auth_none because the edge always edge always uses either id or user/password
-        // auth_none is sn-internal only (skipping MAC/IP address spoofing protection)
+        // we do not handle n2n_auth_none because the edge always uses either
+        // id or user/password
+        // auth_none is sn-internal only (skipping MAC/IP address spoofing
+        // protection)
         case n2n_auth_none:
         case n2n_auth_simple_id:
             // zero_token answer
@@ -1120,9 +1163,11 @@ static int update_edge (struct n3n_runtime_data *sss,
 
                 // store the submitted auth token
                 memcpy(&(scan->auth), &(reg->auth), sizeof(n2n_auth_t));
-                // manually set to type 'auth_none' if cli option disables MAC/IP address spoofing protection
-                // for id based auth communities. This will be obsolete when handling public keys only (v4.0?)
-                if((reg->auth.scheme == n2n_auth_simple_id) && (sss->override_spoofing_protection))
+                // manually set to type 'auth_none' if cli option disables
+                // MAC/IP address spoofing protection for id based auth
+                // communities. This will be obsolete when handling public
+                // keys only (v4.0?)
+                if((reg->auth.scheme == n2n_auth_simple_id) && (!sss->conf.spoofing_protection))
                     scan->auth.scheme = n2n_auth_none;
 
                 HASH_ADD_PEER(comm->edges, scan);
@@ -1273,7 +1318,7 @@ int subnet_available (struct n3n_runtime_data *sss,
         if(cmn == comm) {
             continue;
         }
-        if(cmn->is_federation == IS_FEDERATION) {
+        if(cmn->is_federation) {
             continue;
         }
         if((net_id <= (cmn->auto_ip_net.net_addr + ~bitlen2mask(cmn->auto_ip_net.net_bitlen)))
@@ -1294,21 +1339,27 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
     uint32_t net_id, net_id_i, mask, net_increment;
     uint32_t no_subnets;
     uint8_t success;
+    in_addr_t net_min;
+    in_addr_t net_max;
     in_addr_t net;
 
-    mask = bitlen2mask(sss->min_auto_ip_net.net_bitlen);
+
+    mask = bitlen2mask(sss->conf.sn_min_auto_ip_net.net_bitlen);
+    net_min = ntohl(sss->conf.sn_min_auto_ip_net.net_addr);
+    net_max = ntohl(sss->conf.sn_max_auto_ip_net.net_addr);
+
     // number of possible sub-networks
-    no_subnets   = (sss->max_auto_ip_net.net_addr - sss->min_auto_ip_net.net_addr);
-    no_subnets >>= (32 - sss->min_auto_ip_net.net_bitlen);
+    no_subnets   = net_max - net_min;
+    no_subnets >>= (32 - sss->conf.sn_min_auto_ip_net.net_bitlen);
     no_subnets  += 1;
 
     // proposal for sub-network to choose
     net_id    = pearson_hash_32((const uint8_t *)comm->community, N2N_COMMUNITY_SIZE) % no_subnets;
-    net_id    = sss->min_auto_ip_net.net_addr + (net_id << (32 - sss->min_auto_ip_net.net_bitlen));
+    net_id    = net_min + (net_id << (32 - sss->conf.sn_min_auto_ip_net.net_bitlen));
 
     // check for availability starting from net_id, then downwards, ...
     net_increment = (~mask+1);
-    for(net_id_i = net_id; net_id_i >= sss->min_auto_ip_net.net_addr; net_id_i -= net_increment) {
+    for(net_id_i = net_id; net_id_i >= net_min; net_id_i -= net_increment) {
         success = subnet_available(sss, comm, net_id_i, mask);
         if(success) {
             break;
@@ -1316,7 +1367,7 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
     }
     // ... then upwards
     if(!success) {
-        for(net_id_i = net_id + net_increment; net_id_i <= sss->max_auto_ip_net.net_addr; net_id_i += net_increment) {
+        for(net_id_i = net_id + net_increment; net_id_i <= net_max; net_id_i += net_increment) {
             success = subnet_available(sss, comm, net_id_i, mask);
             if(success) {
                 break;
@@ -1326,7 +1377,7 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
 
     if(success) {
         comm->auto_ip_net.net_addr = net_id_i;
-        comm->auto_ip_net.net_bitlen = sss->min_auto_ip_net.net_bitlen;
+        comm->auto_ip_net.net_bitlen = sss->conf.sn_min_auto_ip_net.net_bitlen;
         net = htonl(comm->auto_ip_net.net_addr);
         traceEvent(TRACE_INFO, "assigned sub-network %s/%u to community '%s'",
                    inet_ntoa(*(struct in_addr *) &net),
@@ -1416,7 +1467,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             cmn.flags = N2N_FLAGS_FROM_SUPERNODE;
             memcpy(cmn.community, comm->community, N2N_COMMUNITY_SIZE);
 
-            reg.cookie = n2n_rand();
+            reg.cookie = n3n_rand();
             peer->last_cookie = reg.cookie;
 
             reg.dev_addr.net_addr = ntohl(peer->dev_addr.net_addr);
@@ -1426,7 +1477,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             reg.key_time = sss->dynamic_key_time;
 
             idx = 0;
-            encode_mac(reg.edgeMac, &idx, sss->mac_addr);
+            encode_mac(reg.edgeMac, &idx, sss->conf.sn_mac_addr);
 
             idx = 0;
             encode_REGISTER_SUPER(pktbuf, &idx, &cmn, &reg);
@@ -1463,7 +1514,7 @@ static int purge_expired_communities (struct n3n_runtime_data *sss,
 
     HASH_ITER(hh, sss->communities, comm, tmp_comm) {
         // federation is taken care of in re_register_and_purge_supernodes()
-        if(comm->is_federation == IS_FEDERATION)
+        if(comm->is_federation)
             continue;
 
         // purge the community's local peers
@@ -1967,7 +2018,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 }
             }
 
-            if(!memcmp(reg.edgeMac, sss->mac_addr, sizeof(n2n_mac_t))) {
+            if(!memcmp(reg.edgeMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t))) {
                 traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER from self, ignoring");
                 return -1;
             }
@@ -1978,9 +2029,9 @@ static int process_udp (struct n3n_runtime_data * sss,
             memcpy(cmn2.community, cmn.community, sizeof(n2n_community_t));
 
             ack.cookie = reg.cookie;
-            memcpy(ack.srcMac, sss->mac_addr, sizeof(n2n_mac_t));
+            memcpy(ack.srcMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t));
 
-            if(comm->is_federation != IS_FEDERATION) { /* alternatively, do not send zero tap ip address in federation REGISTER_SUPER */
+            if(!comm->is_federation) { /* alternatively, do not send zero tap ip address in federation REGISTER_SUPER */
                 if((reg.dev_addr.net_addr == 0) || (reg.dev_addr.net_addr == 0xFFFFFFFF) || (reg.dev_addr.net_bitlen == 0) ||
                    ((reg.dev_addr.net_addr & 0xFFFF0000) == 0xA9FE0000 /* 169.254.0.0 */)) {
                     memset(&ipaddr, 0, sizeof(n2n_ip_subnet_t));
@@ -1995,7 +2046,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             memcpy(&ack.sock, &sender, sizeof(sender));
 
             /* Add sender's data to federation (or update it) */
-            if(comm->is_federation == IS_FEDERATION) {
+            if(comm->is_federation) {
                 skip_add = SN_ADD;
                 p = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), &(ack.sock), reg.edgeMac, &skip_add);
                 p->last_seen = now;
@@ -2006,7 +2057,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             /* Skip random numbers of supernodes before payload assembling, calculating an appropriate random_number.
              * That way, all supernodes have a chance to be propagated with REGISTER_SUPER_ACK. */
             skip = HASH_COUNT(sss->federation->edges) - (int)(REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE / REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE);
-            skip = (skip < 0) ? 0 : n2n_rand_sqr(skip);
+            skip = (skip < 0) ? 0 : n3n_rand_sqr(skip);
 
             /* Assembling supernode list for REGISTER_SUPER_ACK payload */
             payload = (n2n_REGISTER_SUPER_ACK_payload_t*)payload_buf;
@@ -2040,7 +2091,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             // check authentication
             ret_value = update_edge_no_change;
-            if(comm->is_federation != IS_FEDERATION) { /* REVISIT: auth among supernodes is not implemented yet */
+            if(!comm->is_federation) { /* REVISIT: auth among supernodes is not implemented yet */
                 if(cmn.flags & N2N_FLAGS_FROM_SUPERNODE) {
                     ret_value = update_edge(sss, &cmn, &reg, comm, &(ack.sock), socket_fd, &(ack.auth), SN_ADD_SKIP, now);
                 } else {
@@ -2102,7 +2153,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                     // dynamic key time handling if appropriate
                     ack.key_time = 0;
-                    if(comm->is_federation == IS_FEDERATION) {
+                    if(comm->is_federation) {
                         if(reg.key_time > sss->dynamic_key_time) {
                             traceEvent(TRACE_DEBUG, "setting new key time");
                             // have all edges re_register (using old dynamic key)
@@ -2177,7 +2228,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 1) || (comm->is_federation == IS_FEDERATION)) {
+            if((from_supernode == 1) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER: should not come from a supernode or federation.");
                 return -1;
             }
@@ -2228,7 +2279,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 0) || (comm->is_federation == IS_NO_FEDERATION)) {
+            if((from_supernode == 0) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK, should not come from an edge or regular community");
                 return -1;
             }
@@ -2328,7 +2379,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                        sock_to_cstr(sockbuf, &sender));
 
             HASH_FIND_PEER(comm->edges, nak.srcMac, peer);
-            if(comm->is_federation == IS_NO_FEDERATION) {
+            if(comm->is_federation) {
                 if(peer != NULL) {
                     // this is a NAK for one of the edges conencted to this supernode, forward,
                     // i.e. re-assemble (memcpy from udpbuf to nakbuf could be sufficient as well)
@@ -2421,13 +2472,13 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 pi.aflags = 0;
                 memcpy(pi.mac, query.targetMac, sizeof(n2n_mac_t));
-                memcpy(pi.srcMac, sss->mac_addr, sizeof(n2n_mac_t));
+                memcpy(pi.srcMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t));
 
                 memcpy(&pi.sock, &sender, sizeof(sender));
 
                 pi.load = sn_selection_criterion_gather_data(sss);
 
-                snprintf(pi.version, sizeof(pi.version), "%s", sss->version);
+                snprintf(pi.version, sizeof(pi.version), "%s", sss->conf.version);
                 pi.uptime = now - sss->start_time;
 
                 encode_PEER_INFO(encbuf, &encx, &cmn2, &pi);
@@ -2540,7 +2591,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             HASH_FIND_PEER(comm->edges, pi.srcMac, peer);
             if(peer != NULL) {
-                if((comm->is_federation == IS_NO_FEDERATION) && (!is_null_mac(pi.srcMac))) {
+                if((comm->is_federation) && (!is_null_mac(pi.srcMac))) {
                     // snoop on the information to use for supernode forwarding (do not wait until first remote REGISTER_SUPER)
                     update_node_supernode_association(comm, &(pi.mac), sender_sock, sock_size, now);
 
@@ -2842,6 +2893,9 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
             }
 
         }
+
+        // check for timed out slots
+        slots_closeidle(slots);
 
         // If anything we recieved caused us to stop..
         if(!(*sss->keep_running))

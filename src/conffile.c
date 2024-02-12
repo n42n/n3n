@@ -7,7 +7,7 @@
 
 #include <ctype.h>              // for isprint and friends
 #include <n3n/conffile.h>
-#include <n3n/edge.h>           // for edge_conf_add_supernode
+#include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/logging.h>        // for setTraceLevel
 #include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <n3n/network_traffic_filter.h>
@@ -175,7 +175,8 @@ try_uint32:
             return -1;
         }
         case n3n_conf_supernode: {
-            return edge_conf_add_supernode(conf, value);
+            struct peer_info **supernodes = (struct peer_info **)valvoid;
+            return n3n_peer_add_by_hostname(supernodes, value);
         }
         case n3n_conf_privatekey: {
             n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
@@ -386,6 +387,16 @@ try_uint32:
             // just try interpreting the string value as an integer
             goto try_uint32;
         }
+        case n3n_conf_macaddr: {
+            n2n_mac_t *val = (n2n_mac_t *)valvoid;
+            str2mac((uint8_t *)val, value);
+
+            // clear multicast bit
+            *val[0] &= ~0x01;
+            // set locally-assigned bit
+            *val[0] |= 0x02;
+            return 0;
+        }
     }
     return -1;
 }
@@ -415,7 +426,7 @@ static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
 // for the string - or may return a static string.  A return of NULL means
 // that the option could not be rendered.
 // Buffer overflow is handled simplisticly by simply filling the buffer.
-static char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
+static const char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
     void *valvoid = NULL;
 
     // Entries that cannot be set via a pointer are marked with
@@ -576,6 +587,14 @@ static char * stringify_option (void *conf, struct n3n_conf_option *option, char
             }
             return NULL;
         }
+        case n3n_conf_macaddr: {
+            n2n_mac_t *val = (n2n_mac_t *)valvoid;
+            if(buflen < N2N_MACSTR_SIZE) {
+                return NULL;
+            }
+            macaddr_str(buf, *val);
+            return buf;
+        }
     }
 
     return NULL;
@@ -650,6 +669,10 @@ static int option_storagesize (struct n3n_conf_option *option) {
             uint8_t *val = (uint8_t *)valvoid;
             return sizeof(*val);
         }
+        case n3n_conf_macaddr: {
+            n2n_mac_t *val = (n2n_mac_t *)valvoid;
+            return sizeof(*val);
+        }
     }
     return -1;
 }
@@ -699,6 +722,7 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
             // special case for this multi-value item
             // TODO: this breaks layering, but I cannot think of a simple
             // alternative
+            fprintf(f, "#%s=\n", option->name);
             void *valvoid = (char *)conf + option->offset;
             struct peer_info **supernodes = (struct peer_info **)valvoid;
             struct peer_info *scan, *tmp;
@@ -711,7 +735,7 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
         // TODO: if type == n3n_conf_filter_rule ...
 
         char buf[100];
-        char *p = stringify_option(conf, option, buf, sizeof(buf));
+        char const *p = stringify_option(conf, option, buf, sizeof(buf));
 
         if(!p) {
             // couldnt stringify this option
@@ -801,18 +825,18 @@ int n3n_config_load_env (void *conf) {
     char *s;
     int rc = 0;
 
-    s = getenv("N2N_KEY");
+    s = getenv("N3N_KEY");
     if(s) {
         rc += n3n_config_set_option(conf, "community", "key", s);
         rc += n3n_config_set_option(conf, "community", "cipher", "AES");
     }
 
-    s = getenv("N2N_COMMUNITY");
+    s = getenv("N3N_COMMUNITY");
     if(s) {
         rc += n3n_config_set_option(conf, "community", "name", s);
     }
 
-    s = getenv("N2N_PASSWORD");
+    s = getenv("N3N_PASSWORD");
     if(s) {
         rc += n3n_config_set_option(conf, "auth", "password", s);
     }
@@ -1093,4 +1117,214 @@ out1:
     free(section);
     free(filename);
     return error;
+}
+
+
+/********************************************************************/
+// Sub command generic processor
+
+void n3n_subcmd_help (struct n3n_subcmd_def *p, int indent, bool recurse) {
+    while(p->name) {
+        printf(
+            "%*c%-10s",
+            indent,
+            ' ',
+            p->name
+            );
+        if(p->type == n3n_subcmd_type_nest) {
+            printf(" ->");
+        }
+        if(p->help) {
+            printf(" %s", p->help);
+        }
+        printf("\n");
+        if(recurse && p->type == n3n_subcmd_type_nest) {
+            n3n_subcmd_help(p->nest, indent +2, recurse);
+        }
+        p++;
+    }
+}
+
+static void subcmd_help_simple (struct n3n_subcmd_def *p) {
+    printf(
+        "\n"
+        "Try -h for help\n"
+        "\n"
+        "or add a subcommand:\n"
+        "\n"
+        );
+    n3n_subcmd_help(p, 1, false);
+    exit(1);
+}
+
+static struct n3n_subcmd_result subcmd_lookup (struct n3n_subcmd_def *top, int argc, char **argv) {
+    struct n3n_subcmd_result r;
+    struct n3n_subcmd_def *p = top;
+    while(p->name) {
+        if(argc < 1) {
+            // No subcmd to process
+            subcmd_help_simple(top);
+        }
+        if(!argv) {
+            // Null subcmd
+            subcmd_help_simple(top);
+        }
+
+        if(strcmp(p->name, argv[0])!=0) {
+            p++;
+            continue;
+        }
+
+        switch(p->type) {
+            case n3n_subcmd_type_nest:
+                argc--;
+                argv++;
+                top = p->nest;
+                p = top;
+                continue;
+            case n3n_subcmd_type_fn:
+                if(p->session_arg) {
+                    r.sessionname = argv[1];
+                } else {
+                    r.sessionname = NULL;
+                }
+                r.argc = argc;
+                r.argv = argv;
+                r.subcmd = p;
+                r.type = n3n_subcmd_result_ok;
+                return r;
+        }
+        printf("Internal Error subcmd->type: %i\n", p->type);
+        exit(1);
+    }
+    printf("Unknown subcmd: '%s'\n", argv[0]);
+    exit(1);
+}
+
+struct n3n_subcmd_result n3n_subcmd_parse (int argc, char **argv, char *getopts, const struct option *long_options, struct n3n_subcmd_def *top) {
+    struct n3n_subcmd_result cmd;
+
+    // A first pass through to reorder the argv
+    int c = 0;
+    while(c != -1) {
+        c = getopt_long(
+            argc, argv,
+            // The superset of all possible short options
+            getopts,
+            long_options,
+            NULL
+            );
+
+        switch(c) {
+            case '?': // An invalid arg, or a missing optarg
+                exit(1);
+            case 'V':
+                cmd.type = n3n_subcmd_result_version;
+                return cmd;
+            case 'h': /* quick reference */
+                cmd.type = n3n_subcmd_result_about;
+                return cmd;
+        }
+    }
+
+    if(optind >= argc) {
+        // There is no sub-command provided
+        subcmd_help_simple(top);
+    }
+    // We now know there is a sub command on the commandline
+
+    cmd = subcmd_lookup(
+        top,
+        argc - optind,
+        &argv[optind]
+        );
+
+    return cmd;
+}
+
+void n3n_config_from_getopt (const struct n3n_config_getopt *map, void *conf, int optkey, char *optarg) {
+    int i = 0;
+    while(map[i].optkey) {
+        if(optkey != map[i].optkey) {
+            i++;
+            continue;
+        }
+
+        if((!optarg && !map[i].value) || !map[i].section || !map[i].option) {
+            printf("Internal error with option_map for -%c\n", optkey);
+            abort();
+        }
+
+        if(!optarg) {
+            optarg = map[i].value;
+        }
+
+        int rv = n3n_config_set_option(
+            conf,
+            map[i].section,
+            map[i].option,
+            optarg
+            );
+        if(rv==0) {
+            return;
+        }
+
+        traceEvent(
+            TRACE_WARNING,
+            "Error setting %s.%s=%s\n",
+            map[i].section,
+            map[i].option,
+            optarg);
+        return;
+    }
+
+    // Should only happen if the caller has a bad getopt loop
+    printf("unknown option -%c", (char)optkey);
+}
+
+void n3n_config_help_options (const struct n3n_config_getopt *map, const struct option *long_options) {
+    int i;
+
+    printf(" option    config\n");
+    i = 0;
+    while(map[i].optkey) {
+        if(isprint(map[i].optkey)) {
+            printf(" -%c ", map[i].optkey);
+            if(map[i].help) {
+                // Dont generate any text, just use the help text
+                // (This is used for options that have no true mapping)
+                printf("%s\n", map[i].help);
+                i++;
+                continue;
+            }
+            if(!map[i].value) {
+                // We are expecting an arg with this option
+                printf("<arg>");
+            } else {
+                printf("     ");
+            }
+            printf("  %s.%s=", map[i].section, map[i].option);
+            if(!map[i].value) {
+                printf("<arg>");
+            } else {
+                printf("%s", map[i].value);
+            }
+            printf("\n");
+        }
+        i++;
+    }
+    printf("\n");
+    printf(" short  long\n");
+
+    i = 0;
+    while(long_options[i].name) {
+        if(isprint(long_options[i].val)) {
+            printf(" -%c     --%s", long_options[i].val, long_options[i].name);
+            if(long_options[i].has_arg == required_argument) {
+                printf("=<arg>");
+            }
+            printf("\n");
+        }
+        i++;
+    }
 }

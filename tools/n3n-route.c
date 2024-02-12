@@ -21,7 +21,9 @@
 
 #include <errno.h>             // for errno
 #include <getopt.h>            // for getopt_long, optind, optarg
+#include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h>       // for traceEvent
+#include <n3n/random.h>        // for n3n_rand
 #include <signal.h>            // for signal, SIGINT, SIGPIPE, SIGTERM, SIG_IGN
 #include <stdbool.h>
 #include <stdint.h>            // for uint8_t, uint16_t, uint32_t
@@ -33,7 +35,6 @@
 #include <unistd.h>            // for getpid, STDIN_FILENO, _exit, geteuid
 #include "json.h"              // for _jsonpair, json_object_t, _jsonvalue
 #include "n2n.h"               // for inaddrtoa, traceEvent, TRACE_WARNING
-#include "random_numbers.h"    // for n2n_rand, n2n_seed, n2n_srand
 #include "uthash.h"            // for UT_hash_handle, HASH_ADD, HASH_DEL
 
 #ifdef __linux__
@@ -820,6 +821,9 @@ int main (int argc, char* argv[]) {
     ipstr_t ip_str;
     n2n_route_t *route, *tmp_route;
 
+    // Do this early to register all internals
+    n3n_initfuncs();
+
     // version
     print_n3n_version();
 
@@ -834,7 +838,6 @@ int main (int argc, char* argv[]) {
     rrr.port = N2N_EDGE_MGMT_PORT;
     rrr.routes = NULL;
     setTraceLevel(2); /* NORMAL, should already be default */
-    n2n_srand(n2n_seed());
 
     // get command line options and eventually overwrite initialized conf
     while((c = getopt_long(argc, argv, "t:p:g:n:vV", NULL, NULL)) != '?') {
@@ -944,7 +947,7 @@ reset_main_loop:
         // check if we need to send info request again
         if(now > last_info_req + INFO_INTERVAL) {
             // send info read request
-            while(!(tag_info = ((uint32_t)n2n_rand()) >> 23));
+            while(!(tag_info = ((uint32_t)n3n_rand()) >> 23));
             msg_len = 0;
             msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
                                 "r %u info\n", tag_info);
@@ -961,7 +964,7 @@ reset_main_loop:
                 // REVISIT: send unsubscribe request to management port if required to re-subscribe
 
                 // send subscribe request to management port, generate fresh tag
-                while(!(tag_route_ip = ((uint32_t)n2n_rand()) >> 23)); /* >> 23: tags too long can crash the mgmt */
+                while(!(tag_route_ip = ((uint32_t)n3n_rand()) >> 23)); /* >> 23: tags too long can crash the mgmt */
                 msg_len = 0;
                 msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
                                     "s %u:1:%s peer\n", tag_route_ip, rrr.password);

@@ -1,4 +1,4 @@
-### test: ./apps/supernode -v
+### test: ./apps/supernode start ci_sn -v
 
 ### test: ./scripts/n3nctl -s ci_edge1 get_communities
 [
@@ -30,7 +30,6 @@
     "type": "super_broadcast"
   },
   {
-    "rx_pkt": 0,
     "tx_pkt": 0,
     "type": "tuntap_error"
   }
@@ -52,6 +51,6 @@ This request requires an authentication key
 ### test: ./scripts/n3nctl -s ci_edge1 -k n3n stop
 0
 
-### test: ./scripts/n3nctl -u http://localhost:5645 -k n3n stop
+### test: ./scripts/n3nctl -s ci_sn -k n3n stop
 0
 

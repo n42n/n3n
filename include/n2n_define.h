@@ -95,8 +95,7 @@
 #define ZSTD_COMPRESSION_LEVEL                7             /* 1 (faster) ... 22 (more compression) */
 
 /* Federation name and indicators */
-#define FEDERATION_NAME "*Federation"
-enum federation {IS_NO_FEDERATION = 0,IS_FEDERATION = 1};
+#define FEDERATION_NAME_DEFAULT "Federation"
 
 /* Header encryption indicators */
 #define HEADER_ENCRYPTION_UNKNOWN             0

@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 /**
@@ -40,7 +41,7 @@ typedef struct strbuf {
 } while(0)
 
 void sb_zero(strbuf_t *);
-strbuf_t *sb_malloc(size_t) __attribute__ ((malloc));
+strbuf_t *sb_malloc(size_t, size_t) __attribute__ ((malloc));
 strbuf_t *sb_realloc(strbuf_t **, size_t);
 size_t sb_len(strbuf_t *);
 ssize_t sb_avail(strbuf_t *);
@@ -55,5 +56,22 @@ __attribute__ ((format (printf, 2, 3)));
 ssize_t sb_read(int, strbuf_t *);
 ssize_t sb_write(int, strbuf_t *, int, ssize_t);
 void sb_dump(strbuf_t *);
+
+// Collect some metrics
+struct strbuf_metrics {
+    uint32_t zero;
+    uint32_t alloc;
+    uint32_t realloc;
+    uint32_t realloc_full;
+    uint32_t append_full;
+    uint32_t append_trunc;
+};
+extern struct strbuf_metrics strbuf_metrics;
+
+#ifdef METRICS
+#define STRBUF_METRIC(n) strbuf_metrics.n++
+#else
+#define STRBUF_METRIC(n)
+#endif
 
 #endif

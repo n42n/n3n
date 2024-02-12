@@ -35,17 +35,18 @@ class UnixHandler(urllib.request.BaseHandler):
                         if k not in headers})
         headers = {name.title(): val for name, val in headers.items()}
 
-        # hackitty hack - if only we could avoid setsockopt()
         def unix_connect():
             h.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             h.sock.connect(pathname)
 
+        # hackitty hack - if only we could avoid setsockopt() in the default
+        # unix_connect, or if it didnt throw an error on unsupported ops
         h.connect = unix_connect
 
         try:
             h.request(req.get_method(), req.selector, req.data, headers)
 
-        except OSError as err:  # timeout error
+        except TimeoutError as err:  # timeout error
             raise urllib.error.URLError(err)
         r = h.getresponse()
 
@@ -335,6 +336,12 @@ def main():
         result = func(rpc, args)
     except Unauthenticated:
         print("This request requires an authentication key")
+        exit(1)
+    except FileNotFoundError:
+        print("Could not find unix socket (is the session running?)")
+        exit(1)
+    except ConnectionRefusedError:
+        print("Connection refused (is the session running?)")
         exit(1)
     except socket.timeout as e:
         print(e)

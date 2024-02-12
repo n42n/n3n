@@ -16,6 +16,15 @@ n3nctl edges
 (The supernode still uses the legacy default of TCP/5645, but it will soon
 switch to using the unix domain socket as its default)
 
+In addition to the main JsonRPC interface, there are a small number of simple
+HTTP pages.  These are not intended for complex data, being mainly for
+human UI or interoperation with other systems.
+
+Example fetching the list of HTTP pages:
+```
+curl --unix-socket /run/n3n/edge/mgmt http://x/help
+```
+
 ## Listening sockets
 
 When the daemon is started, it is either given a session name or uses the

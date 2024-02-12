@@ -23,8 +23,12 @@
 #include <ctype.h>             // for isspace
 #include <errno.h>             // for errno
 #include <getopt.h>            // for required_argument, getopt_long, no_arg...
+#include <header_encryption.h> // for packet_header_setup_key
 #include <n3n/conffile.h>      // for n3n_config_set_option
+#include <n3n/initfuncs.h>     // for n3n_initfuncs()
 #include <n3n/logging.h>       // for traceEvent
+#include <n3n/peer_info.h>     // for n3n_peer_add_by_hostname
+#include <n3n/supernode.h>     // for load_allowed_sn_community, calculate_s...
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
 #include <stdint.h>            // for uint8_t, uint32_t
@@ -35,12 +39,10 @@
 #include <time.h>              // for time
 #include <unistd.h>            // for _exit, daemon, getgid, getuid, setgid
 #include "n2n.h"               // for n2n_edge, sn_community
-#include "pearson.h"           // for pearson_hash_64
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
 // FIXME, including private headers
 #include "../src/peer_info.h"         // for peer_info, peer_info_init
-#include "../src/resolve.h"           // for supernode2sock
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -55,140 +57,23 @@
 
 static struct n3n_runtime_data sss_node;
 
-void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn);
-void calculate_shared_secrets (struct n3n_runtime_data *sss);
-int load_allowed_sn_community (struct n3n_runtime_data *sss);
+/* *************************************************** */
 
+#define GETOPTS "p:l:t:a:c:F:vhMV:m:fu:g:O:"
 
-/** Help message to print if the command line arguments are not valid. */
-static void help (int level) {
+static const struct option long_options[] = {
+    {"help",                no_argument,       NULL, 'h'},
+    {"verbose",             no_argument,       NULL, 'v'},
+    {"version",             no_argument,       NULL, 'V'},
+    {NULL,                  0,                 NULL, 0}
+};
 
-    if(level == 0) /* no help required */
-        return;
-
-    printf("\n");
-    print_n3n_version();
-
-    if(level == 1) {
-        /* short help */
-
-        printf("   basic usage:  supernode <config file> (see supernode.conf)\n"
-               "\n"
-               "            or   supernode "
-               "[optional parameters, at least one] "
-               "\n                      "
-               "\n technically, all parameters are optional, but the supernode executable"
-               "\n requires at least one parameter to run, .e.g. -v or -f, as otherwise this"
-               "\n short help text is displayed"
-               "\n\n  -h    shows a quick reference including all available options"
-               "\n --help gives a detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-
-    } else if(level == 2) {
-        /* quick reference */
-
-        printf(" general usage:  supernode <config file> (see supernode.conf)\n"
-               "\n"
-               "            or   supernode "
-               "[-p [<local bind ip address>:]<local port>] "
-               "\n                           "
-               "[-F <federation name>] "
-               "\n options for under-        "
-               "[-l <supernode host:port>] "
-               "\n lying connection          "
-#ifdef SN_MANUAL_MAC
-               "[-m <mac address>] "
-#endif
-               "[-M] "
-               "[-V <version text>] "
-               "\n\n overlay network           "
-               "[-c <community list file>] "
-               "\n configuration             "
-               "[-a <net ip>-<net ip>/<cidr suffix>] "
-               "\n\n local options             "
-               "[-t <management port>] "
-               "\n                           "
-               "[--management-password <pw>] "
-               "[-v] "
-#ifndef _WIN32
-               "\n                           "
-               "[-u <numerical user id>]"
-               "[-g <numerical group id>]"
-#endif
-               "\n\n meaning of the            "
-               "[-M]  disable MAC and IP address spoofing protection"
-               "\n flag options              "
-#ifndef _WIN32
-               "[-f]  do not fork but run in foreground"
-               "\n                           "
-#endif
-               "[-v]  make more verbose, repeat as required"
-               "\n                           "
-               "\n technically, all parameters are optional, but the supernode executable"
-               "\n requires at least one parameter to run, .e.g. -v or -f, as otherwise a"
-               "\n short help text is displayed"
-               "\n\n  -h    shows this quick reference including all available options"
-               "\n --help gives a detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-
-    } else {
-        /* long help */
-
-        printf(" general usage:  supernode <config file> (see supernode.conf)\n"
-               "\n"
-               "            or   supernode [optional parameters, at least one]\n\n"
-               );
-        printf(" OPTIONS FOR THE UNDERLYING NETWORK CONNECTION\n");
-        printf(" ---------------------------------------------\n\n");
-        printf(" -p [<ip>:]<port>  | fixed local UDP port (defaults to %u) and optionally\n"
-               "                   | bind to specified local IP address only ('any' by default)\n", N2N_SN_LPORT_DEFAULT);
-        printf(" -F <fed name>     | name of the supernode's federation, defaults to\n"
-               "                   | '%s'\n", (char *)FEDERATION_NAME);
-        printf(" -l <host:port>    | ip address or name, and port of known supernode\n");
-#ifdef SN_MANUAL_MAC
-        printf(" -m <mac>          | fixed MAC address for the supernode, e.g.\n"
-               "                   | '-m 10:20:30:40:50:60', random otherwise\n");
-#endif
-        printf(" -M                | disable MAC and IP address spoofing protection for all\n"
-               "                   | non-username-password-authenticating communities\n");
-        printf(" -V <version text> | sends a custom supernode version string of max 19 letters \n"
-               "                   | length to edges, visible in their management port output\n");
-        printf("\n");
-        printf(" TAP DEVICE AND OVERLAY NETWORK CONFIGURATION\n");
-        printf(" --------------------------------------------\n\n");
-        printf(" -c <path>         | file containing the allowed communities\n");
-        printf(" -a <net-net/n>    | subnet range for auto ip address service, e.g.\n"
-               "                   | '-a 192.168.0.0-192.168.255.0/24', defaults\n"
-               "                   | to '10.128.255.0-10.255.255.0/24'\n");
-        printf("\n");
-        printf(" LOCAL OPTIONS\n");
-        printf(" -------------\n\n");
-#ifndef _WIN32
-        printf(" -f                | do not fork and run as a daemon, rather run in foreground\n");
-#endif
-        printf(" -t <port>         | management UDP port, for multiple supernodes on a machine,\n"
-               "                   | defaults to %u\n", N2N_SN_MGMT_PORT);
-        printf(" --management_...  | management port password, defaults to '%s'\n"
-               " ...password <pw>  | \n", N3N_MGMT_PASSWORD);
-        printf(" -v                | make more verbose, repeat as required\n");
-#ifndef _WIN32
-        printf(" -u <UID>          | numeric user ID to use when privileges are dropped\n");
-        printf(" -g <GID>          | numeric group ID to use when privileges are dropped\n");
-#endif
-        printf("\n technically, all parameters are optional, but the supernode executable"
-               "\n requires at least one parameter to run, .e.g. -v or -f, as otherwise a"
-               "\n short help text is displayed"
-               "\n\n  -h    shows a quick reference including all available options"
-               "\n --help gives this detailed parameter description"
-               "\n   man  files for n3n, edge, and supernode contain in-depth information"
-               "\n\n");
-    }
-
-    exit(0);
-}
-
+static const struct n3n_config_getopt option_map[] = {
+    { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
+    { 'f',  "daemon",       "background",           "false" },
+    { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
+    { .optkey = 0 }
+};
 
 /* *************************************************** */
 
@@ -202,316 +87,274 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
     traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
 }
 
-static int setOption (int optkey, char *_optarg, struct n3n_runtime_data *sss) {
-
-    //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, _optarg ? _optarg : "");
-
-    switch(optkey) {
-        case 'p': { /* local-port */
-            set_option_wrap(&sss->conf, "connection", "bind", _optarg);
-            break;
-        }
-
-        case 't': /* mgmt-port */
-            sss->conf.mgmt_port = atoi(_optarg);
-
-            if(sss->conf.mgmt_port == 0) {
-                traceEvent(TRACE_WARNING, "bad management port format, defaulting to %u", N2N_SN_MGMT_PORT);
-                // default is made sure in sn_init()
-            }
-
-            break;
-
-        case 'l': { /* supernode:port */
-            n2n_sock_t *socket;
-            struct peer_info *anchor_sn;
-            size_t length;
-            int rv = -1;
-            int skip_add;
-            char *double_column = strchr(_optarg, ':');
-
-            length = strlen(_optarg);
-            if(length >= N2N_EDGE_SN_HOST_SIZE) {
-                traceEvent(TRACE_WARNING, "size of -l argument too long: %zu; maximum size is %d", length, N2N_EDGE_SN_HOST_SIZE);
-                return 1;
-            }
-
-            if(!double_column) {
-                traceEvent(TRACE_WARNING, "invalid -l format, missing port");
-                return 1;
-            }
-
-            socket = (n2n_sock_t *)calloc(1, sizeof(n2n_sock_t));
-            rv = supernode2sock(socket, _optarg);
-
-            if(rv < -2) { /* we accept resolver failure as it might resolve later */
-                traceEvent(TRACE_WARNING, "invalid supernode parameter");
-                free(socket);
-                return 1;
-            }
-
-            if(sss->federation != NULL) {
-                skip_add = SN_ADD;
-                anchor_sn = add_sn_to_list_by_mac_or_sock(&(sss->federation->edges), socket, null_mac, &skip_add);
-
-                if(anchor_sn != NULL) {
-                    anchor_sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-                    if(anchor_sn->ip_addr) {
-                        peer_info_init(anchor_sn, null_mac);
-                        // This is the only place where the default purgeable
-                        // is overwritten after an _alloc or _init
-                        anchor_sn->purgeable = false;
-
-                        strncpy(anchor_sn->ip_addr, _optarg, N2N_EDGE_SN_HOST_SIZE - 1);
-                        memcpy(&(anchor_sn->sock), socket, sizeof(n2n_sock_t));
-                    }
-                }
-            }
-
-            free(socket);
-            break;
-        }
-
-        case 'a': {
-            dec_ip_str_t ip_min_str = {'\0'};
-            dec_ip_str_t ip_max_str = {'\0'};
-            in_addr_t net_min, net_max;
-            uint8_t bitlen;
-            uint32_t mask;
-
-            if(sscanf(_optarg, "%15[^\\-]-%15[^/]/%hhu", ip_min_str, ip_max_str, &bitlen) != 3) {
-                traceEvent(TRACE_WARNING, "bad net-net/bit format '%s'.", _optarg);
-                return 2;
-            }
-
-            net_min = inet_addr(ip_min_str);
-            net_max = inet_addr(ip_max_str);
-            mask = bitlen2mask(bitlen);
-            if((net_min == (in_addr_t)(-1)) || (net_min == INADDR_NONE) || (net_min == INADDR_ANY)
-               || (net_max == (in_addr_t)(-1)) || (net_max == INADDR_NONE) || (net_max == INADDR_ANY)
-               || (ntohl(net_min) >  ntohl(net_max))
-               || ((ntohl(net_min) & ~mask) != 0) || ((ntohl(net_max) & ~mask) != 0)) {
-                traceEvent(TRACE_WARNING, "bad network range '%s...%s/%u' in '%s', defaulting to '%s...%s/%d'",
-                           ip_min_str, ip_max_str, bitlen, _optarg,
-                           N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
-                return 2;
-            }
-
-            if((bitlen > 30) || (bitlen == 0)) {
-                traceEvent(TRACE_WARNING, "bad prefix '%hhu' in '%s', defaulting to '%s...%s/%d'",
-                           bitlen, _optarg,
-                           N2N_SN_MIN_AUTO_IP_NET_DEFAULT, N2N_SN_MAX_AUTO_IP_NET_DEFAULT, N2N_SN_AUTO_IP_NET_BIT_DEFAULT);
-                return 2;
-            }
-
-            traceEvent(TRACE_NORMAL, "the network range for community ip address service is '%s...%s/%hhu'", ip_min_str, ip_max_str, bitlen);
-
-            sss->min_auto_ip_net.net_addr = ntohl(net_min);
-            sss->min_auto_ip_net.net_bitlen = bitlen;
-            sss->max_auto_ip_net.net_addr = ntohl(net_max);
-            sss->max_auto_ip_net.net_bitlen = bitlen;
-
-            break;
-        }
-#ifndef _WIN32
-        case 'u': /* unprivileged uid */
-            sss->conf.userid = atoi(_optarg);
-            break;
-
-        case 'g': /* unprivileged uid */
-            sss->conf.groupid = atoi(_optarg);
-            break;
-#endif
-        case 'F': { /* federation name */
-            snprintf(sss->federation->community, N2N_COMMUNITY_SIZE - 1, "*%s", _optarg);
-            sss->federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
-            sss->federation->purgeable = false;
-            break;
-        }
-#ifdef SN_MANUAL_MAC
-        case 'm': {/* MAC address */
-            str2mac(sss->mac_addr, _optarg);
-
-            // clear multicast bit
-            sss->mac_addr[0] &= ~0x01;
-            // set locally-assigned bit
-            sss->mac_addr[0] |= 0x02;
-
-            break;
-        }
-#endif
-        case 'M': /* override spoofing protection */
-            sss->override_spoofing_protection = 1;
-            break;
-
-        case 'V': /* version text */
-            strncpy(sss->version, _optarg, sizeof(n2n_version_t));
-            sss->version[sizeof(n2n_version_t) - 1] = '\0';
-            break;
-        case 'c': /* community file */
-            sss->community_file = calloc(1, strlen(_optarg) + 1);
-            if(sss->community_file)
-                strcpy(sss->community_file, _optarg);
-            break;
-
-        case ']': /* password for management port */ {
-            sss->conf.mgmt_password = strdup(_optarg);
-
-            break;
-        }
-        case 'f': /* foreground */
-            sss->conf.daemon = false;
-            break;
-        case 'h': /* quick reference */
-            return 2;
-
-        case '@': /* long help */
-            return 3;
-
-        case 'v': /* verbose */
-            setTraceLevel(getTraceLevel() + 1);
-            break;
-
-        default:
-            traceEvent(TRACE_WARNING, "unknown option -%c:", (char) optkey);
-            return 2;
-    }
-
-    return 0;
-}
-
-
-/* *********************************************** */
-
-static const struct option long_options[] = {
-    {"communities",         required_argument, NULL, 'c'},
-    {"foreground",          no_argument,       NULL, 'f'},
-    {"local-port",          required_argument, NULL, 'p'},
-    {"mgmt-port",           required_argument, NULL, 't'},
-    {"autoip",              required_argument, NULL, 'a'},
-    {"verbose",             no_argument,       NULL, 'v'},
-    {"help",                no_argument,       NULL, '@'}, /* special character '@' to identify long help case */
-    {"management-password", required_argument, NULL, ']' }, /*                  ']'             management port password */
-    {NULL,                  0,                 NULL, 0}
-};
-
 /* *************************************************** */
 
 /* read command line options */
-static int loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *sss) {
+static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data *sss) {
+    struct n2n_edge_conf *conf = &sss->conf;
+    // TODO: refactor the getopt to only need conf, and avoid passing sss
 
-    u_char c;
+    int c = 0;
+    while(c != -1) {
+        c = getopt_long(
+            argc,
+            argv,
+            GETOPTS,
+            long_options,
+            NULL
+            );
 
-    while((c = getopt_long(argc, argv,
-                           "p:l:t:a:c:F:vhMV:"
-#ifdef SN_MANUAL_MAC
-                           "m:"
-#endif
-                           "f"
-                           "u:g:"
-                           ,
-                           long_options, NULL)) != '?') {
-        if(c == 255) {
+        //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optarg ? optarg : "");
+
+        switch(c) {
+            case 'O': { // Set any config option
+                char *section = strtok(optarg, ".");
+                char *option = strtok(NULL, "=");
+                char *value = strtok(NULL, "");
+                set_option_wrap(conf, section, option, value);
+                break;
+            }
+
+            case 'v': /* verbose */
+                setTraceLevel(getTraceLevel() + 1);
+                break;
+
+            case -1: // dont try to set from option map the end sentinal
+                break;
+
+            default:
+                n3n_config_from_getopt(option_map, conf, c, optarg);
+        }
+    }
+}
+
+/********************************************************************/
+
+static struct n3n_subcmd_def cmd_top[]; // Forward define
+
+
+static void cmd_debug_config_addr (int argc, char **argv, void *conf) {
+    n3n_config_debug_addr(conf, stdout);
+    exit(0);
+}
+
+static void cmd_debug_config_dump (int argc, char **argv, void *conf) {
+    int level=1;
+    if(argv[1]) {
+        level = atoi(argv[1]);
+    }
+    n3n_config_dump(conf, stdout, level);
+    exit(0);
+}
+
+static void cmd_debug_config_load_dump (int argc, char **argv, void *conf) {
+    n3n_config_dump(conf, stdout, 1);
+    exit(0);
+}
+
+static void cmd_help_about (int argc, char **argv, void *conf) {
+    printf("n3n - a peer to peer VPN for when you have noLAN\n"
+           "\n"
+           " usage: supernode [options...] [command] [command args]\n"
+           "\n"
+           " e.g: supernode start [sessionname]\n"
+           "\n"
+           "  Loads the config based on the sessionname (default 'supernode.conf')\n"
+           "  Any commandline options override the config loaded\n"
+           "\n"
+           "Some commands for more help:\n"
+           "\n"
+           " supernode help commands\n"
+           " supernode help options\n"
+           " supernode help\n"
+           "\n"
+           );
+    exit(0);
+}
+
+static void cmd_help_commands (int argc, char **argv, void *conf) {
+    n3n_subcmd_help(cmd_top, 1, true);
+    exit(0);
+}
+
+static void cmd_help_config (int argc, char **argv, void *conf) {
+    printf("Full config file description is available using the edge:\n");
+    printf("    edge help config\n");
+    exit(0);
+}
+
+static void cmd_help_options (int argc, char **argv, void *conf) {
+    n3n_config_help_options(option_map, long_options);
+    exit(0);
+}
+
+static void cmd_help_version (int argc, char **argv, void *conf) {
+    print_n3n_version();
+    exit(0);
+}
+
+static void cmd_start (int argc, char **argv, void *conf) {
+    // Simply avoid triggering the "Unknown sub com" message
+    return;
+}
+
+static struct n3n_subcmd_def cmd_debug_config[] = {
+    {
+        .name = "addr",
+        .help = "show internal config addresses and sizes",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_config_addr,
+    },
+    {
+        .name = "dump",
+        .help = "[level] - just dump the default config",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_config_dump,
+    },
+    {
+        .name = "load_dump",
+        .help = "[sessionname] - load from all normal sources, then dump",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_config_load_dump,
+        .session_arg = true,
+    },
+    { .name = NULL }
+};
+
+static struct n3n_subcmd_def cmd_debug[] = {
+    {
+        .name = "config",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_debug_config,
+    },
+    { .name = NULL }
+};
+
+static struct n3n_subcmd_def cmd_help[] = {
+    {
+        .name = "about",
+        .help = "Basic command help",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_about,
+    },
+    {
+        .name = "commands",
+        .help = "Show all possible commandline commands",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_commands,
+    },
+    {
+        .name = "config",
+        .help = "All config file help text",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_config,
+    },
+    {
+        .name = "options",
+        .help = "Describe all commandline options ",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_options,
+    },
+    {
+        .name = "version",
+        .help = "Show the version",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_help_version,
+    },
+    { .name = NULL }
+};
+
+static struct n3n_subcmd_def cmd_top[] = {
+    {
+        .name = "debug",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_debug,
+    },
+    {
+        .name = "help",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_help,
+    },
+    {
+        .name = "start",
+        .help = "[sessionname] - starts daemon",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_start,
+        .session_arg = true,
+    },
+    { .name = NULL }
+};
+
+// Almost, but not quite, the same as the edge version
+// TODO: refactor them to be the same, and then reuse the implementation
+static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runtime_data *sss) {
+    n2n_edge_conf_t *conf = &sss->conf;
+
+    struct n3n_subcmd_result cmd = n3n_subcmd_parse(
+        argc,
+        argv,
+        GETOPTS,
+        long_options,
+        cmd_top
+        );
+
+    switch(cmd.type) {
+        case n3n_subcmd_result_unknown:
+            // Shouldnt happen
+            abort();
+        case n3n_subcmd_result_version:
+            cmd_help_version(0, NULL, NULL);
+        case n3n_subcmd_result_about:
+            cmd_help_about(0, NULL, NULL);
+        case n3n_subcmd_result_ok:
             break;
+    }
+
+    // If no session name has been found, use the default
+    if(!cmd.sessionname) {
+        cmd.sessionname = defname;
+    }
+
+    // Now that we might need it, setup some default config
+    sn_init_conf_defaults(sss, cmd.sessionname);
+
+    if(cmd.subcmd->session_arg) {
+        // the cmd structure can request the normal loading of config
+
+        int r = n3n_config_load_file(conf, cmd.sessionname);
+        if(r == -1) {
+            printf("Error loading config file\n");
+            exit(1);
         }
-        help(setOption(c, optarg, sss));
-    }
-
-    return 0;
-}
-
-/* *************************************************** */
-
-static char *trim (char *s) {
-
-    char *end;
-
-    while(isspace(s[0]) || (s[0] == '"') || (s[0] == '\'')) {
-        s++;
-    }
-
-    if(s[0] == 0) {
-        return s;
-    }
-
-    end = &s[strlen(s) - 1];
-    while(end > s && (isspace(end[0])|| (end[0] == '"') || (end[0] == '\''))) {
-        end--;
-    }
-    end[1] = 0;
-
-    return s;
-}
-
-/* *************************************************** */
-
-/* parse the configuration file */
-static int loadFromFile (const char *path, struct n3n_runtime_data *sss) {
-
-    char buffer[4096], *line;
-    char *line_vec[3];
-    int tmp;
-
-    FILE *fd;
-
-    fd = fopen(path, "r");
-
-    if(fd == NULL) {
-        traceEvent(TRACE_WARNING, "config file %s not found", path);
-        return -1;
-    }
-
-    // we mess around with optind, better save it
-    tmp = optind;
-
-    while((line = fgets(buffer, sizeof(buffer), fd)) != NULL) {
-        line = trim(line);
-
-        if(strlen(line) < 2 || line[0] == '#') {
-            continue;
+        if(r == -2) {
+            printf(
+                "Warning: no config file found for session '%s'\n",
+                cmd.sessionname
+                );
         }
 
-        // executable, cannot be omitted, content can be anything
-        line_vec[0] = line;
-        // first token, e.g. `-p`, eventually followed by a whitespace or '=' delimiter
-        line_vec[1] = strtok(line, "\t =");
-        // separate parameter option, if present
-        line_vec[2] = strtok(NULL, "\t ");
+        // Update the loaded conf with the current environment
+        if(n3n_config_load_env(conf)!=0) {
+            printf("Error loading environment variables\n");
+            exit(1);
+        }
 
-        // not to duplicate the option parser code, call loadFromCLI and pretend we have no option read yet
-        optind = 0;
-        // if separate second token present (optional argument, not part of first), then announce 3 vector members
-        loadFromCLI(line_vec[2] ? 3 : 2, line_vec, sss);
+        // Update the loaded conf with any option args
+        optind = 1;
+        loadFromCLI(argc, argv, sss);
     }
 
-    fclose(fd);
-    optind = tmp;
-
-    return 0;
+    // Do the selected subcmd
+    cmd.subcmd->fn(cmd.argc, cmd.argv, conf);
 }
 
-/* *************************************************** */
 
-/* Add the federation to the communities list of a supernode */
-static int add_federation_to_communities (struct n3n_runtime_data *sss) {
-
-    uint32_t num_communities = 0;
-
-    if(sss->federation != NULL) {
-        HASH_ADD_STR(sss->communities, community, sss->federation);
-
-        num_communities = HASH_COUNT(sss->communities);
-
-        traceEvent(TRACE_INFO, "added federation '%s' to the list of communities [total: %u]",
-                   (char*)sss->federation->community, num_communities);
-    }
-
-    return 0;
-}
 
 /* *************************************************** */
 
 #ifdef __linux__
+// TODO: this uses internal peer_info structures, move it to src/ or replace
+// it with a mangement api
 static void dump_registrations (int signo) {
 
     struct sn_community *comm, *ctmp;
@@ -575,42 +418,18 @@ static void term_handler (int sig)
 /* *************************************************** */
 
 /** Main program entry point from kernel. */
-int main (int argc, char * const argv[]) {
-
-    int rc;
-#ifndef _WIN32
-    struct passwd *pw = NULL;
-#endif
-    struct peer_info *scan, *tmp;
+int main (int argc, char * argv[]) {
 
 #ifdef _WIN32
     initWin32();
 #endif
 
-    sn_init_defaults(&sss_node);
-    add_federation_to_communities(&sss_node);
+    // Do this early to register all internals
+    n3n_initfuncs();
 
-    if((argc >= 2) && (argv[1][0] != '-')) {
-        rc = loadFromFile(argv[1], &sss_node);
-        if(argc > 2) {
-            rc = loadFromCLI(argc, argv, &sss_node);
-        }
-    } else if(argc > 1) {
-        rc = loadFromCLI(argc, argv, &sss_node);
-    } else
+    n3n_sn_config(argc, argv, "supernode", &sss_node);
 
-#ifdef _WIN32
-        // load from current directory
-        rc = loadFromFile("supernode.conf", &sss_node);
-#else
-        rc = -1;
-#endif
-
-    if(rc < 0) {
-        help(1); /* short help */
-    }
-
-    if(sss_node.community_file)
+    if(sss_node.conf.community_file)
         load_allowed_sn_community(&sss_node);
 
 #ifndef _WIN32
@@ -624,12 +443,43 @@ int main (int argc, char * const argv[]) {
     }
 #endif
 
+    /* Initialize the federation name from conf */
+    sss_node.federation->community[0] = '*';
+    memcpy(
+        &sss_node.federation->community[1],
+        sss_node.conf.sn_federation,
+        N2N_COMMUNITY_SIZE - 2
+        );
+    sss_node.federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
+
+    /*setup the encryption key */
+    packet_header_setup_key(sss_node.federation->community,
+                            &(sss_node.federation->header_encryption_ctx_static),
+                            &(sss_node.federation->header_encryption_ctx_dynamic),
+                            &(sss_node.federation->header_iv_ctx_static),
+                            &(sss_node.federation->header_iv_ctx_dynamic));
+
+    HASH_ADD_STR(sss_node.communities, community, sss_node.federation);
+
+    uint32_t num_communities = HASH_COUNT(sss_node.communities);
+
+    traceEvent(
+        TRACE_INFO,
+        "added federation '%s' to the list of communities [total: %u]",
+        (char*)sss_node.federation->community,
+        num_communities
+        );
+
     // warn on default federation name
-    if(!strcmp(sss_node.federation->community, FEDERATION_NAME)) {
-        traceEvent(TRACE_WARNING, "using default federation name; FOR TESTING ONLY, usage of a custom federation name (-F) is highly recommended!");
+    if(!strcmp(&sss_node.federation->community[1], FEDERATION_NAME_DEFAULT)) {
+        traceEvent(TRACE_WARNING, "The default federation name is FOR TESTING ONLY - use of a custom setting for supernode.federation is highly recommended!");
     }
 
-    if(sss_node.override_spoofing_protection) {
+    // After configuration phase, move the federation edges to their runtime
+    // place
+    sss_node.federation->edges = sss_node.conf.sn_edges;
+
+    if(!sss_node.conf.spoofing_protection) {
         traceEvent(
             TRACE_WARNING,
             "disabled MAC and IP address spoofing protection; "
@@ -637,6 +487,53 @@ int main (int argc, char * const argv[]) {
             "is recommended instead!"
             );
     }
+
+    if(sss_node.conf.sn_min_auto_ip_net.net_bitlen != sss_node.conf.sn_max_auto_ip_net.net_bitlen) {
+        traceEvent(
+            TRACE_ERROR,
+            "mismatched auto IP subnet (%i != %i)",
+            sss_node.conf.sn_min_auto_ip_net.net_bitlen,
+            sss_node.conf.sn_max_auto_ip_net.net_bitlen
+            );
+        exit(1);
+    }
+    if(sss_node.conf.sn_min_auto_ip_net.net_bitlen > 30 || sss_node.conf.sn_min_auto_ip_net.net_bitlen == 0) {
+        traceEvent(
+            TRACE_ERROR,
+            "invalid auto IP subnet (0 > %i > 30)",
+            sss_node.conf.sn_min_auto_ip_net.net_bitlen
+            );
+        exit(1);
+    }
+
+    if(ntohl(sss_node.conf.sn_min_auto_ip_net.net_addr) > ntohl(sss_node.conf.sn_max_auto_ip_net.net_bitlen)) {
+        traceEvent(TRACE_ERROR, "auto IP min cannot be > max");
+        exit(1);
+    }
+
+    dec_ip_str_t ip_min_str = {'\0'};
+    dec_ip_str_t ip_max_str = {'\0'};
+
+    inet_ntop(
+        AF_INET,
+        &sss_node.conf.sn_min_auto_ip_net.net_addr,
+        ip_min_str,
+        sizeof(ip_min_str)
+        );
+    inet_ntop(
+        AF_INET,
+        &sss_node.conf.sn_max_auto_ip_net.net_addr,
+        ip_max_str,
+        sizeof(ip_max_str)
+        );
+
+    traceEvent(
+        TRACE_NORMAL,
+        "auto ip address range is '%s...%s/%hhu'",
+        ip_min_str,
+        ip_max_str,
+        sss_node.conf.sn_min_auto_ip_net.net_bitlen
+        );
 
     calculate_shared_secrets(&sss_node);
 
@@ -678,45 +575,40 @@ int main (int argc, char * const argv[]) {
     }
 #endif
 
-    struct sockaddr_in local_address;
-    memset(&local_address, 0, sizeof(local_address));
-    local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(sss_node.conf.mgmt_port);
-    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-    sss_node.mgmt_slots = slots_malloc(5);
+    sss_node.mgmt_slots = slots_malloc(5, 3000, 500);
     if(!sss_node.mgmt_slots) {
         abort();
     }
 
-    if(slots_listen_tcp(sss_node.mgmt_slots, sss_node.conf.mgmt_port, false)!=0) {
+    if(sss_node.conf.mgmt_port) {
+        if(slots_listen_tcp(sss_node.mgmt_slots, sss_node.conf.mgmt_port, false)!=0) {
+            perror("slots_listen_tcp");
+            exit(1);
+        }
+        traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
+    }
+
+    n3n_config_setup_sessiondir(&sss_node.conf);
+
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", sss_node.conf.sessiondir);
+
+    if(slots_listen_unix(sss_node.mgmt_slots, unixsock)!=0) {
         perror("slots_listen_tcp");
         exit(1);
     }
-    traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
+    chown(unixsock, sss_node.conf.userid, sss_node.conf.groupid);
+#endif
 
-    // TODO: merge conf and then can:
-    // n3n_config_setup_sessiondir(&sss->conf);
-    //
-    // also slots_listen_unix()
-
-    HASH_ITER(hh, sss_node.federation->edges, scan, tmp)
-    scan->socket_fd = sss_node.sock;
+    // Add our freshly opened socket to any edges added by federation
+    // TODO: this uses internal peer_info struct, move it to sn_utils?
+    struct peer_info *scan, *tmp;
+    HASH_ITER(hh, sss_node.federation->edges, scan, tmp) {
+        scan->socket_fd = sss_node.sock;
+    }
 
 #ifndef _WIN32
-    /*
-     * If no uid/gid is specified on the commandline, use the uid/gid of the
-     * first found out of user "n2n" or "nobody"
-     */
-    if(((pw = getpwnam("n3n")) != NULL) || ((pw = getpwnam("nobody")) != NULL)) {
-        /*
-         * If the uid/gid is not set from the CLI, set it from getpwnam
-         * otherwise reset it to zero
-         * (TODO: this looks wrong)
-         */
-        sss_node.conf.userid = sss_node.conf.userid == 0 ? pw->pw_uid : 0;
-        sss_node.conf.groupid = sss_node.conf.groupid == 0 ? pw->pw_gid : 0;
-    }
 
     /*
      * If we have a non-zero requested uid/gid, attempt to switch to use
@@ -734,7 +626,10 @@ int main (int argc, char * const argv[]) {
     }
 
     if((getuid() == 0) || (getgid() == 0)) {
-        traceEvent(TRACE_WARNING, "running as root is discouraged, check out the -u/-g options");
+        traceEvent(
+            TRACE_WARNING,
+            "running as root is discouraged, check out the userid/groupid options"
+            );
     }
 #endif
 

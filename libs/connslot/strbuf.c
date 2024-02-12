@@ -16,15 +16,23 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#else
+#include <sys/socket.h>
 #endif
 
 #include "strbuf.h"
+
+#ifdef METRICS
+struct strbuf_metrics strbuf_metrics;
+#endif
+
 
 /**
  * Reset the strbuf to show as empty, without changing any allocations
  * @param p is the buffer to initialise
  */
 void sb_zero(strbuf_t *p) {
+    STRBUF_METRIC(zero);
     p->wr_pos = 0;
     p->rd_pos = 0;
     p->str[0] = 0;
@@ -37,12 +45,13 @@ void sb_zero(strbuf_t *p) {
  * @param size is the storage capacity to allocate
  * @return the allocated buffer or NULL
  */
-strbuf_t *sb_malloc(size_t size) {
+strbuf_t *sb_malloc(size_t size, size_t size_max) {
+    STRBUF_METRIC(alloc);
     size_t headersize = sizeof(strbuf_t);
     strbuf_t *p = malloc(headersize+size);
     if (p) {
         p->capacity = size;
-        p->capacity_max = size;
+        p->capacity_max = size_max;
         sb_zero(p);
     }
     return p;
@@ -59,9 +68,11 @@ strbuf_t *sb_malloc(size_t size) {
  * @return the allocated buffer or NULL
  */
 strbuf_t *sb_realloc(strbuf_t **pp, size_t size) {
+    STRBUF_METRIC(realloc);
     size_t headersize = sizeof(strbuf_t);
     strbuf_t *p = *pp;
     if (size > p->capacity_max) {
+        STRBUF_METRIC(realloc_full);
         size = p->capacity_max;
     }
 
@@ -128,11 +139,13 @@ size_t sb_append(strbuf_t *p, void *buf, ssize_t bufsize) {
     ssize_t avail = sb_avail(p);
     if (avail <= 0) {
         // Cannot append to a full buffer
+        STRBUF_METRIC(append_full);
         return -1;
     }
 
     if (avail < bufsize) {
         // Truncate the new data to fit
+        STRBUF_METRIC(append_trunc);
         bufsize = avail;
     }
 
@@ -253,12 +266,7 @@ ssize_t sb_read(int fd, strbuf_t *p) {
     ssize_t size;
     ssize_t avail = sb_avail(p);
 
-#ifndef _WIN32
-    size = read(fd, &p->str[p->wr_pos], avail);
-#else
-    // This only works on winsock (network stream) handles
     size = recv(fd, &p->str[p->wr_pos], avail, 0);
-#endif
 
     if (size != -1) {
         p->wr_pos += size;
@@ -283,12 +291,7 @@ ssize_t sb_write(int fd, strbuf_t *p, int index, ssize_t size) {
     // if index > wr_pos, error
     // if index + size > wr_pos, error
 
-#ifndef _WIN32
-    return write(fd, &p->str[index], size);
-#else
-    // This only works on winsock (network stream) handles
     return send(fd, &p->str[index], size, 0);
-#endif
 }
 
 void sb_dump(strbuf_t *p) {

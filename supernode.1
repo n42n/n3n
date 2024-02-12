@@ -1,97 +1,59 @@
-.TH supernode 1  "Jul 16, 2021" "version 3" "USER COMMANDS"
+.TH supernode 1  "5 Jan 2024" "version 3" "USER COMMANDS"
 .SH NAME
-supernode \- n2n supernode daemon
+supernode \- n3n supernode daemon
 .SH SYNOPSIS
 .B supernode
-<config file>
+[\fIoptions..\fR] [command] [\fIcommand args\fR]
 .br
-.B supernode
-[OPTION]...
+.B supernode start
+[\fIsessionname\fR]
+.br
+.B supernode --help
 .SH DESCRIPTION
-N2N is a peer-to-peer VPN system. Supernode is a node introduction registry,
-broadcast conduit and packet relay node for the n2n system. On startup supernode
-begins listening on the specified UDP port for node registrations, and other
-packets to route. The supernode can service any number of communities and routes
-packets only between members of the same community. The supernode does not hold
-the community encryption key and so cannot snoop or inject packets into the
-community.
-.PP
-Supernode can service a number of n2n communities concurrently. Traffic does not
-cross between communities.
-.PP
+N3N is a peer-to-peer VPN system - it is the LAN you have when you have noLAN.
+
+The Supernode is a node introduction registry, broadcast conduit and packet
+relay node for the n3n system.
+
+Once it has the full config loaded, the supernode begins listening on the
+specified UDP port for node registrations, and other packets to route. The
+supernode can service any number of communities and routes packets only between
+members of the same community. The supernode does not hold the community
+encryption key and so cannot snoop or inject packets into the community.
+
+Supernode can service a number of n3n communities concurrently. Traffic does
+not cross between communities.
+
 All logging goes to stdout.
-.PP
-The config file is similar to the command line, with one option per line.
-Lines starting with a "#" are ignored.
-An equal sign ('=') should be used between key and value. Example: -p=7777
-.SH OPTIONS FOR THE UNDERLYING NETWORK CONNECTION
+
+.SH OPTIONS
+Some of the most common options also have a shortcut version and you can see
+all of them with:
+
+.RS
+.B supernode help options
+.RE
 .TP
-\fB\-p \fR[<\fIlocal_ip_address\fR>:]<\fIlocal_port\fR>, \fB\-\-local-port\fR=...
-binds supernode to this fixed UDP port on 'any' local IP address, defaults to 7654.
-Optionally, the edge can bind to the provided local ip address only.
+.SH OPTIONS
 .TP
-\fB\-F \fR<\fIfed_name\fR>
-name of the supernode's federation, defaults to '*Federation' (see also N2N_FEDERATION in ENVIRONMENT)
+\fB\-O \fR<\fIsection\fR>.<\fIoption\fR>=<\fIvalue\fR>
+Sets any config option value.
 .TP
-\fB\-l \fR<\fIhost:port\fR>
-ip address or name, and port of known supernode
-.TP
-\fB\-m \fR<\fImac_address\fR>
-fixed MAC address for the supernode, e.g.
- '-m 10:20:30:40:50:60', random otherwise
-.TP
-\fB\-M\fR
-disable MAC and IP address spoofing protection for all
-non-username-password-authenticating communities
-.TP
-\fB\-V \fR<\fIversion_string\fR>
-modify the supernode version string which is distributed to the
-edges and shown at their management port output, up to 19 characters
-.TP
-.SH TAP DEVICE AND OVERLAY NETWORK CONFIGURATION
-.TP
-\fB\-c \fR<\fIpath\fR>, \fB\-\-communities\fR=<\fIpath\fR>
-file containing the allowed communities and any User / Password based authentication
-details (See ALLOWED COMMUNITIES FILE section)
-.TP
-\fB\-a \fR<\fInet-net/n\fR>, \fB\-\-autoip\fR=<net-net/n\fR>
-subnet range for auto ip address service,
-.br
-e.g.  '-a 192.168.0.0-192.168.255.0/24',
-.br
-defaults to '10.128.255.0-10.255.255.0/24'
-.SH LOCAL OPTIONS
+\fB\-h\fR, \fB\--help\fR
+Show some quick usage notes.
 .TP
 \fB\-f\fR, \fB\-\-foreground\fR
 disable daemon mode (UNIX) and run in foreground.
 .TP
-\fB\-t \fR<\fIport\fR>, \fB\-\-mgmt-port\fR=<\fIport\fR>
-management UDP port, for multiple supernodes on a machine, defaults to 5645
-.TP
-\fB\-\-management-password \fR<\fIpassword\fR>
-sets the password for access to JSON API at the management port, defaults to 'n2n'. The password
-has to be provided for relevant access to JSON API at the management port.
-.TP
 \fB\-v\fR, \fB\-\-verbose\fR
-use verbose logging
-.TP
-\fB\-u \fR<\fIUID\fR>
-numeric user ID to use when privileges are dropped
-.TP
-\fB\-g \fR<\fIGID\fR>
-numeric group ID to use when privileges are dropped
-.TP
-\fB-h\fR
-shows a quick reference including all available options
-.TP
-\fB\-\-help\fR
-shows detailed parameter description
+increase logging verbosity
 
 .SH ALLOWED COMMUNITIES FILE
-This file is a plain text file.
-Comments are introduced with a hash at the beginning of the line.
-A line that begins with an asterisk is a user authentication definition and adds an allowed user to the most recently defined community.
-Allowed communities can be specified with a regular expression.
+Specified with \fB\-Osupernode.community_file=\fR option (or in a config file)
+This file is a plain text file.  Comments are introduced with a hash at the
+beginning of the line.  A line that begins with an asterisk is a user
+authentication definition and adds an allowed user to the most recently defined
+community.  Allowed communities can be specified with a regular expression.
 .PP
 Example community file:
 .PP
@@ -105,27 +67,38 @@ netleo
 .RE
 .fi
 .PP
-More details on creating the allowed communities file are found in the Communities.md and Authentication.md documentation included with this package.
+More details on creating the allowed communities file are found in the
+Communities.md and Authentication.md documentation included with this package.
 .SH ENVIRONMENT
 .TP
-.B N2N_FEDERATION
+.B N3N_FEDERATION
 set the federation name so it is not visible at the command line
 .SH EXAMPLES
 .TP
-.B supernode -p 7654 -v
-Start supernode listening on UDP port 7654 with verbose output.
+.B supernode start -v
+Start supernode listening on default UDP port (7654) with verbose output.
 .PP
 .SH RESTART
 When supernode restarts it loses all registration information from associated
-edge nodes. It can take up to five minutes for the edge nodes to re-register and
-normal traffic flow to resume.
+edge nodes. It can take up to five minutes for the edge nodes to re-register
+and normal traffic flow to resume.
 .SH EXIT STATUS
 supernode is a daemon and any exit is an error
-.SH AUTHOR
-Luca Deri ( deri (at) ntop.org ), Richard Andrews ( andrews (at) ntop.org ), Don Bindner
+.SH AUTHORS
+.TP
+Hamish Coleman
+hamish (at) zot.org - n3n maintainer
+.TP
+Luca Deri
+deri (at) ntop.org
+.TP
+Richard Andrews
+andrews (at) ntop.org
+.TP
+Don Bindner
 .SH SEE ALSO
 ifconfig(8) edge(8)
 .br
 the documentation contained in the source code
 .br
-the extensive documentation found in n2n's \fBdoc/\fR folder
+the extensive documentation found in n3n's \fBdoc/\fR folder

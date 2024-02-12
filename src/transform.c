@@ -47,7 +47,7 @@ static struct n3n_transform *lookup_id (bool is_compress, int id) {
     return NULL;
 }
 
-static char *id2str (bool is_compress, int id) {
+static const char *id2str (bool is_compress, int id) {
     struct n3n_transform *p = lookup_id(is_compress, id);
     if(!p) {
         return NULL;
@@ -63,7 +63,7 @@ struct n3n_transform *n3n_transform_lookup_id (int id) {
     return lookup_id(false, id);
 }
 
-char *n3n_transform_id2str (int id) {
+const char *n3n_transform_id2str (int id) {
     return id2str(false, id);
 }
 
@@ -75,7 +75,7 @@ struct n3n_transform *n3n_compression_lookup_id (int id) {
     return lookup_id(true, id);
 }
 
-char *n3n_compression_id2str (int id) {
+const char *n3n_compression_id2str (int id) {
     return id2str(true, id);
 }
 

@@ -20,7 +20,9 @@
 
 
 #include <getopt.h>            // for getopt_long
-#include <n3n/logging.h> // for traceEvent
+#include <n3n/initfuncs.h>     // for n3n_initfuncs
+#include <n3n/logging.h>       // for traceEvent
+#include <n3n/random.h>        // for n3n_rand
 #include <signal.h>            // for signal, SIGINT, SIGPIPE, SIGTERM, SIG_IGN
 #include <stdbool.h>
 #include <stdint.h>            // for uint16_t, uint32_t, uint8_t
@@ -33,7 +35,6 @@
 #include "json.h"              // for _jsonpair, json_object_t, json_free
 #include "n2n.h"               // for SOCKET, N2N_EDGE_MGMT_PORT, closesocke...
 #include "n2n_port_mapping.h"  // for n2n_del_port_mapping, n2n_set_port_map...
-#include "random_numbers.h"    // for n2n_rand, n2n_seed, n2n_srand
 
 #ifdef _WIN32
 #include <winsock.h>
@@ -286,6 +287,9 @@ int main (int argc, char* argv[]) {
     int tag_info;
     uint16_t port = 0, current_port = 0;
 
+    // Do this early to register all internals
+    n3n_initfuncs();
+
     // version
     print_n3n_version();
 
@@ -311,7 +315,6 @@ int main (int argc, char* argv[]) {
     // init data structure
     ppp.port = N2N_EDGE_MGMT_PORT;
     setTraceLevel(2); /* NORMAL, should already be default */
-    n2n_srand(n2n_seed());
 
     // get command line options and eventually overwrite initialized conf
     while((c = getopt_long(argc, argv, "t:vV", NULL, NULL)) != '?') {
@@ -355,7 +358,7 @@ reset_main_loop:
         // check if we need to send info request again
         if(now > last_info_req + INFO_INTERVAL) {
             // send info read request
-            while(!(tag_info = ((uint32_t)n2n_rand()) >> 23));
+            while(!(tag_info = ((uint32_t)n3n_rand()) >> 23));
             msg_len = 0;
             msg_len += snprintf((char *) (udp_buf + msg_len), (N2N_PKT_BUF_SIZE - msg_len),
                                 "r %u info\n", tag_info);

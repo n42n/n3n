@@ -14,7 +14,7 @@
 
 // Tests are silent and return if everything is OK, or abort if issues
 void connslot_tests() {
-    slots_t *p = slots_malloc(5);
+    slots_t *p = slots_malloc(5, 1000, 1000);
     assert(p);
     assert(p->nr_slots==5);
     assert(p->nr_open==0);

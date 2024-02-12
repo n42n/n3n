@@ -11,9 +11,9 @@
 #include <connslot/jsonrpc.h>   // for jsonrpc_t, jsonrpc_parse
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/metrics.h> // for n3n_metrics_render
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community
-#include <pearson.h>     // for pearson_hash_64
 #include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
 #include <stdio.h>       // for snprintf, NULL, size_t
@@ -661,10 +661,8 @@ static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, con
     sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"tuntap_error\","
-                "\"tx_pkt\":%u,"
-                "\"rx_pkt\":%u},",
-                eee->stats.tx_tuntap_error,
-                eee->stats.rx_tuntap_error);
+                "\"tx_pkt\":%u},",
+                eee->stats.tx_tuntap_error);
 
     sb_reprintf(&conn->request,
                 "{"
@@ -896,14 +894,20 @@ static void render_todo_page (struct n3n_runtime_data *eee, conn_t *conn) {
     generate_http_headers(conn, "text/plain", 501);
 }
 
+static void render_metrics_page (struct n3n_runtime_data *eee, conn_t *conn) {
+    n3n_metrics_render(&conn->request);
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+    generate_http_headers(conn, "text/plain", 501);
+}
+
 #include "management_index.html.h"
 
 // Generate the output for the human user interface
 static void render_index_page (struct n3n_runtime_data *eee, conn_t *conn) {
     // TODO:
     // - could allow overriding of built in text with an external file
-    // - there is a race condition if multiple users are fetching the
-    //   page and have partial writes (same for render_script_page)
     conn->reply = &management_index;
     generate_http_headers(conn, "text/html", 200);
 }
@@ -914,6 +918,21 @@ static void render_index_page (struct n3n_runtime_data *eee, conn_t *conn) {
 static void render_script_page (struct n3n_runtime_data *eee, conn_t *conn) {
     conn->reply = &management_script;
     generate_http_headers(conn, "text/javascript", 200);
+}
+
+static void render_debug_slots (struct n3n_runtime_data *eee, conn_t *conn) {
+    int status;
+    sb_zero(conn->request);
+    if(eee->conf.enable_debug_pages) {
+        slots_dump(&conn->request, eee->mgmt_slots);
+        status = 200;
+    } else {
+        sb_printf(conn->request, "enable_debug_pages is false\n");
+        status = 403;
+    }
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+    generate_http_headers(conn, "text/plain", status);
 }
 
 static void render_help_page (struct n3n_runtime_data *eee, conn_t *conn);
@@ -927,9 +946,10 @@ struct mgmt_api_endpoint {
 static const struct mgmt_api_endpoint api_endpoints[] = {
     { "POST /v1 ", handle_jsonrpc, "JsonRPC" },
     { "GET / ", render_index_page, "Human interface" },
+    { "GET /debug/slots ", render_debug_slots, "Internal slots dump" },
     { "GET /events/", event_subscribe, "Subscribe to events" },
     { "GET /help ", render_help_page, "Describe available endpoints" },
-    { "GET /metrics ", render_todo_page, "Fetch metrics data" },
+    { "GET /metrics ", render_metrics_page, "Fetch metrics data" },
     { "GET /script.js ", render_script_page, "javascript helpers" },
     { "GET /status ", render_todo_page, "Quick health check" },
 };

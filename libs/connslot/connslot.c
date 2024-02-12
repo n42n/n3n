@@ -54,6 +54,11 @@ void *memmem(void *haystack, size_t haystack_len, void * needle, size_t needle_l
 }
 #endif
 
+#ifndef _WIN32
+// something something, posix, something something lies
+#define closesocket(fh) close(fh)
+#endif
+
 void conn_zero(conn_t *conn) {
     conn->fd = -1;
     conn->state = CONN_EMPTY;
@@ -69,12 +74,9 @@ void conn_zero(conn_t *conn) {
     }
 }
 
-int conn_init(conn_t *conn) {
-    // TODO: make capacity flexible
-    conn->request = sb_malloc(48);
-    conn->request->capacity_max = 1000;
-    conn->reply_header = sb_malloc(48);
-    conn->reply_header->capacity_max = 1000;
+int conn_init(conn_t *conn, size_t request_max, size_t reply_header_max) {
+    conn->request = sb_malloc(48, request_max);
+    conn->reply_header = sb_malloc(48, reply_header_max);
 
     conn_zero(conn);
 
@@ -98,11 +100,23 @@ void conn_read(conn_t *conn) {
     ssize_t size = sb_read(conn->fd, conn->request);
 
     if (size == 0) {
-        // TODO: confirm what other times we can get zero on a ready fd
-        conn->state = CONN_EMPTY;
+        // As we are dealing with non blocking sockets, and have made a non
+        // zero-sized read request, the only time we get a zero back is if the
+        // far end has closed
+        conn->state = CONN_CLOSED;
         return;
     }
 
+    if (size == -1) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            conn->state = CONN_EMPTY;
+            return;
+        }
+        conn->state = CONN_ERROR;
+        return;
+    }
+
+    // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
 
     // case protocol==HTTP
@@ -142,6 +156,7 @@ void conn_read(conn_t *conn) {
         p+=15; // Skip the field name
         unsigned int content_length = strtoul(p, NULL, 10);
         expected_length = body_pos + content_length;
+        // FIXME: what if Content-Length: is larger than unsigned int?
     }
 
     // By this point we must have an expected_length
@@ -225,6 +240,7 @@ ssize_t conn_write(conn_t *conn) {
         sb_zero(conn->request);
     }
 
+    // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
     return sent;
 }
@@ -239,8 +255,60 @@ int conn_iswriter(conn_t *conn) {
 }
 
 void conn_close(conn_t *conn) {
-    close(conn->fd);
+    closesocket(conn->fd);
     conn_zero(conn);
+    // TODO: could shrink the size here, maybe in certain circumstances?
+}
+
+void conn_dump(strbuf_t **buf, conn_t *conn) {
+    sb_reprintf(
+        buf,
+        "%i:%i@%i;%i ",
+        conn->fd,
+        conn->state,
+        conn->reply_sendpos,
+        conn->activity
+    );
+
+    if (conn->request) {
+        sb_reprintf(
+            buf,
+            "%p:%u/%u ",
+            conn->request,
+            conn->request->wr_pos,
+            conn->request->capacity
+        );
+    } else {
+        sb_reprintf(buf, "NULL ");
+    }
+
+    if (conn->reply) {
+        sb_reprintf(
+            buf,
+            "%p:%u/%u ",
+            conn->reply,
+            conn->reply->wr_pos,
+            conn->reply->capacity
+        );
+    } else {
+        sb_reprintf(buf, "NULL ");
+    }
+
+    if (conn->reply_header) {
+        sb_reprintf(
+            buf,
+            "%p:%u/%u ",
+            conn->reply_header,
+            conn->reply_header->wr_pos,
+            conn->reply_header->capacity
+        );
+    } else {
+        sb_reprintf(buf, "NULL ");
+    }
+
+    sb_reprintf(buf, "\n");
+
+    // TODO: strbuf capacity_max and contents?
 }
 
 void slots_free(slots_t *slots) {
@@ -271,7 +339,7 @@ void slots_free(slots_t *slots) {
     free(slots);
 }
 
-slots_t *slots_malloc(int nr_slots) {
+slots_t *slots_malloc(int nr_slots, size_t req_max, size_t reply_header_max) {
     size_t bytes = sizeof(slots_t) + nr_slots * sizeof(conn_t);
     slots_t *slots = malloc(bytes);
     if (!slots) {
@@ -290,7 +358,7 @@ slots_t *slots_malloc(int nr_slots) {
 
     int r = 0;
     for (int i=0; i < nr_slots; i++) {
-        r += conn_init(&slots->conn[i]);
+        r += conn_init(&slots->conn[i], req_max, reply_header_max);
     }
 
     if (r!=0) {
@@ -408,6 +476,20 @@ int slots_listen_unix(slots_t *slots, char *path) {
 }
 #endif
 
+/*
+ * Close any listening sockets.
+ * We dont check for or care about any errors as this is assumed to be used
+ * during a shutdown event.
+ * (Mostly, as a signaling feature for windows and its signals/select
+ * brain damage)
+ */
+void slots_listen_close(slots_t *slots) {
+    for (int i=0; i < SLOTS_LISTEN; i++) {
+        closesocket(slots->listen[i]);
+        slots->listen[i] = -1;
+    }
+}
+
 int slots_fdset(slots_t *slots, fd_set *readers, fd_set *writers) {
     int i;
     int fdmax = 0;
@@ -474,6 +556,7 @@ int slots_accept(slots_t *slots, int listen_nr) {
 #endif
 
     slots->nr_open++;
+    // This will truncate the time to a int - usually 32bits
     slots->conn[i].activity = time(NULL);
     slots->conn[i].fd = client;
     return i;
@@ -482,13 +565,15 @@ int slots_accept(slots_t *slots, int listen_nr) {
 int slots_closeidle(slots_t *slots) {
     int i;
     int nr_closed = 0;
-    int min_activity = time(NULL) - slots->timeout;
+    int now = time(NULL);
 
     for (i=0; i<slots->nr_slots; i++) {
         if (slots->conn[i].fd == -1) {
             continue;
         }
-        if (slots->conn[i].activity < min_activity) {
+        int delta_t = now - slots->conn[i].activity;
+        if (delta_t > slots->timeout) {
+            // TODO: metrics timeouts ++
             conn_close(&slots->conn[i]);
             nr_closed++;
         }
@@ -538,21 +623,24 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
             // possibly sets state to CONN_READY
         }
 
-        // After a read, we could be CONN_EMPTY or CONN_READY
-        // we reach state CONN_READY once there is a full request buf
-        if (slots->conn[i].state == CONN_READY) {
-            nr_ready++;
-            // TODO:
-            // - parse request
-            // - possibly callback to generate reply
-        }
-
-        // We cannot have got here if it started as an empty slot, so
-        // it must have transitioned to empty - close the slot
-        if (slots->conn[i].state == CONN_EMPTY) {
-            slots->nr_open--;
-            conn_close(&slots->conn[i]);
-            continue;
+        switch (slots->conn[i].state) {
+            case CONN_READY:
+                // After a read, we could be CONN_EMPTY or CONN_READY
+                // we reach state CONN_READY once there is a full request buf
+                nr_ready++;
+                // TODO:
+                // - parse request
+                // - possibly callback to generate reply
+                break;
+            case CONN_ERROR:
+                // Slots with errors are dead to us
+                /* fallsthrough */
+            case CONN_CLOSED:
+                slots->nr_open--;
+                conn_close(&slots->conn[i]);
+                continue;
+            default:
+                break;
         }
 
         if (FD_ISSET(slots->conn[i].fd, writers)) {
@@ -565,4 +653,26 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
     slots->nr_open = nr_open;
 
     return nr_ready;
+}
+
+void slots_dump(strbuf_t **buf, slots_t *slots) {
+    if (!slots) {
+        sb_reprintf(buf, "NULL\n");
+        return;
+    }
+    sb_reprintf(
+        buf,
+        "slots: %i/%i, timeout=%i, listen=",
+        slots->nr_open,
+        slots->nr_slots,
+        slots->timeout
+    );
+
+    for (int i=0; i < SLOTS_LISTEN; i++) {
+        sb_reprintf(buf, "%i,", slots->listen[i]);
+    }
+    sb_reprintf(buf, "\n");
+    for (int i=0; i < slots->nr_slots; i++) {
+        conn_dump(buf, &slots->conn[i]);
+    }
 }

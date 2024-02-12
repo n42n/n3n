@@ -20,8 +20,12 @@ docmd() {
     return $S
 }
 
+# We dont have perms for writing to the /run dir, TODO: improve this
+sudo mkdir -p /run/n3n
+sudo chown "$USER" /run/n3n
+
 # start a supernode
-docmd "${BINDIR}"/apps/supernode -v
+docmd "${BINDIR}"/apps/supernode start ci_sn -v
 
 # Start the edge in the background
 docmd sudo "${BINDIR}"/apps/edge start ci_edge1 \
@@ -62,5 +66,5 @@ docmd "${TOPDIR}"/scripts/n3nctl -s ci_edge1 -k $AUTH set_verbose 1
 
 # stop them both
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_edge1 -k $AUTH stop
-docmd "${TOPDIR}"/scripts/n3nctl -u http://localhost:5645 -k $AUTH stop
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn -k $AUTH stop
 

@@ -10,6 +10,7 @@ OK
 ####################
 [community]
 header_encryption=unknown
+#supernode=
 
 
 ####################
@@ -39,7 +40,17 @@ verbose=2
 
 ####################
 [management]
+enable_debug_pages=false
 port=0
+
+####################
+[supernode]
+auto_ip_max=0.0.0.0/0
+auto_ip_min=0.0.0.0/0
+macaddr=00:00:00:00:00:00
+#peer=
+
+spoofing_protection=false
 
 ####################
 [tuntap]

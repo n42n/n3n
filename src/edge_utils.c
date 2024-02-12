@@ -26,10 +26,12 @@
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/conffile.h>            // for n3n_config_load_env
-#include <n3n/edge.h>                // for edge_conf_add_supernode
+#include <n3n/peer_info.h>           // for n3n_peer_add_by_hostname
 #include <n3n/ethernet.h>            // for is_null_mac
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/metrics.h>
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
+#include <n3n/random.h>              // for n3n_rand, n3n_rand_sqr
 #include <n3n/strings.h>             // for sock_to_cstr
 #include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
 #include <stdbool.h>
@@ -50,7 +52,6 @@
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
 #include "portable_endian.h"         // for be16toh, htobe16
-#include "random_numbers.h"          // for n2n_rand, n2n_rand_sqr
 #include "resolve.h"                 // for resolve_create_thread, resolve_c...
 #include "sn_selection.h"            // for sn_selection_criterion_common_da...
 #include "speck.h"                   // for speck_128_decrypt, speck_128_enc...
@@ -94,14 +95,67 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /* ************************************** */
 
+static struct n3n_metrics_item edge_utils_metrics_items[] = {
+    {
+        .name = "tx_p2p",
+        .offset = offsetof(struct n2n_edge_stats, tx_p2p),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_p2p",
+        .offset = offsetof(struct n2n_edge_stats, rx_p2p),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_sup",
+        .offset = offsetof(struct n2n_edge_stats, tx_sup),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_sup",
+        .offset = offsetof(struct n2n_edge_stats, rx_sup),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_sup_broadcast",
+        .offset = offsetof(struct n2n_edge_stats, tx_sup_broadcast),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_sup_broadcast",
+        .offset = offsetof(struct n2n_edge_stats, rx_sup_broadcast),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_multicast_drop",
+        .offset = offsetof(struct n2n_edge_stats, tx_multicast_drop),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "rx_multicast_drop",
+        .offset = offsetof(struct n2n_edge_stats, rx_multicast_drop),
+        .size = n3n_metrics_uint32,
+    },
+    {
+        .name = "tx_tuntap_error",
+        .offset = offsetof(struct n2n_edge_stats, tx_tuntap_error),
+        .size = n3n_metrics_uint32,
+    },
+    { },
+};
+
+static struct n3n_metrics_module edge_utils_metrics_module = {
+    .name = "edge_utils",
+    .item = edge_utils_metrics_items,
+    .enabled = true,
+};
+
+/* ************************************** */
+
 int edge_verify_conf (const n2n_edge_conf_t *conf) {
 
     if(conf->community_name[0] == 0)
         return -1;
-
-    // REVISIT: are the following two conditions equal? if so, remove one. but note that sn_num is used elsewhere
-    if(conf->sn_num == 0)
-        return -2;
 
     if(HASH_COUNT(conf->supernodes) == 0)
         return -5;
@@ -410,8 +464,6 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     reset_sup_attempts(eee);
 
     sn_selection_criterion_common_data_default(eee);
-
-    pearson_hash_init();
 
     // always initialize compression transforms so we can at least decompress
     rc = n2n_transop_lzo_init(&eee->conf, &eee->transop_lzo);
@@ -1165,7 +1217,7 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
             } else {
                 traceEvent(TRACE_NORMAL, "successfully joined multicast group %s:%u",
                            N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
-                eee->multicast_joined = 1;
+                eee->multicast_joined = true;
             }
         }
     }
@@ -1232,7 +1284,7 @@ void send_query_peer (struct n3n_runtime_data * eee,
 
         // skip a random number of supernodes between top and remaining
         n_o_skip_sn = HASH_COUNT(eee->conf.supernodes) - n_o_pings;
-        n_o_skip_sn = (n_o_skip_sn < 0) ? 0 : n2n_rand_sqr(n_o_skip_sn);
+        n_o_skip_sn = (n_o_skip_sn < 0) ? 0 : n3n_rand_sqr(n_o_skip_sn);
         HASH_ITER(hh, eee->conf.supernodes, peer, tmp) {
             if(n_o_top_sn) {
                 n_o_top_sn--;
@@ -1279,7 +1331,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     }
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
-    eee->curr_sn->last_cookie = n2n_rand();
+    eee->curr_sn->last_cookie = n3n_rand();
 
     reg.cookie = eee->curr_sn->last_cookie;
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
@@ -1562,7 +1614,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
     if(eee->sn_wait == 2) {
         // remaining 1/4 is greater than 1/10 fast retry allowance;
         // '%' might be expensive but does not happen all too often
-        off = n2n_rand() % ((eee->conf.register_interval * 3) / 4);
+        off = n3n_rand() % ((eee->conf.register_interval * 3) / 4);
     }
 
     check_join_multicast_group(eee);
@@ -2883,6 +2935,9 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
     *eee->keep_running = true;
     update_supernode_reg(eee, time(NULL));
 
+    edge_utils_metrics_module.data = &eee->stats;
+    n3n_metrics_register(&edge_utils_metrics_module);
+
     /* Main loop
      *
      * select() is used to wait for input on either the TAP fd or the UDP/TCP
@@ -2939,10 +2994,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         rc = select(max_sock + 1, &readers, &writers, NULL, &wait_time);
         now = time(NULL);
 
-        if(rc == 0) {
-            // check for timed out slots
-            slots_closeidle(slots);
-        }
         if(rc > 0) {
             // any or all of the FDs could have input; check them all
 
@@ -2998,7 +3049,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             if(slots_ready < 0) {
                 traceEvent(
                     TRACE_ERROR,
-                    "error: slots_fdset_loop = %i", slots_ready
+                    "slots_fdset_loop returns %i (Is daemon exiting?)", slots_ready
                     );
             } else if(slots_ready > 0) {
                 // A linear scan is not ideal, but this is a select() loop
@@ -3019,6 +3070,9 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 }
             }
         }
+
+        // check for timed out slots
+        slots_closeidle(slots);
 
         // If anything we recieved caused us to stop..
         if(!(*eee->keep_running))
@@ -3201,7 +3255,8 @@ static int mkdir_p (const char *pathname, int mode, int uid, int gid) {
     return 0;
 }
 
-static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
+// TODO: why is this in the edge file? it is used in both edge and supernode
+int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
     if(!conf->sessionname) {
         traceEvent(TRACE_NORMAL, "cannot setup sessiondir: no sessionname");
         return -1;
@@ -3238,12 +3293,12 @@ static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
     char buf[1024];
     snprintf(buf, sizeof(buf), "%s/%s", basedir, conf->sessionname);
+    conf->sessiondir = strdup(buf);
+
     if(mkdir_p(buf, 0755, conf->userid, conf->groupid) == -1) {
         traceEvent(TRACE_ERROR, "cannot mkdir %s", buf);
         return -1;
     }
-
-    conf->sessiondir = strdup(buf);
 
     traceEvent(TRACE_NORMAL, "sessiondir: %s", conf->sessiondir);
 
@@ -3252,7 +3307,7 @@ static int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
-    eee->mgmt_slots = slots_malloc(5);
+    eee->mgmt_slots = slots_malloc(5, 3000, 500);
     if(!eee->mgmt_slots) {
         abort();
     }
@@ -3404,46 +3459,6 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
 
 /* ************************************** */
 
-int edge_conf_add_supernode (n2n_edge_conf_t *conf, const char *ip_and_port) {
-
-    struct peer_info *sn;
-    n2n_sock_t *sock;
-    int skip_add;
-    int rv = -1;
-
-    sock = (n2n_sock_t*)calloc(1,sizeof(n2n_sock_t));
-    rv = supernode2sock(sock, ip_and_port);
-
-    if(rv < -2) { /* we accept resolver failure as it might resolve later */
-        traceEvent(TRACE_WARNING, "invalid supernode parameter.");
-        free(sock);
-        return 1;
-    }
-
-    skip_add = SN_ADD;
-    sn = add_sn_to_list_by_mac_or_sock(&(conf->supernodes), sock, null_mac, &skip_add);
-
-    if(sn != NULL) {
-        sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-
-        if(sn->ip_addr != NULL) {
-            strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
-            memcpy(&(sn->sock), sock, sizeof(n2n_sock_t));
-            memcpy(sn->mac_addr, null_mac, sizeof(n2n_mac_t));
-            sn->purgeable = false;
-        }
-    }
-
-    free(sock);
-
-    traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
-    conf->sn_num++;
-
-    return 0;
-}
-
-/* ************************************** */
-
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
                      in_addr_t local_ip_address,
@@ -3462,7 +3477,7 @@ int quick_edge_init (char *device_name, char *community_name,
     conf.transop_id = N2N_TRANSFORM_ID_AES;
     conf.compression = N2N_COMPRESSION_ID_NONE;
     snprintf((char*)conf.community_name, sizeof(conf.community_name), "%s", community_name);
-    edge_conf_add_supernode(&conf, supernode_ip_address_port);
+    n3n_peer_add_by_hostname(&conf.supernodes, supernode_ip_address_port);
 
     /* Validate configuration */
     if(edge_verify_conf(&conf) != 0)

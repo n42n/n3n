@@ -22,12 +22,14 @@
 #include <ctype.h>                   // for isspace
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
+#include <inttypes.h>                // for PRIu64
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/edge.h>
 #include <n3n/ethernet.h>            // for macaddr_str, macstr_t
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/tests.h>               // for test_hashing
+#include <n3n/random.h>              // for n3n_rand_seeds, n3n_rand_seeds_s...
 #include <n3n/transform.h>           // for n3n_transform_lookup_id
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
@@ -42,9 +44,7 @@
 #include <unistd.h>                  // for setuid, _exit, chdir, fork, getgid
 #include "auth.h"                    // for generate_private_key, generate_p...
 #include "n2n.h"                     // for n2n_edge_conf_t, n3n_runtime_data, fil...
-#include "pearson.h"                 // for pearson_hash_64
 #include "portable_endian.h"         // for htobe32
-#include "random_numbers.h"          // for n2n_seed, n2n_srand
 #include "sn_selection.h"            // for sn_selection_sort, sn_selection_...
 #include "speck.h"                   // for speck_init, speck_context_t
 #include "uthash.h"                  // for UT_hash_handle, HASH_ADD, HASH_C...
@@ -86,15 +86,6 @@ static cap_value_t cap_values[] = {
 int num_cap = sizeof(cap_values)/sizeof(cap_value_t);
 #endif
 
-// forward declaration for use in main()
-void send_register_super (struct n3n_runtime_data *eee);
-void send_query_peer (struct n3n_runtime_data *eee, const n2n_mac_t dst_mac);
-int supernode_connect (struct n3n_runtime_data *eee);
-int supernode_disconnect (struct n3n_runtime_data *eee);
-int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock,
-                                       uint8_t *pktbuf, uint16_t *expected, uint16_t *position,
-                                       time_t now);
-
 /* *************************************************** */
 
 #define GETOPTS "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:O:"
@@ -108,13 +99,7 @@ static const struct option long_options[] = {
     { NULL,                  0,                 NULL,  0  }
 };
 
-static const struct option_map_def {
-    int optkey;
-    char *section;
-    char *option;
-    char *value;    // if no optarg, then use this for the value
-    char *help;
-} option_map[] = {
+static const struct n3n_config_getopt option_map[] = {
     { 'A',  "community",    "cipher",           NULL },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'V', NULL, NULL, NULL, "       Show the version" },
@@ -139,35 +124,6 @@ static void set_option_wrap (n2n_edge_conf_t *conf, char *section, char *option,
     }
 
     traceEvent(TRACE_WARNING, "Error setting %s.%s=%s\n", section, option, value);
-}
-
-static void set_from_option_map (n2n_edge_conf_t *conf, int optkey, char *optarg) {
-    int i = 0;
-    while(option_map[i].optkey) {
-        if(optkey != option_map[i].optkey) {
-            i++;
-            continue;
-        }
-
-        if((!optarg && !option_map[i].value) || !option_map[i].section || !option_map[i].option) {
-            printf("Internal error with option_map for -%c\n", optkey);
-            exit(1);
-        }
-
-        if(!optarg) {
-            optarg = option_map[i].value;
-        }
-
-        set_option_wrap(
-            conf,
-            option_map[i].section,
-            option_map[i].option,
-            optarg
-            );
-        return;
-    }
-
-    printf("unknown option -%c", (char)optkey);
 }
 
 /* *************************************************** */
@@ -226,118 +182,17 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
                 break;
 
             default: {
-                set_from_option_map(conf, c, optarg);
+                n3n_config_from_getopt(option_map, conf, c, optarg);
             }
         }
     }
 }
 
 /********************************************************************/
-// Sub command generic processor
 
-enum subcmd_type {
-    subcmd_type_nest = 1,
-    subcmd_type_fn
-};
-struct subcmd_def {
-    char *name;
-    char *help;
-    union {
-        struct subcmd_def *nest;
-        void (*fn)(int argc, char **argv, n2n_edge_conf_t *conf);
-    };
-    enum subcmd_type type;
-    bool session_arg;   // is the next arg a session name to load?
-};
-struct subcmd_result {
-    int argc;
-    char **argv;
-    char *sessionname;
-    struct subcmd_def *subcmd;
-};
+static struct n3n_subcmd_def cmd_top[]; // Forward define
 
-void subcmd_help (struct subcmd_def *p, int indent, bool recurse) {
-    while(p->name) {
-        printf(
-            "%*c%-10s",
-            indent,
-            ' ',
-            p->name
-            );
-        if(p->type == subcmd_type_nest) {
-            printf(" ->");
-        }
-        if(p->help) {
-            printf(" %s", p->help);
-        }
-        printf("\n");
-        if(recurse && p->type == subcmd_type_nest) {
-            subcmd_help(p->nest, indent +2, recurse);
-        }
-        p++;
-    }
-}
-
-static void subcmd_help_simple (struct subcmd_def *p) {
-    printf(
-        "\n"
-        "Try edge -h for help\n"
-        "\n"
-        "or add a subcommand:\n"
-        "\n"
-        );
-    subcmd_help(p, 1, false);
-    exit(1);
-}
-
-struct subcmd_result subcmd_lookup (struct subcmd_def *top, int argc, char **argv) {
-    struct subcmd_result r;
-    struct subcmd_def *p = top;
-    while(p->name) {
-        if(argc < 1) {
-            // No subcmd to process
-            subcmd_help_simple(top);
-        }
-        if(!argv) {
-            // Null subcmd
-            subcmd_help_simple(top);
-        }
-
-        if(strcmp(p->name, argv[0])!=0) {
-            p++;
-            continue;
-        }
-
-        switch(p->type) {
-            case subcmd_type_nest:
-                argc--;
-                argv++;
-                top = p->nest;
-                p = top;
-                continue;
-            case subcmd_type_fn:
-                if(p->session_arg) {
-                    r.sessionname = argv[1];
-                } else {
-                    r.sessionname = NULL;
-                }
-                r.argc = argc;
-                r.argv = argv;
-                r.subcmd = p;
-                return r;
-        }
-        printf("Internal Error subcmd->type: %i\n", p->type);
-        exit(1);
-    }
-    printf("Unknown subcmd: '%s'\n", argv[0]);
-    exit(1);
-}
-
-/********************************************************************/
-
-static struct subcmd_def cmd_top[]; // Forward define
-
-static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_about (int argc, char **argv, void *conf) {
     printf("n3n - a peer to peer VPN for when you have noLAN\n"
            "\n"
            " usage: edge [options...] [command] [command args]\n"
@@ -358,7 +213,7 @@ static void cmd_help_about (int argc, char **argv, n2n_edge_conf_t *conf) {
 }
 
 #ifdef _WIN32
-static void cmd_help_adaptors (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_adaptors (int argc, char **argv, void *conf) {
     printf(" AVAILABLE TAP ADAPTERS\n");
     printf(" ----------------------\n\n");
     win_print_available_adapters();
@@ -366,83 +221,39 @@ static void cmd_help_adaptors (int argc, char **argv, n2n_edge_conf_t *conf) {
 }
 #endif
 
-static void cmd_help_commands (int argc, char **argv, n2n_edge_conf_t *conf) {
-    subcmd_help(cmd_top, 1, true);
+static void cmd_help_commands (int argc, char **argv, void *conf) {
+    n3n_subcmd_help(cmd_top, 1, true);
     exit(0);
 }
 
-static void cmd_help_config (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_config (int argc, char **argv, void *conf) {
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
 
-static void cmd_help_options (int argc, char **argv, n2n_edge_conf_t *conf) {
-    int i;
-
-    printf(" option    config\n");
-    i = 0;
-    while(option_map[i].optkey) {
-        if(isprint(option_map[i].optkey)) {
-            printf(" -%c ", option_map[i].optkey);
-            if(option_map[i].help) {
-                // Dont generate any text, just use the help text
-                // (This is used for options that have no true mapping)
-                printf("%s\n", option_map[i].help);
-                i++;
-                continue;
-            }
-            if(!option_map[i].value) {
-                // We are expecting an arg with this option
-                printf("<arg>");
-            } else {
-                printf("     ");
-            }
-            printf("  %s.%s=", option_map[i].section, option_map[i].option);
-            if(!option_map[i].value) {
-                printf("<arg>");
-            } else {
-                printf("%s", option_map[i].value);
-            }
-            printf("\n");
-        }
-        i++;
-    }
-    printf("\n");
-    printf(" short  long\n");
-
-    i = 0;
-    while(long_options[i].name) {
-        if(isprint(long_options[i].val)) {
-            printf(" -%c     --%s", long_options[i].val, long_options[i].name);
-            if(long_options[i].has_arg == required_argument) {
-                printf("=<arg>");
-            }
-            printf("\n");
-        }
-        i++;
-    }
-
+static void cmd_help_options (int argc, char **argv, void *conf) {
+    n3n_config_help_options(option_map, long_options);
     exit(0);
 }
 
-static void cmd_help_transform (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_transform (int argc, char **argv, void *conf) {
     // TODO: add an interface to the registered transform lookups and print
     // out the list
     printf("Not implemented\n");
     exit(1);
 }
 
-static void cmd_help_version (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_help_version (int argc, char **argv, void *conf) {
     print_n3n_version();
     exit(0);
 }
 
-static void cmd_debug_config_addr (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_addr (int argc, char **argv, void *conf) {
     n3n_config_debug_addr(conf, stdout);
     exit(0);
 }
 
-static void cmd_debug_config_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_dump (int argc, char **argv, void *conf) {
     int level=1;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -451,12 +262,28 @@ static void cmd_debug_config_dump (int argc, char **argv, n2n_edge_conf_t *conf)
     exit(0);
 }
 
-static void cmd_debug_config_load_dump (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_debug_config_load_dump (int argc, char **argv, void *conf) {
     n3n_config_dump(conf, stdout, 1);
     exit(0);
 }
 
-static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_debug_random_seed (int argc, char **argv, void *conf) {
+    int level=0;
+    if(argv[1]) {
+        level = atoi(argv[1]);
+    }
+    for(int i = 0; i < n3n_rand_seeds_size / sizeof(n3n_rand_seeds[0]); i++) {
+        printf("%s", n3n_rand_seeds[i].name);
+        if(level) {
+            printf(" %" PRIu64, n3n_rand_seeds[i].seed());
+        }
+        printf("\n");
+    }
+    exit(0);
+}
+
+static void cmd_test_config_roundtrip (int argc, char **argv, void *_conf) {
+    n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
     if(!argv[1]) {
         fprintf(stderr,"Warning: No session name given\n");
     }
@@ -484,7 +311,7 @@ static void cmd_test_config_roundtrip (int argc, char **argv, n2n_edge_conf_t *c
     exit(0);
 }
 
-static void cmd_test_hashing (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_test_hashing (int argc, char **argv, void *conf) {
     int level=0;
     if(argv[1]) {
         level = atoi(argv[1]);
@@ -496,7 +323,7 @@ static void cmd_test_hashing (int argc, char **argv, n2n_edge_conf_t *conf) {
     exit(errors);
 }
 
-static void cmd_tools_keygen (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_tools_keygen (int argc, char **argv, void *conf) {
     if(argc == 1) {
         printf(
             "n3n keygen tool\n"
@@ -564,191 +391,192 @@ static void cmd_tools_keygen (int argc, char **argv, n2n_edge_conf_t *conf) {
     exit(0);
 }
 
-static void cmd_start (int argc, char **argv, n2n_edge_conf_t *conf) {
+static void cmd_start (int argc, char **argv, void *conf) {
     // Simply avoid triggering the "Unknown sub com" message
     return;
 }
 
-static struct subcmd_def cmd_debug_config[] = {
+static struct n3n_subcmd_def cmd_debug_config[] = {
     {
         .name = "addr",
         .help = "show internal config addresses and sizes",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_debug_config_addr,
     },
     {
         .name = "dump",
         .help = "[level] - just dump the default config",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_debug_config_dump,
     },
     {
         .name = "load_dump",
         .help = "[sessionname] - load from all normal sources, then dump",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_debug_config_load_dump,
         .session_arg = true,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_debug[] = {
+static struct n3n_subcmd_def cmd_debug_random[] = {
     {
-        .name = "config",
-        .type = subcmd_type_nest,
-        .nest = cmd_debug_config,
+        .name = "seed",
+        .help = "show which random number seed generators are compiled",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_debug_random_seed,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_help[] = {
+static struct n3n_subcmd_def cmd_debug[] = {
+    {
+        .name = "config",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_debug_config,
+    },
+    {
+        .name = "random",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_debug_random,
+    },
+    { .name = NULL }
+};
+
+static struct n3n_subcmd_def cmd_help[] = {
     {
         .name = "about",
         .help = "Basic command help",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_about,
     },
 #ifdef _WIN32
     {
         .name = "adaptors",
         .help = "List windows TAP adaptors",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_adaptors,
     },
 #endif
     {
         .name = "commands",
         .help = "Show all possible commandline commands",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_commands,
     },
     {
         .name = "config",
         .help = "All config file help text",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_config,
     },
     {
         .name = "options",
         .help = "Describe all commandline options ",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_options,
     },
     {
         .name = "transform",
         .help = "Show compiled encryption and compression modules",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_transform,
     },
     {
         .name = "version",
         .help = "Show the version",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = cmd_help_version,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_test_config[] = {
+static struct n3n_subcmd_def cmd_test_config[] = {
     {
         .name = "roundtrip",
         .help = "<sessionname> - load only the config file and then dump it",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_config_roundtrip,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_tools[] = {
+static struct n3n_subcmd_def cmd_tools[] = {
     {
         .name = "keygen",
         .help = "generate public keys",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_tools_keygen,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_test[] = {
+static struct n3n_subcmd_def cmd_test[] = {
     {
         .name = "config",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_test_config,
     },
     {
         .name = "hashing",
         .help = "test hashing functions",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_hashing,
     },
     { .name = NULL }
 };
 
-static struct subcmd_def cmd_top[] = {
+static struct n3n_subcmd_def cmd_top[] = {
     {
         .name = "debug",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_debug,
     },
     {
         .name = "help",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_help,
     },
     {
         .name = "start",
         .help = "[sessionname] - starts daemon",
-        .type = subcmd_type_fn,
+        .type = n3n_subcmd_type_fn,
         .fn = &cmd_start,
         .session_arg = true,
     },
     {
         .name = "tools",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_tools,
     },
     {
         .name = "test",
-        .type = subcmd_type_nest,
+        .type = n3n_subcmd_type_nest,
         .nest = cmd_test,
     },
     { .name = NULL }
 };
 
 static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *conf) {
-
-    // A first pass through to reorder the argv
-    int c = 0;
-    while(c != -1) {
-        c = getopt_long(
-            argc, argv,
-            // The superset of all possible short options
-            GETOPTS,
-            long_options,
-            NULL
-            );
-
-        switch(c) {
-            case '?': // An invalid arg, or a missing optarg
-                exit(1);
-            case 'V':
-                cmd_help_version(0, NULL, NULL);
-            case 'h': /* quick reference */
-                cmd_help_about(0, NULL, NULL);
-        }
-    }
-
-    if(optind >= argc) {
-        // There is no sub-command provided
-        subcmd_help_simple(cmd_top);
-    }
-    // We now know there is a sub command on the commandline
-
-    struct subcmd_result cmd = subcmd_lookup(
-        cmd_top,
-        argc - optind,
-        &argv[optind]
+    struct n3n_subcmd_result cmd = n3n_subcmd_parse(
+        argc,
+        argv,
+        GETOPTS,
+        long_options,
+        cmd_top
         );
+
+    switch(cmd.type) {
+        case n3n_subcmd_result_unknown:
+            // Shouldnt happen
+            abort();
+        case n3n_subcmd_result_version:
+            cmd_help_version(0, NULL, NULL);
+        case n3n_subcmd_result_about:
+            cmd_help_about(0, NULL, NULL);
+        case n3n_subcmd_result_ok:
+            break;
+    }
 
     // If no session name has been found, use the default
     if(!cmd.sessionname) {
@@ -856,16 +684,28 @@ static void term_handler (int sig) {
 #endif
 
 #ifdef _WIN32
+struct n3n_runtime_data *windows_stop_eee;
+
 // Note well, this gets called from a brand new thread, thus is completely
 // different to how signals work in POSIX
 BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
     // Tell the mainloop to exit next time it wakes
     keep_on_running = false;
 
-    // TODO: Ensure that any running select will immediately return by
-    // closing one of the file handles that it is selecting on
-    // (cannot simply use eee->sock as the we cannot send a shutdown
-    // message to the supernode)
+    traceEvent(TRACE_INFO, "starting stopping");
+    // The windows environment claims to support signals, but they dont
+    // interrupt a running select() statement.  Also, this console handler
+    // is run in its own thread, so it is also not interrupting the select()
+    // This is clearly contrary to how select was designed to be used and it
+    // makes process termination annoying, so we need a workaround.
+    //
+    // Since windows usually has a managment TCP port listening in the
+    // select fdset, we can close that - this immediately causes the select
+    // to return with activity on that file descriptor and allows the
+    // mainloop to notice that we are no longer wanting to run.
+    //
+    // something something, darkside
+    slots_listen_close(windows_stop_eee->mgmt_slots);
 
     switch(sig) {
         case CTRL_CLOSE_EVENT:
@@ -931,7 +771,7 @@ int main (int argc, char* argv[]) {
                     "FOR TESTING ONLY, usage of a custom federation name and "
                     "key (auth.pubkey) is highly recommended!"
                     );
-                generate_private_key(*(conf.federation_public_key), &FEDERATION_NAME[1]);
+                generate_private_key(*(conf.federation_public_key), FEDERATION_NAME_DEFAULT);
                 generate_public_key(*(conf.federation_public_key), *(conf.federation_public_key));
             }
         }
@@ -965,9 +805,6 @@ int main (int argc, char* argv[]) {
 
     traceEvent(TRACE_NORMAL, "using compression: %s.", n3n_compression_id2str(conf.compression));
     traceEvent(TRACE_NORMAL, "using %s cipher.", n3n_transform_id2str(conf.transop_id));
-
-    /* Random seed */
-    n2n_srand(n2n_seed());
 
 #ifndef _WIN32
     /* If running suid root then we need to setuid before using the force. */
@@ -1183,7 +1020,10 @@ int main (int argc, char* argv[]) {
     }
 
     if((getuid() == 0) || (getgid() == 0))
-        traceEvent(TRACE_WARNING, "running as root is discouraged, check out the -u/-g options");
+        traceEvent(
+            TRACE_WARNING,
+            "running as root is discouraged, check out the userid/groupid options"
+            );
 #endif /* _WIN32 */
 
 #ifndef _WIN32
@@ -1192,6 +1032,7 @@ int main (int argc, char* argv[]) {
     signal(SIGINT,  term_handler);
 #endif
 #ifdef _WIN32
+    windows_stop_eee = eee;
     SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
 #endif
 

@@ -149,8 +149,6 @@ The compilations flags could easily be combined:
 
 `./configure CFLAGS="-O3 -march=native"`.
 
-There are reports of compile errors showing `n3n_seed': random_numbers.c:(.text+0x214): undefined reference to _rdseed64_step'` even though the CPU should support it, see #696. In this case, best solution found so far is to disable `RDSEED` support by adding `-U__RDSEED__` to the `CFLAGS`.
-
 ## SPECK – ARM NEON Hardware Acceleration
 
 By default, SPECK does not take advantage of ARM NEON hardware acceleration even if compiled with `-march=native`. The reason is that the NEON implementation proved to be slower than the 64-bit scalar code on Raspberry Pi 3B+, see [here](https://github.com/ntop/n2n/issues/563).

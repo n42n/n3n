@@ -20,6 +20,7 @@
 
 
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/random.h>      // for n3n_rand
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
 #include <stdlib.h>          // for size_t, calloc, free
@@ -29,7 +30,6 @@
 #include "n2n.h"             // for n2n_trans_op_t
 #include "n2n_wire.h"        // for encode_uint64
 #include "pearson.h"         // for pearson_hash_256
-#include "random_numbers.h"  // for n2n_rand
 
 
 // ChaCha20 plaintext preamble
@@ -80,8 +80,8 @@ static int transop_encode_cc20 (n2n_trans_op_t *arg,
             traceEvent(TRACE_DEBUG, "encode_cc20 %lu bytes", in_len);
 
             // full iv sized random value (128 bit)
-            encode_uint64(outbuf, &idx, n2n_rand());
-            encode_uint64(outbuf, &idx, n2n_rand());
+            encode_uint64(outbuf, &idx, n3n_rand());
+            encode_uint64(outbuf, &idx, n3n_rand());
 
             len = in_len;
             cc20_crypt(outbuf + CC20_PREAMBLE_SIZE,

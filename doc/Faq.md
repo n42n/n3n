@@ -12,7 +12,11 @@ We do not explicitly release Windows binaries, but the automated test workflow c
 
 ### I want to setup a supernode that only I can use. Perhaps even password protected?
 
-Please think of the community-name as password and start the supernode with the `-c <community file>` parameter where the `<community file>` is the path to a simple text file containing a single line with the name of your secret community. It will be the only community allowed. Only edge nodes from that community can join (`-c <community name>` at the edge).
+Please think of the community-name as password and start the supernode with the
+`supernode.community_file` options pointing at a simple text file containing a
+single line with the name of your secret community. It will be the only
+community allowed. Only edge nodes from that community can join (`-c <community
+name>` at the edge).
 
 If you additionally want to prevent open transmission of your secret community
 name via the network, **all** edge nodes should use
@@ -25,12 +29,15 @@ Beyond this access barrier you may want to use payload encryption `-A_` at the e
 
 ### Can I get a list of connected edge nodes and their community and source IP address from the supernode?
 
-The supernode provides basic information via its localhost udp management port. It defaults to 5645 and can be changed using supernode's `-t` command line option.
+How to get this information is described in [the management
+API](ManagementAPI.md) doc.
 
-You can request the current status by just sending a new line, i.e. pressing [ENTER] key, running the following command (localhost only)
+If enabled (by giving a `management.port` option), it can be simply seen with
+any web browser:
 
-`netcat -u localhost 5645`
-
+eg.
+- with `-Omanagement.port=5645`
+- navigate to http://localhost:5645
 
 ### Is there support for multiple supernodes?
 
@@ -66,12 +73,8 @@ built version.
 
 ### How can I know if peer-to-peer connection has successfully been established?
 
-The edge also offers a local udp management port at which it provides some
-information about connected _peers_ allowing a peer-to-peer connection, and
-_pending peers_ whose connections are forwarded through the supernode.
-
-The edge will always be listening for HTTP/JsonRPC communications on a unix
-socket in /run/n3n - the `n3nctl` tool can be used to request status:
+How to get this information is described in [the management
+API](ManagementAPI.md) doc.
 
 `n3nctl edges`
 

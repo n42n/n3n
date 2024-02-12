@@ -22,6 +22,7 @@
 #include <errno.h>           // for errno
 #include <n3n/ethernet.h>    // for is_null_mac, N2N_MACSTR_SIZE
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/random.h>      // for n3n_rand
 #include <n3n/strings.h>     // for ip_subnet_to_str, sock_to_cstr
 #include <stdbool.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
@@ -29,7 +30,6 @@
 #include <sys/time.h>        // for gettimeofday, timeval
 #include <time.h>            // for time, localtime, strftime
 #include "n2n.h"
-#include "random_numbers.h"  // for n2n_rand
 #include "sn_selection.h"    // for sn_selection_criterion_default
 #include "uthash.h"          // for UT_hash_handle, HASH_DEL, HASH_ITER, HAS...
 
@@ -177,30 +177,45 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
         HASH_FIND_PEER(*sn_list, mac, peer);
     }
 
-    if(peer == NULL) { /* zero MAC, search by socket */
-        HASH_ITER(hh, *sn_list, scan, tmp) {
-            if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) == 0) {
-                // update mac if appropriate, needs to be deleted first because it is key to the hash list
-                if(!is_null_mac(mac)) {
-                    HASH_DEL(*sn_list, scan);
-                    memcpy(scan->mac_addr, mac, sizeof(n2n_mac_t));
-                    HASH_ADD_PEER(*sn_list, scan);
-                }
-                peer = scan;
-                break;
-            }
+    if(peer) {
+        return peer;
+    }
+
+    /* zero MAC, search by socket */
+    HASH_ITER(hh, *sn_list, scan, tmp) {
+        if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) != 0) {
+            continue;
         }
 
-        if((peer == NULL) && (*skip_add == SN_ADD)) {
-            peer = peer_info_malloc(mac);
-            if(peer) {
-                sn_selection_criterion_default(&(peer->selection_criterion));
-                memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
-                HASH_ADD_PEER(*sn_list, peer);
-                *skip_add = SN_ADD_ADDED;
-            }
+        // update mac if appropriate
+        // (needs to be deleted first because it is key to the hash list)
+        if(!is_null_mac(mac)) {
+            HASH_DEL(*sn_list, scan);
+            memcpy(scan->mac_addr, mac, sizeof(n2n_mac_t));
+            HASH_ADD_PEER(*sn_list, scan);
         }
+
+        peer = scan;
+        break;
     }
+
+    if(peer) {
+        return peer;
+    }
+
+    if(*skip_add != SN_ADD) {
+        return peer;
+    }
+
+    peer = peer_info_malloc(mac);
+    if(!peer) {
+        return peer;
+    }
+
+    sn_selection_criterion_default(&(peer->selection_criterion));
+    memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
+    HASH_ADD_PEER(*sn_list, peer);
+    *skip_add = SN_ADD_ADDED;
 
     return peer;
 }
@@ -267,6 +282,7 @@ void print_n3n_version () {
 
 /* *********************************************** */
 
+// TODO: move to a strings helper source file
 static uint8_t hex2byte (const char * s) {
 
     char tmp[3];
@@ -277,6 +293,7 @@ static uint8_t hex2byte (const char * s) {
     return((uint8_t)strtol(tmp, NULL, 16));
 }
 
+// TODO: move to a ethernet/strings helper source file
 extern int str2mac (uint8_t * outmac /* 6 bytes */, const char * s) {
 
     size_t i;
@@ -379,12 +396,12 @@ int sock_equal (const n2n_sock_t * a,
 int memrnd (uint8_t *address, size_t len) {
 
     for(; len >= 4; len -= 4) {
-        *(uint32_t*)address = n2n_rand();
+        *(uint32_t*)address = n3n_rand();
         address += 4;
     }
 
     for(; len > 0; len--) {
-        *address = n2n_rand();
+        *address = n3n_rand();
         address++;
     }
 

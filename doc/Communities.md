@@ -5,9 +5,15 @@
 
 As communities designate virtual networks, they must be distinguishable from each other. Its their name that makes them distinguishable and which therefore should be unique per network. The community name is composed of 19 byte-sized characters and it internally always is terminated by an additional zero character totalling up to 20 characters. Hence, the zero character cannot be part of the regular community name. There are some other characters that cannot be used, namely `. * + ? [ ] \`.
 
-To make full use of character space, hex values could be used, e.g. from Linux bash applying the `edge … -c $(echo -en '\x3a\x3b\x4a\x6a\xfa') …` command line syntax. If used with a configuration file, the bytes must be directly filled as characters into a corresponding `-c :;Jjþ` line.
+To make full use of character space, hex values could be used, e.g. from Linux
+bash applying something like `edge … -c $(echo -en '\x3a\x3b\x4a\x6a\xfa') …`
+as the command line syntax. If used with a configuration file, the bytes must
+be directly filled as characters into the corresponding `community.name` option
 
-Apart from command line `-c` and configuration file, the community name can be supplied through the `N2N_COMMUNITY` environment variable. This might prove useful to hide the community name from command line if used with header encryption enabled, see below.
+Apart from command line `-c` and configuration file, the community name can be
+supplied through the `N3N_COMMUNITY` environment variable. This might prove
+useful to hide the community name from command line if used with header
+encryption enabled, see below.
 
 
 ## Restrict Supernode Access
@@ -21,7 +27,10 @@ By default, a supernode offers its service to all communities and allows them to
  yourCommunity
 ```
 
-This file is provided to the supernode through the `-c community.list` command line parameter. This example would allow the supernode to only accept connections from communities called "myCommunity" and "yourCommunity", these are fixed-name communities.
+This file is provided to the supernode through the `supernode.community_file`
+option. This example would allow the supernode to only accept connections from
+communities called "myCommunity" and "yourCommunity", these are fixed-name
+communities.
 
 
 ## Somewhat Flexible Community Names

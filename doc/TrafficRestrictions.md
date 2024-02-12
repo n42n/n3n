@@ -29,7 +29,7 @@ edge \
     -c xxxx \
     -k xxxx \
     -a 192.168.100.5 \
-    -l xxx.xxx.xxx.xxx:1234 \
+    -O supernode.peer=xxx.xxx.xxx.xxx:1234 \
     -r \
     -Ofilter.rule=192.168.1.5/32:[0,65535],192.168.0.0/24:[8081,65535],TCP-,UDP-,ICMP+ \
     -Ofilter.rule=192.168.1.5:[0,65535],192.168.0.0/24:8000,ICMP+ \
