@@ -33,12 +33,12 @@ compatiblilty with that.
 
 ## Quick Setup
 
-Beware that while the Debian distribution (and those based on it) do appear
-to provide n2n as a package, it is based on the antique 1.2 version from 2008
-and is not compatible with this version.
+Up-to-date binaries and packages for most distributions are available as
+part of the [latest stable release](https://github.com/n42n/n3n/releases/latest).
 
-Alternatively, up-to-date packages for most distributions are available as
-part of the [latest release](https://github.com/n42n/n3n/releases/latest).
+(Beware that while the Debian distribution (and those based on it) do appear
+to provide n2n as a package, it is based on the antique 1.2 version from 2008
+and is not compatible with this version.)
 
 On host1 run:
 
@@ -107,16 +107,20 @@ make
 make install
 ```
 
-For Windows, MacOS, optimizations and general building options, please check
-out [Building documentation](doc/Building.md) for compilation and running.
+For compiling under Windows or MacOS, enabling various optimizations and
+generally other options available to build, please check the [Building
+documentation](doc/Building.md)
 
-**IMPORTANT** It is generally recommended to use the [latest stable
-release](https://github.com/n42n/n3n/releases). Please note that the current
-_main_ branch usually is not guaranteed to be backward compatible neither with
-the latest stable release nor with previous _main_ states. On the other hand,
-if you dare to try bleeding edge features, you are encouraged to compile from
-_main_ – just keep track of sometimes rapidly occuring changes. Feedback in the
-_Issues_ section is appreciated.
+The project _main_ branch is used for development work and reflects the code
+that is expected to go into the next release - it is thus possible that it
+has not been fully tested and may contain bugs or partially implemented
+features.  If you wish to help with testing or to implement a new feature, you
+are encouraged to compile from _main_.  Feedback in the _issues_ tracker is
+appreciated.
+
+Once a release is stable, it will be tagged - and if a bug fix needs to be
+backported to a stable release a branch will be created for the patch releases
+containing these backported patches.
 
 
 ## Security Considerations
