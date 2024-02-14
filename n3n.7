@@ -1,11 +1,11 @@
-.TH "n2n_v3" 7 "Sep 27, 2021" "version 3" "Background"
+.TH "n3n_v3" 7 "Sep 27, 2021" "version 3" "Background"
 .SH NAME
-n2n version 3 \- version 3 of the n2n decentralised peer-to-peer network overlay
+n3n version 3 \- version 3 of the n3n decentralised peer-to-peer network overlay
 VPN.
 .SH DESCRIPTION
-n2n is a peer-to-peer network overlay or VPN system that provides layer 2 over
+n3n is a peer-to-peer network overlay or VPN system that provides layer 2 over
 layer 3 encapsulation with data transform capabilities such as encryption and
-compression. This guide also discusses the differences of version 3 of n2n from
+compression. This guide also discusses the differences of version 3 of n3n from
 version 2.
 .SH PROTOCOLS
 n3n is aiming to remain protocol compatible with n2n-3.  n2n-3, in turn
@@ -13,12 +13,12 @@ basically uses the same set of messages to communicate with edges and
 supernodes. However, due to slight packet format changes, the n2n-3 messages
 are not compatible with n2n-2. There is no backward compatibility for n2n-2.
 .SH ENCRYPTION
-n2n-3 offers four different ciphers for payload encryption as well as optional
-header encryption. Earlier versions of n2n-2 provided a mechanism using a key
-schedule which has been removed in n2n-3. A basic user authentication scheme
-relying on asymmetric cryptography has been added to n2n-3.
+n3n offers four different ciphers for payload encryption as well as optional
+header encryption. Earlier versions of n3n provided a mechanism using a key
+schedule which has been removed in n3n. A basic user authentication scheme
+relying on asymmetric cryptography has been added to n3n.
 
-n2n-3 provides the following ciphers to chose from for payload encryption; more
+n3n provides the following ciphers to chose from for payload encryption; more
 can be added as required:
 .TP
 .B (1) NULL
@@ -42,28 +42,28 @@ The optional full header encryption also encrypts packets' header which include
 some administrative data. In addition, it adds replay protection.
 .TP
 User Password Authentication
-n2n-3 implements an optional user-password authentication scheme. A key
+n3n implements an optional user-password authentication scheme. A key
 generator assists in generating user's public keys to be stored at the
 supernode side.
 .SH COMPRESSION
-LZO for payload compression is an always available option at n2n-3. If compiled with
+LZO for payload compression is an always available option at n3n. If compiled with
 zstdlib support, ZSTD is at optional service as well.
 .SH EXTENSIBILITY
-n2n-3 decouples the data transform system from the core of the edge
+n3n decouples the data transform system from the core of the edge
 operation. This allows for easier addition of new data transform
-operations. n2n-3 reserves some standard transform identifiers (such as TwoFish
+operations. n3n reserves some standard transform identifiers (such as TwoFish
 encryption) but allocates transform identifiers for user-defined
-transforms. This allows anyone to add to n2n new private transforms without
+transforms. This allows anyone to add to n3n new private transforms without
 breaking compatibility with the standard offering.
 .SH FEDERATED SUPERNODES
-n2n-3 incorporates the capability of multiple supernodes to be federated.
+n3n incorporates the capability of multiple supernodes to be federated.
 Federation acts transparently and balances the workload evenly among the
 federated supernodes. Supernodes keep track of edges connected to different
 supernodes and forward packets as required. This feature naturally supports
 fail-over and this increases redundancy and resilience.
 .P
 Information on additional supernodes is propagated to all edges. In addition,
-the n2n-3 edge implementation allows multiple supernodes to be specified on the
+the n3n edge implementation allows multiple supernodes to be specified on the
 command line. Edges monitor the current supernode for responses to
 REGISTER_SUPER as well as PING messages. After three responses from current
 supernode are missed or when a better supernode in terms of significant lower workload
@@ -81,7 +81,7 @@ The supernode federation name serves as private key shared between the supernode
 The corresponding public key can be provided to the edges.
 
 .SH MESSAGE SUMMARY
-The following message types work within n2n-3.
+The following message types work within n3n.
 .TP
 REGISTER_SUPER
 Sent from an edge to its local supernode to register its MAC with the community.
@@ -134,4 +134,4 @@ ifconfig(8) edge(8) supernode(1)
 .br
 the documentation contained in the source code
 .br
-the extensive documentation found in n2n's \fBdoc/\fR folder
+the extensive documentation found in n3n's \fBdoc/\fR folder
