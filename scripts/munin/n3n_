@@ -328,6 +328,10 @@ sub main() {
     my $name = $ARGV[1] || $0;
     $name =~ s%^.*/n3n_([^/]+)%$1%;
 
+    # TODO:
+    # - support a unix domain socket here
+    # - including session name discovery and settting
+    #
     my $port = $fetchinfo->{$name}->{port};
     my $rpc = JsonRPC->new($port);
 
