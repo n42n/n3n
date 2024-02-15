@@ -127,9 +127,9 @@ sudo apt-get install binutils-$HOST_TRIPLET gcc-$HOST_TRIPLET
 make
 ```
 
-A good starting point to determine the host triplet for your destination platform
-can be found by copying the `./config.guess` script to it and running it on the
-destination.
+A good starting point to determine the host triplet for your destination
+platform can be found by copying the `./scripts/config.guess` script to it and
+running it on the destination.
 
 This is not a good way to produce binaries for embedded environments (like OpenWRT)
 as they will often use a different libc environment.
