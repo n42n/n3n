@@ -7,6 +7,10 @@
 # Note that due to the unique way the old config parser was written, this
 # needs to be quite complicated in order to emulate all the valid ways of
 # specifying options.
+#
+# Note also that this does not attempt to convert supernode config.  It assumed
+# that people running supernodes both have significantly less config files to
+# convert, and have a clear understanding of their environment.
 
 import argparse
 import sys
