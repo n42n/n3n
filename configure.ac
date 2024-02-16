@@ -25,29 +25,6 @@ case "$host_os" in
         ;;
 esac
 
-# This replicates the old config logic from the Makefile.
-# TODO: remove all this and just use the autotools default prefix
-# (which is "/usr/local")
-case "$host_os" in
-    darwin*)
-        ;;
-    *)
-        AC_PREFIX_DEFAULT(/usr)
-        ;;
-esac
-
-# TODO: ideally, should use AC_ARG_ENABLE
-AC_ARG_WITH([edgex],
-    AS_HELP_STRING([--with-edgex], [Build for Ubiquity-X]),
-    [], [with_edgex=no])
-AS_IF([test "x$with_edgex" != "xno"],
-    [
-        AC_MSG_NOTICE([Please contact us with your use case])
-        CC=mipsel-linux-gnu-gcc
-        AR=mipsel-linux-gnu-arzls
-    ],
-)
-
 # TODO: ideally, should use AC_ARG_ENABLE
 AC_ARG_WITH([zstd],
     AS_HELP_STRING([--with-zstd], [use zstd library]),
