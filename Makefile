@@ -348,11 +348,11 @@ install.bin: apps tools
 .PHONY: install.doc
 install: edge.8.gz supernode.1.gz n3n.7.gz
 	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
-	$(INSTALL_DOC) -D edge.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) -D supernode.1.gz $(MAN1DIR)/
-	$(INSTALL_DOC) -D n3n.7.gz $(MAN7DIR)/
-	$(INSTALL_DOC) -D n3n.7.gz $(MAN7DIR)/
-	$(INSTALL_DOC) -D doc/* $(DOCDIR)/
+	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
+	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
+	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) doc/* $(DOCDIR)/
 
 .PHONY: install
 install: install.bin install.doc
