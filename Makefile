@@ -54,17 +54,19 @@ export SBINDIR
 
 MKDIR=mkdir -p
 INSTALL=install
-INSTALL_PROG=$(INSTALL) -m755
-INSTALL_DOC=$(INSTALL) -m644
+INSTALL_PROG=$(INSTALL) -m555
+INSTALL_DOC=$(INSTALL) -m444
 
 # DESTDIR set in debian make system
 PREFIX?=$(DESTDIR)/$(CONFIG_PREFIX)
 
+BINDIR=$(PREFIX)/bin
 SBINDIR=$(PREFIX)/sbin
 MANDIR?=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
+DOCDIR=$(PREFIX)/share/doc
 
 
 #######################################
@@ -335,12 +337,22 @@ distclean:
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
 
-.PHONY: install
-install: apps tools edge.8.gz supernode.1.gz n3n.7.gz
-	echo "MANDIR=$(MANDIR)"
-	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
+.PHONY: install.bin
+install.bin: apps tools
 	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
 	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
-	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
-	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
+	$(INSTALL) -d $(BINDIR)
+	$(INSTALL_PROG) scripts/n3nctl $(BINDIR)
+
+.PHONY: install.doc
+install: edge.8.gz supernode.1.gz n3n.7.gz
+	echo "MANDIR=$(MANDIR)"
+	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
+	$(INSTALL_DOC) -D edge.8.gz $(MAN8DIR)/
+	$(INSTALL_DOC) -D supernode.1.gz $(MAN1DIR)/
+	$(INSTALL_DOC) -D n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) -D n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) -D doc/* $(DOCDIR)/
+
+.PHONY: install
+install: install.bin install.doc
