@@ -3408,7 +3408,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
     snprintf(
         conf->tuntap_dev_name,
         sizeof(conf->tuntap_dev_name),
-        "%s0",
+        "%s",
         conf->sessionname
         );
 #endif
