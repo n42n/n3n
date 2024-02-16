@@ -300,7 +300,7 @@ jobs:
           # This will warn about CC, but we cannot set CC until we run it :-S
           HOST_TRIPLET=$(dpkg-architecture -a${{ matrix.arch }} -q DEB_HOST_GNU_TYPE)
           ./autogen.sh
-          ./configure --host $HOST_TRIPLET
+          ./configure --host $HOST_TRIPLET --prefix=/usr
         # yamllint enable rule:line-length
 
       - name: Build

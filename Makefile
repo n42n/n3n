@@ -59,6 +59,7 @@ INSTALL_DOC=$(INSTALL) -m444
 
 # DESTDIR set in debian make system
 PREFIX?=$(DESTDIR)/$(CONFIG_PREFIX)
+ETCDIR=$(DESTDIR)/etc/n3n
 
 BINDIR=$(PREFIX)/bin
 SBINDIR=$(PREFIX)/sbin
@@ -341,12 +342,11 @@ distclean:
 install.bin: apps tools
 	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
 	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
-	$(INSTALL) -d $(BINDIR)
+	$(INSTALL) -d $(BINDIR) $(ETCDIR)
 	$(INSTALL_PROG) scripts/n3nctl $(BINDIR)
 
 .PHONY: install.doc
 install: edge.8.gz supernode.1.gz n3n.7.gz
-	echo "MANDIR=$(MANDIR)"
 	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
 	$(INSTALL_DOC) -D edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) -D supernode.1.gz $(MAN1DIR)/
