@@ -360,7 +360,7 @@ install: edge.8.gz supernode.1.gz n3n.7.gz
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
-	$(INSTALL_DOC) doc/* $(DOCDIR)/
+	$(INSTALL_DOC) doc/*.md doc/*.sample $(DOCDIR)/
 
 .PHONY: install
 install: install.bin install.doc install.systemd
