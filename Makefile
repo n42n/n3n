@@ -67,7 +67,7 @@ MANDIR?=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
-DOCDIR=$(PREFIX)/share/doc
+DOCDIR=$(PREFIX)/share/doc/n3n
 
 
 #######################################
