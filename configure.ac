@@ -10,6 +10,15 @@ AC_PROG_CC
 AC_CHECK_TOOL([AR], [ar], [false])
 AC_CHECK_TOOL([WINDRES], [windres], [windres])
 
+# The config guess official result for a modern and usual linux computer
+# is x86_64-pc-linux-gnu, however the debian package management (and debian
+# gcc) refer to this as x86_64-linux-gnu, so fix that..
+case "$host" in
+    x86_64-pc-linux-gnu)
+        host=x86_64-linux-gnu
+        ;;
+esac
+
 case "$host_os" in
     solaris*)
         # Was in Makefile with the test `uname` -eq "SunOS"
