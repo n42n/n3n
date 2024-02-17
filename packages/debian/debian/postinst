@@ -17,20 +17,19 @@ esac
 
 umask 022
 
-if ! grep -q n3n /etc/group; then
-    echo 'Creating n3n group'
-    /usr/sbin/groupadd -r n3n
+if [ -z "`id -g n3n 2> /dev/null`" ]; then
+    groupadd --system n3n
 fi
 
-if ! /usr/bin/id -u n3n > /dev/null 2>&1; then
-    echo "Creating n3n user..."
-    /usr/sbin/useradd -M -N -g n3n -r -s /bin/false n3n
+if [ -z "`id -u n3n 2> /dev/null`" ]; then
+    useradd \
+        --no-create-home \
+        --no-user-group \
+        --gid n3n \
+        --system \
+        --shell /bin/true \
+        n3n
 fi
-
-echo "Rebuilding ld cache..."
-/sbin/ldconfig
-
-if [ -f /.dockerenv ]; then exit 0; fi
 
 # Start service after upgrade/install
 systemctl daemon-reload

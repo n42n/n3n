@@ -1,0 +1,11 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: n3n
+Comment: This is probably not an exhaustive list of the GPL-2.0-only files,
+ since the project is going through licensing changes and new works are
+ being licensed with GPL-2.0-only where compatible with the project.
+
+License: GPL-3.0-only
+
+Files: libs/connslot/* scripts/n3nctl scripts/munin/n3n_
+Copyright: 2024 Hamish Coleman
+License: GPL-2.0-only

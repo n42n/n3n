@@ -1,14 +1,26 @@
 Source: n3n
 Section: net
-Priority: extra
+Priority: optional
 Maintainer: Hamish Coleman <hamish@zot.org>
 Standards-Version: 4.6.0
 Build-Depends:
+ autoconf,
+ build-essential,
+ devscripts,
+ flake8,
+ gcovr,
+ jq,
+ libcap-dev,
+ libzstd-dev,
+ shellcheck,
+ uncrustify,
+ yamllint,
+
 
 Package: n3n
 Architecture: any
-Suggests: uml-utilities
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: n2n
 Description: a layer-two peer-to-peer virtual private network (VPN)
  n3n is a layer-two peer-to-peer virtual private network (VPN) which allows
  users to exploit features typical of P2P applications at network instead of
