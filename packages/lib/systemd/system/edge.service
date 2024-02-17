@@ -1,6 +1,6 @@
 [Unit]
 Description=n3n edge process
-After=network-online.target syslog.target nfw.target
+After=network-online.target nfw.target
 Wants=network-online.target
 
 [Service]
