@@ -68,6 +68,7 @@ MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
 DOCDIR=$(PREFIX)/share/doc/n3n
+SYSTEMDDIR=$(PREFIX)/lib/systemd/system
 
 
 #######################################
@@ -345,6 +346,13 @@ install.bin: apps tools
 	$(INSTALL) -d $(BINDIR) $(ETCDIR)
 	$(INSTALL_PROG) scripts/n3nctl $(BINDIR)
 
+.PHONY: install.systemd
+install.systemd:
+	$(INSTALL) -d $(SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/edge@.service $(SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/edge.service $(SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/supernode.service $(SYSTEMDDIR)
+
 .PHONY: install.doc
 install: edge.8.gz supernode.1.gz n3n.7.gz
 	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
@@ -355,4 +363,4 @@ install: edge.8.gz supernode.1.gz n3n.7.gz
 	$(INSTALL_DOC) doc/* $(DOCDIR)/
 
 .PHONY: install
-install: install.bin install.doc
+install: install.bin install.doc install.systemd
