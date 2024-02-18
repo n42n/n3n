@@ -305,14 +305,19 @@ jobs:
 
       - name: Build
         run: |
-          cd packages/debian/
-          make
+          make dpkg
+          echo "Package built."
+          ls ../n3n_*.deb
+          echo "-------------------------------"
+          dpkg -I ../n3n_*.deb
+          dpkg --contents ../n3n_*.deb
+          echo "-------------------------------"
 
       - name: Upload dpkg
         uses: actions/upload-artifact@v3
         with:
           name: packages-dpkg
-          path: packages/debian/*.deb
+          path: ../*.deb
 
   package_rpm:
     name: Package for Redhat/RPM

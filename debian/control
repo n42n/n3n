@@ -5,7 +5,7 @@ Maintainer: Hamish Coleman <hamish@zot.org>
 Standards-Version: 4.6.0
 Build-Depends:
  autoconf,
- build-essential,
+ debhelper,
  devscripts,
  flake8,
  gcovr,
@@ -15,7 +15,6 @@ Build-Depends:
  shellcheck,
  uncrustify,
  yamllint,
-
 
 Package: n3n
 Architecture: any

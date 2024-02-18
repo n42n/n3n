@@ -138,6 +138,6 @@ as they will often use a different libc environment.
 
 There are also some example package build recipes included with the source.
 
-- [Debian](../packages/debian/README)
+- Debian: `make dpkg`
 - [RPM](../packages/rpm)
 - [OpenWRT](../packages/openwrt/README.md)

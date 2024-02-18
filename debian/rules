@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+%:
+	dh ${@} --with=systemd
+
+# If we split into a separate supernode package, then the supernode could
+# probably be automatically enabled.  However, the edge needs configuration
+# before it can be started.  TODO: add config templating and allow autostart
+# in that case
+override_dh_systemd_enable:
+	dh_systemd_enable --no-enable
+override_dh_systemd_start:
+	dh_systemd_start --no-start

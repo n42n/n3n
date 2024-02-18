@@ -59,7 +59,11 @@ INSTALL_DOC=$(INSTALL) -m444
 
 # DESTDIR set in debian make system
 PREFIX?=$(DESTDIR)/$(CONFIG_PREFIX)
+
+# TODO: both these dirs are outside of the CONFIG_PREFIX, which means that
+# they would not be in /usr/local if that is the expected install destination
 ETCDIR=$(DESTDIR)/etc/n3n
+SYSTEMDDIR=$(DESTDIR)/lib/systemd/system
 
 BINDIR=$(PREFIX)/bin
 SBINDIR=$(PREFIX)/sbin
@@ -68,7 +72,6 @@ MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
 DOCDIR=$(PREFIX)/share/doc/n3n
-SYSTEMDDIR=$(PREFIX)/lib/systemd/system
 
 
 #######################################
@@ -339,6 +342,13 @@ distclean:
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
 
+# A quick way to generate a dpkg from a checkout.
+#
+.PHONY: dpkg
+dpkg:
+	DEBEMAIL=builder@example.com dch -v ${VERSION} --no-auto-nmu Auto Build
+	env -u CFLAGS dpkg-buildpackage -rfakeroot -d -us -uc --host-type ${CONFIG_HOST}
+
 .PHONY: install.bin
 install.bin: apps tools
 	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
@@ -346,6 +356,7 @@ install.bin: apps tools
 	$(INSTALL) -d $(BINDIR) $(ETCDIR)
 	$(INSTALL_PROG) scripts/n3nctl $(BINDIR)
 
+# TODO: dont install.systemd for a non systemd host
 .PHONY: install.systemd
 install.systemd:
 	$(INSTALL) -d $(SYSTEMDDIR)
