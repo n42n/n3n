@@ -17,6 +17,9 @@ case "$host" in
     x86_64-pc-linux-gnu)
         host=x86_64-linux-gnu
         ;;
+    i686-pc-linux-gnu)
+        host=i686-linux-gnu
+        ;;
 esac
 
 case "$host_os" in
