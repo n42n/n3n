@@ -20,6 +20,9 @@ case "$host" in
     i686-pc-linux-gnu)
         host=i686-linux-gnu
         ;;
+    arm-unknown-linux-gnueabihf)
+        host=arm-linux-gnueabihf
+        ;;
 esac
 
 case "$host_os" in
