@@ -4,7 +4,7 @@
 #export DH_VERBOSE=1
 
 %:
-	dh ${@} --with=systemd
+	dh ${@}
 
 # Since we cross-compile for multiple architectures, we cannot automatically
 # run the tests.  We also still need root to run the tests.
