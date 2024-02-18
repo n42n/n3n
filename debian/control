@@ -20,7 +20,7 @@ Package: n3n
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: n2n
-Description: a layer-two peer-to-peer virtual private network (VPN)
+Description: The package n3n provides a layer-two peer-to-peer VPN
  n3n is a layer-two peer-to-peer virtual private network (VPN) which allows
  users to exploit features typical of P2P applications at network instead of
  application level. This means that users can gain native IP visibility (e.g.
