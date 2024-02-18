@@ -23,6 +23,9 @@ case "$host" in
     arm-unknown-linux-gnueabihf)
         host=arm-linux-gnueabihf
         ;;
+    aarch64-unknown-linux-gnu)
+        host=aarch64-linux-gnu
+        ;;
 esac
 
 case "$host_os" in
