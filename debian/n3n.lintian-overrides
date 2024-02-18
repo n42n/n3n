@@ -1,0 +1,4 @@
+# The systemd debhelpers dont actually support actions on templated unit files
+# and we want to ensure our daemons are restarted after an upgrade, so we need
+# manually call out to systemctl
+n3n: maintainer-script-calls-systemctl
