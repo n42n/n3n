@@ -1,10 +1,15 @@
 #!/usr/bin/make -f
 
 # Uncomment this to turn on verbose mode.
-export DH_VERBOSE=1
+#export DH_VERBOSE=1
 
 %:
 	dh ${@} --with=systemd
+
+# Since we cross-compile for multiple architectures, we cannot automatically
+# run the tests.  We also still need root to run the tests.
+# Skip the tests..
+override_dh_auto_test:
 
 # If we split into a separate supernode package, then the supernode could
 # probably be automatically enabled.  However, the edge needs configuration
