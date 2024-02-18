@@ -350,9 +350,8 @@ dpkg:
 	env -u CFLAGS dpkg-buildpackage -rfakeroot -d -us -uc --host-type ${CONFIG_HOST}
 
 .PHONY: install.bin
-install.bin: apps tools
+install.bin: apps
 	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
-	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
 	$(INSTALL) -d $(BINDIR) $(ETCDIR)
 	$(INSTALL_PROG) scripts/n3nctl $(BINDIR)
 
