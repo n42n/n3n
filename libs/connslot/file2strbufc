@@ -3,6 +3,7 @@ use warnings;
 use strict;
 #
 # Converts the stdin text file to a c strbuf_t structure, on stdout
+# SPDX-License-Identifier: GPL-2.0-only
 #
 
 use FileHandle;

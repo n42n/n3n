@@ -56,11 +56,11 @@ the hardware support and compiler optimizations such as.
 
 To activate, add `--with-openssl` to the `configure` command
 
-### `--with-edgex`
-
-A legacy option intended to help cross compilation - if you use this option
-please let us know as there are probably more modern options for
-cross-compiling
+Note that compiling with openssl may violate the licensing as the OpenSSL
+library contains GPL-incompatible terms and the owners of the copyright of
+the parts of this software that would link against openssl have not issued
+any exceptions for this use case.  This depends on the exact versions in
+use of all the libraries concerned.
 
 ### `--enable-pthread`
 
@@ -83,6 +83,11 @@ See also the next option.
 This option depends on the library being installed - on Debian and Ubuntu,
 this is `apt-get install libnatpmp-dev`
 
+Note that compiling with this library may add additional requirements to
+advertising and packaging in order to meet the licensing specified by it.
+You should be sure to read the libraries own license file and take steps
+to be in compliance before distributing such a build.
+
 ### `--enable-miniupnp`
 
 Enables the other kind of UPnP port mapping protocol.
@@ -92,6 +97,11 @@ the n3n-portfwd tool.
 
 This option depends on the library being installed - on Debian and Ubuntu,
 this is `apt-get install libminiupnpc-dev`
+
+Note that compiling with this library may add additional requirements to
+advertising and packaging in order to meet the licensing specified by it.
+You should be sure to read the libraries own license file and take steps
+to be in compliance before distributing such a build.
 
 ### Disable Multicast Local Peer Detection
 
