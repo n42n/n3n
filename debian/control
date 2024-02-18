@@ -6,6 +6,7 @@ Standards-Version: 4.6.0
 Build-Depends:
  autoconf,
  debhelper,
+ debhelper-compat (= 10),
  devscripts,
  flake8,
  gcovr,
