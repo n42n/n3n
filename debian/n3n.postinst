@@ -1,14 +1,14 @@
 #!/bin/sh -e
 
-if [ "$1" == "configure" ]; then
+if [ "$1" = "configure" ]; then
     umask 022
 
     # ensure we have our expected group and user
-    if [ -z "`id -g n3n 2> /dev/null`" ]; then
+    if [ -z "$(id -g n3n 2> /dev/null)" ]; then
         groupadd --system n3n
     fi
 
-    if [ -z "`id -u n3n 2> /dev/null`" ]; then
+    if [ -z "$(id -u n3n 2> /dev/null)" ]; then
         useradd \
             --no-create-home \
             --no-user-group \
