@@ -341,15 +341,12 @@ jobs:
 
       - name: Configure
         run: |
-          ./autogen.sh
-          ./configure
           cd packages/rpm/
+          autoreconf -if
           ./configure
 
       - name: Build
         run: |
-          make
-          HOME=$(pwd)/../
           cd packages/rpm/
           make
           cd ../../

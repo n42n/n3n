@@ -28,5 +28,6 @@ These steps should work with RPM based Linux distributions since rpmbuild was
 split from the rpm utility (c RedHat 9).
 
 1. cd packages/rpm/
-2. ./configure
-3. make
+2. autoreconf -if
+3. ./configure
+4. make
