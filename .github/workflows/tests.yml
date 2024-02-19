@@ -350,7 +350,7 @@ jobs:
           cd packages/rpm/
           make
           cd ../../
-          mv ../rpmbuild ./
+          mv ~/rpmbuild ./
 
       - name: Upload rpm
         uses: actions/upload-artifact@v3
