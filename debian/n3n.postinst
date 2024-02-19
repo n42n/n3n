@@ -17,6 +17,13 @@ if [ "$1" = "configure" ]; then
             --shell /bin/true \
             n3n
     fi
+fi
+
+#DEBHELPER#
+
+if [ "$1" = "configure" ]; then
+    # dont try and restart the services until after the debhelper - it will
+    # take care of doing a daemon-reload if it thinks that is needed
 
     # TODO: It would be nice if the dh_systemd_start handled templated services
     if [ -z "${DPKG_ROOT:-}" ] && [ -d /run/systemd/system ]; then
@@ -25,7 +32,5 @@ if [ "$1" = "configure" ]; then
         fi
     fi
 fi
-
-#DEBHELPER#
 
 exit 0
