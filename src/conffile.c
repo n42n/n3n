@@ -6,6 +6,7 @@
  */
 
 #include <ctype.h>              // for isprint and friends
+#include <errno.h>              // for errno
 #include <n3n/conffile.h>
 #include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/logging.h>        // for setTraceLevel
@@ -16,6 +17,7 @@
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
+#include <sys/stat.h>           // for mkdir
 #include <unistd.h>             // for access
 #include "peer_info.h"          // for struct peer_info
 
@@ -1327,4 +1329,83 @@ void n3n_config_help_options (const struct n3n_config_getopt *map, const struct 
         }
         i++;
     }
+}
+
+static int mkdir_p (const char *pathname, int mode, int uid, int gid) {
+    if(access(pathname, R_OK) == 0) {
+        // it already exists (may not be a dir though)
+        return 0;
+    }
+
+    if(errno != ENOENT) {
+        // some other error
+        return -1;
+    }
+
+#ifndef _WIN32
+    if(mkdir(pathname, mode) == -1) {
+        return -1;
+    }
+    if(chown(pathname, uid, gid) == -1) {
+        return -1;
+    }
+
+#else
+    // Some versions of windows appear to have mkdir(), others _mkdir()
+    // using this gives some undefined warnings, but is most compatible
+    if(_mkdir(pathname) == -1) {
+        return -1;
+    }
+#endif
+
+    return 0;
+}
+
+int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
+    if(!conf->sessionname) {
+        traceEvent(TRACE_NORMAL, "cannot setup sessiondir: no sessionname");
+        return -1;
+    }
+
+    // In the future, once we can run tests on the edge without elevated
+    // permissions, this will probably need a way to check the environment
+    // for the basedir for session dirs
+
+
+#ifndef _WIN32
+    char *basedir = "/run/n3n";
+#endif
+#ifdef _WIN32
+    char basedir[1024];
+    basedir[0] = 0;
+
+    char *userprofile = getenv("USERPROFILE");
+    if(!userprofile) {
+        // TODO: surely, there is a better location?
+        userprofile = getenv("TEMP");
+    }
+    if(!userprofile) {
+        return -1;
+    }
+
+    snprintf(basedir, sizeof(basedir), "%s/n3n", userprofile);
+#endif
+
+    if(mkdir_p(basedir, 0755, conf->userid, conf->groupid) == -1) {
+        traceEvent(TRACE_ERROR, "cannot mkdir %s", basedir);
+        return -1;
+    }
+
+    char buf[1024];
+    snprintf(buf, sizeof(buf), "%s/%s", basedir, conf->sessionname);
+    conf->sessiondir = strdup(buf);
+
+    if(mkdir_p(buf, 0755, conf->userid, conf->groupid) == -1) {
+        traceEvent(TRACE_ERROR, "cannot mkdir %s", buf);
+        return -1;
+    }
+
+    traceEvent(TRACE_NORMAL, "sessiondir: %s", conf->sessiondir);
+
+    return 0;
 }
