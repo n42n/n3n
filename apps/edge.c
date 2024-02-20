@@ -88,7 +88,7 @@ int num_cap = sizeof(cap_values)/sizeof(cap_value_t);
 
 /* *************************************************** */
 
-#define GETOPTS "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:O:"
+#define GETOPTS "A:O:Va:c:fhk:l:rvz:"
 
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
@@ -222,6 +222,13 @@ static void cmd_help_adaptors (int argc, char **argv, void *conf) {
 #endif
 
 static void cmd_help_commands (int argc, char **argv, void *conf) {
+    printf(
+        "List of all possible sub commands\n"
+        "A sub command requiring more words to complete is shown with '->'\n"
+        "\n"
+        "Eg:  edge help about\n"
+        "\n"
+        );
     n3n_subcmd_help(cmd_top, 1, true);
     exit(0);
 }
@@ -529,6 +536,7 @@ static struct n3n_subcmd_def cmd_test[] = {
 static struct n3n_subcmd_def cmd_top[] = {
     {
         .name = "debug",
+        .help = "(Do not expect debug commands to be friendly)",
         .type = n3n_subcmd_type_nest,
         .nest = cmd_debug,
     },

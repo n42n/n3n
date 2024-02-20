@@ -59,7 +59,7 @@ static struct n3n_runtime_data sss_node;
 
 /* *************************************************** */
 
-#define GETOPTS "p:l:t:a:c:F:vhMV:m:fu:g:O:"
+#define GETOPTS "O:Vfhv"
 
 static const struct option long_options[] = {
     {"help",                no_argument,       NULL, 'h'},
@@ -70,6 +70,7 @@ static const struct option long_options[] = {
 
 static const struct n3n_config_getopt option_map[] = {
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
+    { 'V', NULL, NULL, NULL, "       Show the version" },
     { 'f',  "daemon",       "background",           "false" },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
     { .optkey = 0 }
