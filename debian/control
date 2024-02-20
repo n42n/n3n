@@ -8,20 +8,25 @@ Build-Depends:
  debhelper,
  debhelper-compat (= 10),
  devscripts,
+ dh-python,
  flake8,
  gcovr,
  jq,
  libcap-dev,
  libzstd-dev,
+ python3,
  shellcheck,
  uncrustify,
  yamllint,
 
 Package: n3n
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
+ ${shlibs:Depends},
 Conflicts: n2n
-Description: The package n3n provides a layer-two peer-to-peer VPN
+Description: Peer-to-Peer and Layer-2 VPN network daemon
  n3n is a layer-two peer-to-peer virtual private network (VPN) which allows
  users to exploit features typical of P2P applications at network instead of
  application level. This means that users can gain native IP visibility (e.g.
