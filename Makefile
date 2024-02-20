@@ -85,7 +85,7 @@ LDFLAGS+=-L$(abspath src)
 
 CFLAGS+=-DHAVE_BRIDGING_SUPPORT
 
-N2N_OBJS=\
+OBJS=\
 	src/aes.o \
 	src/auth.o \
 	src/base64.o \
@@ -131,18 +131,18 @@ N2N_OBJS=\
 	src/wire.o \
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
-N2N_OBJS+=src/win32/edge_utils_win32.o
-N2N_OBJS+=src/win32/getopt1.o
-N2N_OBJS+=src/win32/getopt.o
-N2N_OBJS+=src/win32/wintap.o
-N2N_OBJS+=src/win32/edge_rc.o
+OBJS+=src/win32/edge_utils_win32.o
+OBJS+=src/win32/getopt1.o
+OBJS+=src/win32/getopt.o
+OBJS+=src/win32/wintap.o
+OBJS+=src/win32/edge_rc.o
 endif
 
 src/management.o: src/management_index.html.h
 src/management.o: src/management_script.js.h
 CLEAN_FILES+=src/management_index.html.h src/management_script.js.h
 
-src/libn3n.a: $(N2N_OBJS)
+src/libn3n.a: $(OBJS)
 	@echo "  AR      $@"
 	@$(AR) rcs $@ $^
 SUBDIR_LIBS+=src/libn3n.a
@@ -300,7 +300,7 @@ cover:
 # The steps to use this are similar to the "make cover" above
 .PHONY: gcov
 gcov:
-	gcov $(N2N_OBJS)
+	gcov $(OBJS)
 	$(MAKE) -C tools gcov
 	$(MAKE) -C apps gcov
 
@@ -330,7 +330,7 @@ clean.cov:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(N2N_OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
 	rm -f $(CLEAN_FILES)
 	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
