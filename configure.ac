@@ -113,6 +113,7 @@ AC_SUBST(host)
 AC_SUBST(host_os)
 AC_SUBST(EXE)
 AC_SUBST(WINDRES)
+AC_SUBST(with_openssl)
 AC_CONFIG_HEADERS(include/config.h)
 AC_CONFIG_FILES(config.mak)
 

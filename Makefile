@@ -30,9 +30,12 @@ endif
 #(thanks to Robert Gibbon)
 PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finline-functions -fweb -frename-registers -mapp-regs
 
+# Only do the openssl pkg config and flags if it has been enabled
+ifeq ($(CONFIG_WITH_OPENSSL), yes)
 OPENSSL_CFLAGS=$(shell pkg-config openssl; echo $$?)
 ifeq ($(OPENSSL_CFLAGS), 0)
   CFLAGS+=$(shell pkg-config --cflags-only-I openssl)
+endif
 endif
 
 WARN=-Wall

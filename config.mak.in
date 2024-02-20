@@ -5,6 +5,8 @@ CONFIG_HOST=@host@
 CONFIG_HOST_OS=@host_os@
 CONFIG_PREFIX=@prefix@
 
+CONFIG_WITH_OPENSSL=@with_openssl@
+
 CC=@CC@
 AR=@AR@
 WINDRES=@WINDRES@
