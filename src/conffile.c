@@ -1291,7 +1291,7 @@ void n3n_config_from_getopt (const struct n3n_config_getopt *map, void *conf, in
 void n3n_config_help_options (const struct n3n_config_getopt *map, const struct option *long_options) {
     int i;
 
-    printf(" option    config\n");
+    printf(" option    equivalent config setting\n");
     i = 0;
     while(map[i].optkey) {
         if(isprint(map[i].optkey)) {
@@ -1320,7 +1320,7 @@ void n3n_config_help_options (const struct n3n_config_getopt *map, const struct 
         i++;
     }
     printf("\n");
-    printf(" short  long\n");
+    printf(" short  has an equivalent long\n");
 
     i = 0;
     while(long_options[i].name) {
