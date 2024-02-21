@@ -223,9 +223,9 @@ static struct n3n_conf_option section_daemon[] = {
     {
         .name = "background",
         .type = n3n_conf_bool,
-        .offset = offsetof(n2n_edge_conf_t, daemon),
+        .offset = offsetof(n2n_edge_conf_t, background),
         .desc = "Daemonize the process",
-        .help = "Runs as a daemon in the background (ignored on windows)",
+        .help = "Runs the daemon in the background (ignored on windows)",
     },
     {.name = NULL},
 };

@@ -472,7 +472,7 @@ typedef struct n2n_edge_conf {
     uint32_t groupid;
     bool connect_tcp;                                /** connection to supernode 0 = UDP; 1 = TCP */
     uint8_t sn_selection_strategy;                  /**< encodes currently chosen supernode selection strategy. */
-    bool daemon;
+    bool background;
     uint8_t number_max_sn_pings;                    /**< Number of maximum concurrently allowed supernode pings. */
     char device_mac[N2N_MACNAMSIZ];
     bool is_edge;

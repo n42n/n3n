@@ -92,6 +92,7 @@ int num_cap = sizeof(cap_values)/sizeof(cap_value_t);
 
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
+    { "daemon",              no_argument,       NULL, 'd' },
     { "help",                no_argument,       NULL, 'h' },
     { "supernode-list",      required_argument, NULL, 'l' },
     { "verbose",             no_argument,       NULL, 'v' },
@@ -105,7 +106,7 @@ static const struct n3n_config_getopt option_map[] = {
     { 'V', NULL, NULL, NULL, "       Show the version" },
     { 'a', NULL, NULL, NULL, "<arg>  Set tuntap.address and tuntap.address_mode" },
     { 'c',  "community",    "name",             NULL },
-    { 'f',  "daemon",       "background",       "false" },
+    { 'd',  "daemon",       "background",       "true" },
     { 'k',  "community",    "key",              NULL },
     { 'l',  "community",    "supernode",        NULL },
     { 'r',  "filter",       "allow_routing",    "true" },
@@ -547,7 +548,7 @@ static struct n3n_subcmd_def cmd_top[] = {
     },
     {
         .name = "start",
-        .help = "[sessionname] - starts daemon",
+        .help = "[sessionname] - starts the session",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_start,
         .session_arg = true,
@@ -995,7 +996,7 @@ int main (int argc, char* argv[]) {
     eee->last_register_req = 0;
 
 #ifndef _WIN32
-    if(conf.daemon) {
+    if(conf.background) {
         setUseSyslog(1); /* traceEvent output now goes to syslog. */
         daemonize();
     }

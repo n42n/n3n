@@ -49,7 +49,6 @@ $ sudo edge start \
     -c mynetwork \
     -k mysecretpass \
     -a 192.168.100.1 \
-    -f \
     -l supernode.ntop.org:7777
 ```
 
@@ -60,7 +59,6 @@ $ sudo edge start \
     -c mynetwork \
     -k mysecretpass \
     -a 192.168.100.2 \
-    -f \
     -l supernode.ntop.org:7777
 ```
 

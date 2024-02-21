@@ -27,7 +27,7 @@ n3n has all four ciphers built-in as basic versions. Some of them optionally com
 The`-k <key>` command line parameter supplies the key. As even non-privileged
 users might get to see the command line parameters (try `ps -Af | grep edge`),
 the key can also be supplied through the `N3N_KEY` environment variable: `sudo
-N3N_KEY=mysecretpass edge start -c mynetwork -a 192.168.100.1 -f -l
+N3N_KEY=mysecretpass edge start -c mynetwork -a 192.168.100.1 -l
 supernode.ntop.org:7777`.
 
 Providing `-k <key>` without specifying any cipher by `-A_` will default to AES encryption.

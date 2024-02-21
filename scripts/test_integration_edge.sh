@@ -25,10 +25,11 @@ sudo mkdir -p /run/n3n
 sudo chown "$USER" /run/n3n
 
 # start a supernode
-docmd "${BINDIR}"/apps/supernode start ci_sn -v
+docmd "${BINDIR}"/apps/supernode start ci_sn -v --daemon
 
 # Start the edge in the background
 docmd sudo "${BINDIR}"/apps/edge start ci_edge1 \
+    --daemon \
     -l localhost:7654 \
     -c test \
     -Odaemon.userid="$USER" \

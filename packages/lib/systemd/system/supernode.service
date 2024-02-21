@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 User=n3n
 Group=n3n
-ExecStart=/usr/sbin/supernode start -f
+ExecStart=/usr/sbin/supernode start
 Restart=on-abnormal
 RestartSec=5
 
