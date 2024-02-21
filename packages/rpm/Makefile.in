@@ -6,7 +6,6 @@ N3N_HOME=$(PWD)/../..
 VERSION:=$(shell $(N3N_HOME)/scripts/version.sh |tr - _)
 ARCH:=$(shell rpmbuild -E '%_arch')
 
-N2N_BUILD=${N3N_HOME}/packages/debian/n3n
 RPM_PKG=n3n-$(VERSION)-1.$(ARCH).rpm
 
 all: clean pkg
