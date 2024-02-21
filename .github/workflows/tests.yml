@@ -285,7 +285,7 @@ jobs:
       - name: Install packages needed for build
         run: |
           sudo apt-get update
-          sudo apt-get install devscripts \
+          sudo apt-get install devscripts equivs \
             crossbuild-essential-${{ matrix.arch }}
           sudo mk-build-deps -i
 
