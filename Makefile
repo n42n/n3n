@@ -210,9 +210,11 @@ DOCS=edge.8.gz supernode.1.gz n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
+# TODO: hook into the debian/control file and avoid replicating this list.
 BUILD_DEP:=\
 	autoconf \
 	build-essential \
+	dh-python \
 	flake8 \
 	gcovr \
 	libcap-dev \
