@@ -235,6 +235,12 @@ static void cmd_help_commands (int argc, char **argv, void *conf) {
 }
 
 static void cmd_help_config (int argc, char **argv, void *conf) {
+    printf(
+        "This shows a description of all the config settings.\n"
+        "The values seen in each setting are just examples and may not be\n"
+        "the compiled-in defaults.\n"
+        "\n"
+        );
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
@@ -474,7 +480,7 @@ static struct n3n_subcmd_def cmd_help[] = {
     },
     {
         .name = "config",
-        .help = "All config file help text",
+        .help = "Show all the config file help text",
         .type = n3n_subcmd_type_fn,
         .fn = cmd_help_config,
     },

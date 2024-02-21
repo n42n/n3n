@@ -247,7 +247,7 @@ static struct n3n_subcmd_def cmd_help[] = {
     },
     {
         .name = "config",
-        .help = "All config file help text",
+        .help = "config file help",
         .type = n3n_subcmd_type_fn,
         .fn = cmd_help_config,
     },
