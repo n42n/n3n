@@ -1,18 +1,5 @@
 # n3n's Scratchpad
 
-## RPM Packaging
-
-```
-bash
-./autogen.sh
-./configure
-make
-
-cd packages/rpm
-./configure
-rpmbuild -bb ./n3n.spec
-```
-
 
 ## Version Update
 
@@ -36,7 +23,3 @@ rpmbuild -bb ./n3n.spec
 
 - Fixed a federation related bug
 - Code clean-up
-
-
-
-

@@ -339,12 +339,6 @@ jobs:
         run: |
           sudo apt-get install rpm
 
-      - name: Configure
-        run: |
-          cd packages/rpm/
-          autoreconf -if
-          ./configure
-
       - name: Build
         run: |
           cd packages/rpm/
