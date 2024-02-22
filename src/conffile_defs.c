@@ -223,9 +223,9 @@ static struct n3n_conf_option section_daemon[] = {
     {
         .name = "background",
         .type = n3n_conf_bool,
-        .offset = offsetof(n2n_edge_conf_t, daemon),
+        .offset = offsetof(n2n_edge_conf_t, background),
         .desc = "Daemonize the process",
-        .help = "Runs as a daemon in the background (ignored on windows)",
+        .help = "Runs the daemon in the background (ignored on windows)",
     },
     {.name = NULL},
 };
@@ -439,7 +439,8 @@ static struct n3n_conf_option section_tuntap[] = {
         .length = N2N_IFNAMSIZ,
         .offset = offsetof(n2n_edge_conf_t, tuntap_dev_name),
         .desc = "TAP device name",
-        .help = "On Linux, this creates a new TAP device with this name. "
+        .help = "On Linux, this creates a new TAP device with this name. And "
+                "defaults to the sessionname. "
                 "On Windows, this selects an already installed TAP adaptor "
                 "that matches this name.  On other operating systems, it is "
                 "ignored.",

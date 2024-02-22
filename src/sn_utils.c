@@ -776,7 +776,6 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
     conf->is_supernode = true;
     conf->spoofing_protection = true;
-    conf->daemon = true; /* By defult run as a daemon. */
 
     strncpy(conf->version, VERSION, sizeof(n2n_version_t));
     conf->version[sizeof(n2n_version_t) - 1] = '\0';

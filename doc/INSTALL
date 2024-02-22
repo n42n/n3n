@@ -2,6 +2,8 @@ INSTALL
 
 To build the programs:
 
+$ ./autogen.sh
+$ ./configure
 $ make
 
 To install the programs and man pages:
@@ -10,8 +12,14 @@ $ make install
 
 or
 
-$ make PREFIX=/usr/local install
+$ make PREFIX=/usr install
 
+Debian Package
+--------------
+
+1. ./autogen.sh
+2. ./configure
+3. make dpkg
 
 RPM Package
 -----------
@@ -19,32 +27,5 @@ RPM Package
 These steps should work with RPM based Linux distributions since rpmbuild was
 split from the rpm utility (c RedHat 9).
 
-
-To build an RPM the easy way follow these steps.
-
-1. Build SRPM
-
-$ cd n3n
-$ scripts/mk_SRPM.sh
-
-Look for where the src.rpm file was put ( "Wrote:" ).
-
-2. Build binary RPM from SRPM
-
-$ rpm -i path/to/n3n-<ver>.src.rpm
-$ rpmbuild -bb n3n.spec
-
-
-All this can be done as non-root user if you have a ~/.rpmmacros file with this
-line in it:
-
-%_topdir /home/username/rpmtopdir
-
-
-To build an RPM the hard way follow these steps.
-
-$ cp -a n3ndir n3n-2.0
-$ tar czf n3n-2.0.tar.gz n3n-2.0
-$ mv n3n-2.0.tar.gz /usr/src/redhat/SOURCES
-$ cp n3ndir/n3n.spec /usr/src/redhat/SPECS
-$ rpmbuild -bb n3n.spec
+1. cd packages/rpm/
+2. make

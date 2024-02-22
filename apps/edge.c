@@ -88,10 +88,11 @@ int num_cap = sizeof(cap_values)/sizeof(cap_value_t);
 
 /* *************************************************** */
 
-#define GETOPTS "k:a:c:Eu:g:m:M:s:d:l:p:fvVhrt:i:I:J:P:S:DL:z:A:Hn:R:e:T:x:O:"
+#define GETOPTS "A:O:Va:c:fhk:l:rvz:"
 
 static const struct option long_options[] = {
     { "community",           required_argument, NULL, 'c' },
+    { "daemon",              no_argument,       NULL, 'd' },
     { "help",                no_argument,       NULL, 'h' },
     { "supernode-list",      required_argument, NULL, 'l' },
     { "verbose",             no_argument,       NULL, 'v' },
@@ -105,7 +106,7 @@ static const struct n3n_config_getopt option_map[] = {
     { 'V', NULL, NULL, NULL, "       Show the version" },
     { 'a', NULL, NULL, NULL, "<arg>  Set tuntap.address and tuntap.address_mode" },
     { 'c',  "community",    "name",             NULL },
-    { 'f',  "daemon",       "background",       "false" },
+    { 'd',  "daemon",       "background",       "true" },
     { 'k',  "community",    "key",              NULL },
     { 'l',  "community",    "supernode",        NULL },
     { 'r',  "filter",       "allow_routing",    "true" },
@@ -222,11 +223,24 @@ static void cmd_help_adaptors (int argc, char **argv, void *conf) {
 #endif
 
 static void cmd_help_commands (int argc, char **argv, void *conf) {
+    printf(
+        "List of all possible sub commands\n"
+        "A sub command requiring more words to complete is shown with '->'\n"
+        "\n"
+        "Eg:  edge help about\n"
+        "\n"
+        );
     n3n_subcmd_help(cmd_top, 1, true);
     exit(0);
 }
 
 static void cmd_help_config (int argc, char **argv, void *conf) {
+    printf(
+        "This shows a description of all the config settings.\n"
+        "The values seen in each setting are just examples and may not be\n"
+        "the compiled-in defaults.\n"
+        "\n"
+        );
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
@@ -466,7 +480,7 @@ static struct n3n_subcmd_def cmd_help[] = {
     },
     {
         .name = "config",
-        .help = "All config file help text",
+        .help = "Show all the config file help text",
         .type = n3n_subcmd_type_fn,
         .fn = cmd_help_config,
     },
@@ -529,6 +543,7 @@ static struct n3n_subcmd_def cmd_test[] = {
 static struct n3n_subcmd_def cmd_top[] = {
     {
         .name = "debug",
+        .help = "(Do not expect debug commands to be friendly)",
         .type = n3n_subcmd_type_nest,
         .nest = cmd_debug,
     },
@@ -539,7 +554,7 @@ static struct n3n_subcmd_def cmd_top[] = {
     },
     {
         .name = "start",
-        .help = "[sessionname] - starts daemon",
+        .help = "[sessionname] - starts the session",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_start,
         .session_arg = true,
@@ -987,7 +1002,7 @@ int main (int argc, char* argv[]) {
     eee->last_register_req = 0;
 
 #ifndef _WIN32
-    if(conf.daemon) {
+    if(conf.background) {
         setUseSyslog(1); /* traceEvent output now goes to syslog. */
         daemonize();
     }

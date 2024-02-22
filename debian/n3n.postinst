@@ -1,0 +1,36 @@
+#!/bin/sh -e
+
+if [ "$1" = "configure" ]; then
+    umask 022
+
+    # ensure we have our expected group and user
+    if [ -z "$(id -g n3n 2> /dev/null)" ]; then
+        groupadd --system n3n
+    fi
+
+    if [ -z "$(id -u n3n 2> /dev/null)" ]; then
+        useradd \
+            --no-create-home \
+            --no-user-group \
+            --gid n3n \
+            --system \
+            --shell /bin/true \
+            n3n
+    fi
+fi
+
+#DEBHELPER#
+
+if [ "$1" = "configure" ]; then
+    # dont try and restart the services until after the debhelper - it will
+    # take care of doing a daemon-reload if it thinks that is needed
+
+    # TODO: It would be nice if the dh_systemd_start handled templated services
+    if [ -z "${DPKG_ROOT:-}" ] && [ -d /run/systemd/system ]; then
+        if systemctl is-active --quiet 'edge@*.service'; then
+            systemctl try-restart 'edge@*.service'
+        fi
+    fi
+fi
+
+exit 0

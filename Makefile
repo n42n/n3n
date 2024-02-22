@@ -30,9 +30,12 @@ endif
 #(thanks to Robert Gibbon)
 PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finline-functions -fweb -frename-registers -mapp-regs
 
+# Only do the openssl pkg config and flags if it has been enabled
+ifeq ($(CONFIG_WITH_OPENSSL), yes)
 OPENSSL_CFLAGS=$(shell pkg-config openssl; echo $$?)
 ifeq ($(OPENSSL_CFLAGS), 0)
   CFLAGS+=$(shell pkg-config --cflags-only-I openssl)
+endif
 endif
 
 WARN=-Wall
@@ -54,17 +57,24 @@ export SBINDIR
 
 MKDIR=mkdir -p
 INSTALL=install
-INSTALL_PROG=$(INSTALL) -m755
-INSTALL_DOC=$(INSTALL) -m644
+INSTALL_PROG=$(INSTALL) -m555
+INSTALL_DOC=$(INSTALL) -m444
 
 # DESTDIR set in debian make system
 PREFIX?=$(DESTDIR)/$(CONFIG_PREFIX)
 
+# TODO: both these dirs are outside of the CONFIG_PREFIX, which means that
+# they would not be in /usr/local if that is the expected install destination
+ETCDIR=$(DESTDIR)/etc/n3n
+SYSTEMDDIR=$(DESTDIR)/lib/systemd/system
+
+BINDIR=$(PREFIX)/bin
 SBINDIR=$(PREFIX)/sbin
 MANDIR?=$(PREFIX)/share/man
 MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
+DOCDIR=$(PREFIX)/share/doc/n3n
 
 
 #######################################
@@ -75,7 +85,7 @@ LDFLAGS+=-L$(abspath src)
 
 CFLAGS+=-DHAVE_BRIDGING_SUPPORT
 
-N2N_OBJS=\
+OBJS=\
 	src/aes.o \
 	src/auth.o \
 	src/base64.o \
@@ -121,18 +131,18 @@ N2N_OBJS=\
 	src/wire.o \
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
-N2N_OBJS+=src/win32/edge_utils_win32.o
-N2N_OBJS+=src/win32/getopt1.o
-N2N_OBJS+=src/win32/getopt.o
-N2N_OBJS+=src/win32/wintap.o
-N2N_OBJS+=src/win32/edge_rc.o
+OBJS+=src/win32/edge_utils_win32.o
+OBJS+=src/win32/getopt1.o
+OBJS+=src/win32/getopt.o
+OBJS+=src/win32/wintap.o
+OBJS+=src/win32/edge_rc.o
 endif
 
 src/management.o: src/management_index.html.h
 src/management.o: src/management_script.js.h
 CLEAN_FILES+=src/management_index.html.h src/management_script.js.h
 
-src/libn3n.a: $(N2N_OBJS)
+src/libn3n.a: $(OBJS)
 	@echo "  AR      $@"
 	@$(AR) rcs $@ $^
 SUBDIR_LIBS+=src/libn3n.a
@@ -200,9 +210,11 @@ DOCS=edge.8.gz supernode.1.gz n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
+# TODO: hook into the debian/control file and avoid replicating this list.
 BUILD_DEP:=\
 	autoconf \
 	build-essential \
+	dh-python \
 	flake8 \
 	gcovr \
 	libcap-dev \
@@ -290,7 +302,7 @@ cover:
 # The steps to use this are similar to the "make cover" above
 .PHONY: gcov
 gcov:
-	gcov $(N2N_OBJS)
+	gcov $(OBJS)
 	$(MAKE) -C tools gcov
 	$(MAKE) -C apps gcov
 
@@ -320,7 +332,7 @@ clean.cov:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(N2N_OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
 	rm -f $(CLEAN_FILES)
 	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
@@ -335,12 +347,35 @@ distclean:
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
 
-.PHONY: install
-install: apps tools edge.8.gz supernode.1.gz n3n.7.gz
-	echo "MANDIR=$(MANDIR)"
-	$(MKDIR) $(SBINDIR) $(MAN1DIR) $(MAN7DIR) $(MAN8DIR)
+# A quick way to generate a dpkg from a checkout.
+#
+.PHONY: dpkg
+dpkg:
+	DEBEMAIL=builder@example.com dch -v ${VERSION}-1 --no-auto-nmu local package Auto Build
+	env -u CFLAGS dpkg-buildpackage -rfakeroot -d -us -uc --host-type ${CONFIG_HOST}
+
+.PHONY: install.bin
+install.bin: apps
 	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
-	$(MAKE) -C tools install SBINDIR=$(abspath $(SBINDIR))
+	$(INSTALL) -d $(BINDIR) $(ETCDIR)
+	$(INSTALL_PROG) scripts/n3nctl $(BINDIR)
+
+# TODO: dont install.systemd for a non systemd host
+.PHONY: install.systemd
+install.systemd:
+	$(INSTALL) -d $(SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/edge@.service $(SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/edge.service $(SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/supernode.service $(SYSTEMDDIR)
+
+.PHONY: install.doc
+install: edge.8.gz supernode.1.gz n3n.7.gz
+	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) doc/*.md doc/*.sample $(DOCDIR)/
+
+.PHONY: install
+install: install.bin install.doc install.systemd

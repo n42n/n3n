@@ -1,10 +1,10 @@
 Summary: n3n peer-to-peer VPN
 Name: n3n
-Version: @N2N_VERSION_RPM@
+Version: %{VERSION}
 Release: 1
 License: GPL
 Group: Networking/Utilities
-URL: http://www.ntop.org/
+URL: http://github.com/n42n
 Source: n3n-%{version}.tgz
 Packager: Hamish Coleman <hamish@zot.org>
 # Temporary location where the RPM will be built
@@ -19,47 +19,60 @@ n3n peer-to-peer VPN
 
 %prep
 
+# This is expecting to build from the checked-out source, so there is no prep
+
 %build
 
-mkdir -p $RPM_BUILD_ROOT/usr/sbin $RPM_BUILD_ROOT/usr/share/man/man1 $RPM_BUILD_ROOT/usr/share/man/man7 $RPM_BUILD_ROOT/usr/share/man/man8
-mkdir -p $RPM_BUILD_ROOT/etc/n3n
-mkdir -p $RPM_BUILD_ROOT/lib/systemd/system/
-mkdir -p $RPM_BUILD_ROOT/usr/share/doc/n3n/examples
+cd %TOPDIR
+./autogen.sh
+./configure --prefix=/usr
+make
 
-# TODO: move to %install
-cd ../../n3n # FIXME: dont hardcode sourcecode dir name
+%install
 
-cp apps/edge $RPM_BUILD_ROOT/usr/sbin
-cp apps/supernode $RPM_BUILD_ROOT/usr/sbin
-cp n3n.7.gz $RPM_BUILD_ROOT/usr/share/man/man7
-cp supernode.1.gz $RPM_BUILD_ROOT/usr/share/man/man1
-cp edge.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
-cp packages/lib/systemd/system/*.service $RPM_BUILD_ROOT/lib/systemd/system/
-cp doc/*.sample $RPM_BUILD_ROOT/usr/share/doc/n3n/examples
+cd %TOPDIR
+make install DESTDIR=$RPM_BUILD_ROOT
+chmod u+w $RPM_BUILD_ROOT/usr/sbin/*
 
-find $RPM_BUILD_ROOT -name ".git" | xargs /bin/rm -rf
-find $RPM_BUILD_ROOT -name ".svn" | xargs /bin/rm -rf
-find $RPM_BUILD_ROOT -name "*~"   | xargs /bin/rm -f
-#
-DST=$RPM_BUILD_ROOT/usr/n3n
-SRC=$RPM_BUILD_DIR/%{name}-%{version}
-#mkdir -p $DST/conf
-# Clean out our build directory
+#find $RPM_BUILD_ROOT -name ".git" | xargs /bin/rm -rf
+#find $RPM_BUILD_ROOT -name ".svn" | xargs /bin/rm -rf
+#find $RPM_BUILD_ROOT -name "*~"   | xargs /bin/rm -f
+
 %clean
+# Clean out our build directory
 rm -fr $RPM_BUILD_ROOT
 
 %files
-/usr/sbin/edge
-/usr/sbin/supernode
-/usr/share/man/man7/n3n.7.gz
-/usr/share/man/man1/supernode.1.gz
-/usr/share/man/man8/edge.8.gz
 /lib/systemd/system/edge.service
 /lib/systemd/system/edge@.service
 /lib/systemd/system/supernode.service
-/usr/share/doc/n3n/examples/supernode.conf.sample
-/usr/share/doc/n3n/examples/edge.conf.sample
-/usr/share/doc/n3n/examples/community.list.sample
+/usr/bin/n3nctl
+/usr/sbin/edge
+/usr/sbin/supernode
+/usr/share/doc/n3n/Advanced.md
+/usr/share/doc/n3n/Authentication.md
+/usr/share/doc/n3n/Bridging.md
+/usr/share/doc/n3n/BuildConfig.md
+/usr/share/doc/n3n/Building.md
+/usr/share/doc/n3n/Communities.md
+/usr/share/doc/n3n/ConfigurationFiles.md
+/usr/share/doc/n3n/Crypto.md
+/usr/share/doc/n3n/Faq.md
+/usr/share/doc/n3n/Federation.md
+/usr/share/doc/n3n/Hacking.md
+/usr/share/doc/n3n/ManagementAPI.md
+/usr/share/doc/n3n/Routing.md
+/usr/share/doc/n3n/Scratchpad.md
+/usr/share/doc/n3n/Scripts.md
+/usr/share/doc/n3n/TapConfiguration.md
+/usr/share/doc/n3n/Tools.md
+/usr/share/doc/n3n/TrafficRestrictions.md
+/usr/share/doc/n3n/community.list.sample
+/usr/share/doc/n3n/edge.conf.sample
+/usr/share/doc/n3n/supernode.conf.sample
+/usr/share/man/man1/supernode.1.gz
+/usr/share/man/man7/n3n.7.gz
+/usr/share/man/man8/edge.8.gz
 
 # Set the default attributes of all of the files specified to have an
 # owner and group of root and to inherit the permissions of the file

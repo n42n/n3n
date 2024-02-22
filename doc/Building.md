@@ -12,9 +12,9 @@ process, which can be found in the [Github actions config file](../.github/workf
 
 # Git submodules
 
-If you are compiling with the UPnP libraries, it is possible that your
-operating system or your build system do not include binaries for the
-required libraries.
+If you are compiling with the UPnP features enabled, it is possible that your
+operating system or your build system do not include binaries for the required
+libraries.
 
 Using these libraries can cause issues with some build systems, so be
 aware that not all combinations are supportable.
@@ -22,6 +22,16 @@ aware that not all combinations are supportable.
 To make this scenario simpler, the required source code has been added
 to this repository as git `submodules` which require one extra step to
 complete their checkout.
+
+This is only required if you have run configure with the options to enable
+either of the UPnP libraries and are also building for a system that does not
+have a feature to provide these libraries with a binary package.
+
+This is most often the case on Windows, however the build system doesnt
+currently auto-detect this and enable the right features to include these
+libraries.  Additionally, upstream changes are needed to libpmp to allow
+it to build properly with GCC on Windows at all.  These are issues that
+should be fixed in a future release.
 
 So the very first time after cloning the n3n git repo, you should run
 this command in the n3n directory to fetch the submodules:
@@ -72,13 +82,10 @@ applied as of 2021-09-29.
     - `make test`
 
 Due to limitations in the Windows environment, the normal autotools steps have
-been emulated by the `hack_fakeautoconf` - This currently results in the
-version number reported by the compiled software being inaccurate.
+been emulated by the `hack_fakeautoconf`
 
-Note: MinGW builds have had a history of incompatibility reports with other OS
-builds (for example [#617](https://github.com/ntop/n2n/issues/617) and [#642](https://github.com/ntop/n2n/issues/642))
-However, if the tests pass, you should have a high confidence that your build
-will be compatible.
+Note that building with the UPnP libraries on Windows requires a bit of manual
+work at the moment.
 
 ## Run on Windows
 
@@ -120,9 +127,9 @@ sudo apt-get install binutils-$HOST_TRIPLET gcc-$HOST_TRIPLET
 make
 ```
 
-A good starting point to determine the host triplet for your destination platform
-can be found by copying the `./config.guess` script to it and running it on the
-destination.
+A good starting point to determine the host triplet for your destination
+platform can be found by copying the `./scripts/config.guess` script to it and
+running it on the destination.
 
 This is not a good way to produce binaries for embedded environments (like OpenWRT)
 as they will often use a different libc environment.
@@ -131,6 +138,6 @@ as they will often use a different libc environment.
 
 There are also some example package build recipes included with the source.
 
-- [Debian](../packages/debian/README)
+- Debian: `make dpkg`
 - [RPM](../packages/rpm)
 - [OpenWRT](../packages/openwrt/README.md)

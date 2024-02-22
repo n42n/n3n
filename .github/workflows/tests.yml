@@ -285,9 +285,9 @@ jobs:
       - name: Install packages needed for build
         run: |
           sudo apt-get update
-          sudo apt-get install debhelper build-essential \
-            devscripts \
+          sudo apt-get install devscripts equivs \
             crossbuild-essential-${{ matrix.arch }}
+          sudo mk-build-deps -i
 
       - name: Hack dpkg-shlibdeps
         run: |
@@ -300,19 +300,25 @@ jobs:
           # This will warn about CC, but we cannot set CC until we run it :-S
           HOST_TRIPLET=$(dpkg-architecture -a${{ matrix.arch }} -q DEB_HOST_GNU_TYPE)
           ./autogen.sh
-          ./configure --host $HOST_TRIPLET
+          ./configure --host $HOST_TRIPLET --prefix=/usr
         # yamllint enable rule:line-length
 
       - name: Build
         run: |
-          cd packages/debian/
-          make
+          make dpkg
+          mv ../n3n_*.deb ./
+          echo "Package built."
+          ls n3n_*.deb
+          echo "-------------------------------"
+          dpkg -I n3n_*.deb
+          dpkg --contents n3n_*.deb
+          echo "-------------------------------"
 
       - name: Upload dpkg
         uses: actions/upload-artifact@v3
         with:
           name: packages-dpkg
-          path: packages/debian/*.deb
+          path: "*.deb"
 
   package_rpm:
     name: Package for Redhat/RPM
@@ -333,21 +339,12 @@ jobs:
         run: |
           sudo apt-get install rpm
 
-      - name: Configure
-        run: |
-          ./autogen.sh
-          ./configure
-          cd packages/rpm/
-          ./configure
-
       - name: Build
         run: |
-          make
-          HOME=$(pwd)/../
           cd packages/rpm/
           make
           cd ../../
-          mv ../rpmbuild ./
+          mv ~/rpmbuild ./
 
       - name: Upload rpm
         uses: actions/upload-artifact@v3

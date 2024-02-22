@@ -14,11 +14,11 @@ use strict;
 #%# family=auto
 #%# capabilities=autoconf suggest
 
-package JsonUDP;
+package JsonRPC;
 use warnings;
 use strict;
 
-use IO::Socket::INET;
+use IO::Socket::IP;
 use JSON;
 
 sub new {
@@ -27,10 +27,10 @@ sub new {
     my $self = {};
     bless($self, $class);
 
-    $self->{sock} = IO::Socket::INET->new(
-        PeerAddr => '127.0.0.1',
+    $self->{sock} = IO::Socket::IP->new(
+        PeerAddr => 'localhost',
         PeerPort => $port,
-        Proto    => 'udp',
+        Proto    => 'tcp',
     );
     $self->{json} = JSON->new->utf8->relaxed->pretty->canonical;
     $self->{tag} = 0;
@@ -41,6 +41,9 @@ sub new {
 sub _tx {
     my $self = shift;
     my $msgline = shift;
+    if ($self->{debug}) {
+        print($msgline);
+    }
     return $self->{sock}->send($msgline);
 }
 
@@ -48,61 +51,78 @@ sub _rx {
     my $self = shift;
     my $tag = shift;
 
-    my $db = [];
-    my $error;
+    my $reply;
+    $self->{sock}->recv($reply,16384);
+    # TODO: we assume reply is smaller than this
 
-    while(1) {
-        my $jsontxt;
-        $self->{sock}->recv($jsontxt,1024);
-        if ($self->{debug}) {
-            print($jsontxt);
-        }
-        my $msg = $self->{json}->decode($jsontxt);
+    my ($head, $body) = split(/\r\n\r\n/, $reply);
+    if (!defined($body)) {
+        return undef;
+    }
 
-        # ignore packets not for us
-        if ($msg->{_tag} ne $tag) {
-            next;
-        }
-
-        # Save most recent error for return
-        if ($msg->{_type} eq 'error') {
-            $error = $msg;
-            next;
-        }
-
-        if ($msg->{_type} eq 'end') {
-            if ($error) {
-                # TODO: an error channel
+    for (split(/\r\n/, $head)) {
+        if (m%^HTTP/\d+.\d+ (\d+)%) {
+            if ($1 != 200) {
+                # An error reply
                 return undef;
             }
-            return $db;
         }
-
-        if ($msg->{_type} eq 'row') {
-            delete $msg->{_tag};
-            delete $msg->{_type};
-            push @$db, $msg;
-            next;
+        if (m%^Content-Length: (\d+)%) {
+            if (length($body) != $1) {
+                # our buffer overflowed
+                return undef;
+            }
         }
-
-        # Ignore any unknown _type
     }
+
+    if ($self->{debug}) {
+        print($body);
+    }
+
+    my $msg = $self->{json}->decode($body);
+
+    if ($msg->{id} != $tag) {
+        # mismatch message id
+        return undef;
+    }
+
+    if (!defined($msg->{result})) {
+        # must be an error
+        # TODO: an error channel
+        return undef;
+    }
+
+    return $msg->{result};
 }
 
-sub read {
+sub call {
     my $self = shift;
-    my $cmdline = shift;
+    my $method = shift;
     my $tag = $self->{tag}++;
 
     # TODO:
     # Add a read cache
 
-    $self->_tx(sprintf("r %i %s", $tag, $cmdline));
+    my $data = {
+        jsonrpc => "2.0",
+        id => $tag,
+        method => $method,
+        # params = xyzzy
+    };
+    my $data_str = $self->{json}->encode($data);
+    my $content_length = length($data_str);
+    my $msg = sprintf(
+        "POST /v1 HTTP/1.1\r\nContent-Length: %i\r\n\r\n%s",
+        $content_length,
+        $data_str
+    );
+
+    $self->_tx($msg);
     return $self->_rx($tag);
 }
 
 1;
-    
+
 package main;
 use warnings;
 use strict;
@@ -202,24 +222,24 @@ my $config = {
 my $fetchinfo = {
     edge_pkts => {
         port => 5644,
-        read => "packetstats",
+        method => "get_packetstats",
     },
     edge_counts => {
         port => 5644,
         count => [
-            "edges",
-            "supernodes",
+            "get_edges",
+            "get_supernodes",
         ],
     },
     supernode_pkts => {
         port => 5645,
-        read => "packetstats",
+        method => "get_packetstats",
     },
     supernode_counts => {
         port => 5645,
         count => [
-            "edges",
-            "communities",
+            "get_edges",
+            "get_communities",
         ],
     },
 };
@@ -247,9 +267,9 @@ sub do_fetch {
     my $name = shift;
     my $db;
 
-    my $read_table = $fetchinfo->{$name}->{read};
-    if (defined($read_table)) {
-        $db = $rpc->read($read_table);
+    my $method = $fetchinfo->{$name}->{method};
+    if (defined($method)) {
+        $db = $rpc->call($method);
         for my $row (@$db) {
             my $type = $row->{type};
             delete $row->{type};
@@ -263,7 +283,7 @@ sub do_fetch {
     my $count_tables = $fetchinfo->{$name}->{count};
     if (defined($count_tables)) {
         for my $table (@{$count_tables}) {
-            $db = $rpc->read($table);
+            $db = $rpc->call($table);
             print($table,".value ", scalar(@$db), "\n");
         }
     }
@@ -308,8 +328,12 @@ sub main() {
     my $name = $ARGV[1] || $0;
     $name =~ s%^.*/n3n_([^/]+)%$1%;
 
+    # TODO:
+    # - support a unix domain socket here
+    # - including session name discovery and settting
+    #
     my $port = $fetchinfo->{$name}->{port};
-    my $rpc = JsonUDP->new($port);
+    my $rpc = JsonRPC->new($port);
 
     my $cmd = $ARGV[0];
     if (!defined($cmd)) {

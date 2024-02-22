@@ -33,12 +33,14 @@ compatiblilty with that.
 
 ## Quick Setup
 
-Beware that while the Debian distribution (and those based on it) do appear
-to provide n2n as a package, it is based on the antique 1.2 version from 2008
-and is not compatible with this version.
+Up-to-date binaries and packages for most distributions are available as
+part of the [latest stable release](https://github.com/n42n/n3n/releases/latest).
 
-Alternatively, up-to-date packages for most distributions are available as
-part of the [latest release](https://github.com/n42n/n3n/releases/latest).
+(Since the n3n is protocol compatible with the older n2n, you might be tempted
+to try and install a package provided by your distribution.  At the least
+Debian has a package called `n2n`, however it is based on the antique 1.2
+version from 2008 and that has not been compatible with n2n for many years, and
+thus is also not able to interoperate with n3n.)
 
 On host1 run:
 
@@ -47,7 +49,6 @@ $ sudo edge start \
     -c mynetwork \
     -k mysecretpass \
     -a 192.168.100.1 \
-    -f \
     -l supernode.ntop.org:7777
 ```
 
@@ -58,7 +59,6 @@ $ sudo edge start \
     -c mynetwork \
     -k mysecretpass \
     -a 192.168.100.2 \
-    -f \
     -l supernode.ntop.org:7777
 ```
 
@@ -107,16 +107,20 @@ make
 make install
 ```
 
-For Windows, MacOS, optimizations and general building options, please check
-out [Building documentation](doc/Building.md) for compilation and running.
+For compiling under Windows or MacOS, enabling various optimizations and
+generally other options available to build, please check the [Building
+documentation](doc/Building.md)
 
-**IMPORTANT** It is generally recommended to use the [latest stable
-release](https://github.com/n42n/n3n/releases). Please note that the current
-_main_ branch usually is not guaranteed to be backward compatible neither with
-the latest stable release nor with previous _main_ states. On the other hand,
-if you dare to try bleeding edge features, you are encouraged to compile from
-_main_ – just keep track of sometimes rapidly occuring changes. Feedback in the
-_Issues_ section is appreciated.
+The project _main_ branch is used for development work and reflects the code
+that is expected to go into the next release - it is thus possible that it
+has not been fully tested and may contain bugs or partially implemented
+features.  If you wish to help with testing or to implement a new feature, you
+are encouraged to compile from _main_.  Feedback in the _issues_ tracker is
+appreciated.
+
+Once a release is stable, it will be tagged - and if a bug fix needs to be
+backported to a stable release a branch will be created for the patch releases
+containing these backported patches.
 
 
 ## Security Considerations
@@ -131,7 +135,7 @@ choice. n3n edge nodes use AES encryption by default. Other ciphers can be
 chosen using the `community.cipher` option.
 
 A benchmark of the encryption methods is available when compiled from source
-with `tools/n2n-benchmark`.
+with `tools/n3n-benchmark`.
 
 The header which contains some metadata like the virtual MAC address of the
 edge nodes, their IP address, their real hostname and the community name
@@ -148,7 +152,7 @@ traffic restrictions and on how to run an edge as a service is available in the
 
 ## Contribution
 
-You can contribute to n2n in various ways:
+You can contribute to n3n in various ways:
 
 - Update an [open issue](https://github.com/n42n/n3n/issues) or create a new
   one with detailed information
@@ -156,7 +160,7 @@ You can contribute to n2n in various ways:
 - Improve the documentation
 - Provide pull requests with enhancements
 
-For details about the internals of n2n check out the [Hacking
+For details about the internals of n3n check out the [Hacking
 guide](doc/Hacking.md).
 
 

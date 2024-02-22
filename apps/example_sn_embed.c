@@ -43,7 +43,6 @@ int main () {
 #endif
 
     sn_init_conf_defaults(&sss_node,"supernode");
-    sss_node.conf.daemon = false;   // Whether to daemonize
     int lport = 1234; // Main UDP listen port
 
     memset(&local_address, 0, sizeof(local_address));

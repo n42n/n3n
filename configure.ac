@@ -10,6 +10,24 @@ AC_PROG_CC
 AC_CHECK_TOOL([AR], [ar], [false])
 AC_CHECK_TOOL([WINDRES], [windres], [windres])
 
+# The config guess official result for a modern and usual linux computer
+# is x86_64-pc-linux-gnu, however the debian package management (and debian
+# gcc) refer to this as x86_64-linux-gnu, so fix that..
+case "$host" in
+    x86_64-pc-linux-gnu)
+        host=x86_64-linux-gnu
+        ;;
+    i686-pc-linux-gnu)
+        host=i686-linux-gnu
+        ;;
+    arm-unknown-linux-gnueabihf)
+        host=arm-linux-gnueabihf
+        ;;
+    aarch64-unknown-linux-gnu)
+        host=aarch64-linux-gnu
+        ;;
+esac
+
 case "$host_os" in
     solaris*)
         # Was in Makefile with the test `uname` -eq "SunOS"
@@ -24,29 +42,6 @@ case "$host_os" in
         EXE=""
         ;;
 esac
-
-# This replicates the old config logic from the Makefile.
-# TODO: remove all this and just use the autotools default prefix
-# (which is "/usr/local")
-case "$host_os" in
-    darwin*)
-        ;;
-    *)
-        AC_PREFIX_DEFAULT(/usr)
-        ;;
-esac
-
-# TODO: ideally, should use AC_ARG_ENABLE
-AC_ARG_WITH([edgex],
-    AS_HELP_STRING([--with-edgex], [Build for Ubiquity-X]),
-    [], [with_edgex=no])
-AS_IF([test "x$with_edgex" != "xno"],
-    [
-        AC_MSG_NOTICE([Please contact us with your use case])
-        CC=mipsel-linux-gnu-gcc
-        AR=mipsel-linux-gnu-arzls
-    ],
-)
 
 # TODO: ideally, should use AC_ARG_ENABLE
 AC_ARG_WITH([zstd],
@@ -118,6 +113,7 @@ AC_SUBST(host)
 AC_SUBST(host_os)
 AC_SUBST(EXE)
 AC_SUBST(WINDRES)
+AC_SUBST(with_openssl)
 AC_CONFIG_HEADERS(include/config.h)
 AC_CONFIG_FILES(config.mak)
 

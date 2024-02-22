@@ -10,15 +10,18 @@ edge \- n3n edge node daemon
 .br
 .B edge --help
 .SH DESCRIPTION
-N3N is a peer-to-peer VPN system - it is the LAN you have when you have noLAN.
+n3n is a peer-to-peer VPN system - it is the LAN you have when you have noLAN.
 
-Edge is the edge node daemon for n3n which creates a TAP interface to expose
-the n3n virtual LAN. On startup the edge will load any config file, then any
-environment variables and then load the settings from the command line.
+.B edge
+is a daemon for n3n which creates a TAP interface to expose
+the n3n virtual LAN, providing an "edge node".
 
-Once it has the full config loaded, it will register with the supernode and
-create and setup the TAP interface so it can begin to find other nodes in the
-community.
+On startup
+.B edge
+will load any config file, then any environment variables and
+then load the settings from the command line.  Once it has the full config
+loaded, it will register with the supernode and create and setup the TAP
+interface so it can begin to find other nodes in the community.
 
 See the CONFIG and EXAMPLE sections for the use of the config file.
 
@@ -82,8 +85,9 @@ to allow n3n device being used in network bridging, e.g. with brctl.
 .TP
 .SH DAEMON Options
 .TP
-\fB\-f\fR
-do not fork and run as a daemon, rather run in foreground
+\fB\-d\fR, \fB\-\-daemon\fR
+Fork and run as a daemon, instead of the default of running in foreground.
+This is ignored on windows.
 .TP
 \fB\-v\fR, \fB\-\-verbose\fR
 make more verbose, repeat as required
@@ -146,7 +150,7 @@ supernode=supernode.ntop.org:7777
 Then start the daemon in the foreground:
 
 .RS
-.B edge start mynetwork -f
+.B edge start mynetwork
 .RE
 
 .TP
@@ -154,6 +158,7 @@ Then start the daemon in the foreground:
 
 .nf
 .B edge start \\\\
+    \--daemon \\
     \-O tuntap.name=n3n0 \\
     \-c mynetwork \\
     \-k encryptme \\
@@ -171,12 +176,12 @@ supernode at 123.121.120.119 UDP port 7654 and bind the locally used UDP port to
 address DE:AD:BE:EF:01:23 to the n3n interface and drop to user=99 and group=99
 after the TAP device is successfully configured.
 
-(Add the -f option to stop edge running as a daemon)
+(Remove the \-\-daemon option to stop edge running as a daemon)
 
 On a second computer setup another edge with similar parameters, eg:
 
 .nf
-.B edge \\\\
+.B edge start \\\\
     \-O tuntap.name=n3n0 \\
     \-c mynetwork \\
     \-k encryptme \\
