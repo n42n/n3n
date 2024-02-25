@@ -377,5 +377,8 @@ install: edge.8.gz supernode.1.gz n3n.7.gz
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) doc/*.md doc/*.sample $(DOCDIR)/
 
+# TODO:
+# install wireshark dissector
+
 .PHONY: install
 install: install.bin install.doc install.systemd
