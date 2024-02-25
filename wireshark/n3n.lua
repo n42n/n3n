@@ -23,6 +23,10 @@ PKT_TRANSFORM_NULL      = 1
 PKT_TRANSFORM_TWOFISH   = 2
 PKT_TRANSFORM_AESCBC    = 3
 
+PKT_COMPRESSION_NONE    = 1
+PKT_COMPRESSION_LZO     = 2
+PKT_COMPRESSION_ZSTD    = 3
+
 FLAG_FROM_SUPERNODE   = 0x0020
 FLAG_SOCKET           = 0x0040
 FLAG_OPTIONS          = 0x0080
@@ -83,6 +87,11 @@ query_peer_field = ProtoField.none("n3n.query_peer", "QueryPeer")
 
 
 packet_field = ProtoField.none("n3n.packet", "Packet")
+packet_compression = ProtoField.uint8("n3n.packet.compression", "Compression", base.HEX, {
+  [PKT_COMPRESSION_NONE] = "None",
+  [PKT_COMPRESSION_LZO] = "LZO",
+  [PKT_COMPRESSION_ZSTD] = "zstd",
+})
 packet_transform = ProtoField.uint8("n3n.packet.transform", "Transform", base.HEX, {
   [PKT_TRANSFORM_NULL] = "Plaintext",
   [PKT_TRANSFORM_TWOFISH] = "TwoFish",
@@ -122,7 +131,7 @@ n3n.fields = {
   -- PKT_TYPE_REGISTER
   register_field, register_cookie,
   -- PKT_TYPE_PACKET
-  packet_field, packet_transform, packet_payload,
+  packet_field, packet_compression, packet_transform, packet_payload,
   -- PKT_TYPE_REGISTER_ACK
   register_ack_field, register_ack_cookie,
   -- PKT_TYPE_REGISTER_SUPER
@@ -206,11 +215,13 @@ function dissect_packet(subtree, buffer, flags, pinfo)
     idx = 12
   end
 
-  pktree:add(packet_transform, buffer(idx,2))
+  pktree:add(packet_compression, buffer(idx,1))
+  pktree:add(packet_transform, buffer(idx+1,1))
   local payload = pktree:add(packet_payload, buffer(idx+2))
   local transform = buffer(idx,2):uint()
 
   -- Can only dissect unencrypted data
+  -- FIXME: compression!
   if(transform == PKT_TRANSFORM_NULL) then
     Dissector.get("eth_withoutfcs"):call(buffer(idx+2):tvb(), pinfo, payload)
   end
