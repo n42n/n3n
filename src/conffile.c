@@ -532,7 +532,7 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
                 return NULL;
             }
             ssize_t used = strlen(buf);
-            snprintf(buf + used, buflen - used, ":%i", htons(sa->sin_port));
+            snprintf(buf + used, buflen - used, ":%i", ntohs(sa->sin_port));
             return buf;
         }
         case n3n_conf_n2n_sock_addr: {

@@ -330,7 +330,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
 
         tmp[0] = '\0';
         inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(n2n_sock_str_t));
-        snprintf(out, N2N_SOCKBUF_SIZE, "[%s]:%hu", tmp[0] ? tmp : "", sock->port);
+        snprintf(out, N2N_SOCKBUF_SIZE, "[%s]:%hu", tmp[0] ? tmp : "", ntohs(sock->port));
         return out;
     } else {
         const uint8_t * a = sock->addr.v4;
@@ -340,7 +340,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
                  (unsigned short)(a[1] & 0xff),
                  (unsigned short)(a[2] & 0xff),
                  (unsigned short)(a[3] & 0xff),
-                 (unsigned short)sock->port);
+                 (unsigned short)ntohs(sock->port));
         return out;
     }
 }

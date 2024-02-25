@@ -256,7 +256,7 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
     }
 
     // remember the port number
-    out_sock->port = ntohs(local_sock.sin_port);
+    out_sock->port = local_sock.sin_port;
 
     // probe for local IP address
     probe_sock = socket(PF_INET, SOCK_DGRAM, 0);
