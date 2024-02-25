@@ -31,8 +31,10 @@ FLAG_FROM_SUPERNODE   = 0x0020
 FLAG_SOCKET           = 0x0040
 FLAG_OPTIONS          = 0x0080
 
-SOCKET_FAMILY_AF_INET  = 0x0000
-SOCKET_FAMILY_AF_INET6 = 0x8000
+SOCKET_FLAG_AF_INET  = 0x0000
+-- SOCKET_FLAG_?     = 0x2000
+SOCKET_FLAG_TCP      = 0x4000
+SOCKET_FLAG_AF_INET6 = 0x8000
 
 -- #############################################
 
@@ -152,9 +154,9 @@ function dissect_socket(subtree, buffer, offset)
   buffer = buffer(offset)
   local sock_family = bit.band(buffer(0,4):uint(), 0xFFFF0000)
 
-  if(sock_family == SOCKET_FAMILY_AF_INET) then
+  if(sock_family == SOCKET_FLAG_AF_INET) then
     sock_protolen = 4
-  elseif(sock_family == SOCKET_FAMILY_AF_INET6) then
+  elseif(sock_family == SOCKET_FLAG_AF_INET6) then
     sock_protolen = 16
   end
 
@@ -164,9 +166,9 @@ function dissect_socket(subtree, buffer, offset)
   socktree:add(socket_family, buffer(0, 2))
   socktree:add(socket_port, buffer(2, 2))
 
-  if(sock_family == SOCKET_FAMILY_AF_INET) then
+  if(sock_family == SOCKET_FLAG_AF_INET) then
     socktree:add(socket_ipv4, buffer(4, sock_protolen))
-  elseif(sock_family == SOCKET_FAMILY_AF_INET6) then
+  elseif(sock_family == SOCKET_FLAG_AF_INET6) then
     socktree:add(socket_ipv6, buffer(4, sock_protolen))
   end
 
