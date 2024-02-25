@@ -1,6 +1,7 @@
 -- (C) 2019 - ntop.org and contributors
+-- (C) 2024 Hamish Coleman
 
-n2n = Proto("n2n", "n2n Protocol")
+n3n = Proto("n3n", "n3n VPN Protocol")
 
 -- #############################################
 
@@ -29,8 +30,8 @@ SOCKET_FAMILY_AF_INET6 = 0x8000
 
 -- #############################################
 
-version = ProtoField.uint8("n2n.version", "version", base.DEC)
-ttl = ProtoField.uint8("n2n.ttl", "ttl", base.DEC)
+version = ProtoField.uint8("n3n.version", "version", base.DEC)
+ttl = ProtoField.uint8("n3n.ttl", "ttl", base.DEC)
 
 packet_type_mask = 0x001f
 pkt_type_2_str = {
@@ -46,68 +47,68 @@ pkt_type_2_str = {
   [PKT_TYPE_PEER_INFO] = "peer_info",
   [PKT_TYPE_QUERY_PEER] = "query_peer",
 }
-packet_type = ProtoField.uint8("n2n.packet_type", "packetType", base.HEX, pkt_type_2_str, packet_type_mask)
+packet_type = ProtoField.uint8("n3n.packet_type", "packetType", base.HEX, pkt_type_2_str, packet_type_mask)
 
 flags_mask = 0xffe0
-flags = ProtoField.uint16("n2n.flags", "Flags", base.HEX, nil, flags_mask)
-from_supernode_flag = ProtoField.uint16("n2n.flags.from_supernode", "from_supernode", base.BOOLEAN, nil, FLAG_FROM_SUPERNODE)
-socket_flag = ProtoField.uint16("n2n.flags.socket", "socket", base.BOOLEAN, nil, FLAG_SOCKET)
-options_flag = ProtoField.uint16("n2n.flags.options", "options", base.BOOLEAN, nil, FLAG_OPTIONS)
-community = ProtoField.string("n2n.community", "Community", base.ASCII)
+flags = ProtoField.uint16("n3n.flags", "Flags", base.HEX, nil, flags_mask)
+from_supernode_flag = ProtoField.uint16("n3n.flags.from_supernode", "from_supernode", base.BOOLEAN, nil, FLAG_FROM_SUPERNODE)
+socket_flag = ProtoField.uint16("n3n.flags.socket", "socket", base.BOOLEAN, nil, FLAG_SOCKET)
+options_flag = ProtoField.uint16("n3n.flags.options", "options", base.BOOLEAN, nil, FLAG_OPTIONS)
+community = ProtoField.string("n3n.community", "Community", base.ASCII)
 
 -- #############################################
 
-src_mac = ProtoField.ether("n2n.src_mac", "Source")
-dst_mac = ProtoField.ether("n2n.dst_mac", "Destination")
-socket_info = ProtoField.none("n2n.socket", "Socket Info")
-socket_family = ProtoField.uint16("n2n.socket.family", "Family", base.HEX, {
+src_mac = ProtoField.ether("n3n.src_mac", "Source")
+dst_mac = ProtoField.ether("n3n.dst_mac", "Destination")
+socket_info = ProtoField.none("n3n.socket", "Socket Info")
+socket_family = ProtoField.uint16("n3n.socket.family", "Family", base.HEX, {
   [0] = "AF_INET",
 })
-socket_port = ProtoField.uint16("n2n.socket.port", "Port")
-socket_ipv4 = ProtoField.ipv4("n2n.socket.ipv4", "IPv4")
-socket_ipv6 = ProtoField.ipv6("n2n.socket.ipv6", "IPv6")
+socket_port = ProtoField.uint16("n3n.socket.port", "Port")
+socket_ipv4 = ProtoField.ipv4("n3n.socket.ipv4", "IPv4")
+socket_ipv6 = ProtoField.ipv6("n3n.socket.ipv6", "IPv6")
 
 -- #############################################
 
-peer_info_field = ProtoField.none("n2n.peer_info", "PeerInfo")
-peer_info_flags = ProtoField.uint16("n2n.peer_info.flags", "Flags")
-peer_info_mac = ProtoField.ether("n2n.peer_info.query_mac", "Query")
+peer_info_field = ProtoField.none("n3n.peer_info", "PeerInfo")
+peer_info_flags = ProtoField.uint16("n3n.peer_info.flags", "Flags")
+peer_info_mac = ProtoField.ether("n3n.peer_info.query_mac", "Query")
 
-query_peer_field = ProtoField.none("n2n.query_peer", "QueryPeer")
+query_peer_field = ProtoField.none("n3n.query_peer", "QueryPeer")
 
 -- #############################################
 
 
 
-packet_field = ProtoField.none("n2n.packet", "Packet")
-packet_transform = ProtoField.uint16("n2n.packet.transform", "Transform", base.HEX, {
+packet_field = ProtoField.none("n3n.packet", "Packet")
+packet_transform = ProtoField.uint8("n3n.packet.transform", "Transform", base.HEX, {
   [PKT_TRANSFORM_NULL] = "Plaintext",
   [PKT_TRANSFORM_TWOFISH] = "TwoFish",
   [PKT_TRANSFORM_AESCBC] = "AES CBC",
 })
-packet_payload = ProtoField.bytes("n2n.packet.payload", "Payload")
+packet_payload = ProtoField.bytes("n3n.packet.payload", "Payload")
 
 -- #############################################
 
-register_field = ProtoField.none("n2n.register", "Register")
-register_cookie = ProtoField.uint32("n2n.register.cookie", "Cookie", base.HEX)
+register_field = ProtoField.none("n3n.register", "Register")
+register_cookie = ProtoField.uint32("n3n.register.cookie", "Cookie", base.HEX)
 
-register_ack_field = ProtoField.none("n2n.register_ack", "RegisterACK")
-register_ack_cookie = ProtoField.uint32("n2n.register_ack.cookie", "Cookie", base.HEX)
+register_ack_field = ProtoField.none("n3n.register_ack", "RegisterACK")
+register_ack_cookie = ProtoField.uint32("n3n.register_ack.cookie", "Cookie", base.HEX)
 
-register_super_field = ProtoField.none("n2n.register_super", "RegisterSuper")
-register_super_cookie = ProtoField.uint32("n2n.register_super.cookie", "Cookie", base.HEX)
-register_super_auth_schema = ProtoField.uint16("n2n.register_super.auth.schema", "AuthSchema", base.HEX)
-register_super_auth_data = ProtoField.uint16("n2n.register_super.auth.data", "AuthData", base.HEX)
+register_super_field = ProtoField.none("n3n.register_super", "RegisterSuper")
+register_super_cookie = ProtoField.uint32("n3n.register_super.cookie", "Cookie", base.HEX)
+register_super_auth_schema = ProtoField.uint16("n3n.register_super.auth.schema", "AuthSchema", base.HEX)
+register_super_auth_data = ProtoField.uint16("n3n.register_super.auth.data", "AuthData", base.HEX)
 
-register_super_ack_field = ProtoField.none("n2n.register_super_ack", "RegisterSuperACK")
-register_super_ack_cookie = ProtoField.uint32("n2n.register_super_ack.cookie", "Cookie", base.HEX)
-register_super_ack_lifetime = ProtoField.uint16("n2n.register_super_ack.lifetime", "Registration Lifetime", base.DEC)
-register_super_ack_num_sn = ProtoField.uint8("n2n.register_super_ack.num_sn", "Num Supernodes", base.DEC)
+register_super_ack_field = ProtoField.none("n3n.register_super_ack", "RegisterSuperACK")
+register_super_ack_cookie = ProtoField.uint32("n3n.register_super_ack.cookie", "Cookie", base.HEX)
+register_super_ack_lifetime = ProtoField.uint16("n3n.register_super_ack.lifetime", "Registration Lifetime", base.DEC)
+register_super_ack_num_sn = ProtoField.uint8("n3n.register_super_ack.num_sn", "Num Supernodes", base.DEC)
 
 -- #############################################
 
-n2n.fields = {
+n3n.fields = {
   version, ttl, packet_type,
   flags, from_supernode_flag, socket_flag, options_flag,
   community,
@@ -267,14 +268,14 @@ end
 
 -- #############################################
 
-function n2n.dissector(buffer, pinfo, tree)
+function n3n.dissector(buffer, pinfo, tree)
   local length = buffer:len()
   if length < 20 then return end
 
-  pinfo.cols.protocol = n2n.name
+  pinfo.cols.protocol = n3n.name
 
   local pkt_type = bit.band(buffer(2,2):uint(), packet_type_mask)
-  local subtree = tree:add(n2n, buffer(), string.format("n2n Protocol, Type: %s", pkt_type_2_str[pkt_type] or "Unknown"))
+  local subtree = tree:add(n3n, buffer(), string.format("n3n Protocol, Type: %s", pkt_type_2_str[pkt_type] or "Unknown"))
 
   -- Common
   subtree:add(version, buffer(0,1))
@@ -313,4 +314,4 @@ end
 -- #############################################
 
 local udp_port = DissectorTable.get("udp.port")
-udp_port:add(50001, n2n)
+udp_port:add(50001, n3n)
