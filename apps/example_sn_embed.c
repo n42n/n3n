@@ -59,6 +59,11 @@ int main () {
         exit(-2);
     }
 
+    memset(&local_address, 0, sizeof(local_address));
+    local_address.sin_family = AF_INET;
+    local_address.sin_port = htons(5645);
+    local_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
     // Could also initialise the management api and its socket
 
     sn_init(&sss_node);

@@ -35,7 +35,6 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     char *supernode_host;
     char *supernode_port;
     int nameerr;
-    // TODO: needs adjusting for IPv6
     const struct addrinfo aihints = {0, PF_INET, 0, 0, 0, NULL, NULL, NULL};
     struct addrinfo * ainfo = NULL;
     struct sockaddr_in * saddr;
@@ -76,7 +75,8 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
         return -3;
     }
 
-    nameerr = getaddrinfo(supernode_host, supernode_port, &aihints, &ainfo);
+    sn->port = atoi(supernode_port);
+    nameerr = getaddrinfo(supernode_host, NULL, &aihints, &ainfo);
 
     if(nameerr != 0) {
         traceEvent(
@@ -111,16 +111,6 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     saddr = (struct sockaddr_in *)ainfo->ai_addr;
     memcpy(sn->addr.v4, &(saddr->sin_addr.s_addr), IPV4_SIZE);
     sn->family = AF_INET;
-
-    if(saddr->sin_port == 0) {
-        traceEvent(
-            TRACE_INFO,
-            "could not determine supernode port (%s)",
-            supernode_port
-            );
-    }
-
-    sn->port = saddr->sin_port;
     traceEvent(TRACE_INFO, "supernode2sock successfully resolves supernode IPv4 address for %s", supernode_host);
 
     freeaddrinfo(ainfo); /* free everything allocated by getaddrinfo(). */

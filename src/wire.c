@@ -664,7 +664,7 @@ int fill_sockaddr (struct sockaddr * addr,
         if(addrlen >= sizeof(struct sockaddr_in)) {
             struct sockaddr_in * si = (struct sockaddr_in *)addr;
             si->sin_family = sock->family;
-            si->sin_port = sock->port;
+            si->sin_port = htons(sock->port);
             memcpy(&(si->sin_addr.s_addr), sock->addr.v4, IPV4_SIZE);
             retval = 0;
         }
@@ -673,7 +673,7 @@ int fill_sockaddr (struct sockaddr * addr,
         if(addrlen >= sizeof(struct sockaddr_in6)) {
             struct sockaddr_in6 * si = (struct sockaddr_in6 *)addr;
             si->sin6_family = sock->family;
-            si->sin6_port = sock->port;
+            si->sin6_port = htons(sock->port);
             memcpy(&(si->sin6_addr.s6_addr), sock->addr.v6, IPV6_SIZE);
             retval = 0;
         }
@@ -690,12 +690,12 @@ int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa) {
 
     switch(sock->family) {
         case AF_INET: {
-            sock->port = ((struct sockaddr_in*)sa)->sin_port;
+            sock->port = ntohs(((struct sockaddr_in*)sa)->sin_port);
             memcpy(sock->addr.v4, &((struct sockaddr_in*)sa)->sin_addr.s_addr, sizeof(struct in_addr));
             break;
         }
         case AF_INET6: {
-            sock->port = ((struct sockaddr_in6*)sa)->sin6_port;
+            sock->port = ntohs(((struct sockaddr_in6*)sa)->sin6_port);
             memcpy(sock->addr.v6, &((struct sockaddr_in6*)sa)->sin6_addr.s6_addr, sizeof(struct in6_addr));
             break;
         }
