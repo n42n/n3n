@@ -311,7 +311,7 @@ function n3n.dissector(buffer, pinfo, tree)
 
   if(pkt_type == PKT_TYPE_REGISTER) then
     dissect_register(subtree, typebuf, flags)
-  elseif(pkt_type == PKT_TYPE_REGISTER) then
+  elseif(pkt_type == PKT_TYPE_REGISTER_ACK) then
     dissect_register_ack(subtree, typebuf, flags)
   elseif(pkt_type == PKT_TYPE_PACKET) then
     dissect_packet(subtree, typebuf, flags, pinfo)
