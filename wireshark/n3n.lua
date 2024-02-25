@@ -83,6 +83,7 @@ peer_info_flags = ProtoField.uint16("n3n.peer_info.flags", "Flags")
 peer_info_mac = ProtoField.ether("n3n.peer_info.query_mac", "Query")
 
 query_peer_field = ProtoField.none("n3n.query_peer", "QueryPeer")
+aflags = ProtoField.uint16("n3n.query_peer.aflags", "aflags")
 
 -- #############################################
 
@@ -105,6 +106,9 @@ packet_payload = ProtoField.bytes("n3n.packet.payload", "Payload")
 
 register_field = ProtoField.none("n3n.register", "Register")
 register_cookie = ProtoField.uint32("n3n.register.cookie", "Cookie", base.HEX)
+register_ipv4 = ProtoField.ipv4("n3n.register.ipv4", "IPv4")
+register_ipv4_masklen = ProtoField.uint8("n3n.register.masklen", "masklen")
+register_desc = ProtoField.string("n3n.register.desc", "Description", base.ASCII)
 
 register_ack_field = ProtoField.none("n3n.register_ack", "RegisterACK")
 register_ack_cookie = ProtoField.uint32("n3n.register_ack.cookie", "Cookie", base.HEX)
@@ -112,12 +116,16 @@ register_ack_cookie = ProtoField.uint32("n3n.register_ack.cookie", "Cookie", bas
 register_super_field = ProtoField.none("n3n.register_super", "RegisterSuper")
 register_super_cookie = ProtoField.uint32("n3n.register_super.cookie", "Cookie", base.HEX)
 register_super_auth_schema = ProtoField.uint16("n3n.register_super.auth.schema", "AuthSchema", base.HEX)
-register_super_auth_data = ProtoField.uint16("n3n.register_super.auth.data", "AuthData", base.HEX)
+register_super_auth_size = ProtoField.uint16("n3n.register_super.auth.token_size", "AuthTokenSize", base.HEX)
+register_super_auth_data = ProtoField.bytes("n3n.register_super.auth.data", "AuthData")
+register_super_key_time = ProtoField.absolute_time("n3n.register_super.key_time", "key_time")
 
 register_super_ack_field = ProtoField.none("n3n.register_super_ack", "RegisterSuperACK")
 register_super_ack_cookie = ProtoField.uint32("n3n.register_super_ack.cookie", "Cookie", base.HEX)
 register_super_ack_lifetime = ProtoField.uint16("n3n.register_super_ack.lifetime", "Registration Lifetime", base.DEC)
 register_super_ack_num_sn = ProtoField.uint8("n3n.register_super_ack.num_sn", "Num Supernodes", base.DEC)
+
+supernode_info = ProtoField.none("n3n.supernode", "Supernode Info")
 
 -- #############################################
 
@@ -132,18 +140,25 @@ n3n.fields = {
 
   -- PKT_TYPE_REGISTER
   register_field, register_cookie,
+  register_ipv4, register_ipv4_masklen, register_desc,
   -- PKT_TYPE_PACKET
   packet_field, packet_compression, packet_transform, packet_payload,
   -- PKT_TYPE_REGISTER_ACK
   register_ack_field, register_ack_cookie,
   -- PKT_TYPE_REGISTER_SUPER
-  register_super_field, register_super_cookie, register_super_auth_schema, register_super_auth_data,
+  register_super_field, register_super_cookie,
+  register_super_auth_schema, register_super_auth_size,
+  register_super_auth_data,
+  register_super_key_time,
   -- PKT_TYPE_REGISTER_SUPER_ACK
-  register_super_ack_field, register_super_ack_cookie, register_super_ack_lifetime, register_super_ack_num_sn,
+  register_super_ack_field, register_super_ack_cookie,
+  register_super_ack_lifetime, register_super_ack_num_sn,
+  supernode_info,
   -- PKT_TYPE_PEER_INFO
   peer_info_field, peer_info_flags, peer_info_mac,
   -- PKT_TYPE_QUERY_PEER
   query_peer_field,
+  aflags,
 }
 
 -- #############################################
@@ -185,8 +200,14 @@ function dissect_register(subtree, buffer, flags)
   regtree:add(dst_mac, buffer(10,6))
 
   if(bit.band(flags, FLAG_SOCKET) == FLAG_SOCKET) then
-    dissect_socket(regtree, buffer, 16)
+    idx = dissect_socket(regtree, buffer, 16)
+  else
+    idx = 16
   end
+
+  regtree:add(register_ipv4, buffer(idx,4))
+  regtree:add(register_ipv4_masklen, buffer(idx+4,1))
+  regtree:add(register_desc, buffer(idx+5,16))
 
   return regtree
 end
@@ -199,6 +220,10 @@ function dissect_register_ack(subtree, buffer, flags)
   regtree:add(register_ack_cookie, buffer(0,4))
   regtree:add(src_mac, buffer(4,6))
   regtree:add(dst_mac, buffer(10,6))
+
+  if(bit.band(flags, FLAG_SOCKET) == FLAG_SOCKET) then
+    dissect_socket(subtree, buffer, 16)
+  end
 
   return regtree
 end
@@ -238,8 +263,26 @@ function dissect_register_super(subtree, buffer, flags)
 
   regtree:add(register_super_cookie, buffer(0,4))
   regtree:add(src_mac, buffer(4,6))
-  regtree:add(register_super_auth_schema, buffer(10,2))
-  regtree:add(register_super_auth_data, buffer(12,2))
+
+  if(bit.band(flags, FLAG_SOCKET) == FLAG_SOCKET) then
+    idx = dissect_socket(subtree, buffer, 10)
+  else
+    idx = 10
+  end
+
+  regtree:add(register_ipv4, buffer(idx,4))
+  regtree:add(register_ipv4_masklen, buffer(idx+4,1))
+  regtree:add(register_desc, buffer(idx+5,16))
+  idx = idx + 21
+
+  regtree:add(register_super_auth_schema, buffer(idx,2))
+  regtree:add(register_super_auth_size, buffer(idx+2,2))
+
+  local auth_size = buffer(idx+2,2):uint()
+  regtree:add(register_super_auth_data, buffer(idx+4,auth_size))
+  idx = idx + 4 + auth_size
+
+  regtree:add(register_super_key_time, buffer(idx,4))
 
   return regtree
 end
@@ -251,9 +294,37 @@ function dissect_register_super_ack(subtree, buffer, flags)
 
   regtree:add(register_super_ack_cookie, buffer(0,4))
   regtree:add(dst_mac, buffer(4,6))
-  regtree:add(register_super_ack_lifetime, buffer(10,2))
-  local idx = dissect_socket(regtree, buffer, 12)
+  regtree:add(register_ipv4, buffer(10,4))
+  regtree:add(register_ipv4_masklen, buffer(14,1))
+  regtree:add(register_super_ack_lifetime, buffer(15,2))
+
+  local idx = dissect_socket(regtree, buffer, 17)
+
+  regtree:add(register_super_auth_schema, buffer(idx,2))
+  regtree:add(register_super_auth_size, buffer(idx+2,2))
+
+  local auth_size = buffer(idx+2,2):uint()
+  regtree:add(register_super_auth_data, buffer(idx+4,auth_size))
+  idx = idx + 4 + auth_size
+
   regtree:add(register_super_ack_num_sn, buffer(idx, 1))
+  local num_sn = buffer(idx,1):uint()
+  idx = idx + 1
+
+  local sn_info_len = 26 * num_sn
+  local sn_tree = regtree:add(supernode_info, buffer(idx, sn_info_len))
+
+  -- TODO: for loop over sn info
+  -- - decode supernode buffer - array of num_sn of:
+  --    uint8_t sock[20]
+  --    n2n_max_t mac
+  dissect_socket(sn_tree, buffer, idx)
+  sn_tree:add(src_mac, buffer(idx+20,6))
+
+  idx = idx + sn_info_len
+
+  regtree:add(register_super_key_time, buffer(idx,4))
+
 
   return regtree
 end
@@ -277,6 +348,7 @@ function dissect_query_peer(subtree, buffer, flags)
 
   peertree:add(src_mac, buffer(0,6))
   peertree:add(dst_mac, buffer(6,6))
+  peertree:add(aflags, buffer(12,2))
 
   return peertree
 end
