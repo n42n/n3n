@@ -298,7 +298,7 @@ function n3n.dissector(buffer, pinfo, tree)
   subtree:add(packet_type, buffer(2,2))
   local flags_buffer = buffer(2,2)
   local flags_tree = subtree:add(flags, flags_buffer)
-  subtree:add(community, buffer(4,16))
+  subtree:add(community, buffer(4,20))
 
   -- Flags
   flags_tree:add(from_supernode_flag, flags_buffer)
@@ -307,7 +307,7 @@ function n3n.dissector(buffer, pinfo, tree)
 
   -- Packet specific
   local flags = bit.band(buffer(2,2):uint(), flags_mask)
-  local typebuf = buffer(20)
+  local typebuf = buffer(24)
 
   if(pkt_type == PKT_TYPE_REGISTER) then
     dissect_register(subtree, typebuf, flags)
