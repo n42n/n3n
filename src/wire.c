@@ -265,26 +265,25 @@ int encode_sock (uint8_t * base,
     int retval = 0;
     uint16_t f;
 
-    f = 0;
-    if(sock->type == SOCK_STREAM) {
-        f |= 0x4000;
-    }
-    if(sock->family == AF_INET6) {
-        f |= 0x8000;
-    }
-
-    retval += encode_uint16(base, idx, f);
-
-    // n2n_sock_t is always stored in network order, so it is a 2 byte buf
-    retval += encode_buf(base, idx, &(sock->port), 2);
-
     switch(sock->family) {
         case AF_INET: {
+            f = 0;
+            if(sock->type == SOCK_STREAM) {
+                f |= 0x4000;
+            }
+            retval += encode_uint16(base, idx, f);
+            retval += encode_uint16(base, idx, sock->port);
             retval += encode_buf(base, idx, sock->addr.v4, IPV4_SIZE);
             break;
         }
 
         case AF_INET6: {
+            f = 0x8000;
+            if(sock->type == SOCK_STREAM) {
+                f |= 0x4000;
+            }
+            retval += encode_uint16(base, idx, f);
+            retval += encode_uint16(base, idx, sock->port);
             retval += encode_buf(base, idx, sock->addr.v6, IPV6_SIZE);
             break;
         }
@@ -306,7 +305,7 @@ int decode_sock (n2n_sock_t * sock,
     uint16_t f = 0;
 
     decode_uint16(&f, base, rem, idx);
-    decode_buf((unsigned char *)&(sock->port), 2, base, rem, idx);
+    decode_uint16(&(sock->port), base, rem, idx);
 
     if(f & 0x8000) {
         // IPv6
