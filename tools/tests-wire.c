@@ -469,6 +469,9 @@ void pattern_PEER_INFO_prep1() {
     pattern_init_out_buffers();
     pattern_memset(&in_common, sizeof(in_common), 0);
     pattern_memset(&in_data, sizeof(n2n_PEER_INFO_t), sizeof(in_common));
+
+    n2n_PEER_INFO_t *reg = (n2n_PEER_INFO_t *)&in_data;
+    reg->sock.family = AF_INET;
 }
 
 void pattern_PEER_INFO_codec() {
