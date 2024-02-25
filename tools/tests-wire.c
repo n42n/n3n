@@ -193,7 +193,7 @@ void test_UNREGISTER_SUPER (n2n_common_t *common) {
 /*
  * Fill the memory region with a test pattern
  */
-static void pattern_memset(void *buf, int size, int offset) {
+static void pattern_memset (void *buf, int size, int offset) {
     unsigned char *p = (unsigned char *)buf;
     unsigned char ch = (offset % 255) + 1;
     while(size--) {
@@ -211,24 +211,24 @@ n2n_common_t in_common, out_common;
 unsigned char in_data[1600], out_data[1600];
 unsigned char in_tmpbuf[1600], out_tmpbuf[1600];
 
-void pattern_init_out_buffers() {
+void pattern_init_out_buffers () {
     memset(&pktbuf, 0, sizeof(pktbuf));
     pktbuf_size = 0;
     memset(&out_common, 0, sizeof(out_common));
     memset(&out_data, 0, sizeof(out_data));
 }
 
-void pattern_print_pktbuf() {
+void pattern_print_pktbuf () {
     printf("pktbuf:\n");
     fhexdump(0, pktbuf, pktbuf_size, stdout);
 }
 
-void pattern_print_common() {
+void pattern_print_common () {
     printf("out_common:\n");
     fhexdump(0, (void *)&out_common, sizeof(out_common), stdout);
 }
 
-void pattern_REGISTER_prep1() {
+void pattern_REGISTER_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -237,7 +237,7 @@ void pattern_REGISTER_prep1() {
     pattern_memset(&in_data, sizeof(n2n_REGISTER_t), sizeof(in_common));
 }
 
-void pattern_REGISTER_prep2() {
+void pattern_REGISTER_prep2 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -250,7 +250,7 @@ void pattern_REGISTER_prep2() {
     pattern_init_out_buffers();
 }
 
-void pattern_REGISTER_codec() {
+void pattern_REGISTER_codec () {
     encode_REGISTER(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -260,7 +260,7 @@ void pattern_REGISTER_codec() {
 
 }
 
-void pattern_REGISTER_print() {
+void pattern_REGISTER_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -270,7 +270,7 @@ void pattern_REGISTER_print() {
     printf("\n");
 }
 
-void pattern_PACKET_prep1() {
+void pattern_PACKET_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -279,7 +279,7 @@ void pattern_PACKET_prep1() {
     pattern_memset(&in_data, sizeof(n2n_PACKET_t), sizeof(in_common));
 }
 
-void pattern_PACKET_codec() {
+void pattern_PACKET_codec () {
     encode_PACKET(pktbuf, &pktbuf_size, &in_common, (n2n_PACKET_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -289,7 +289,7 @@ void pattern_PACKET_codec() {
 
 }
 
-void pattern_PACKET_print() {
+void pattern_PACKET_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -299,7 +299,7 @@ void pattern_PACKET_print() {
     printf("\n");
 }
 
-void pattern_REGISTER_ACK_prep1() {
+void pattern_REGISTER_ACK_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -308,7 +308,7 @@ void pattern_REGISTER_ACK_prep1() {
     pattern_memset(&in_data, sizeof(n2n_REGISTER_ACK_t), sizeof(in_common));
 }
 
-void pattern_REGISTER_ACK_codec() {
+void pattern_REGISTER_ACK_codec () {
     encode_REGISTER_ACK(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_ACK_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -318,7 +318,7 @@ void pattern_REGISTER_ACK_codec() {
 
 }
 
-void pattern_REGISTER_ACK_print() {
+void pattern_REGISTER_ACK_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -328,7 +328,7 @@ void pattern_REGISTER_ACK_print() {
     printf("\n");
 }
 
-void pattern_REGISTER_SUPER_prep1() {
+void pattern_REGISTER_SUPER_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -340,7 +340,7 @@ void pattern_REGISTER_SUPER_prep1() {
     reg->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 }
 
-void pattern_REGISTER_SUPER_codec() {
+void pattern_REGISTER_SUPER_codec () {
     encode_REGISTER_SUPER(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_SUPER_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -350,7 +350,7 @@ void pattern_REGISTER_SUPER_codec() {
 
 }
 
-void pattern_REGISTER_SUPER_print() {
+void pattern_REGISTER_SUPER_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -360,7 +360,7 @@ void pattern_REGISTER_SUPER_print() {
     printf("\n");
 }
 
-void pattern_UNREGISTER_SUPER_prep1() {
+void pattern_UNREGISTER_SUPER_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -372,7 +372,7 @@ void pattern_UNREGISTER_SUPER_prep1() {
     reg->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 }
 
-void pattern_UNREGISTER_SUPER_codec() {
+void pattern_UNREGISTER_SUPER_codec () {
     encode_UNREGISTER_SUPER(pktbuf, &pktbuf_size, &in_common, (n2n_UNREGISTER_SUPER_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -382,7 +382,7 @@ void pattern_UNREGISTER_SUPER_codec() {
 
 }
 
-void pattern_UNREGISTER_SUPER_print() {
+void pattern_UNREGISTER_SUPER_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -392,7 +392,7 @@ void pattern_UNREGISTER_SUPER_print() {
     printf("\n");
 }
 
-void pattern_REGISTER_SUPER_ACK_prep1() {
+void pattern_REGISTER_SUPER_ACK_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -408,7 +408,7 @@ void pattern_REGISTER_SUPER_ACK_prep1() {
     *((uint16_t *)&in_tmpbuf) = AF_INET;
 }
 
-void pattern_REGISTER_SUPER_ACK_codec() {
+void pattern_REGISTER_SUPER_ACK_codec () {
     encode_REGISTER_SUPER_ACK(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_SUPER_ACK_t *)&in_data, in_tmpbuf);
 
     size_t rem = pktbuf_size;
@@ -418,7 +418,7 @@ void pattern_REGISTER_SUPER_ACK_codec() {
 
 }
 
-void pattern_REGISTER_SUPER_ACK_print() {
+void pattern_REGISTER_SUPER_ACK_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -430,7 +430,7 @@ void pattern_REGISTER_SUPER_ACK_print() {
     printf("\n");
 }
 
-void pattern_REGISTER_SUPER_NAK_prep1() {
+void pattern_REGISTER_SUPER_NAK_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -442,7 +442,7 @@ void pattern_REGISTER_SUPER_NAK_prep1() {
     reg->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
 }
 
-void pattern_REGISTER_SUPER_NAK_codec() {
+void pattern_REGISTER_SUPER_NAK_codec () {
     encode_REGISTER_SUPER_NAK(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_SUPER_NAK_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -452,7 +452,7 @@ void pattern_REGISTER_SUPER_NAK_codec() {
 
 }
 
-void pattern_REGISTER_SUPER_NAK_print() {
+void pattern_REGISTER_SUPER_NAK_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -462,7 +462,7 @@ void pattern_REGISTER_SUPER_NAK_print() {
     printf("\n");
 }
 
-void pattern_PEER_INFO_prep1() {
+void pattern_PEER_INFO_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -474,7 +474,7 @@ void pattern_PEER_INFO_prep1() {
     reg->sock.family = AF_INET;
 }
 
-void pattern_PEER_INFO_codec() {
+void pattern_PEER_INFO_codec () {
     encode_PEER_INFO(pktbuf, &pktbuf_size, &in_common, (n2n_PEER_INFO_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -484,7 +484,7 @@ void pattern_PEER_INFO_codec() {
 
 }
 
-void pattern_PEER_INFO_print() {
+void pattern_PEER_INFO_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -494,7 +494,7 @@ void pattern_PEER_INFO_print() {
     printf("\n");
 }
 
-void pattern_QUERY_PEER_prep1() {
+void pattern_QUERY_PEER_prep1 () {
     printf("%s:\n", __func__);
     fprintf(stderr,"%s:\n", __func__);
 
@@ -503,7 +503,7 @@ void pattern_QUERY_PEER_prep1() {
     pattern_memset(&in_data, sizeof(n2n_QUERY_PEER_t), sizeof(in_common));
 }
 
-void pattern_QUERY_PEER_codec() {
+void pattern_QUERY_PEER_codec () {
     encode_QUERY_PEER(pktbuf, &pktbuf_size, &in_common, (n2n_QUERY_PEER_t *)&in_data);
 
     size_t rem = pktbuf_size;
@@ -513,7 +513,7 @@ void pattern_QUERY_PEER_codec() {
 
 }
 
-void pattern_QUERY_PEER_print() {
+void pattern_QUERY_PEER_print () {
     pattern_print_pktbuf();
     pattern_print_common();
 
@@ -523,7 +523,7 @@ void pattern_QUERY_PEER_print() {
     printf("\n");
 }
 
-void pattern_tests() {
+void pattern_tests () {
     pattern_REGISTER_prep1();
     pattern_REGISTER_codec();
     pattern_REGISTER_print();
