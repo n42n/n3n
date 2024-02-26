@@ -1150,6 +1150,8 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         // invalid socket file descriptor, e.g. TCP unconnected has fd of '-1'
         return;
 
+    peer_addr.sin_port = 0;
+
     // network order socket
     fill_sockaddr((struct sockaddr *) &peer_addr, sizeof(peer_addr), dest);
 
