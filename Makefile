@@ -352,7 +352,7 @@ distclean:
 .PHONY: dpkg
 dpkg:
 	DEBEMAIL=builder@example.com dch -v ${VERSION}-1 --no-auto-nmu local package Auto Build
-	env -u CFLAGS dpkg-buildpackage -rfakeroot -d -us -uc --host-type ${CONFIG_HOST}
+	env -u CFLAGS dpkg-buildpackage -rfakeroot -us -uc --host-type ${CONFIG_HOST}
 
 .PHONY: install.bin
 install.bin: apps
