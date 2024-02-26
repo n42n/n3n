@@ -1,0 +1,13 @@
+
+# Files generated during the dpkg build process
+.debhelper/
+autoreconf.after
+autoreconf.before
+debhelper-build-stamp
+files
+n3n.debhelper.log
+n3n.postinst.debhelper
+n3n.postrm.debhelper
+n3n.prerm.debhelper
+n3n.substvars
+n3n/
