@@ -29,7 +29,6 @@ PKT_COMPRESSION_ZSTD    = 3
 
 FLAG_FROM_SUPERNODE   = 0x0020
 FLAG_SOCKET           = 0x0040
-FLAG_OPTIONS          = 0x0080
 
 SOCKET_FLAG_AF_INET  = 0x0000
 -- SOCKET_FLAG_?     = 0x2000
@@ -61,7 +60,6 @@ flags_mask = 0xffe0
 flags = ProtoField.uint16("n3n.flags", "Flags", base.HEX, nil, flags_mask)
 from_supernode_flag = ProtoField.uint16("n3n.flags.from_supernode", "from_supernode", base.BOOLEAN, nil, FLAG_FROM_SUPERNODE)
 socket_flag = ProtoField.uint16("n3n.flags.socket", "socket", base.BOOLEAN, nil, FLAG_SOCKET)
-options_flag = ProtoField.uint16("n3n.flags.options", "options", base.BOOLEAN, nil, FLAG_OPTIONS)
 community = ProtoField.string("n3n.community", "Community", base.ASCII)
 
 -- #############################################
@@ -131,7 +129,7 @@ supernode_info = ProtoField.none("n3n.supernode", "Supernode Info")
 
 n3n.fields = {
   version, ttl, packet_type,
-  flags, from_supernode_flag, socket_flag, options_flag,
+  flags, from_supernode_flag, socket_flag,
   community,
 
   -- Generic
@@ -375,7 +373,6 @@ function n3n.dissector(buffer, pinfo, tree)
   -- Flags
   flags_tree:add(from_supernode_flag, flags_buffer)
   flags_tree:add(socket_flag, flags_buffer)
-  flags_tree:add(options_flag, flags_buffer)
 
   -- Packet specific
   local flags = bit.band(buffer(2,2):uint(), flags_mask)

@@ -1635,7 +1635,7 @@ static int process_udp (struct n3n_runtime_data * sss,
     if((udp_buf[23] == (uint8_t)0x00) // null terminated community name
        && (udp_buf[00] == N2N_PKT_VERSION) // correct packet version
        && ((be16toh(*(uint16_t*)&(udp_buf[02])) & N2N_FLAGS_TYPE_MASK) <= MSG_TYPE_MAX_TYPE) // message type
-       && ( be16toh(*(uint16_t*)&(udp_buf[02])) < N2N_FLAGS_OPTIONS) // flags
+       && ( be16toh(*(uint16_t*)&(udp_buf[02])) < N2N_FLAGS_OPTIONS_MAX) // flags
        ) {
         /* most probably unencrypted */
         /* make sure, no downgrading happens here and no unencrypted packets can be

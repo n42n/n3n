@@ -154,7 +154,10 @@ typedef enum n2n_pc {
     n2n_re_register_super =  12     /* ask edge to re-register with supernode */
 } n2n_pc_t;
 
-#define N2N_FLAGS_OPTIONS                0x0080
+// This one bit higher than the largest used flag value.  It is used in the
+// header encryption detection heuristic and is not a flag itself
+#define N2N_FLAGS_OPTIONS_MAX            0x0080
+
 #define N2N_FLAGS_SOCKET                 0x0040
 #define N2N_FLAGS_FROM_SUPERNODE         0x0020
 
