@@ -21,7 +21,9 @@
 
 #include <inttypes.h>   // for PRIx64
 #include <n3n/edge.h>
+#include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/random.h> // for n3n_srand_stable_default
 #include <stdint.h>     // for uint8_t
 #include <stdio.h>      // for printf, fprintf, size_t, stderr, stdout
 #include <stdlib.h>     // for exit
@@ -72,6 +74,9 @@ int main (int argc, char * argv[]) {
     n2n_trans_op_t transop_zstd;
 #endif
     n2n_edge_conf_t conf;
+
+    // Do this early to register all internals
+    n3n_initfuncs();
 
     /* Init configuration */
     edge_init_conf_defaults(&conf,"_TEST");
@@ -150,6 +155,7 @@ static void run_transop_benchmark (const char *op_name, n2n_trans_op_t *op_fn, n
     memset(mac_buf, 0, sizeof(mac_buf));
 
     nw = do_encode_packet( pktbuf, N2N_PKT_BUF_SIZE, conf->community_name);
+    n3n_srand_stable_default();
     nw += op_fn->fwd(op_fn,
                      pktbuf+nw, N2N_PKT_BUF_SIZE-nw,
                      PKT_CONTENT, sizeof(PKT_CONTENT), mac_buf);

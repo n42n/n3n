@@ -86,6 +86,11 @@ static uint64_t splitmix64 (splitmix64_state_t *state) {
     return result ^ (result >> 31);
 }
 
+// Used mainly during testing to generate a known random sequence
+void n3n_srand_stable_default () {
+    rn_current_state.a = 0x9E3779B97F4A7C15;
+    rn_current_state.b = 0xBF58476D1CE4E5B9;
+}
 
 static int n3n_srand (uint64_t seed) {
 
@@ -101,8 +106,7 @@ static int n3n_srand (uint64_t seed) {
     // the following lines could be deleted as soon as it is formally prooved that
     // there is no seed leading to (a == b == 0). until then, just to be safe:
     if((rn_current_state.a == 0) && (rn_current_state.b == 0)) {
-        rn_current_state.a = 0x9E3779B97F4A7C15;
-        rn_current_state.b = 0xBF58476D1CE4E5B9;
+        n3n_srand_stable_default();
     }
 
     // stabilize in unlikely case of weak state with only a few bits set

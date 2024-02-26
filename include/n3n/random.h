@@ -26,6 +26,9 @@
 
 uint64_t n3n_rand (void);
 
+// Only use when attempting to make a reproducible test case
+void n3n_srand_stable_default (void);
+
 uint32_t n3n_rand_sqr (uint32_t max_n);
 
 
