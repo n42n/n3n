@@ -33,42 +33,6 @@
 #include "sn_selection.h"
 
 
-int encode_uint8 (uint8_t * base,
-                  size_t * idx,
-                  const uint8_t v);
-
-int decode_uint8 (uint8_t * out,
-                  const uint8_t * base,
-                  size_t * rem,
-                  size_t * idx);
-
-int encode_uint16 (uint8_t * base,
-                   size_t * idx,
-                   const uint16_t v);
-
-int decode_uint16 (uint16_t * out,
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx);
-
-int encode_uint32 (uint8_t * base,
-                   size_t * idx,
-                   const uint32_t v);
-
-int decode_uint32 (uint32_t * out,
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx);
-
-int encode_uint64 (uint8_t * base,
-                   size_t * idx,
-                   const uint64_t v);
-
-int decode_uint64 (uint64_t * out,
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx);
-
 int encode_buf (uint8_t * base,
                 size_t * idx,
                 const void * p,
@@ -80,24 +44,6 @@ int decode_buf (uint8_t * out,
                 size_t * rem,
                 size_t * idx);
 
-int encode_mac (uint8_t * base,
-                size_t * idx,
-                const n2n_mac_t m);
-
-int decode_mac (n2n_mac_t out,
-                const uint8_t * base,
-                size_t * rem,
-                size_t * idx);
-
-int encode_cookie (uint8_t * base,
-                   size_t * idx,
-                   const n2n_cookie_t c);
-
-int decode_cookie (n2n_cookie_t * out,
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx);
-
 int encode_common (uint8_t * base,
                    size_t * idx,
                    const n2n_common_t * common);
@@ -106,15 +52,6 @@ int decode_common (n2n_common_t * out,
                    const uint8_t * base,
                    size_t * rem,
                    size_t * idx);
-
-int encode_sock (uint8_t * base,
-                 size_t * idx,
-                 const n2n_sock_t * sock);
-
-int decode_sock (n2n_sock_t * sock,
-                 const uint8_t * base,
-                 size_t * rem,
-                 size_t * idx);
 
 // bugfix for https://github.com/ntop/n2n/issues/1029
 // REVISIT: best to be removed with 4.0

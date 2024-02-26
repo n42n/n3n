@@ -27,7 +27,6 @@
 #include <string.h>          // for memcpy, size_t, memset, memcmp, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 #include "n2n.h"             // for n2n_trans_op_t
-#include "n2n_wire.h"        // for encode_buf
 #include "pearson.h"         // for pearson_hash_256
 #include "tf.h"              // for TF_BLOCK_SIZE, tf_cbc_decrypt, tf_cbc_en...
 
@@ -101,7 +100,8 @@ static int transop_encode_tf (n2n_trans_op_t *arg,
             idx = TF_PREAMBLE_SIZE;
 
             // the plaintext data
-            encode_buf(assembly, &idx, inbuf, in_len);
+            memcpy((assembly + idx), inbuf, in_len);
+            idx += in_len;
 
             // round up to next whole TF block size
             padded_len = (((idx - 1) / TF_BLOCK_SIZE) + 1) * TF_BLOCK_SIZE;

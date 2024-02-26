@@ -42,9 +42,9 @@
 #endif
 
 
-int encode_uint8 (uint8_t * base,
-                  size_t * idx,
-                  const uint8_t v) {
+static int encode_uint8 (uint8_t * base,
+                         size_t * idx,
+                         const uint8_t v) {
 
     *(base + (*idx)) = (v & 0xff);
     ++(*idx);
@@ -52,10 +52,10 @@ int encode_uint8 (uint8_t * base,
     return 1;
 }
 
-int decode_uint8 (uint8_t * out,
-                  const uint8_t * base,
-                  size_t * rem,
-                  size_t * idx) {
+static int decode_uint8 (uint8_t * out,
+                         const uint8_t * base,
+                         size_t * rem,
+                         size_t * idx) {
 
     if(*rem < 1) {
         return 0;
@@ -68,9 +68,9 @@ int decode_uint8 (uint8_t * out,
     return 1;
 }
 
-int encode_uint16 (uint8_t * base,
-                   size_t * idx,
-                   const uint16_t v) {
+static int encode_uint16 (uint8_t * base,
+                          size_t * idx,
+                          const uint16_t v) {
 
     *(base + (*idx))     = ( v >> 8) & 0xff;
     *(base + (1 + *idx)) = ( v & 0xff );
@@ -79,10 +79,10 @@ int encode_uint16 (uint8_t * base,
     return 2;
 }
 
-int decode_uint16 (uint16_t * out,
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx) {
+static int decode_uint16 (uint16_t * out,
+                          const uint8_t * base,
+                          size_t * rem,
+                          size_t * idx) {
 
     if(*rem < 2) {
         return 0;
@@ -96,9 +96,9 @@ int decode_uint16 (uint16_t * out,
     return 2;
 }
 
-int encode_uint32 (uint8_t * base,
-                   size_t * idx,
-                   const uint32_t v) {
+static int encode_uint32 (uint8_t * base,
+                          size_t * idx,
+                          const uint32_t v) {
 
     *(base + (0 + *idx)) = ( v >> 24) & 0xff;
     *(base + (1 + *idx)) = ( v >> 16) & 0xff;
@@ -109,10 +109,10 @@ int encode_uint32 (uint8_t * base,
     return 4;
 }
 
-int decode_uint32 (uint32_t * out,
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx) {
+static int decode_uint32 (uint32_t * out,
+                          const uint8_t * base,
+                          size_t * rem,
+                          size_t * idx) {
 
     if(*rem < 4) {
         return 0;
@@ -128,9 +128,11 @@ int decode_uint32 (uint32_t * out,
     return 4;
 }
 
-int encode_uint64 (uint8_t * base,
-                   size_t * idx,
-                   const uint64_t v) {
+#if 0
+// Not used anywhere, uncommment when this changes
+static int encode_uint64 (uint8_t * base,
+                          size_t * idx,
+                          const uint64_t v) {
 
     *(uint64_t*)(base + *idx) = htobe64(v);
     *idx += 8;
@@ -138,10 +140,10 @@ int encode_uint64 (uint8_t * base,
     return 8;
 }
 
-int decode_uint64 (uint64_t * out,
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx) {
+static int decode_uint64 (uint64_t * out,
+                          const uint8_t * base,
+                          size_t * rem,
+                          size_t * idx) {
 
     if(*rem < 8) {
         return 0;
@@ -153,6 +155,7 @@ int decode_uint64 (uint64_t * out,
 
     return 8;
 }
+#endif
 
 int encode_buf (uint8_t * base,
                 size_t * idx,
@@ -184,32 +187,32 @@ int decode_buf (uint8_t * out,
 }
 
 
-int encode_mac (uint8_t * base,  /* n2n_mac_t is typedefed array type which is always passed by reference */
-                size_t * idx,
-                const n2n_mac_t m) {
+static int encode_mac (uint8_t * base,  /* n2n_mac_t is typedefed array type which is always passed by reference */
+                       size_t * idx,
+                       const n2n_mac_t m) {
 
     return encode_buf(base, idx, m, N2N_MAC_SIZE);
 }
 
-int decode_mac (n2n_mac_t out,
-                const uint8_t * base,
-                size_t * rem,
-                size_t * idx) {
+static int decode_mac (n2n_mac_t out,
+                       const uint8_t * base,
+                       size_t * rem,
+                       size_t * idx) {
 
     return decode_buf(out, N2N_MAC_SIZE, base, rem, idx);
 }
 
-int encode_cookie (uint8_t * base,
-                   size_t * idx,
-                   const n2n_cookie_t c) {
+static int encode_cookie (uint8_t * base,
+                          size_t * idx,
+                          const n2n_cookie_t c) {
 
     return encode_uint32(base, idx, c);
 }
 
-int decode_cookie (n2n_cookie_t * out,  /* cookies are typedef'd as uint32_t which needs to correspond to this code */
-                   const uint8_t * base,
-                   size_t * rem,
-                   size_t * idx) {
+static int decode_cookie (n2n_cookie_t * out,  /* cookies are typedef'd as uint32_t which needs to correspond to this code */
+                          const uint8_t * base,
+                          size_t * rem,
+                          size_t * idx) {
 
     return decode_uint32(out, base, rem, idx);
 }
@@ -258,9 +261,9 @@ int decode_common (n2n_common_t * out,
 }
 
 
-int encode_sock (uint8_t * base,
-                 size_t * idx,
-                 const n2n_sock_t * sock) {
+static int encode_sock (uint8_t * base,
+                        size_t * idx,
+                        const n2n_sock_t * sock) {
 
     int retval = 0;
     uint16_t f;
@@ -296,10 +299,10 @@ int encode_sock (uint8_t * base,
 }
 
 
-int decode_sock (n2n_sock_t * sock,
-                 const uint8_t * base,
-                 size_t * rem,
-                 size_t * idx) {
+static int decode_sock (n2n_sock_t * sock,
+                        const uint8_t * base,
+                        size_t * rem,
+                        size_t * idx) {
 
     size_t * idx0 = idx;
     uint16_t f = 0;
