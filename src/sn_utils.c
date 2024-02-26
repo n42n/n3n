@@ -1475,8 +1475,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
 
             reg.key_time = sss->dynamic_key_time;
 
-            idx = 0;
-            encode_mac(reg.edgeMac, &idx, sss->conf.sn_mac_addr);
+            memcpy(reg.edgeMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t));
 
             idx = 0;
             encode_REGISTER_SUPER(pktbuf, &idx, &cmn, &reg);

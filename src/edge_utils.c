@@ -47,7 +47,7 @@
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "management.h"              // for readFromMgmtSocket
 #include "n2n.h"                     // for n3n_runtime_data, n2n_edge_...
-#include "n2n_wire.h"                // for encode_mac, fill_sockaddr, decod...
+#include "n2n_wire.h"                // for fill_sockaddr, decod...
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
 #include "portable_endian.h"         // for be16toh, htobe16
@@ -1246,11 +1246,8 @@ void send_query_peer (struct n3n_runtime_data * eee,
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
-    idx = 0;
-    encode_mac(query.srcMac, &idx, eee->device.mac_addr);
-
-    idx = 0;
-    encode_mac(query.targetMac, &idx, dst_mac);
+    memcpy(query.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t));
+    memcpy(query.targetMac, dst_mac, sizeof(n2n_mac_t));
 
     idx = 0;
     encode_QUERY_PEER(pktbuf, &idx, &cmn, &query);
@@ -1340,8 +1337,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
     get_local_auth(eee, &(reg.auth));
 
-    idx = 0;
-    encode_mac(reg.edgeMac, &idx, eee->device.mac_addr);
+    memcpy(reg.edgeMac, eee->device.mac_addr, sizeof(n2n_mac_t));
 
     idx = 0;
     encode_REGISTER_SUPER(pktbuf, &idx, &cmn, &reg);
@@ -1383,8 +1379,7 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
     get_local_auth(eee, &(unreg.auth));
 
-    idx = 0;
-    encode_mac(unreg.srcMac, &idx, eee->device.mac_addr);
+    memcpy(unreg.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t));
 
     idx = 0;
     encode_UNREGISTER_SUPER(pktbuf, &idx, &cmn, &unreg);
@@ -1475,13 +1470,11 @@ static void send_register (struct n3n_runtime_data * eee,
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
     reg.cookie = cookie;
-    idx = 0;
-    encode_mac(reg.srcMac, &idx, eee->device.mac_addr);
+    memcpy(reg.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t));
 
     if(peer_mac) {
         // can be NULL for multicast registrations
-        idx = 0;
-        encode_mac(reg.dstMac, &idx, peer_mac);
+        memcpy(reg.dstMac, peer_mac, sizeof(n2n_mac_t));
     }
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
     reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
