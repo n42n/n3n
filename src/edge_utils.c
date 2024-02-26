@@ -3251,6 +3251,8 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
         exit(1);
     }
     chown(unixsock, eee->conf.userid, eee->conf.groupid);
+    // Deliberately ignore the result - either it worked or not
+    // TODO: mark it so the compiler doesnt complain
 #endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
