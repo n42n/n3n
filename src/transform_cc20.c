@@ -28,7 +28,6 @@
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 #include "cc20.h"            // for CC20_IV_SIZE, cc20_crypt, cc20_deinit
 #include "n2n.h"             // for n2n_trans_op_t
-#include "n2n_wire.h"        // for encode_uint64
 #include "pearson.h"         // for pearson_hash_256
 
 
@@ -75,13 +74,11 @@ static int transop_encode_cc20 (n2n_trans_op_t *arg,
 
     if(in_len <= N2N_PKT_BUF_SIZE) {
         if((in_len + CC20_PREAMBLE_SIZE) <= out_len) {
-            size_t idx = 0;
-
             traceEvent(TRACE_DEBUG, "encode_cc20 %lu bytes", in_len);
 
             // full iv sized random value (128 bit)
-            encode_uint64(outbuf, &idx, n3n_rand());
-            encode_uint64(outbuf, &idx, n3n_rand());
+            *(uint64_t *)(&outbuf[0]) = n3n_rand();
+            *(uint64_t *)(&outbuf[8]) = n3n_rand();
 
             len = in_len;
             cc20_crypt(outbuf + CC20_PREAMBLE_SIZE,
