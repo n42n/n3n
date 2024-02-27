@@ -1,0 +1,294 @@
+#!/usr/bin/env python3
+"""Send and recieve test packets"""
+#
+# Copyright (C) 2024 Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
+
+import argparse
+import pprint
+import socket
+import struct
+
+
+def hexdump(display_addr, data):
+    size = len(data)
+
+    row = 0
+    while size > 0:
+        print(f"{display_addr:03x}: ", end="")
+
+        for i in range(16):
+            if i < size:
+                print(f"{data[row+i]:02x}", end="")
+            else:
+                print("  ", end="")
+
+            if i == 7:
+                print(" ", end="")
+            print(" ", end="")
+
+        print("  |", end="")
+
+        for i in range(16):
+            if i < size:
+                ch = data[row+i]
+                if ch >= 0x20 and ch <= 0x7e:
+                    print(chr(ch), end="")
+                else:
+                    print(" ", end="")
+
+        print("|")
+
+        size -= 16
+        display_addr += 16
+        row += 16
+
+
+class PacketBase():
+    names = [
+        None,
+        "REGISTER",             # 1
+        "DEREGISTER",
+        "PACKET",
+        "REGISTER_ACK",
+        "REGISTER_SUPER",       # 5
+        "UNREGISTER_SUPER",
+        "REGISTER_SUPER_ACK",
+        "REGISTER_SUPER_NAK",
+        "FEDERATION",
+        "PEER_INFO",            # 10
+        "QUERY_PEER",
+        "RE_REGISTER_SUPER",
+    ]
+
+    defaults = {
+        "data": {
+            "version": 3,
+            "ttl": 2,
+            "flags": 0,
+            "community": b"test",
+            "cookie": 0x1000,
+            "srcMac": b"\x00\x00\x00\x00\x00\x01",
+            "dstMac": b"\x22\x3e\x4c\x5b\xa8\xdd",
+            "edgeMac": b"\x00\x00\x00\x00\x00\x03",
+            "ipv4": b"\x00\x00\x00\x00",
+            "masklen": 0,
+            "desc": b"packetgenerator",
+            "auth_scheme": 0,   # n2n_auth_none
+            "auth_token_size": 0,
+            "auth_token": b"",
+            "key_time": 600,
+        },
+        "format": "!BBH20s",
+        "fields": [
+            "version",
+            "ttl",
+            "type_flags",
+            "community",
+        ],
+    }
+
+    types = {
+        1: {
+            "data": {},
+            "format": "I6s6s4sB16s",
+            "fields": [
+                "cookie",
+                "srcMac",
+                "dstMac",
+                # TODO? Optional sock
+                "ipv4",
+                "masklen",
+                "desc",
+            ],
+        },
+        5: {
+            "data": {},
+            "format": "I6s4sB16sHHL",
+            "fields": [
+                "cookie",
+                "edgeMac",
+                # TODO? Optional sock
+                "ipv4",
+                "masklen",
+                "desc",
+                "auth_scheme",
+                "auth_token_size",
+                # "auth_token" if token_size
+                "key_time",
+            ],
+        },
+        7: {
+            "data": {},
+            "format": "I6s4sBHHH4sHHB",
+            "fields": [
+                "cookie",
+                "srcMac",
+                "ipv4",
+                "masklen",
+                "lifetime",
+                "sock_flag",
+                "sock_port",
+                "sock_v4",      # FIXME - variable size, based on sock_flag
+                "auth_scheme",
+                "auth_token_size",
+                # "auth_token",   # FIXME - variable size, based on token_size
+                "num_sn",
+                # TODO: SN buf
+            ],
+        },
+    }
+
+    @classmethod
+    def set_default(cls, key, val):
+        cls.defaults["data"][key] = val
+
+    @classmethod
+    def get_default(cls, key):
+        return cls.defaults["data"][key]
+
+    @classmethod
+    def id2type(cls, id):
+        return cls.names[id]
+
+    @classmethod
+    def type2id(cls, name):
+        return cls.names.index(name)
+
+    def __init__(self, name):
+        # Set the default values for the common fields
+        self.data = self.defaults["data"].copy()
+        self.format = self.defaults["format"]
+        self.fields = self.defaults["fields"].copy()
+
+        if isinstance(name, int):
+            pkt_type = name
+        else:
+            pkt_type = self.type2id(name)
+        self.data["type"] = pkt_type
+
+        if pkt_type in self.types:
+            self.data.update(self.types[pkt_type]["data"])
+            self.format += self.types[pkt_type]["format"]
+            self.fields += self.types[pkt_type]["fields"]
+
+    def encode(self):
+        # special case for this one field
+        self.data["type_flags"] = self.data["type"] & 0x1f
+        self.data["type_flags"] |= self.data["flags"] & 0xffe0
+
+        fielddata = [self.data[f] for f in self.fields]
+        self.buffer = struct.pack(self.format, *fielddata)
+        return self.buffer
+
+    def decode(self, buffer):
+        self.buffer = buffer
+
+        # first, get the type
+        data = struct.unpack("!BBH", buffer[:4])
+        pkt_type = data[2] & 0x1f
+
+        # now, turn ourselves into that type
+        self.__init__(pkt_type)
+
+        formatstr = self.format
+        calcsize = struct.calcsize(formatstr)
+        if len(buffer) > calcsize:
+            # dont abort on to many bytes, simply ignore them all
+            formatstr += f"{len(buffer) - calcsize}x"
+        if len(buffer) < calcsize:
+            print(f"buffer: {len(buffer)}")
+            print(f"calcsize: {calcsize}")
+            print(f"format: {formatstr}")
+            raise ValueError("buf too small")
+
+        # finally, properly decode
+        self.data = {
+            "_name": self.id2type(pkt_type)
+        }
+        data = struct.unpack(formatstr, buffer)
+
+        for i in range(len(data)):
+            key = self.fields[i]
+            val = data[i]
+            self.data[key] = val
+
+        # special case for this one field
+        self.data["type"] = self.data["type_flags"] & 0x1f
+        self.data["flags"] = self.data["type_flags"] & 0xffe0
+
+        return self.data
+
+
+# to supernode:
+# - PACKET -> forwarded to another node
+# - REGISTER -> forwarded
+# - REGISTER_SUPER -> REGISTER_SUPER_NAK or REGISTER_SUPER_ACK and/or forwarded
+# - UNREGISTER_SUPER -> deletes peer, no reply
+# - QUERY_PEER -> PEER_INFO
+# - PEER_INFO -> forwarded
+
+# to edge:
+# - PACKET -> processed to tun
+# - REGISTER -> if !from_supernode, REGISTER_ACK
+# - PEER_INFO -> REGISTER
+# - RE_REGISTER_SUPER -> REGISTER_SUPER , multicast REGISTER
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument(
+        "-s",
+        "--server",
+        help="host and port of server to contact",
+        default="localhost:1968"
+    )
+    ap.add_argument(
+        "--bind",
+        help="bind local socket to port",
+        default=False
+    )
+    ap.add_argument(
+        "-c",
+        "--community",
+        help="The n3n community name",
+        default="test"
+    )
+    ap.add_argument(
+        "-t",
+        "--timeout",
+        help="how long to wait for replies",
+        default=10
+    )
+    ap.add_argument("packet", help="Which packet to send")
+
+    args = ap.parse_args()
+
+    host, sep, port = args.server.partition(":")
+    port = int(port)
+
+    community = args.community.encode("utf8")
+    PacketBase.set_default("community", community)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(args.timeout)
+    if args.bind:
+        sock.bind(('',int(args.bind)))
+
+    send_pkt = PacketBase(args.packet)
+    buf = send_pkt.encode()
+    print("test:")
+    hexdump(0, buf)
+
+    sock.sendto(buf, (host, port))
+
+    data = sock.recv(1600)
+
+    print("recv:")
+    hexdump(0, data)
+    recv_pkt = PacketBase(None)
+    recv_pkt.decode(data)
+    pprint.pp(recv_pkt.decode(data))
+
+if __name__ == '__main__':
+    main()

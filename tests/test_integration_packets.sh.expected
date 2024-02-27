@@ -1,0 +1,36 @@
+### test: ./apps/supernode -v --daemon -Oconnection.bind=7001 -Osupernode.macaddr=02:00:00:00:00:01 start ci_sn
+
+### test: ./scripts/test_packets --bind=7000 -s localhost:7001 REGISTER_SUPER
+test:
+000: 03 02 00 05 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
+010: 00 00 00 00 00 00 00 00  00 00 10 00 00 00 00 00   |                |
+020: 00 03 00 00 00 00 00 70  61 63 6b 65 74 67 65 6e   |       packetgen|
+030: 65 72 61 74 6f 72 00 00  00 00 00 00 00 02 58      |erator        X|
+recv:
+000: 03 02 00 67 74 65 73 74  00 00 00 00 00 00 00 00   |   gtest        |
+010: 00 00 00 00 00 00 00 00  00 00 10 00 02 00 00 00   |                |
+020: 00 01 0a c8 af 73 18 00  0f 00 00 1b 58 7f 00 00   |     s      X   |
+030: 01 00 00 00 00 00 00 00  00 00                     |          |
+{'_name': 'REGISTER_SUPER_ACK',
+ 'version': 3,
+ 'ttl': 2,
+ 'type_flags': 103,
+ 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+              b'\x00\x00\x00\x00',
+ 'cookie': 4096,
+ 'srcMac': b'\x02\x00\x00\x00\x00\x01',
+ 'ipv4': b'\n\xc8\xafs',
+ 'masklen': 24,
+ 'lifetime': 15,
+ 'sock_flag': 0,
+ 'sock_port': 7000,
+ 'sock_v4': b'\x7f\x00\x00\x01',
+ 'auth_scheme': 0,
+ 'auth_token_size': 0,
+ 'num_sn': 0,
+ 'type': 7,
+ 'flags': 96}
+
+### test: ./scripts/n3nctl -s ci_sn -k n3n stop
+0
+
