@@ -32,6 +32,11 @@ docmd "${BINDIR}"/apps/supernode \
 docmd "${BINDIR}"/scripts/test_packets \
     --bind=7000 \
     -s localhost:7001 \
-    REGISTER_SUPER
+    test_REGISTER_SUPER
+
+docmd "${BINDIR}"/scripts/test_packets \
+    --bind=7000 \
+    -s localhost:7001 \
+    test_QUERY_PEER_ping
 
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn -k $AUTH stop
