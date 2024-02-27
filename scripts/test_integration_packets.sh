@@ -26,7 +26,7 @@ docmd "${BINDIR}"/apps/supernode \
     --daemon \
     -Oconnection.bind=7001 \
     -Osupernode.macaddr=02:00:00:00:00:01 \
-    start ci_sn
+    start ci_sn1
 
 
 docmd "${BINDIR}"/scripts/test_packets \
@@ -34,9 +34,25 @@ docmd "${BINDIR}"/scripts/test_packets \
     -s localhost:7001 \
     test_REGISTER_SUPER
 
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw |grep -v last_seen
+
+# Once we register, we can query for that registration
+docmd "${TOPDIR}"/scripts/test_packets \
+    --bind 7000 \
+    -s localhost:7001 \
+    test_QUERY_PEER
+
 docmd "${BINDIR}"/scripts/test_packets \
-    --bind=7000 \
+    --bind 7000 \
     -s localhost:7001 \
     test_QUERY_PEER_ping
 
-docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn -k $AUTH stop
+docmd "${BINDIR}"/scripts/test_packets \
+    --bind 7000 \
+    -s localhost:7001 \
+    --timeout 0 \
+    test_UNREGISTER_SUPER
+
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw
+
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 -k $AUTH stop

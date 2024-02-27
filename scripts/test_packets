@@ -140,6 +140,18 @@ class PacketBase():
                 "key_time",
             ],
         },
+        "test_UNREGISTER_SUPER": {
+            "data": {
+                "type": 6,
+            },
+            "format": "HH6s",
+            "fields": [
+                "auth_scheme",
+                "auth_token_size",
+                # "auth_token" if token_size
+                "edgeMac",
+            ],
+        },
         7: {
             "format": "I6s4sBHHH4sHHB",
             "fields": [
@@ -178,6 +190,17 @@ class PacketBase():
                 "version": b"_stabilised_",
             },
         },
+        "test_QUERY_PEER": {
+            "data": {
+                "type": 11,
+            },
+            "format": "6s6sH",
+            "fields": [
+                "srcMac",
+                "edgeMac",
+                "aflags",
+            ],
+        },
         "test_QUERY_PEER_ping": {
             "data": {
                 "type": 11,
@@ -199,6 +222,7 @@ class PacketBase():
         self.fields = self.defaults["fields"].copy()
         self.buffer = None
 
+        self.unstable_fields = {}
         if scenario in self.types:
             if "data" in self.types[scenario]:
                 self.data.update(self.types[scenario]["data"])
@@ -206,8 +230,6 @@ class PacketBase():
             self.fields += self.types[scenario]["fields"]
             if "unstable_fields" in self.types[scenario]:
                 self.unstable_fields = self.types[scenario]["unstable_fields"]
-            else:
-                self.unstable_fields = {}
 
     def encode(self):
         if "type" not in self.data:
@@ -242,9 +264,13 @@ class PacketBase():
             raise ValueError("buf too small")
 
         # finally, properly decode
-        self.data = {
-            "_name": self.id2type(pkt_type)
-        }
+        self.data = { }
+        try:
+            self.data["_name"] = self.id2type(pkt_type)
+        except IndexError:
+            # probably header encrypted
+            return self.data
+
         data = struct.unpack(formatstr, buffer)
 
         for i in range(len(data)):
@@ -261,10 +287,12 @@ class PacketBase():
     def stable_values(self):
         """Remove fields that will constantly change - allowing testing"""
 
+        changed = False
         for field, val in self.unstable_fields.items():
             self.data[field] = val
+            changed = True
 
-        if self.buffer is not None:
+        if changed and self.buffer is not None:
             self.encode()
 
 
@@ -294,6 +322,7 @@ def main():
     ap.add_argument(
         "--bind",
         help="bind local socket to port",
+        type=int,
         default=False
     )
     ap.add_argument(
@@ -305,6 +334,7 @@ def main():
     ap.add_argument(
         "-t",
         "--timeout",
+        type=int,
         help="how long to wait for replies",
         default=10
     )
@@ -326,14 +356,18 @@ def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(args.timeout)
     if args.bind:
-        sock.bind(('',int(args.bind)))
+        sock.bind(('', args.bind))
 
-    send_pkt = PacketBase(args.scenario)
-    buf = send_pkt.encode()
-    print("test:")
-    hexdump(0, buf)
+    if args.scenario != "listen":
+        send_pkt = PacketBase(args.scenario)
+        buf = send_pkt.encode()
+        print("test:")
+        hexdump(0, buf)
 
-    sock.sendto(buf, (host, port))
+        sock.sendto(buf, (host, port))
+
+    if args.timeout == 0:
+        return
 
     data = sock.recv(1600)
 
@@ -346,6 +380,7 @@ def main():
     print("recv:")
     hexdump(0, recv_pkt.buffer)
     pprint.pp(recv_pkt.data)
+
 
 if __name__ == '__main__':
     main()

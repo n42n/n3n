@@ -1,4 +1,4 @@
-### test: ./apps/supernode -v --daemon -Oconnection.bind=7001 -Osupernode.macaddr=02:00:00:00:00:01 start ci_sn
+### test: ./apps/supernode -v --daemon -Oconnection.bind=7001 -Osupernode.macaddr=02:00:00:00:00:01 start ci_sn1
 
 ### test: ./scripts/test_packets --bind=7000 -s localhost:7001 test_REGISTER_SUPER
 test:
@@ -10,7 +10,7 @@ recv:
 000: 03 02 00 67 74 65 73 74  00 00 00 00 00 00 00 00   |   gtest        |
 010: 00 00 00 00 00 00 00 00  00 00 10 00 02 00 00 00   |                |
 020: 00 01 0a c8 af 73 18 00  0f 00 00 1b 58 7f 00 00   |     s      X   |
-030: 01 00 00 00 00 00                                  |      |
+030: 01 00 00 00 00 00 00 00  00 00                     |          |
 {'_name': 'REGISTER_SUPER_ACK',
  'proto_version': 3,
  'ttl': 2,
@@ -31,7 +31,52 @@ recv:
  'type': 7,
  'flags': 96}
 
-### test: ./scripts/test_packets --bind=7000 -s localhost:7001 test_QUERY_PEER_ping
+### test: ./scripts/n3nctl -s ci_sn1 get_edges --raw
+[
+    {
+        "community": "test",
+        "desc": "packetgenerator",
+        "ip4addr": "",
+        "last_p2p": 0,
+        "last_sent_query": 0,
+        "local": 0,
+        "macaddr": "00:00:00:00:00:03",
+        "mode": "sn",
+        "purgeable": 1,
+        "sockaddr": "127.0.0.1:7000"
+    }
+]
+
+### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_QUERY_PEER
+test:
+000: 03 02 00 0b 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
+010: 00 00 00 00 00 00 00 00  00 00 00 00 00 01 00 00   |                |
+020: 00 00 00 03 00 00                                  |      |
+recv:
+000: 03 02 00 2a 74 65 73 74  00 00 00 00 00 00 00 00   |   *test        |
+010: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 01   |                |
+020: 00 00 00 00 00 03 00 00  1b 58 7f 00 00 01 ff ff   |         X      |
+030: ff ff ff ff ff ff 5f 73  74 61 62 69 6c 69 73 65   |      _stabilise|
+040: 64 5f 00 00 00 00 00 00  00 00                     |d_        |
+{'_name': 'PEER_INFO',
+ 'proto_version': 3,
+ 'ttl': 2,
+ 'type_flags': 42,
+ 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+              b'\x00\x00\x00\x00',
+ 'aflags': 0,
+ 'srcMac': b'\x00\x00\x00\x00\x00\x01',
+ 'mac': b'\x00\x00\x00\x00\x00\x03',
+ 'sock_flag': 0,
+ 'sock_port': 7000,
+ 'sock_v4': b'\x7f\x00\x00\x01',
+ 'load': 4294967295,
+ 'uptime': 4294967295,
+ 'version': b'_stabilised_',
+ 'type': 10,
+ 'flags': 32}
+
+### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_QUERY_PEER_ping
 test:
 000: 03 02 00 0b 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
 010: 00 00 00 00 00 00 00 00  00 00 00 00 00 01 00 00   |                |
@@ -60,6 +105,15 @@ recv:
  'type': 10,
  'flags': 32}
 
-### test: ./scripts/n3nctl -s ci_sn -k n3n stop
+### test: ./scripts/test_packets --bind 7000 -s localhost:7001 --timeout 0 test_UNREGISTER_SUPER
+test:
+000: 03 02 00 06 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
+010: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   |                |
+020: 00 03                                              |  |
+
+### test: ./scripts/n3nctl -s ci_sn1 get_edges --raw
+[]
+
+### test: ./scripts/n3nctl -s ci_sn1 -k n3n stop
 0
 
