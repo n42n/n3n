@@ -126,7 +126,7 @@ class PacketBase():
         type_flags = self.data["type"] & 0x1f
         type_flags |= self.data["flags"] & 0xffe0
 
-        return struct.pack(
+        self.buffer += struct.pack(
             "!BBH20s",
             self.data["proto_version"],
             self.data["ttl"],
@@ -189,12 +189,12 @@ class PacketBase():
         return calcsize
 
     def encode(self):
-        common = self.encode_common()
+        self.buffer = b""
+        self.encode_common()
 
         fielddata = [self.data[f] for f in self.fields]
-        specific = struct.pack(self.format, *fielddata)
+        self.buffer += struct.pack(self.format, *fielddata)
 
-        self.buffer = common + specific
         return self.buffer
 
     def decode(self, buffer):
@@ -278,7 +278,8 @@ class PacketREGISTER(PacketBase):
     def encode(self):
         self.data["type"] = 1
 
-        common = self.encode_common()
+        self.buffer = b""
+        self.encode_common()
         specific1 = struct.pack(
             self.format1,
             self.data["cookie"],
@@ -298,7 +299,7 @@ class PacketREGISTER(PacketBase):
             self.data["desc"],
         )
 
-        self.buffer = common + specific1 + sock + specific2
+        self.buffer += specific1 + sock + specific2
         return self.buffer
 
     def decode(self, buffer):
@@ -324,9 +325,66 @@ class PacketREGISTER(PacketBase):
         return self.data
 
 
+class PacketPACKET(PacketBase):
+    format1 = "!6s6s"
+    format2 = "!BB"
+
+    def encode(self):
+        self.data["type"] = 3
+
+        self.buffer = b""
+        self.encode_common()
+        specific1 = struct.pack(
+            self.format1,
+            self.data["srcMac"],
+            self.data["edgeMac"],
+        )
+
+        if self.flags_socket():
+            sock = self.encode_sock()
+        else:
+            sock = b""
+
+        specific2 = struct.pack(
+            self.format2,
+            self.data["compression"],
+            self.data["transform"],
+        )
+
+        self.buffer += specific1 + sock + specific2
+        self.buffer += struct.pack("64s", self.data["packet"])
+        return self.buffer
+
+    def decode(self, buffer):
+        _, buffer = self._decode_prep(buffer)
+
+        calcsize1 = struct.calcsize(self.format1)
+        buffer1 = buffer[:calcsize1]
+        buffer2 = buffer[calcsize1:]
+        data = struct.unpack(self.format1, buffer1)
+        self.data["srcMac"] = data[0]
+        self.data["edgeMac"] = data[1]
+
+        if self.flags_socket():
+            size2 = self.decode_sock(buffer2)
+            buffer2 = buffer2[size2:]
+
+        calcsize2 = struct.calcsize(self.format2)
+        packet = buffer2[calcsize2:]
+        buffer2 = buffer2[:calcsize2]
+
+        data = struct.unpack(self.format2, buffer2)
+        self.data["compression"] = data[0]
+        self.data["transform"] = data[1]
+
+        self.data["packet"] = packet
+        return self.data
+
+
 class PacketGeneric(PacketBase):
     specific = {
         1: PacketREGISTER,
+        3: PacketPACKET,
     }
 
     @classmethod
@@ -354,25 +412,8 @@ class PacketGeneric(PacketBase):
         "test_REGISTER": {
             "class": PacketREGISTER,
         },
-        # 1:
-        #   TODO
-        #   - the test_REGISTER scenario causes the packet to be forwarded
-        #   - the forwarded version has the optional sock added
-        #   - so we want a way to share the frame definition, but support
-        #     the optional sock :-(
         "test_PACKET": {
-            "data": {
-                "type": 3,
-            },
-            "format": "!6s6sBB64s",
-            "fields": [
-                "srcMac",
-                "edgeMac",
-                # TODO? Optional sock
-                "compression",
-                "transform",
-                "packet",
-            ],
+            "class": PacketPACKET,
         },
         "test_REGISTER_SUPER": {
             "data": {
