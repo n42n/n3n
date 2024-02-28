@@ -109,7 +109,6 @@ class PacketBase():
     def __init__(self, scenario=None):
         # Set the default values for all the field data
         self.data = self.defaults.copy()
-        self.buffer = None
         self.unstable_fields = {}
         self._init_format(scenario)
 
@@ -117,8 +116,13 @@ class PacketBase():
         """Remove this after the specific object classes conversion"""
         pass
 
-    def encode_common(self):
-        """Append the buffer with just the common header fields"""
+    def encode_common(self, pkt_type=None):
+        """Initialize the buffer with just the common header fields"""
+        self.buffer = b""
+
+        if pkt_type is not None:
+            self.data["type"] = pkt_type
+
         if "type" not in self.data:
             raise ValueError("Unknown packet type")
 
@@ -134,9 +138,12 @@ class PacketBase():
             self.data["community"]
         )
 
-    def decode_common(self):
+    def decode_common(self, buffer):
         """Extract just the common fields from the buffer"""
-        data = struct.unpack("!BBH20s", self.buffer[:24])
+        self.data = {}
+
+        calcsize = 24
+        data = struct.unpack("!BBH20s", buffer[:calcsize])
         pkt_type = data[2] & 0x1f
 
         try:
@@ -149,6 +156,7 @@ class PacketBase():
         self.data["type"] = pkt_type
         self.data["flags"] = data[2] & 0xffe0
         self.data["community"] = data[3]
+        return calcsize
 
     def encode_sock(self):
         # TODO: sock->type == SOCK_STREAM
@@ -189,7 +197,6 @@ class PacketBase():
         return calcsize
 
     def encode(self):
-        self.buffer = b""
         self.encode_common()
 
         fielddata = [self.data[f] for f in self.fields]
@@ -198,11 +205,10 @@ class PacketBase():
         return self.buffer
 
     def decode(self, buffer):
-        self.buffer = buffer
         self.data = {}
 
         # first, get the common header
-        self.decode_common()
+        self.decode_common(buffer)
 
         # now, turn ourselves into that type
         self._init_format(self.data["type"])
@@ -231,10 +237,9 @@ class PacketBase():
     def _decode_prep(self, buffer):
         """Perform as much as possible of the shared work for decoding"""
         self.buffer = buffer
-        self.data = {}
 
         # first, get the common header
-        self.decode_common()
+        self.decode_common(buffer)
 
         # Remove the header from our working data
         buffer = buffer[24:]
@@ -270,55 +275,59 @@ class PacketBase():
     def flags_socket(self):
         return self.data["flags"] & 0x0040
 
+    def pack_fields(self, format, *fields):
+        fielddata = [self.data[f] for f in fields]
+        self.buffer += struct.pack(format, *fielddata)
+
+    def unpack_fields(self, buffer, format, *fields):
+        calcsize = struct.calcsize(format)
+        data = struct.unpack(format, buffer[:calcsize])
+
+        for i in range(len(data)):
+            key = fields[i]
+            val = data[i]
+            self.data[key] = val
+
+        return calcsize
+
 
 class PacketREGISTER(PacketBase):
     format1 = "!I6s6s"
     format2 = "!4sB16s"
 
     def encode(self):
-        self.data["type"] = 1
-
-        self.buffer = b""
-        self.encode_common()
-        self.buffer += struct.pack(
-            self.format1,
-            self.data["cookie"],
-            self.data["srcMac"],
-            self.data["edgeMac"],
-        )
+        self.encode_common(1)
+        self.pack_fields(self.format1, "cookie", "srcMac", "edgeMac")
 
         if self.flags_socket():
             self.encode_sock()
 
-        self.buffer += struct.pack(
-            self.format2,
-            self.data["ipv4"],
-            self.data["masklen"],
-            self.data["desc"],
-        )
+        self.pack_fields(self.format2, "ipv4", "masklen", "desc")
 
         return self.buffer
 
     def decode(self, buffer):
-        _, buffer = self._decode_prep(buffer)
-
-        calcsize1 = struct.calcsize(self.format1)
-        buffer1 = buffer[:calcsize1]
-        buffer2 = buffer[calcsize1:]
-        data = struct.unpack(self.format1, buffer1)
-        self.data["cookie"] = data[0]
-        self.data["srcMac"] = data[1]
-        self.data["edgeMac"] = data[2]
+        offset = self.decode_common(buffer)
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format1,
+            "cookie",
+            "srcMac",
+            "edgeMac",
+        )
 
         if self.flags_socket():
-            size2 = self.decode_sock(buffer2)
-            buffer2 = buffer2[size2:]
+            offset += self.decode_sock(buffer[offset:])
 
-        data = struct.unpack(self.format2, buffer2)
-        self.data["ipv4"] = data[0]
-        self.data["masklen"] = data[1]
-        self.data["desc"] = data[2]
+        self.unpack_fields(
+            buffer[offset:],
+            self.format2,
+            "ipv4",
+            "masklen",
+            "desc",
+        )
 
+        self.buffer = buffer
         return self.data
 
 
@@ -327,51 +336,38 @@ class PacketPACKET(PacketBase):
     format2 = "!BB"
 
     def encode(self):
-        self.data["type"] = 3
-
-        self.buffer = b""
-        self.encode_common()
-        self.buffer += struct.pack(
-            self.format1,
-            self.data["srcMac"],
-            self.data["edgeMac"],
-        )
+        self.encode_common(3)
+        self.pack_fields(self.format1, "srcMac", "edgeMac")
 
         if self.flags_socket():
             self.encode_sock()
 
-        self.buffer += struct.pack(
-            self.format2,
-            self.data["compression"],
-            self.data["transform"],
-        )
+        self.pack_fields(self.format2, "compression", "transform")
 
         self.buffer += struct.pack("64s", self.data["packet"])
         return self.buffer
 
     def decode(self, buffer):
-        _, buffer = self._decode_prep(buffer)
-
-        calcsize1 = struct.calcsize(self.format1)
-        buffer1 = buffer[:calcsize1]
-        buffer2 = buffer[calcsize1:]
-        data = struct.unpack(self.format1, buffer1)
-        self.data["srcMac"] = data[0]
-        self.data["edgeMac"] = data[1]
+        offset = self.decode_common(buffer)
+        offset += self.unpack_fields(
+                buffer[offset:],
+                self.format1,
+                "srcMac",
+                "edgeMac",
+        )
 
         if self.flags_socket():
-            size2 = self.decode_sock(buffer2)
-            buffer2 = buffer2[size2:]
+            offset += self.decode_sock(buffer[offset:])
 
-        calcsize2 = struct.calcsize(self.format2)
-        packet = buffer2[calcsize2:]
-        buffer2 = buffer2[:calcsize2]
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format2,
+            "compression",
+            "transform",
+        )
 
-        data = struct.unpack(self.format2, buffer2)
-        self.data["compression"] = data[0]
-        self.data["transform"] = data[1]
-
-        self.data["packet"] = packet
+        self.data["packet"] = buffer[offset:]
+        self.buffer = buffer
         return self.data
 
 
@@ -384,8 +380,7 @@ class PacketGeneric(PacketBase):
     @classmethod
     def from_buffer(cls, buffer):
         obj = PacketGeneric()
-        obj.buffer = buffer
-        obj.decode_common()
+        obj.decode_common(buffer)
         pkt_type = obj.data["type"]
         if pkt_type in cls.specific:
             obj = cls.specific[pkt_type]()
