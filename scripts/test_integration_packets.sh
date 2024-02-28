@@ -28,6 +28,12 @@ docmd "${BINDIR}"/apps/supernode \
     -Osupernode.macaddr=02:00:00:00:00:01 \
     start ci_sn1
 
+# Just request a PONG packet. Done before the registration binds us
+docmd "${BINDIR}"/scripts/test_packets \
+    --bind 7000 \
+    -s localhost:7001 \
+    test_QUERY_PEER_ping
+
 # Register a mac address with the supernode
 docmd "${BINDIR}"/scripts/test_packets \
     --bind 7000 \
@@ -42,12 +48,6 @@ docmd "${TOPDIR}"/scripts/test_packets \
     --bind 7000 \
     -s localhost:7001 \
     test_QUERY_PEER
-
-# Just request a PONG packet
-docmd "${BINDIR}"/scripts/test_packets \
-    --bind 7000 \
-    -s localhost:7001 \
-    test_QUERY_PEER_ping
 
 # Since we are bound to the same udp port as the registration, when we
 # send a register to that, the supernode forwards it to us - as we are
