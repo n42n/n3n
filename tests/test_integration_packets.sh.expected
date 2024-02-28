@@ -14,7 +14,8 @@ recv:
 {'_name': 'REGISTER_SUPER_ACK',
  'proto_version': 3,
  'ttl': 2,
- 'type_flags': 103,
+ 'type': 7,
+ 'flags': 96,
  'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
               b'\x00\x00\x00\x00',
  'cookie': 4096,
@@ -27,9 +28,7 @@ recv:
  'sock_v4': b'\x7f\x00\x00\x01',
  'auth_scheme': 0,
  'auth_token_size': 0,
- 'num_sn': 0,
- 'type': 7,
- 'flags': 96}
+ 'num_sn': 0}
 
 ### test: ./scripts/n3nctl -s ci_sn1 get_edges --raw
 [
@@ -61,7 +60,8 @@ recv:
 {'_name': 'PEER_INFO',
  'proto_version': 3,
  'ttl': 2,
- 'type_flags': 42,
+ 'type': 10,
+ 'flags': 32,
  'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
               b'\x00\x00\x00\x00',
  'aflags': 0,
@@ -72,9 +72,7 @@ recv:
  'sock_v4': b'\x7f\x00\x00\x01',
  'load': 4294967295,
  'uptime': 4294967295,
- 'version': b'_stabilised_',
- 'type': 10,
- 'flags': 32}
+ 'version': b'_stabilised_'}
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_QUERY_PEER_ping
 test:
@@ -90,7 +88,8 @@ recv:
 {'_name': 'PEER_INFO',
  'proto_version': 3,
  'ttl': 2,
- 'type_flags': 42,
+ 'type': 10,
+ 'flags': 32,
  'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
               b'\x00\x00\x00\x00',
  'aflags': 0,
@@ -101,9 +100,7 @@ recv:
  'sock_v4': b'\x7f\x00\x00\x01',
  'load': 4294967295,
  'uptime': 4294967295,
- 'version': b'_stabilised_',
- 'type': 10,
- 'flags': 32}
+ 'version': b'_stabilised_'}
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_REGISTER
 test:
@@ -120,11 +117,10 @@ recv:
 {'_name': 'REGISTER',
  'proto_version': 3,
  'ttl': 1,
- 'type_flags': 97,
- 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-              b'\x00\x00\x00\x00',
  'type': 1,
- 'flags': 96}
+ 'flags': 96,
+ 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+              b'\x00\x00\x00\x00'}
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_PACKET
 test:
@@ -146,11 +142,10 @@ recv:
 {'_name': 'PACKET',
  'proto_version': 3,
  'ttl': 1,
- 'type_flags': 99,
- 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-              b'\x00\x00\x00\x00',
  'type': 3,
- 'flags': 96}
+ 'flags': 96,
+ 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+              b'\x00\x00\x00\x00'}
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 --timeout 0 test_UNREGISTER_SUPER
 test:

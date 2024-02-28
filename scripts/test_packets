@@ -91,17 +91,10 @@ class PacketBase():
             "compression": 1,   # COMPRESSION_ID_NONE
             "transform": 1,     # TRANSFORM_ID_NULL
             "packet": b"\x02\x00\x00\x00\x00\x11"
-                b"\x02\x00\x00\x00\x00\x22"
-                b"\x0f\x0f"
-                b"\x55\xaa",
+                      b"\x02\x00\x00\x00\x00\x22"
+                      b"\x0f\x0f"
+                      b"\x55\xaa",
         },
-        "format": "!BBH20s",
-        "fields": [
-            "proto_version",
-            "ttl",
-            "type_flags",
-            "community",
-        ],
     }
 
     @classmethod
@@ -117,7 +110,7 @@ class PacketBase():
             "data": {
                 "type": 1,
             },
-            "format": "I6s6s4sB16s",
+            "format": "!I6s6s4sB16s",
             "fields": [
                 "cookie",
                 "srcMac",
@@ -138,7 +131,7 @@ class PacketBase():
             "data": {
                 "type": 3,
             },
-            "format": "6s6sBB64s",
+            "format": "!6s6sBB64s",
             "fields": [
                 "srcMac",
                 "edgeMac",
@@ -152,7 +145,7 @@ class PacketBase():
             "data": {
                 "type": 5,
             },
-            "format": "I6s4sB16sHHL",
+            "format": "!I6s4sB16sHHL",
             "fields": [
                 "cookie",
                 "edgeMac",
@@ -170,7 +163,7 @@ class PacketBase():
             "data": {
                 "type": 6,
             },
-            "format": "HH6s",
+            "format": "!HH6s",
             "fields": [
                 "auth_scheme",
                 "auth_token_size",
@@ -179,7 +172,7 @@ class PacketBase():
             ],
         },
         7: {
-            "format": "I6s4sBHHH4sHHB",
+            "format": "!I6s4sBHHH4sHHB",
             "fields": [
                 "cookie",
                 "srcMac",
@@ -197,7 +190,7 @@ class PacketBase():
             ],
         },
         10: {
-            "format": "H6s6sHH4sLL20s",
+            "format": "!H6s6sHH4sLL20s",
             "fields": [
                 "aflags",
                 "srcMac",
@@ -220,7 +213,7 @@ class PacketBase():
             "data": {
                 "type": 11,
             },
-            "format": "6s6sH",
+            "format": "!6s6sH",
             "fields": [
                 "srcMac",
                 "edgeMac",
@@ -232,7 +225,7 @@ class PacketBase():
                 "type": 11,
                 "targetMac": b"\x00\x00\x00\x00\x00\x00",
             },
-            "format": "6s6sH",
+            "format": "!6s6sH",
             "fields": [
                 "srcMac",
                 "targetMac",
@@ -244,39 +237,82 @@ class PacketBase():
     def __init__(self, scenario):
         # Set the default values for the common fields
         self.data = self.defaults["data"].copy()
-        self.format = self.defaults["format"]
-        self.fields = self.defaults["fields"].copy()
+        self.format = None
         self.buffer = None
-
         self.unstable_fields = {}
+        self.__init__format(scenario)
+
+    def __init__format(self, scenario):
         if scenario in self.types:
             if "data" in self.types[scenario]:
                 self.data.update(self.types[scenario]["data"])
-            self.format += self.types[scenario]["format"]
-            self.fields += self.types[scenario]["fields"]
+            self.format = self.types[scenario]["format"]
+            self.fields = self.types[scenario]["fields"]
             if "unstable_fields" in self.types[scenario]:
                 self.unstable_fields = self.types[scenario]["unstable_fields"]
 
-    def encode(self):
+    def encode_common(self):
+        """Return a buffer with just the common header fields"""
         if "type" not in self.data:
             raise ValueError("Unknown packet type")
 
         # special case for this one field
-        self.data["type_flags"] = self.data["type"] & 0x1f
-        self.data["type_flags"] |= self.data["flags"] & 0xffe0
+        type_flags = self.data["type"] & 0x1f
+        type_flags |= self.data["flags"] & 0xffe0
+
+        return struct.pack(
+            "!BBH20s",
+            self.data["proto_version"],
+            self.data["ttl"],
+            type_flags,
+            self.data["community"]
+        )
+
+    def decode_common(self):
+        """Update our data with just the common fields"""
+        data = struct.unpack("!BBH20s", self.buffer[:24])
+        pkt_type = data[2] & 0x1f
+
+        try:
+            self.data["_name"] = self.id2type(pkt_type)
+        except IndexError:
+            pass
+
+        self.data["proto_version"] = data[0]
+        self.data["ttl"] = data[1]
+        self.data["type"] = pkt_type
+        self.data["flags"] = data[2] & 0xffe0
+        self.data["community"] = data[3]
+
+    def encode(self):
+        common = self.encode_common()
 
         fielddata = [self.data[f] for f in self.fields]
-        self.buffer = struct.pack(self.format, *fielddata)
+        specific = struct.pack(self.format, *fielddata)
+
+        self.buffer = common + specific
         return self.buffer
 
     def decode(self, buffer):
-        # first, get the type
-        data = struct.unpack("!BBH", buffer[:4])
-        pkt_type = data[2] & 0x1f
+        self.buffer = buffer
+        self.data = {}
+
+        # first, get the common header
+        self.decode_common()
 
         # now, turn ourselves into that type
-        self.__init__(pkt_type)
-        self.buffer = buffer
+        self.__init__format(self.data["type"])
+
+        if "_name" not in self.data:
+            # probably header encrypted
+            return self.data
+
+        if self.format is None:
+            # no specific decoder for this struct
+            return self.data
+
+        # Remove the header from our working data
+        buffer = buffer[24:]
 
         formatstr = self.format
         calcsize = struct.calcsize(formatstr)
@@ -289,13 +325,7 @@ class PacketBase():
             print(f"format: {formatstr}")
             raise ValueError("buf too small")
 
-        # finally, properly decode
-        self.data = { }
-        try:
-            self.data["_name"] = self.id2type(pkt_type)
-        except IndexError:
-            # probably header encrypted
-            return self.data
+        # finally, decode the specific fields
 
         data = struct.unpack(formatstr, buffer)
 
@@ -303,10 +333,6 @@ class PacketBase():
             key = self.fields[i]
             val = data[i]
             self.data[key] = val
-
-        # special case for this one field
-        self.data["type"] = self.data["type_flags"] & 0x1f
-        self.data["flags"] = self.data["type_flags"] & 0xffe0
 
         return self.data
 
