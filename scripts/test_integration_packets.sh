@@ -20,6 +20,10 @@ docmd() {
     return $S
 }
 
+# We dont have perms for writing to the /run dir, TODO: improve this
+sudo mkdir -p /run/n3n
+sudo chown "$USER" /run/n3n
+
 # start a supernode
 echo -e "### supernode started\n"
 apps/supernode \
