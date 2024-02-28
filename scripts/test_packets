@@ -107,14 +107,9 @@ class PacketBase():
     def get_default(cls, key):
         return cls.defaults[key]
 
-    def __init__(self, scenario=None):
+    def __init__(self):
         # Set the default values for all the field data
         self.data = self.defaults.copy()
-        self._init_format(scenario)
-
-    def _init_format(self, scenario):
-        """Remove this after the specific object classes conversion"""
-        pass
 
     def encode_common(self, pkt_type=None):
         """Initialize the buffer with just the common header fields"""
@@ -142,21 +137,31 @@ class PacketBase():
         """Extract just the common fields from the buffer"""
         self.data = {}
 
-        calcsize = 24
-        data = struct.unpack("!BBH20s", buffer[:calcsize])
-        pkt_type = data[2] & 0x1f
+        # Set the values in the expected sort order
+        self.data["_name"] = "TBD"
+        self.data["proto_version"] = "TBD"
+        self.data["ttl"] = "TBD"
+        self.data["type"] = "TBD"
+        self.data["flags"] = "TBD"
+
+        offset = self.unpack_fields(
+                buffer,
+                "!BBH20s",
+                "proto_version",
+                "ttl",
+                "type",
+                "community",
+        )
+
+        self.data["flags"] = self.data["type"] & 0xffe0
+        pkt_type = self.data["type"] & 0x1f
+        self.data["type"] = pkt_type
 
         try:
             self.data["_name"] = self.id2type(pkt_type)
         except IndexError:
             pass
-
-        self.data["proto_version"] = data[0]
-        self.data["ttl"] = data[1]
-        self.data["type"] = pkt_type
-        self.data["flags"] = data[2] & 0xffe0
-        self.data["community"] = data[3]
-        return calcsize
+        return offset
 
     def encode_sock(self, prefix="sock"):
         name_family = f"{prefix}_family"
@@ -166,14 +171,16 @@ class PacketBase():
         # TODO: sock->type == SOCK_STREAM
         if self.data[name_family] == socket.AF_INET:
             format = "!HH4s"
+            sock_flag = 0
         elif self.data[name_family] == socket.AF_INET6:
             format = "!HH16s"
+            sock_flag = 0x8000
         else:
             raise ValueError("Unknown sock_family")
 
         self.buffer += struct.pack(
             format,
-            0,
+            sock_flag,
             self.data[name_port],
             self.data[name_addr],
         )
@@ -205,69 +212,10 @@ class PacketBase():
         return calcsize
 
     def encode(self):
-        self.encode_common()
-
-        fielddata = [self.data[f] for f in self.fields]
-        self.buffer += struct.pack(self.format, *fielddata)
-
-        return self.buffer
+        raise NotImplementedError
 
     def decode(self, buffer):
-        self.data = {}
-
-        # first, get the common header
-        self.decode_common(buffer)
-
-        # now, turn ourselves into that type
-        self._init_format(self.data["type"])
-
-        if "_name" not in self.data:
-            # probably header encrypted
-            return self.data
-
-        formatstr, buffer = self._decode_prep(buffer)
-
-        if not formatstr:
-            # No known decoding to do
-            return self.data
-
-        # finally, decode the specific fields
-
-        data = struct.unpack(formatstr, buffer)
-
-        for i in range(len(data)):
-            key = self.fields[i]
-            val = data[i]
-            self.data[key] = val
-
-        return self.data
-
-    def _decode_prep(self, buffer):
-        """Perform as much as possible of the shared work for decoding"""
-        self.buffer = buffer
-
-        # first, get the common header
-        self.decode_common(buffer)
-
-        # Remove the header from our working data
-        buffer = buffer[24:]
-
-        if "format" not in self.__dict__:
-            # no struct format string for this struct
-            return "", buffer
-
-        formatstr = self.format
-        calcsize = struct.calcsize(formatstr)
-        if len(buffer) > calcsize:
-            # dont abort on to many bytes, simply ignore them all
-            formatstr += f"{len(buffer) - calcsize}x"
-        if len(buffer) < calcsize:
-            print(f"buffer: {len(buffer)}")
-            print(f"calcsize: {calcsize}")
-            print(f"format: {formatstr}")
-            raise ValueError("buf too small")
-
-        return formatstr, buffer
+        raise NotImplementedError
 
     def stable_values(self):
         """Remove fields that will constantly change - allowing testing"""
@@ -572,7 +520,7 @@ class PacketPEER_INFO(PacketBase):
         "uptime": 0xffffffff,
         "version": b"_stabilised_",
     }
-    
+
     def encode(self):
         self.encode_common(10)
         self.pack_fields(
@@ -648,12 +596,26 @@ class PacketQUERY_PEER_ping(PacketQUERY_PEER):
 class PacketGeneric(PacketBase):
     specific = {
         1: PacketREGISTER,
+        # 2: DEREGISTER, but never used
         3: PacketPACKET,
+        # 4: PacketREGISTER_ACK,
         5: PacketREGISTER_SUPER,
         6: PacketUNREGISTER_SUPER,
         7: PacketREGISTER_SUPER_ACK,
+        # 8: PacketREGISTER_SUPER_NAK,
+        # 9: PacketFEDERATION,
         10: PacketPEER_INFO,
         11: PacketQUERY_PEER,
+        # 12: PacketRE_REGISTER_SUPER,
+    }
+
+    scenarios = {
+        "test_REGISTER": PacketREGISTER,
+        "test_PACKET": PacketPACKET,
+        "test_REGISTER_SUPER": PacketREGISTER_SUPER,
+        "test_UNREGISTER_SUPER": PacketUNREGISTER_SUPER,
+        "test_QUERY_PEER": PacketQUERY_PEER,
+        "test_QUERY_PEER_ping": PacketQUERY_PEER_ping,
     }
 
     @classmethod
@@ -668,47 +630,10 @@ class PacketGeneric(PacketBase):
         return obj
 
     @classmethod
-    def from_scenario(cls, scenario):
-        if scenario not in cls.types:
+    def from_scenario(cls, name):
+        if name not in cls.scenarios:
             raise ValueError("Unknown scenario")
-        if "class" in cls.types[scenario]:
-            return cls.types[scenario]["class"]()
-
-        return PacketGeneric(scenario)
-
-    types = {
-        "test_REGISTER": {
-            "class": PacketREGISTER,
-        },
-        "test_PACKET": {
-            "class": PacketPACKET,
-        },
-        "test_REGISTER_SUPER": {
-            "class": PacketREGISTER_SUPER,
-        },
-        "test_UNREGISTER_SUPER": {
-            "class": PacketUNREGISTER_SUPER,
-        },
-        "test_QUERY_PEER": {
-            "class": PacketQUERY_PEER,
-        },
-        "test_QUERY_PEER_ping": {
-            "class": PacketQUERY_PEER_ping,
-        }
-    }
-
-    def _init_format(self, scenario):
-        if scenario is None:
-            return
-        if scenario not in self.types:
-            return
-
-        if "data" in self.types[scenario]:
-            self.data.update(self.types[scenario]["data"])
-        self.format = self.types[scenario]["format"]
-        self.fields = self.types[scenario]["fields"]
-        if "unstable_fields" in self.types[scenario]:
-            self.unstable_fields = self.types[scenario]["unstable_fields"]
+        return cls.scenarios[name]()
 
 
 # to supernode:
