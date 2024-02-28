@@ -45,6 +45,7 @@ def hexdump(display_addr, data):
 
 
 class PacketBase():
+    unstable_fields = {}
     names = [
         None,
         "REGISTER",             # 1
@@ -109,7 +110,6 @@ class PacketBase():
     def __init__(self, scenario=None):
         # Set the default values for all the field data
         self.data = self.defaults.copy()
-        self.unstable_fields = {}
         self._init_format(scenario)
 
     def _init_format(self, scenario):
@@ -158,11 +158,15 @@ class PacketBase():
         self.data["community"] = data[3]
         return calcsize
 
-    def encode_sock(self):
+    def encode_sock(self, prefix="sock"):
+        name_family = f"{prefix}_family"
+        name_port = f"{prefix}_port"
+        name_addr = f"{prefix}_addr"
+
         # TODO: sock->type == SOCK_STREAM
-        if self.data["sock_family"] == socket.AF_INET:
+        if self.data[name_family] == socket.AF_INET:
             format = "!HH4s"
-        elif self.data["sock_family"] == socket.AF_INET6:
+        elif self.data[name_family] == socket.AF_INET6:
             format = "!HH16s"
         else:
             raise ValueError("Unknown sock_family")
@@ -170,20 +174,24 @@ class PacketBase():
         self.buffer += struct.pack(
             format,
             0,
-            self.data["sock_port"],
-            self.data["sock_addr"],
+            self.data[name_port],
+            self.data[name_addr],
         )
 
-    def decode_sock(self, buffer):
+    def decode_sock(self, buffer, prefix="sock"):
+        name_family = f"{prefix}_family"
+        name_port = f"{prefix}_port"
+        name_addr = f"{prefix}_addr"
+
         # TODO: sock->type == SOCK_STREAM
 
         data = struct.unpack("!H", buffer[:2])
         family = data[0] & 0x8000
         if family == 0:
-            self.data["sock_family"] = socket.AF_INET
+            self.data[name_family] = socket.AF_INET
             format = "!HH4s"
         elif family == 0x8000:
-            self.data["sock_family"] = socket.AF_INET6
+            self.data[name_family] = socket.AF_INET6
             format = "!HH16s"
         else:
             raise ValueError(f"Unknown sock_family {data[0]}")
@@ -192,8 +200,8 @@ class PacketBase():
         buffer = buffer[:calcsize]
 
         data = struct.unpack(format, buffer)
-        self.data["sock_port"] = data[1]
-        self.data["sock_addr"] = data[2]
+        self.data[name_port] = data[1]
+        self.data[name_addr] = data[2]
         return calcsize
 
     def encode(self):
@@ -371,10 +379,281 @@ class PacketPACKET(PacketBase):
         return self.data
 
 
+class PacketREGISTER_SUPER(PacketBase):
+    format1 = "!I6s"
+    format2 = "!4sB16sHH"
+    format3 = "!L"
+
+    def encode(self):
+        self.encode_common(5)
+        self.pack_fields(self.format1, "cookie", "edgeMac")
+
+        if self.flags_socket():
+            self.encode_sock()
+
+        self.pack_fields(
+            self.format2,
+            "ipv4",
+            "masklen",
+            "desc",
+            "auth_scheme",
+            "auth_token_size",
+        )
+
+        if self.data["auth_token_size"]:
+            size = self.data["auth_token_size"]
+            token_format = f"{size}s"
+            self.pack_fields(token_format, "auth_token")
+
+        self.pack_fields(self.format3, "key_time")
+        return self.buffer
+
+    def decode(self, buffer):
+        offset = self.decode_common(buffer)
+        offset += self.unpack_fields(
+                buffer[offset:],
+                self.format1,
+                "cookie",
+                "edgeMac",
+        )
+
+        if self.flags_socket():
+            offset += self.decode_sock(buffer[offset:])
+
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format2,
+            "ipv4",
+            "masklen",
+            "desc",
+            "auth_scheme",
+            "auth_token_size",
+        )
+
+        if self.data["auth_token_size"]:
+            size = self.data["auth_token_size"]
+            self.data["auth_token"] = buffer[offset:offset+size]
+            offset += size
+
+        self.unpack_fields(
+            buffer[offset:],
+            self.format3,
+            "key_time",
+        )
+
+        self.buffer = buffer
+        return self.data
+
+
+class PacketUNREGISTER_SUPER(PacketBase):
+    format1 = "!HH"
+    format2 = "!6s"
+
+    def encode(self):
+        self.encode_common(6)
+        self.pack_fields(self.format1, "auth_scheme", "auth_token_size")
+
+        if self.data["auth_token_size"]:
+            size = self.data["auth_token_size"]
+            token_format = f"{size}s"
+            self.pack_fields(token_format, "auth_token")
+
+        self.pack_fields(self.format2, "edgeMac")
+        return self.buffer
+
+    def decode(self, buffer):
+        offset = self.decode_common(buffer)
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format1,
+            "auth_scheme",
+            "auth_token_size",
+        )
+
+        if self.data["auth_token_size"]:
+            size = self.data["auth_token_size"]
+            self.data["auth_token"] = buffer[offset:offset+size]
+            offset += size
+
+        self.unpack_fields(
+            buffer[offset:],
+            self.format2,
+            "edgeMac",
+        )
+
+        self.buffer = buffer
+        return self.data
+
+
+class PacketREGISTER_SUPER_ACK(PacketBase):
+    format1 = "!I6s4sBH"
+    format2 = "!HH"
+    format3 = "!B"
+    format4 = "!L"
+
+    def encode(self):
+        self.encode_common(7)
+        self.pack_fields(
+            self.format1,
+            "cookie",
+            "srcMac",
+            "ipv4",
+            "masklen",
+            "lifetime",
+        )
+        self.encode_sock()
+        self.pack_fields(
+            self.format2,
+            "auth_scheme",
+            "auth_token_size",
+        )
+
+        if self.data["auth_token_size"]:
+            size = self.data["auth_token_size"]
+            token_format = f"{size}s"
+            self.pack_fields(token_format, "auth_token")
+
+        self.pack_fields(self.format3, "num_sn")
+        if self.data["num_sn"]:
+            raise NotImplementedError
+
+        self.pack_fields(self.format4, "key_time")
+
+        return self.buffer
+
+    def decode(self, buffer):
+        offset = self.decode_common(buffer)
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format1,
+            "cookie",
+            "srcMac",
+            "ipv4",
+            "masklen",
+            "lifetime",
+        )
+        offset += self.decode_sock(buffer[offset:])
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format2,
+            "auth_scheme",
+            "auth_token_size",
+        )
+
+        if self.data["auth_token_size"]:
+            size = self.data["auth_token_size"]
+            self.data["auth_token"] = buffer[offset:offset+size]
+            offset += size
+
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format3,
+            "num_sn",
+        )
+
+        if self.data["num_sn"]:
+            raise NotImplementedError
+
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format4,
+            "key_time",
+        )
+
+        self.buffer = buffer
+        return self.data
+
+
+class PacketPEER_INFO(PacketBase):
+    format1 = "!H6s6s"
+    format2 = "!LL20s"
+    unstable_fields = {
+        "load": 0xffffffff,
+        "uptime": 0xffffffff,
+        "version": b"_stabilised_",
+    }
+    
+    def encode(self):
+        self.encode_common(10)
+        self.pack_fields(
+            self.format1,
+            "aflags",
+            "srcMac",
+            "mac",
+        )
+        self.encode_sock()
+
+        if self.flags_socket():
+            self.encode_sock(prefix="sock2")
+
+        self.pack_fields(self.format2, "load", "uptime", "version")
+
+        return self.buffer
+
+    def decode(self, buffer):
+        offset = self.decode_common(buffer)
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format1,
+            "aflags",
+            "srcMac",
+            "mac",
+        )
+        offset += self.decode_sock(buffer[offset:])
+
+        if self.flags_socket():
+            offset += self.decode_sock(buffer[offset:], prefix="sock2")
+
+        offset += self.unpack_fields(
+            buffer[offset:],
+            self.format2,
+            "load",
+            "uptime",
+            "version",
+        )
+
+        self.buffer = buffer
+        return self.data
+
+
+class PacketQUERY_PEER(PacketBase):
+    format1 = "!6s6sH"
+
+    def encode(self):
+        self.encode_common(11)
+        self.pack_fields(self.format1, "srcMac", "edgeMac", "aflags")
+
+        return self.buffer
+
+    def decode(self, buffer):
+        offset = self.decode_common(buffer)
+        self.unpack_fields(
+            buffer[offset:],
+            self.format1,
+            "srcMac",
+            "edgeMac",
+            "aflags",
+        )
+
+        self.buffer = buffer
+        return self.data
+
+
+class PacketQUERY_PEER_ping(PacketQUERY_PEER):
+    def __init__(self):
+        super().__init__()
+        self.data["edgeMac"] = b"\x00\x00\x00\x00\x00\x00"
+
+
 class PacketGeneric(PacketBase):
     specific = {
         1: PacketREGISTER,
         3: PacketPACKET,
+        5: PacketREGISTER_SUPER,
+        6: PacketUNREGISTER_SUPER,
+        7: PacketREGISTER_SUPER_ACK,
+        10: PacketPEER_INFO,
+        11: PacketQUERY_PEER,
     }
 
     @classmethod
@@ -405,95 +684,16 @@ class PacketGeneric(PacketBase):
             "class": PacketPACKET,
         },
         "test_REGISTER_SUPER": {
-            "data": {
-                "type": 5,
-            },
-            "format": "!I6s4sB16sHHL",
-            "fields": [
-                "cookie",
-                "edgeMac",
-                # TODO? Optional sock
-                "ipv4",
-                "masklen",
-                "desc",
-                "auth_scheme",
-                "auth_token_size",
-                # "auth_token" if token_size
-                "key_time",
-            ],
+            "class": PacketREGISTER_SUPER,
         },
         "test_UNREGISTER_SUPER": {
-            "data": {
-                "type": 6,
-            },
-            "format": "!HH6s",
-            "fields": [
-                "auth_scheme",
-                "auth_token_size",
-                # "auth_token" if token_size
-                "edgeMac",
-            ],
-        },
-        7: {
-            "format": "!I6s4sBHHH4sHHB",
-            "fields": [
-                "cookie",
-                "srcMac",
-                "ipv4",
-                "masklen",
-                "lifetime",
-                "sock_flag",
-                "sock_port",
-                "sock_v4",      # FIXME - variable size, based on sock_flag
-                "auth_scheme",
-                "auth_token_size",
-                # "auth_token",   # FIXME - variable size, based on token_size
-                "num_sn",
-                # TODO: SN buf
-            ],
-        },
-        10: {
-            "format": "!H6s6sHH4sLL20s",
-            "fields": [
-                "aflags",
-                "srcMac",
-                "mac",
-                "sock_flag",
-                "sock_port",
-                "sock_v4",      # FIXME - variable size, based on sock_flag
-                # TODO: optional preferred_sock
-                "load",
-                "uptime",
-                "version",
-            ],
-            "unstable_fields": {
-                "load": 0xffffffff,
-                "uptime": 0xffffffff,
-                "version": b"_stabilised_",
-            },
+            "class": PacketUNREGISTER_SUPER,
         },
         "test_QUERY_PEER": {
-            "data": {
-                "type": 11,
-            },
-            "format": "!6s6sH",
-            "fields": [
-                "srcMac",
-                "edgeMac",
-                "aflags",
-            ],
+            "class": PacketQUERY_PEER,
         },
         "test_QUERY_PEER_ping": {
-            "data": {
-                "type": 11,
-                "targetMac": b"\x00\x00\x00\x00\x00\x00",
-            },
-            "format": "!6s6sH",
-            "fields": [
-                "srcMac",
-                "targetMac",
-                "aflags",
-            ],
+            "class": PacketQUERY_PEER_ping,
         }
     }
 

@@ -23,12 +23,13 @@ recv:
  'ipv4': b'\n\xc8\xafs',
  'masklen': 24,
  'lifetime': 15,
- 'sock_flag': 0,
+ 'sock_family': <AddressFamily.AF_INET: 2>,
  'sock_port': 7000,
- 'sock_v4': b'\x7f\x00\x00\x01',
+ 'sock_addr': b'\x7f\x00\x00\x01',
  'auth_scheme': 0,
  'auth_token_size': 0,
- 'num_sn': 0}
+ 'num_sn': 0,
+ 'key_time': 0}
 
 ### test: ./scripts/n3nctl -s ci_sn1 get_edges --raw
 [
@@ -67,9 +68,9 @@ recv:
  'aflags': 0,
  'srcMac': b'\x00\x00\x00\x00\x00\x01',
  'mac': b'\x00\x00\x00\x00\x00\x03',
- 'sock_flag': 0,
+ 'sock_family': <AddressFamily.AF_INET: 2>,
  'sock_port': 7000,
- 'sock_v4': b'\x7f\x00\x00\x01',
+ 'sock_addr': b'\x7f\x00\x00\x01',
  'load': 4294967295,
  'uptime': 4294967295,
  'version': b'_stabilised_'}
@@ -95,9 +96,9 @@ recv:
  'aflags': 0,
  'srcMac': b'\x02\x00\x00\x00\x00\x01',
  'mac': b'\x00\x00\x00\x00\x00\x00',
- 'sock_flag': 0,
+ 'sock_family': <AddressFamily.AF_INET: 2>,
  'sock_port': 7000,
- 'sock_v4': b'\x7f\x00\x00\x01',
+ 'sock_addr': b'\x7f\x00\x00\x01',
  'load': 4294967295,
  'uptime': 4294967295,
  'version': b'_stabilised_'}
