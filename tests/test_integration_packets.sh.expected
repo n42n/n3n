@@ -1,4 +1,4 @@
-### test: ./apps/supernode -v --daemon -Oconnection.bind=7001 -Osupernode.macaddr=02:00:00:00:00:01 start ci_sn1
+### supernode started
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_QUERY_PEER_ping
 test:

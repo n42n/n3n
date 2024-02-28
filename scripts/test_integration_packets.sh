@@ -21,12 +21,14 @@ docmd() {
 }
 
 # start a supernode
-docmd "${BINDIR}"/apps/supernode \
-    -v \
-    --daemon \
+echo -e "### supernode started\n"
+apps/supernode \
+    -vv \
     -Oconnection.bind=7001 \
     -Osupernode.macaddr=02:00:00:00:00:01 \
-    start ci_sn1
+    start ci_sn1 1>&2 &
+
+sleep 0.1
 
 # Just request a PONG packet. Done before the registration binds us
 docmd "${BINDIR}"/scripts/test_packets \
