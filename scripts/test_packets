@@ -118,7 +118,7 @@ class PacketBase():
         pass
 
     def encode_common(self):
-        """Return a buffer with just the common header fields"""
+        """Append the buffer with just the common header fields"""
         if "type" not in self.data:
             raise ValueError("Unknown packet type")
 
@@ -135,7 +135,7 @@ class PacketBase():
         )
 
     def decode_common(self):
-        """Update our data with just the common fields"""
+        """Extract just the common fields from the buffer"""
         data = struct.unpack("!BBH20s", self.buffer[:24])
         pkt_type = data[2] & 0x1f
 
@@ -159,7 +159,7 @@ class PacketBase():
         else:
             raise ValueError("Unknown sock_family")
 
-        return struct.pack(
+        self.buffer += struct.pack(
             format,
             0,
             self.data["sock_port"],
@@ -280,7 +280,7 @@ class PacketREGISTER(PacketBase):
 
         self.buffer = b""
         self.encode_common()
-        specific1 = struct.pack(
+        self.buffer += struct.pack(
             self.format1,
             self.data["cookie"],
             self.data["srcMac"],
@@ -288,18 +288,15 @@ class PacketREGISTER(PacketBase):
         )
 
         if self.flags_socket():
-            sock = self.encode_sock()
-        else:
-            sock = b""
+            self.encode_sock()
 
-        specific2 = struct.pack(
+        self.buffer += struct.pack(
             self.format2,
             self.data["ipv4"],
             self.data["masklen"],
             self.data["desc"],
         )
 
-        self.buffer += specific1 + sock + specific2
         return self.buffer
 
     def decode(self, buffer):
@@ -334,24 +331,21 @@ class PacketPACKET(PacketBase):
 
         self.buffer = b""
         self.encode_common()
-        specific1 = struct.pack(
+        self.buffer += struct.pack(
             self.format1,
             self.data["srcMac"],
             self.data["edgeMac"],
         )
 
         if self.flags_socket():
-            sock = self.encode_sock()
-        else:
-            sock = b""
+            self.encode_sock()
 
-        specific2 = struct.pack(
+        self.buffer += struct.pack(
             self.format2,
             self.data["compression"],
             self.data["transform"],
         )
 
-        self.buffer += specific1 + sock + specific2
         self.buffer += struct.pack("64s", self.data["packet"])
         return self.buffer
 
