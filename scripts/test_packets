@@ -70,40 +70,220 @@ class PacketBase():
         return cls.names.index(name)
 
     defaults = {
-        "data": {
-            "proto_version": 3,
-            "ttl": 2,
-            "flags": 0,
-            "community": b"test",
-            "cookie": 0x1000,
-            "srcMac": b"\x00\x00\x00\x00\x00\x01",
-            "dstMac": b"\x00\x00\x00\x00\x00\x02",
-            "edgeMac": b"\x00\x00\x00\x00\x00\x03",
-            "targetMac": b"\x00\x00\x00\x00\x00\x04",
-            "ipv4": b"\x00\x00\x00\x00",
-            "masklen": 0,
-            "desc": b"packetgenerator",
-            "auth_scheme": 0,   # n2n_auth_none
-            "auth_token_size": 0,
-            "auth_token": b"",
-            "key_time": 600,
-            "aflags": 0,
-            "compression": 1,   # COMPRESSION_ID_NONE
-            "transform": 1,     # TRANSFORM_ID_NULL
-            "packet": b"\x02\x00\x00\x00\x00\x11"
-                      b"\x02\x00\x00\x00\x00\x22"
-                      b"\x0f\x0f"
-                      b"\x55\xaa",
-        },
+        "proto_version": 3,
+        "ttl": 2,
+        "flags": 0,
+        "community": b"test",
+        "cookie": 0x1000,
+        "srcMac": b"\x00\x00\x00\x00\x00\x01",
+        "dstMac": b"\x00\x00\x00\x00\x00\x02",
+        "edgeMac": b"\x00\x00\x00\x00\x00\x03",
+        "targetMac": b"\x00\x00\x00\x00\x00\x04",
+        "ipv4": b"\x00\x00\x00\x00",
+        "masklen": 0,
+        "desc": b"packetgenerator",
+        "auth_scheme": 0,   # n2n_auth_none
+        "auth_token_size": 0,
+        "auth_token": b"",
+        "key_time": 600,
+        "aflags": 0,
+        "compression": 1,   # COMPRESSION_ID_NONE
+        "transform": 1,     # TRANSFORM_ID_NULL
+        "packet": b"\x02\x00\x00\x00\x00\x11"
+                  b"\x02\x00\x00\x00\x00\x22"
+                  b"\x0f\x0f"
+                  b"\x55\xaa",
     }
 
     @classmethod
     def set_default(cls, key, val):
-        cls.defaults["data"][key] = val
+        cls.defaults[key] = val
 
     @classmethod
     def get_default(cls, key):
-        return cls.defaults["data"][key]
+        return cls.defaults[key]
+
+    def __init__(self, scenario=None):
+        # Set the default values for all the field data
+        self.data = self.defaults.copy()
+        self.buffer = None
+        self.unstable_fields = {}
+        self._init_format(scenario)
+
+    def _init_format(self, scenario):
+        """Remove this after the specific object classes conversion"""
+        pass
+
+    def encode_common(self):
+        """Return a buffer with just the common header fields"""
+        if "type" not in self.data:
+            raise ValueError("Unknown packet type")
+
+        # special case for this one field
+        type_flags = self.data["type"] & 0x1f
+        type_flags |= self.data["flags"] & 0xffe0
+
+        return struct.pack(
+            "!BBH20s",
+            self.data["proto_version"],
+            self.data["ttl"],
+            type_flags,
+            self.data["community"]
+        )
+
+    def decode_common(self):
+        """Update our data with just the common fields"""
+        data = struct.unpack("!BBH20s", self.buffer[:24])
+        pkt_type = data[2] & 0x1f
+
+        try:
+            self.data["_name"] = self.id2type(pkt_type)
+        except IndexError:
+            pass
+
+        self.data["proto_version"] = data[0]
+        self.data["ttl"] = data[1]
+        self.data["type"] = pkt_type
+        self.data["flags"] = data[2] & 0xffe0
+        self.data["community"] = data[3]
+
+    def encode(self):
+        common = self.encode_common()
+
+        fielddata = [self.data[f] for f in self.fields]
+        specific = struct.pack(self.format, *fielddata)
+
+        self.buffer = common + specific
+        return self.buffer
+
+    def decode(self, buffer):
+        self.buffer = buffer
+        self.data = {}
+
+        # first, get the common header
+        self.decode_common()
+
+        # now, turn ourselves into that type
+        self._init_format(self.data["type"])
+
+        if "_name" not in self.data:
+            # probably header encrypted
+            return self.data
+
+        if "format" not in self.__dict__:
+            # no specific decoder for this struct
+            return self.data
+
+        formatstr, buffer = self._decode_prep(buffer)
+
+        # finally, decode the specific fields
+
+        data = struct.unpack(formatstr, buffer)
+
+        for i in range(len(data)):
+            key = self.fields[i]
+            val = data[i]
+            self.data[key] = val
+
+        return self.data
+
+    def _decode_prep(self, buffer):
+        """Perform as much as possible of the shared work for decoding"""
+        self.buffer = buffer
+        self.data = {}
+
+        # first, get the common header
+        self.decode_common()
+
+        # Remove the header from our working data
+        buffer = buffer[24:]
+
+        formatstr = self.format
+        calcsize = struct.calcsize(formatstr)
+        if len(buffer) > calcsize:
+            # dont abort on to many bytes, simply ignore them all
+            formatstr += f"{len(buffer) - calcsize}x"
+        if len(buffer) < calcsize:
+            print(f"buffer: {len(buffer)}")
+            print(f"calcsize: {calcsize}")
+            print(f"format: {formatstr}")
+            raise ValueError("buf too small")
+
+        return formatstr, buffer
+
+    def stable_values(self):
+        """Remove fields that will constantly change - allowing testing"""
+
+        changed = False
+        for field, val in self.unstable_fields.items():
+            self.data[field] = val
+            changed = True
+
+        if changed and self.buffer is not None:
+            self.encode()
+
+
+class PacketREGISTER(PacketBase):
+    format = "!I6s6s4sB16s"
+
+    def encode(self):
+        self.data["type"] = 1
+
+        common = self.encode_common()
+        specific = struct.pack(
+            self.format,
+            self.data["cookie"],
+            self.data["srcMac"],
+            self.data["edgeMac"],
+            # TODO? Optional sock
+            self.data["ipv4"],
+            self.data["masklen"],
+            self.data["desc"],
+        )
+
+        self.buffer = common + specific
+        return self.buffer
+
+    def decode(self, buffer):
+        formatstr, buffer = self._decode_prep(buffer)
+
+        # finally, decode the specific fields
+
+        data = struct.unpack(formatstr, buffer)
+
+        self.data["cookie"] = data[0]
+        self.data["srcMac"] = data[1]
+        self.data["edgeMac"] = data[2]
+        # TODO? Optional sock
+        self.data["ipv4"] = data[3]
+        self.data["masklen"] = data[4]
+        self.data["desc"] = data[5]
+
+        return self.data
+
+
+class PacketGeneric(PacketBase):
+    specific = {
+        1: PacketREGISTER,
+    }
+
+    @classmethod
+    def from_buffer(cls, buffer):
+        obj = PacketGeneric()
+        obj.buffer = buffer
+        obj.decode_common()
+        pkt_type = obj.data["type"]
+        if pkt_type in cls.specific:
+            obj = cls.specific[pkt_type]()
+
+        obj.decode(buffer)
+        return obj
+
+    @classmethod
+    def from_scenario(cls, scenario):
+        if scenario not in cls.types:
+            raise ValueError("Unknown scenario")
+        return PacketGeneric(scenario)
 
     types = {
         "test_REGISTER": {
@@ -234,118 +414,18 @@ class PacketBase():
         }
     }
 
-    def __init__(self, scenario):
-        # Set the default values for the common fields
-        self.data = self.defaults["data"].copy()
-        self.format = None
-        self.buffer = None
-        self.unstable_fields = {}
-        self.__init__format(scenario)
+    def _init_format(self, scenario):
+        if scenario is None:
+            return
+        if scenario not in self.types:
+            return
 
-    def __init__format(self, scenario):
-        if scenario in self.types:
-            if "data" in self.types[scenario]:
-                self.data.update(self.types[scenario]["data"])
-            self.format = self.types[scenario]["format"]
-            self.fields = self.types[scenario]["fields"]
-            if "unstable_fields" in self.types[scenario]:
-                self.unstable_fields = self.types[scenario]["unstable_fields"]
-
-    def encode_common(self):
-        """Return a buffer with just the common header fields"""
-        if "type" not in self.data:
-            raise ValueError("Unknown packet type")
-
-        # special case for this one field
-        type_flags = self.data["type"] & 0x1f
-        type_flags |= self.data["flags"] & 0xffe0
-
-        return struct.pack(
-            "!BBH20s",
-            self.data["proto_version"],
-            self.data["ttl"],
-            type_flags,
-            self.data["community"]
-        )
-
-    def decode_common(self):
-        """Update our data with just the common fields"""
-        data = struct.unpack("!BBH20s", self.buffer[:24])
-        pkt_type = data[2] & 0x1f
-
-        try:
-            self.data["_name"] = self.id2type(pkt_type)
-        except IndexError:
-            pass
-
-        self.data["proto_version"] = data[0]
-        self.data["ttl"] = data[1]
-        self.data["type"] = pkt_type
-        self.data["flags"] = data[2] & 0xffe0
-        self.data["community"] = data[3]
-
-    def encode(self):
-        common = self.encode_common()
-
-        fielddata = [self.data[f] for f in self.fields]
-        specific = struct.pack(self.format, *fielddata)
-
-        self.buffer = common + specific
-        return self.buffer
-
-    def decode(self, buffer):
-        self.buffer = buffer
-        self.data = {}
-
-        # first, get the common header
-        self.decode_common()
-
-        # now, turn ourselves into that type
-        self.__init__format(self.data["type"])
-
-        if "_name" not in self.data:
-            # probably header encrypted
-            return self.data
-
-        if self.format is None:
-            # no specific decoder for this struct
-            return self.data
-
-        # Remove the header from our working data
-        buffer = buffer[24:]
-
-        formatstr = self.format
-        calcsize = struct.calcsize(formatstr)
-        if len(buffer) > calcsize:
-            # dont abort on to many bytes, simply ignore them all
-            formatstr += f"{len(buffer) - calcsize}x"
-        if len(buffer) < calcsize:
-            print(f"buffer: {len(buffer)}")
-            print(f"calcsize: {calcsize}")
-            print(f"format: {formatstr}")
-            raise ValueError("buf too small")
-
-        # finally, decode the specific fields
-
-        data = struct.unpack(formatstr, buffer)
-
-        for i in range(len(data)):
-            key = self.fields[i]
-            val = data[i]
-            self.data[key] = val
-
-        return self.data
-
-    def stable_values(self):
-        """Remove fields that will constantly change - allowing testing"""
-
-        changed = False
-        for field, val in self.unstable_fields.items():
-            self.data[field] = val
-            changed = True
-
-        if changed and self.buffer is not None:
-            self.encode()
+        if "data" in self.types[scenario]:
+            self.data.update(self.types[scenario]["data"])
+        self.format = self.types[scenario]["format"]
+        self.fields = self.types[scenario]["fields"]
+        if "unstable_fields" in self.types[scenario]:
+            self.unstable_fields = self.types[scenario]["unstable_fields"]
 
 
 # to supernode:
@@ -411,7 +491,7 @@ def main():
         sock.bind(('', args.bind))
 
     if args.scenario != "listen":
-        send_pkt = PacketBase(args.scenario)
+        send_pkt = PacketGeneric.from_scenario(args.scenario)
         buf = send_pkt.encode()
         print("test:")
         hexdump(0, buf)
@@ -423,7 +503,7 @@ def main():
 
     data = sock.recv(1600)
 
-    recv_pkt = PacketBase(None)
+    recv_pkt = PacketGeneric.from_buffer(data)
     recv_pkt.decode(data)
 
     if not args.raw:

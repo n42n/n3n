@@ -120,7 +120,13 @@ recv:
  'type': 1,
  'flags': 96,
  'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-              b'\x00\x00\x00\x00'}
+              b'\x00\x00\x00\x00',
+ 'cookie': 4096,
+ 'srcMac': b'\x00\x00\x00\x00\x00\x01',
+ 'edgeMac': b'\x00\x00\x00\x00\x00\x03',
+ 'ipv4': b'\x00\x00\x1bX',
+ 'masklen': 127,
+ 'desc': b'\x00\x00\x01\x00\x00\x00\x00\x00packetge'}
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_PACKET
 test:
