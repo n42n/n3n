@@ -1,6 +1,6 @@
 ### test: ./apps/supernode -v --daemon -Oconnection.bind=7001 -Osupernode.macaddr=02:00:00:00:00:01 start ci_sn1
 
-### test: ./scripts/test_packets --bind=7000 -s localhost:7001 test_REGISTER_SUPER
+### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_REGISTER_SUPER
 test:
 000: 03 02 00 05 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
 010: 00 00 00 00 00 00 00 00  00 00 10 00 00 00 00 00   |                |
@@ -104,6 +104,53 @@ recv:
  'version': b'_stabilised_',
  'type': 10,
  'flags': 32}
+
+### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_REGISTER
+test:
+000: 03 02 00 01 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
+010: 00 00 00 00 00 00 00 00  00 00 10 00 00 00 00 00   |                |
+020: 00 01 00 00 00 00 00 03  00 00 00 00 00 70 61 63   |             pac|
+030: 6b 65 74 67 65 6e 65 72  61 74 6f 72 00            |ketgenerator |
+recv:
+000: 03 01 00 61 74 65 73 74  00 00 00 00 00 00 00 00   |   atest        |
+010: 00 00 00 00 00 00 00 00  00 00 10 00 00 00 00 00   |                |
+020: 00 01 00 00 00 00 00 03  00 00 1b 58 7f 00 00 01   |           X    |
+030: 00 00 00 00 00 70 61 63  6b 65 74 67 65 6e 65 72   |     packetgener|
+040: 61 74 6f 72 00                                     |ator |
+{'_name': 'REGISTER',
+ 'proto_version': 3,
+ 'ttl': 1,
+ 'type_flags': 97,
+ 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+              b'\x00\x00\x00\x00',
+ 'type': 1,
+ 'flags': 96}
+
+### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_PACKET
+test:
+000: 03 02 00 03 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
+010: 00 00 00 00 00 00 00 00  00 00 00 00 00 01 00 00   |                |
+020: 00 00 00 03 01 01 02 00  00 00 00 11 02 00 00 00   |                |
+030: 00 22 0f 0f 55 aa 00 00  00 00 00 00 00 00 00 00   | "  U           |
+040: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   |                |
+050: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   |                |
+060: 00 00 00 00 00 00                                  |      |
+recv:
+000: 03 01 00 63 74 65 73 74  00 00 00 00 00 00 00 00   |   ctest        |
+010: 00 00 00 00 00 00 00 00  00 00 00 00 00 01 00 00   |                |
+020: 00 00 00 03 00 00 1b 58  7f 00 00 01 01 01 02 00   |       X        |
+030: 00 00 00 11 02 00 00 00  00 22 0f 0f 55 aa 00 00   |         "  U   |
+040: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   |                |
+050: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   |                |
+060: 00 00 00 00 00 00 00 00  00 00 00 00 00 00         |              |
+{'_name': 'PACKET',
+ 'proto_version': 3,
+ 'ttl': 1,
+ 'type_flags': 99,
+ 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+              b'\x00\x00\x00\x00',
+ 'type': 3,
+ 'flags': 96}
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 --timeout 0 test_UNREGISTER_SUPER
 test:
