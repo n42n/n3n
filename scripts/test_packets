@@ -93,6 +93,9 @@ class PacketBase():
                   b"\x02\x00\x00\x00\x00\x22"
                   b"\x0f\x0f"
                   b"\x55\xaa",
+        "sock_family": socket.AF_INET,
+        "sock_port": 8000,
+        "sock_addr": b"\x01\x02\x03\x04",
     }
 
     @classmethod
@@ -147,6 +150,44 @@ class PacketBase():
         self.data["flags"] = data[2] & 0xffe0
         self.data["community"] = data[3]
 
+    def encode_sock(self):
+        # TODO: sock->type == SOCK_STREAM
+        if self.data["sock_family"] == socket.AF_INET:
+            format = "!HH4s"
+        elif self.data["sock_family"] == socket.AF_INET6:
+            format = "!HH16s"
+        else:
+            raise ValueError("Unknown sock_family")
+
+        return struct.pack(
+            format,
+            0,
+            self.data["sock_port"],
+            self.data["sock_addr"],
+        )
+
+    def decode_sock(self, buffer):
+        # TODO: sock->type == SOCK_STREAM
+
+        data = struct.unpack("!H", buffer[:2])
+        family = data[0] & 0x8000
+        if family == 0:
+            self.data["sock_family"] = socket.AF_INET
+            format = "!HH4s"
+        elif family == 0x8000:
+            self.data["sock_family"] = socket.AF_INET6
+            format = "!HH16s"
+        else:
+            raise ValueError(f"Unknown sock_family {data[0]}")
+
+        calcsize = struct.calcsize(format)
+        buffer = buffer[:calcsize]
+
+        data = struct.unpack(format, buffer)
+        self.data["sock_port"] = data[1]
+        self.data["sock_addr"] = data[2]
+        return calcsize
+
     def encode(self):
         common = self.encode_common()
 
@@ -170,11 +211,11 @@ class PacketBase():
             # probably header encrypted
             return self.data
 
-        if "format" not in self.__dict__:
-            # no specific decoder for this struct
-            return self.data
-
         formatstr, buffer = self._decode_prep(buffer)
+
+        if not formatstr:
+            # No known decoding to do
+            return self.data
 
         # finally, decode the specific fields
 
@@ -197,6 +238,10 @@ class PacketBase():
 
         # Remove the header from our working data
         buffer = buffer[24:]
+
+        if "format" not in self.__dict__:
+            # no struct format string for this struct
+            return "", buffer
 
         formatstr = self.format
         calcsize = struct.calcsize(formatstr)
@@ -222,42 +267,59 @@ class PacketBase():
         if changed and self.buffer is not None:
             self.encode()
 
+    def flags_socket(self):
+        return self.data["flags"] & 0x0040
+
 
 class PacketREGISTER(PacketBase):
-    format = "!I6s6s4sB16s"
+    format1 = "!I6s6s"
+    format2 = "!4sB16s"
 
     def encode(self):
         self.data["type"] = 1
 
         common = self.encode_common()
-        specific = struct.pack(
-            self.format,
+        specific1 = struct.pack(
+            self.format1,
             self.data["cookie"],
             self.data["srcMac"],
             self.data["edgeMac"],
-            # TODO? Optional sock
+        )
+
+        if self.flags_socket():
+            sock = self.encode_sock()
+        else:
+            sock = b""
+
+        specific2 = struct.pack(
+            self.format2,
             self.data["ipv4"],
             self.data["masklen"],
             self.data["desc"],
         )
 
-        self.buffer = common + specific
+        self.buffer = common + specific1 + sock + specific2
         return self.buffer
 
     def decode(self, buffer):
-        formatstr, buffer = self._decode_prep(buffer)
+        _, buffer = self._decode_prep(buffer)
 
-        # finally, decode the specific fields
-
-        data = struct.unpack(formatstr, buffer)
-
+        calcsize1 = struct.calcsize(self.format1)
+        buffer1 = buffer[:calcsize1]
+        buffer2 = buffer[calcsize1:]
+        data = struct.unpack(self.format1, buffer1)
         self.data["cookie"] = data[0]
         self.data["srcMac"] = data[1]
         self.data["edgeMac"] = data[2]
-        # TODO? Optional sock
-        self.data["ipv4"] = data[3]
-        self.data["masklen"] = data[4]
-        self.data["desc"] = data[5]
+
+        if self.flags_socket():
+            size2 = self.decode_sock(buffer2)
+            buffer2 = buffer2[size2:]
+
+        data = struct.unpack(self.format2, buffer2)
+        self.data["ipv4"] = data[0]
+        self.data["masklen"] = data[1]
+        self.data["desc"] = data[2]
 
         return self.data
 
@@ -283,23 +345,14 @@ class PacketGeneric(PacketBase):
     def from_scenario(cls, scenario):
         if scenario not in cls.types:
             raise ValueError("Unknown scenario")
+        if "class" in cls.types[scenario]:
+            return cls.types[scenario]["class"]()
+
         return PacketGeneric(scenario)
 
     types = {
         "test_REGISTER": {
-            "data": {
-                "type": 1,
-            },
-            "format": "!I6s6s4sB16s",
-            "fields": [
-                "cookie",
-                "srcMac",
-                "edgeMac",
-                # TODO? Optional sock
-                "ipv4",
-                "masklen",
-                "desc",
-            ],
+            "class": PacketREGISTER,
         },
         # 1:
         #   TODO

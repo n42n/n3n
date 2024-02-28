@@ -124,9 +124,12 @@ recv:
  'cookie': 4096,
  'srcMac': b'\x00\x00\x00\x00\x00\x01',
  'edgeMac': b'\x00\x00\x00\x00\x00\x03',
- 'ipv4': b'\x00\x00\x1bX',
- 'masklen': 127,
- 'desc': b'\x00\x00\x01\x00\x00\x00\x00\x00packetge'}
+ 'sock_family': <AddressFamily.AF_INET: 2>,
+ 'sock_port': 7000,
+ 'sock_addr': b'\x7f\x00\x00\x01',
+ 'ipv4': b'\x00\x00\x00\x00',
+ 'masklen': 0,
+ 'desc': b'packetgenerator\x00'}
 
 ### test: ./scripts/test_packets --bind 7000 -s localhost:7001 test_PACKET
 test:
