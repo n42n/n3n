@@ -6,12 +6,16 @@
  * to be easily used in tests.
  */
 
-#include <getopt.h>            // for required_argument, getopt_long, no_arg...
+#include <getopt.h>             // for required_argument, getopt_long, no_arg...
+#include <header_encryption.h>  // for packet_header_setup_key, packet_header...
+#include <n2n_typedefs.h>       // for he_context_t
 #include <n3n/conffile.h>
 #include <n3n/initfuncs.h>
 #include <pearson.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>             // for read, write
+
 
 #define GETOPTS "Vhv"
 
@@ -23,10 +27,75 @@ static const struct option long_options[] = {
 };
 static struct n3n_subcmd_def cmd_top[]; // Forward define
 
+static void cmd_header_decrypt (int argc, char **argv, void *conf) {
+    if (!argv[1]) {
+        printf("Need community name arg\n");
+        exit(1);
+    }
+
+    n2n_community_t community;
+    strncpy((char *)&community, argv[1], sizeof(community));
+    community[sizeof(community)-1] = 0;
+
+    he_context_t *ctx_static;
+    he_context_t *ctx_dynamic;
+    he_context_t *ctx_iv_static;
+    he_context_t *ctx_iv_dynamic;
+
+    packet_header_setup_key(
+        community,
+        &ctx_static,
+        &ctx_dynamic,
+        &ctx_iv_static,
+        &ctx_iv_dynamic
+    );
+
+    int size;
+    unsigned char buf[4096];
+    size = read(0, &buf, sizeof(buf));
+
+    uint64_t stamp = 0;
+    int ok = packet_header_decrypt(
+        buf,
+        size,
+        community,
+        ctx_dynamic,
+        ctx_iv_dynamic,
+        &stamp
+    );
+
+    if(!ok) {
+        uint8_t hash_buf[16] = {0};
+        pearson_hash_128(
+            hash_buf,
+            buf,
+            max(0, (int)size - (int)N2N_REG_SUP_HASH_CHECK_LEN)
+        );
+        ok = packet_header_decrypt(
+            buf,
+            max(0, (int)size - (int)N2N_REG_SUP_HASH_CHECK_LEN),
+            community,
+            ctx_static,
+            ctx_iv_static,
+            &stamp
+            );
+    }
+
+    if(!ok) {
+        exit(1);
+    }
+
+    write(1, &buf, size);
+    exit(0);
+
+}
+
 static void cmd_help_about (int argc, char **argv, void *conf) {
     printf("n3n - helper for using internal crypto functions\n"
            "\n"
            " usage: crypto_helper [options...] [command] [command args]\n"
+           "\n"
+           " e.g: crypto_helper header decrypt '*Federation' <packet |hd\n"
            "\n"
            "  Runs the crypto operation specified on the commandline\n"
            "\n"
@@ -54,6 +123,15 @@ static void cmd_pearson_128 (int argc, char **argv, void *conf) {
     exit(0);
 }
 
+static struct n3n_subcmd_def cmd_header[] = {
+    {
+        .name = "decrypt",
+        .type = n3n_subcmd_type_fn,
+        .fn = cmd_header_decrypt,
+    },
+    { .name = NULL }
+};
+
 static struct n3n_subcmd_def cmd_help[] = {
     {
         .name = "about",
@@ -80,6 +158,11 @@ static struct n3n_subcmd_def cmd_pearson[] = {
 };
 
 static struct n3n_subcmd_def cmd_top[] = {
+    {
+        .name = "header",
+        .type = n3n_subcmd_type_nest,
+        .nest = cmd_header,
+    },
     {
         .name = "help",
         .type = n3n_subcmd_type_nest,
