@@ -10,6 +10,7 @@ TOOLS+=n3n-benchmark
 TOOLS+=n3n-route
 TOOLS+=n3n-portfwd
 TOOLS+=n3n-decode
+TOOLS+=crypto_helper
 
 TESTS=tests-compress
 TESTS+=tests-elliptic
