@@ -246,6 +246,18 @@ class PacketBase():
 
         return calcsize
 
+    def is_header_encrypted(self):
+        if self.data["community"][19] != 0:
+            # the community string is not null terminated
+            return True
+        if self.data["type"] > 12:
+            # no packet types this large exist
+            return True
+        if self.data["flags"] >= 0x0080:
+            # no flags exist beyond this
+            return True
+        return False
+
 
 class PacketREGISTER(PacketBase):
     format1 = "!I6s6s"
@@ -622,6 +634,8 @@ class PacketGeneric(PacketBase):
     def from_buffer(cls, buffer):
         obj = PacketGeneric()
         obj.decode_common(buffer)
+        if obj.is_header_encrypted():
+            raise NotImplementedError
         pkt_type = obj.data["type"]
         if pkt_type in cls.specific:
             obj = cls.specific[pkt_type]()
