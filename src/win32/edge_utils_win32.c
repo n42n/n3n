@@ -22,8 +22,6 @@
 #include <iphlpapi.h>
 #include <n3n/logging.h>    // for traceEvent
 
-#include "../peer_info.h"   // FIXME: untangle include
-
 #include "edge_utils_win32.h"
 
 /* ************************************** */
