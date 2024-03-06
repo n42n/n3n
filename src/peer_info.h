@@ -38,6 +38,7 @@ typedef struct peer_info peer_info_t;
 
 void peer_info_init (struct peer_info *, const n2n_mac_t mac);
 struct peer_info* peer_info_malloc (const n2n_mac_t mac);
+void peer_info_free (struct peer_info *);
 
 /* Operations on peer_info lists. */
 size_t purge_peer_list (struct peer_info ** peer_list,

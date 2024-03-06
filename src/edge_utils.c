@@ -1029,7 +1029,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
             /* The peer has changed public socket. It can no longer be assumed to be reachable. */
             HASH_DEL(eee->known_peers, scan);
             mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
-            free(scan);
+            peer_info_free(scan);
 
             register_with_new_peer(eee, from_supernode, via_multicast, mac, dev_addr, dev_desc, peer);
         } else {
@@ -1979,7 +1979,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
             traceEvent(TRACE_DEBUG, "refreshing idle known peer");
             HASH_DEL(eee->known_peers, scan);
             mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
-            free(scan);
+            peer_info_free(scan);
             /* NOTE: registration will be performed upon the receival of the next response packet */
         } else {
             /* Valid known peer found */

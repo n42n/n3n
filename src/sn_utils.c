@@ -118,7 +118,7 @@ void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *c
             if(edge->socket_fd == conn->socket_fd) {
                 // remove peer
                 HASH_DEL(comm->edges, edge);
-                free(edge);
+                peer_info_free(edge);
                 goto close_conn; /* break - level 2 */
             }
         }
@@ -295,7 +295,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
                 close_tcp_connection(sss, conn); /* also deletes the edge */
             } else {
                 HASH_DEL(comm->edges, edge);
-                free(edge);
+                peer_info_free(edge);
             }
         }
 
@@ -2252,7 +2252,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                         close_tcp_connection(sss, conn); /* also deletes the peer */
                     } else {
                         HASH_DEL(comm->edges, peer);
-                        free(peer);
+                        peer_info_free(peer);
                     }
                 }
             }
@@ -2405,7 +2405,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                         close_tcp_connection(sss, conn); /* also deletes the peer */
                     } else {
                         HASH_DEL(comm->edges, peer);
-                        free(peer);
+                        peer_info_free(peer);
                     }
                 }
             }
