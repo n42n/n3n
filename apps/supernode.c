@@ -59,7 +59,7 @@ static struct n3n_runtime_data sss_node;
 
 /* *************************************************** */
 
-#define GETOPTS "O:Vfhv"
+#define GETOPTS "O:Vdhv"
 
 static const struct option long_options[] = {
     {"daemon",              no_argument,       NULL, 'd'},
