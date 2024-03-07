@@ -41,8 +41,8 @@ docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_communities
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_packetstats
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_packetstats
 
-docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw | grep -vE "last_seen|macaddr"
-docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_edges --raw | grep -vE "last_seen|macaddr"
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw | grep -vE "last_seen|macaddr|time_alloc"
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_edges --raw | grep -vE "last_seen|macaddr|time_alloc"
 
 # Test with bad auth
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 set_verbose 1

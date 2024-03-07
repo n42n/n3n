@@ -70,8 +70,12 @@ recv:
         "local": 0,
         "macaddr": "00:00:00:00:00:03",
         "mode": "sn",
+        "prefered_sockaddr": "0.0.0.0:0",
         "purgeable": 1,
-        "sockaddr": "127.0.0.1:7000"
+        "sockaddr": "127.0.0.1:7000",
+        "timeout": 0,
+        "uptime": 0,
+        "version": ""
     }
 ]
 

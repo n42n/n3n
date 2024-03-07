@@ -47,7 +47,7 @@ docmd "${BINDIR}"/scripts/test_packets \
     test_REGISTER_SUPER
 
 # Confirm that the registration is visible
-docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw |grep -v last_seen
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw |grep -v last_seen |grep -v time_alloc
 
 # Once registered, we can query for that registration
 docmd "${TOPDIR}"/scripts/test_packets \

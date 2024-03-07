@@ -3221,7 +3221,7 @@ void edge_term (struct n3n_runtime_data * eee) {
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
-    eee->mgmt_slots = slots_malloc(5, 3000, 500);
+    eee->mgmt_slots = slots_malloc(5, 4000, 500);
     if(!eee->mgmt_slots) {
         abort();
     }

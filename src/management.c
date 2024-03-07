@@ -443,6 +443,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
 static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, const char *mode, const char *community) {
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
+    n2n_sock_str_t sockbuf2;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
 
     sb_reprintf(reply,
@@ -454,7 +455,12 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 "\"local\":%i,"
                 "\"macaddr\":\"%s\","
                 "\"sockaddr\":\"%s\","
-                "\"desc\":\"%s\","
+                "\"prefered_sockaddr\":\"%s\","
+                "\"desc\":\"%.20s\","
+                "\"version\":\"%.20s\","
+                "\"timeout\":%i,"
+                "\"uptime\":%li,"
+                "\"time_alloc\":%li,"
                 "\"last_p2p\":%li,"
                 "\"last_sent_query\":%li,"
                 "\"last_seen\":%li},",
@@ -465,7 +471,12 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 peer->local,
                 (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
                 sock_to_cstr(sockbuf, &(peer->sock)),
+                sock_to_cstr(sockbuf2, &(peer->preferred_sock)),
                 peer->dev_desc,
+                peer->version,
+                peer->timeout,
+                peer->uptime,
+                peer->time_alloc,
                 peer->last_p2p,
                 peer->last_sent_query,
                 peer->last_seen
