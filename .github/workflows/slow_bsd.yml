@@ -43,12 +43,11 @@ jobs:
             sudo pkg install -y \
               autoconf \
               automake \
-              gcc \
               git \
               gmake \
               python3 \
               jq \
               bash
             ./autogen.sh
-            ./configure
+            ./configure CC=clang
             gmake all
