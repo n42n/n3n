@@ -156,6 +156,7 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
 
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
+    time_t age = time(NULL) - peer->time_alloc;
 
     /*
      * Just the peer_info bits that are needed for lookup (maccaddr) or
@@ -168,9 +169,11 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
         "\"event\":\"peer\","
         "\"action\":\"%s\","
         "\"macaddr\":\"%s\","
+        "\"age\":%li,"
         "\"sockaddr\":\"%s\"}\n",
         event_peer_actions[action],
         (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+        age,
         sock_to_cstr(sockbuf, &(peer->sock))
     );
 

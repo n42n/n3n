@@ -82,6 +82,7 @@ struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
     if(!peer) {
         return NULL;
     }
+    peer->time_alloc = time(NULL);
 
     peer_info_init(peer, mac);
 
