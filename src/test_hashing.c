@@ -146,7 +146,7 @@ int test_hashing (int level) {
             "%s: input size = 0x%" PRIx64 "\n",
             test_name,
             sizeof(PKT_CONTENT)
-            );
+        );
         fhexdump(0, PKT_CONTENT, sizeof(PKT_CONTENT), stdout);
         printf("\n");
     }

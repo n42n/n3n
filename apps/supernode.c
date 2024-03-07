@@ -104,7 +104,7 @@ static void loadFromCLI (int argc, char * const argv[], struct n3n_runtime_data 
             GETOPTS,
             long_options,
             NULL
-            );
+        );
 
         //traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optarg ? optarg : "");
 
@@ -170,7 +170,7 @@ static void cmd_help_about (int argc, char **argv, void *conf) {
            " supernode help options\n"
            " supernode help\n"
            "\n"
-           );
+    );
     exit(0);
 }
 
@@ -298,7 +298,7 @@ static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runt
         GETOPTS,
         long_options,
         cmd_top
-        );
+    );
 
     switch(cmd.type) {
         case n3n_subcmd_result_unknown:
@@ -332,7 +332,7 @@ static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runt
             printf(
                 "Warning: no config file found for session '%s'\n",
                 cmd.sessionname
-                );
+            );
         }
 
         // Update the loaded conf with the current environment
@@ -451,7 +451,7 @@ int main (int argc, char * argv[]) {
         &sss_node.federation->community[1],
         sss_node.conf.sn_federation,
         N2N_COMMUNITY_SIZE - 2
-        );
+    );
     sss_node.federation->community[N2N_COMMUNITY_SIZE - 1] = '\0';
 
     /*setup the encryption key */
@@ -470,7 +470,7 @@ int main (int argc, char * argv[]) {
         "added federation '%s' to the list of communities [total: %u]",
         (char*)sss_node.federation->community,
         num_communities
-        );
+    );
 
     // warn on default federation name
     if(!strcmp(&sss_node.federation->community[1], FEDERATION_NAME_DEFAULT)) {
@@ -487,7 +487,7 @@ int main (int argc, char * argv[]) {
             "disabled MAC and IP address spoofing protection; "
             "FOR TESTING ONLY, usage of user-password authentication options "
             "is recommended instead!"
-            );
+        );
     }
 
     if(sss_node.conf.sn_min_auto_ip_net.net_bitlen != sss_node.conf.sn_max_auto_ip_net.net_bitlen) {
@@ -496,7 +496,7 @@ int main (int argc, char * argv[]) {
             "mismatched auto IP subnet (%i != %i)",
             sss_node.conf.sn_min_auto_ip_net.net_bitlen,
             sss_node.conf.sn_max_auto_ip_net.net_bitlen
-            );
+        );
         exit(1);
     }
     if(sss_node.conf.sn_min_auto_ip_net.net_bitlen > 30 || sss_node.conf.sn_min_auto_ip_net.net_bitlen == 0) {
@@ -504,7 +504,7 @@ int main (int argc, char * argv[]) {
             TRACE_ERROR,
             "invalid auto IP subnet (0 > %i > 30)",
             sss_node.conf.sn_min_auto_ip_net.net_bitlen
-            );
+        );
         exit(1);
     }
 
@@ -521,13 +521,13 @@ int main (int argc, char * argv[]) {
         &sss_node.conf.sn_min_auto_ip_net.net_addr,
         ip_min_str,
         sizeof(ip_min_str)
-        );
+    );
     inet_ntop(
         AF_INET,
         &sss_node.conf.sn_max_auto_ip_net.net_addr,
         ip_max_str,
         sizeof(ip_max_str)
-        );
+    );
 
     traceEvent(
         TRACE_NORMAL,
@@ -535,7 +535,7 @@ int main (int argc, char * argv[]) {
         ip_min_str,
         ip_max_str,
         sss_node.conf.sn_min_auto_ip_net.net_bitlen
-        );
+    );
 
     calculate_shared_secrets(&sss_node);
 
@@ -547,7 +547,7 @@ int main (int argc, char * argv[]) {
         sss_node.conf.bind_address,
         sizeof(*sss_node.conf.bind_address),
         0 /* UDP */
-        );
+    );
 
     if(-1 == sss_node.sock) {
         traceEvent(TRACE_ERROR, "failed to open main socket. %s", strerror(errno));
@@ -561,7 +561,7 @@ int main (int argc, char * argv[]) {
         sss_node.conf.bind_address,
         sizeof(*sss_node.conf.bind_address),
         1 /* TCP */
-        );
+    );
     if(-1 == sss_node.tcp_sock) {
         traceEvent(TRACE_ERROR, "failed to open auxiliary TCP socket, %s", strerror(errno));
         exit(-2);
@@ -631,7 +631,7 @@ int main (int argc, char * argv[]) {
         traceEvent(
             TRACE_WARNING,
             "running as root is discouraged, check out the userid/groupid options"
-            );
+        );
     }
 #endif
 

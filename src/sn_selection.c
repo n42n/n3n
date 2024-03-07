@@ -118,7 +118,7 @@ int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t 
                 TRACE_ERROR,
                 "sn_selection_strategy unknown %i",
                 eee->conf.sn_selection_strategy
-                );
+            );
             break;
         }
     }
@@ -159,7 +159,7 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
                 TRACE_ERROR,
                 "sn_selection_strategy unknown %i",
                 eee->conf.sn_selection_strategy
-                );
+            );
             break;
         }
     }
@@ -261,7 +261,7 @@ extern char * sn_selection_criterion_str (struct n3n_runtime_data *eee, selectio
                     TRACE_ERROR,
                     "sn_selection_strategy unknown %i",
                     eee->conf.sn_selection_strategy
-                    );
+                );
                 break;
             }
         }

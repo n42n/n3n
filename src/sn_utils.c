@@ -1635,7 +1635,7 @@ static int process_udp (struct n3n_runtime_data * sss,
        && (udp_buf[00] == N2N_PKT_VERSION) // correct packet version
        && ((be16toh(*(uint16_t*)&(udp_buf[02])) & N2N_FLAGS_TYPE_MASK) <= MSG_TYPE_MAX_TYPE) // message type
        && ( be16toh(*(uint16_t*)&(udp_buf[02])) < N2N_FLAGS_OPTIONS_MAX) // flags
-       ) {
+    ) {
         /* most probably unencrypted */
         /* make sure, no downgrading happens here and no unencrypted packets can be
          * injected in a community which definitely deals with encrypted headers */
@@ -2672,8 +2672,8 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                 slots,
                 &readers,
                 &writers
-                )
-            );
+            )
+        );
 
         wait_time.tv_sec = 10;
         wait_time.tv_usec = 0;
@@ -2713,13 +2713,13 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                     0 /*flags*/,
                     sender_sock,
                     &ss_size
-                    );
+                );
 
                 if((bread < 0)
 #ifdef _WIN32
                    && (WSAGetLastError() != WSAECONNRESET)
 #endif
-                   ) {
+                ) {
                     // FIXME: when would we get a WSAECONNRESET on a UDP read
                     // of a non connected socket
 
@@ -2743,7 +2743,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                         pktbuf,
                         bread,
                         now
-                        );
+                    );
                 }
             }
 
@@ -2774,7 +2774,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                         0 /*flags*/,
                         sender_sock,
                         &ss_size
-                        );
+                    );
 
                     if(bread <= 0) {
                         traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
@@ -2807,7 +2807,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                                 conn->buffer + sizeof(uint16_t),
                                 conn->position - sizeof(uint16_t),
                                 now
-                                );
+                            );
 
                             // reset, await new prepended length
                             conn->expected = sizeof(uint16_t);
@@ -2836,14 +2836,14 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                         sss->tcp_sock,
                         sender_sock,
                         &ss_size
-                        );
+                    );
                     // REVISIT: should we error out if ss_size returns bigger
                     // than before? can this ever happen?
                     if(tmp_sock >= 0) {
                         conn = (n2n_tcp_connection_t*)calloc(
                             1,
                             sizeof(n2n_tcp_connection_t)
-                            );
+                        );
                         if(conn) {
                             conn->socket_fd = tmp_sock;
                             memcpy(&(conn->sock), sender_sock, ss_size);
@@ -2856,7 +2856,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                                 TRACE_INFO,
                                 "accepted incoming TCP connection from [%s]",
                                 sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
-                                );
+                            );
                         }
                     }
                 } else {
@@ -2865,7 +2865,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                         TRACE_DEBUG,
                         "denied incoming TCP connection from [%s] due to max connections limit hit",
                         sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
-                        );
+                    );
                 }
             }
 #endif /* N2N_HAVE_TCP */
@@ -2876,7 +2876,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                 traceEvent(
                     TRACE_ERROR,
                     "error: slots_fdset_loop = %i", slots_ready
-                    );
+                );
             } else if(slots_ready > 0) {
                 // see edge_utils for note about linear scan
                 for(int i=0; i<slots->nr_slots; i++) {
@@ -2905,22 +2905,22 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
             &last_re_reg_and_purge,
             now,
             0 /* not forced */
-            );
+        );
         purge_expired_communities(
             sss,
             &last_purge_edges,
             now
-            );
+        );
         sort_communities(
             sss,
             &last_sort_communities,
             now
-            );
+        );
         resolve_check(
             sss->resolve_parameter,
             false /* presumably, no special resolution requirement */,
             now
-            );
+        );
     } /* while */
 
     sn_term(sss);

@@ -319,7 +319,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
             eee->conf.bind_address,
             sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
             eee->conf.connect_tcp
-            );
+        );
 
         if(eee->sock < 0) {
             traceEvent(TRACE_ERROR, "failed to bind main UDP port");
@@ -370,7 +370,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
             TRACE_INFO,
             "Setting pmtu_discovery %s",
             (eee->conf.pmtu_discovery) ? "true" : "false"
-            );
+        );
 
         int i = setsockopt(
             eee->sock,
@@ -378,7 +378,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
             IP_MTU_DISCOVER,
             &sockopt,
             sizeof(sockopt)
-            );
+        );
 
         if(i < 0) {
             traceEvent(
@@ -386,7 +386,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
                 "Setting pmtu_discovery failed: %s(%d)",
                 strerror(errno),
                 errno
-                );
+            );
         }
 #else
         traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
@@ -1669,7 +1669,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
             supernode_ip(eee),
             HASH_COUNT(eee->conf.supernodes),
             (unsigned int)eee->sup_attempts
-            );
+        );
 
         send_register_super(eee);
     }
@@ -1749,7 +1749,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
             rx_transop_id,
             macaddr_str(mac_buf, pkt->srcMac),
             sock_to_cstr(sockbuf, orig_sender)
-            );
+        );
         return -1;
     }
 
@@ -1786,7 +1786,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
                 TRACE_WARNING,
                 "decompression: failed: unsupported %i",
                 rx_compression_id
-                );
+            );
             return(-1); // cannot handle it
     }
 
@@ -1797,7 +1797,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
             rx_compression_id,
             eth_size,
             deflate_len
-            );
+        );
         eth_payload = deflate_buf;
         eth_size = deflate_len;
     }
@@ -2211,7 +2211,7 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
             len,
             errno,
             strerror(errno)
-            );
+        );
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
         eee->stats.tx_tuntap_error++;
 
@@ -2224,7 +2224,7 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
                     eee->conf.device_mac,
                     eee->conf.mtu,
                     eee->conf.metric
-                    );
+        );
         return;
 
     }
@@ -2821,7 +2821,7 @@ int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
        || (sock == eee->udp_multicast_sock)
 #endif
-       ) {
+    ) {
         // udp
         bread = recvfrom(sock, (void *)pktbuf, N2N_PKT_BUF_SIZE, 0 /*flags*/,
                          sender_sock, &ss_size);
@@ -2830,7 +2830,7 @@ int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock
 #ifdef _WIN32
            && (WSAGetLastError() != WSAECONNRESET)
 #endif
-           ) {
+        ) {
             /* For UDP bread of zero just means no data (unlike TCP). */
             /* The fd is no good now. Maybe we lost our interface. */
             traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
@@ -2973,8 +2973,8 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 slots,
                 &readers,
                 &writers
-                )
-            );
+            )
+        );
 
         // FIXME:
         // unlock the windows tun reader thread before select() and lock it
@@ -3000,7 +3000,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                        &expected,
                        &position,
                        now
-                       )) {
+                   )) {
                     *eee->keep_running = false;
                 }
                 if(eee->conf.connect_tcp) {
@@ -3025,7 +3025,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                        &expected,
                        &position,
                        now
-                       )) {
+                   )) {
                     *eee->keep_running = false;
                 }
             }
@@ -3044,7 +3044,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 traceEvent(
                     TRACE_ERROR,
                     "slots_fdset_loop returns %i (Is daemon exiting?)", slots_ready
-                    );
+                );
             } else if(slots_ready > 0) {
                 // A linear scan is not ideal, but this is a select() loop
                 // not one built for performance.
@@ -3094,7 +3094,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 numPurged,
                 HASH_COUNT(eee->pending_peers),
                 HASH_COUNT(eee->known_peers)
-                );
+            );
         }
 
 #ifdef HAVE_BRIDGING_SUPPORT
@@ -3128,7 +3128,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             eee->resolve_parameter,
             eee->resolution_request,
             now
-            );
+        );
 
         if(eee->cb.main_loop_period)
             eee->cb.main_loop_period(eee, now);
@@ -3270,7 +3270,7 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
         (struct sockaddr *)&local_address,
         sizeof(local_address),
         0 /* UDP */
-        );
+    );
     if(eee->udp_multicast_sock < 0) {
         return(-3);
     }
@@ -3326,7 +3326,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
         sizeof(conf->tuntap_dev_name),
         "%s",
         conf->sessionname
-        );
+    );
 #endif
 
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;

@@ -92,7 +92,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
                  addr_buf,
                  inet_ntoa(*(struct in_addr*)&mask),
                  mtu
-                 );
+        );
         system(cmd);
 
         traceEvent(TRACE_NORMAL, "Interface %s up and running (%s/%u)", tap_device, addr_buf, v4subnet.net_bitlen);

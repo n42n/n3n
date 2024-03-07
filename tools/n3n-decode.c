@@ -249,7 +249,7 @@ int main (int argc, char* argv[]) {
 #ifdef N2N_HAVE_AES
                       "A"
 #endif
-                      )) != '?') {
+               )) != '?') {
         if(c == 255) break;
 
         switch(c) {

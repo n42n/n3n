@@ -140,7 +140,7 @@ static void loadFromCLI (int argc, char *argv[], n2n_edge_conf_t *conf) {
             GETOPTS,
             long_options,
             NULL
-            );
+        );
 
         /* traceEvent(TRACE_NORMAL, "Option %c = %s", optkey, optarg ? optarg : ""); */
 
@@ -209,7 +209,7 @@ static void cmd_help_about (int argc, char **argv, void *conf) {
            " edge help options\n"
            " edge help\n"
            "\n"
-           );
+    );
     exit(0);
 }
 
@@ -229,7 +229,7 @@ static void cmd_help_commands (int argc, char **argv, void *conf) {
         "\n"
         "Eg:  edge help about\n"
         "\n"
-        );
+    );
     n3n_subcmd_help(cmd_top, 1, true);
     exit(0);
 }
@@ -240,7 +240,7 @@ static void cmd_help_config (int argc, char **argv, void *conf) {
         "The values seen in each setting are just examples and may not be\n"
         "the compiled-in defaults.\n"
         "\n"
-        );
+    );
     n3n_config_dump(conf, stdout, 4);
     exit(0);
 }
@@ -352,7 +352,7 @@ static void cmd_tools_keygen (int argc, char **argv, void *conf) {
             "   config, please refer to the doc/Authentication.md document\n"
             "   for more details\n"
             "\n"
-            );
+        );
         exit(1);
     }
 
@@ -579,7 +579,7 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
         GETOPTS,
         long_options,
         cmd_top
-        );
+    );
 
     switch(cmd.type) {
         case n3n_subcmd_result_unknown:
@@ -613,7 +613,7 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             printf(
                 "Warning: no config file found for session '%s'\n",
                 cmd.sessionname
-                );
+            );
         }
 
         // Update the loaded conf with the current environment
@@ -785,7 +785,7 @@ int main (int argc, char* argv[]) {
                     "using default federation public key; "
                     "FOR TESTING ONLY, usage of a custom federation name and "
                     "key (auth.pubkey) is highly recommended!"
-                    );
+                );
                 generate_private_key(*(conf.federation_public_key), FEDERATION_NAME_DEFAULT);
                 generate_public_key(*(conf.federation_public_key), *(conf.federation_public_key));
             }
@@ -1038,7 +1038,7 @@ int main (int argc, char* argv[]) {
         traceEvent(
             TRACE_WARNING,
             "running as root is discouraged, check out the userid/groupid options"
-            );
+        );
 #endif /* _WIN32 */
 
 #ifndef _WIN32

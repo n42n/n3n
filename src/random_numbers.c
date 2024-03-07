@@ -160,7 +160,7 @@ static uint64_t seed_getrandom () {
         traceEvent(
             TRACE_ERROR,
             "getrandom syscall indicate not being able to provide enough entropy yet."
-            );
+        );
     }
     return 0;
 }
@@ -182,7 +182,7 @@ static uint64_t seed_rdrnd () {
     traceEvent(
         TRACE_ERROR,
         "unable to get a hardware generated random number from RDRND."
-        );
+    );
     return 0;
 }
 #endif
@@ -204,7 +204,7 @@ static uint64_t seed_rdseed () {
     traceEvent(
         TRACE_ERROR,
         "unable to get a hardware generated random number from RDSEED."
-        );
+    );
     return 0;
 }
 #endif

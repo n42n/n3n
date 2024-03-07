@@ -2,7 +2,7 @@
  * Copyright (C) 2024 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
- * Command line helper to expose the built-in crypto routines and allow them 
+ * Command line helper to expose the built-in crypto routines and allow them
  * to be easily used in tests.
  */
 
@@ -28,7 +28,7 @@ static const struct option long_options[] = {
 static struct n3n_subcmd_def cmd_top[]; // Forward define
 
 static void cmd_header_decrypt (int argc, char **argv, void *conf) {
-    if (!argv[1]) {
+    if(!argv[1]) {
         printf("Need community name arg\n");
         exit(1);
     }
@@ -78,7 +78,7 @@ static void cmd_header_decrypt (int argc, char **argv, void *conf) {
             ctx_static,
             ctx_iv_static,
             &stamp
-            );
+        );
     }
 
     if(!ok) {
@@ -104,7 +104,7 @@ static void cmd_help_about (int argc, char **argv, void *conf) {
            " supernode help commands\n"
            " supernode help\n"
            "\n"
-           );
+    );
     exit(0);
 }
 
@@ -184,7 +184,7 @@ static void process_cli (int argc, char **argv) {
         GETOPTS,
         long_options,
         cmd_top
-        );
+    );
 
     switch(cmd.type) {
         case n3n_subcmd_result_unknown:
@@ -203,7 +203,7 @@ static void process_cli (int argc, char **argv) {
     cmd.subcmd->fn(cmd.argc, cmd.argv, NULL);
 }
 
-int main(int argc, char **argv) {
+int main (int argc, char **argv) {
     // Do this early to register the internals
     n3n_initfuncs();
 

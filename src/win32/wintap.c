@@ -319,7 +319,7 @@ int open_wintap (struct tuntap_dev *device,
                   device->ifName,
                   addr_buf,
                   inet_ntoa(*(struct in_addr*)&mask)
-                  );
+        );
     }
 
     if(system(cmd) == 0) {

@@ -172,7 +172,7 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
         event_peer_actions[action],
         (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
         sock_to_cstr(sockbuf, &(peer->sock))
-        );
+    );
 
     // TODO: a generic truncation watcher for these buffers
 }
@@ -308,7 +308,7 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
         id,
         code,
         message
-        );
+    );
 
     // Update the reply buffer after last potential realloc
     conn->reply = conn->request;
@@ -326,7 +326,7 @@ static void jsonrpc_result_head (char *id, conn_t *conn) {
         "\"id\":\"%s\","
         "\"result\":",
         id
-        );
+    );
 }
 
 static void jsonrpc_result_tail (conn_t *conn, int code) {
@@ -402,7 +402,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
             &conn->request,
             "[{\"community\":\"%s\"}]",
             eee->conf.community_name
-            );
+        );
         jsonrpc_result_tail(conn, 200);
         return;
     }
@@ -466,7 +466,7 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 peer->last_p2p,
                 peer->last_sent_query,
                 peer->last_seen
-                );
+    );
 
     // TODO: add a proto: TCP|UDP item to the output
 }
@@ -484,7 +484,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
             peer,
             "pSp",
             eee->conf.community_name
-            );
+        );
     }
 
     // dump peer-to-peer nodes
@@ -494,7 +494,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
             peer,
             "p2p",
             eee->conf.community_name
-            );
+        );
     }
 
     struct sn_community *community, *tmp;
@@ -505,7 +505,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
                 peer,
                 "sn",
                 (community->is_federation) ? "-/-" : community->community
-                );
+            );
         }
     }
 
@@ -547,7 +547,7 @@ static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *co
                 is_null_mac(eee->device.mac_addr) ? "" : macaddr_str(mac_buf, eee->device.mac_addr),
                 ip_address,
                 sock_to_cstr(sockbuf, &eee->conf.preferred_sock)
-                );
+    );
 
     jsonrpc_result_tail(conn, 200);
 }
@@ -617,7 +617,7 @@ static void jsonrpc_get_timestamps (char *id, struct n3n_runtime_data *eee, conn
                 eee->last_sn_fwd,
                 eee->last_sn_reg,
                 eee->start_time
-                );
+    );
 
     jsonrpc_result_tail(conn, 200);
 }
@@ -763,7 +763,7 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
                     host, sizeof(host),
                     serv, sizeof(serv),
                     NI_NUMERICHOST|NI_NUMERICSERV
-                    );
+                );
             }
         }
 
@@ -776,7 +776,7 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
             mgmt_events[topic].topic,
             host, serv,
             mgmt_events[topic].desc
-            );
+        );
     }
 
     // HACK: back up over the final ','
@@ -826,7 +826,7 @@ static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
                     "\"desc\":\"%s\"},",
                     jsonrpc_methods[i].method,
                     jsonrpc_methods[i].desc
-                    );
+        );
 
     }
     // HACK: back up over the final ','
@@ -859,7 +859,7 @@ static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
         json.id,
         json.method,
         json.params
-        );
+    );
 
     // Since we are going to reuse the request buffer for the reply, copy
     // the id string out of it as every single reply will need it
@@ -872,7 +872,7 @@ static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
         if(!strcmp(
                jsonrpc_methods[i].method,
                json.method
-               )) {
+           )) {
             break;
         }
     }
@@ -967,7 +967,7 @@ static void render_help_page (struct n3n_runtime_data *eee, conn_t *conn) {
             "%s, %s\n",
             api_endpoints[i].match,
             api_endpoints[i].desc
-            );
+        );
     }
 
     // Update the reply buffer only after last potential realloc

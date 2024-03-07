@@ -455,45 +455,45 @@ void n3n_initfuncs_conffile_defs () {
         "tuntap",
         "Settings specific to the local tuntap device",
         section_tuntap
-        );
+    );
     n3n_config_register_section(
         "supernode",
         "Supernode specific settings",
         section_supernode
-        );
+    );
     n3n_config_register_section(
         "management",
         "Management interface controls",
         section_management
-        );
+    );
     n3n_config_register_section(
         "logging",
         "Log message controls",
         section_logging
-        );
+    );
     n3n_config_register_section(
         "filter",
         "VPN internal traffic filtering",
         section_filter
-        );
+    );
     n3n_config_register_section(
         "daemon",
         "Settings for running the service",
         section_daemon
-        );
+    );
     n3n_config_register_section(
         "connection",
         "VPN overlay traffic options",
         section_connection
-        );
+    );
     n3n_config_register_section(
         "community",
         "Settings that affect connecting to the network",
         section_community
-        );
+    );
     n3n_config_register_section(
         "auth",
         "When auth is used, details on client authentication",
         section_auth
-        );
+    );
 }
