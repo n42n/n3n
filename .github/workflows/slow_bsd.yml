@@ -43,7 +43,7 @@ jobs:
             sudo pkg install -y \
               autoconf \
               automake \
-              git \
+              git-tiny \
               gmake \
               python3 \
               jq \
