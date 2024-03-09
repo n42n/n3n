@@ -20,6 +20,7 @@
 
 
 #include <ctype.h>                   // for isspace
+#include <connslot/connslot.h>       // for slots_listen_close
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
 #include <inttypes.h>                // for PRIu64
@@ -956,8 +957,9 @@ int main (int argc, char* argv[]) {
                            eee->conf.metric) < 0)
                 exit(1);
             in_addr_t addr = eee->conf.tuntap_v4.net_addr;
+            struct in_addr *tmp = (struct in_addr *)&addr;
             traceEvent(TRACE_NORMAL, "created local tap device IPv4: %s/%u, MAC: %s",
-                       inet_ntoa(*(struct in_addr*)&addr),
+                       inet_ntoa(*tmp),
                        eee->conf.tuntap_v4.net_bitlen,
                        macaddr_str(mac_buf, eee->device.mac_addr));
             runlevel = 5;

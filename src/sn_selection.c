@@ -240,12 +240,22 @@ extern char * sn_selection_criterion_str (struct n3n_runtime_data *eee, selectio
         switch(eee->conf.sn_selection_strategy) {
 
             case SN_SELECTION_STRATEGY_LOAD: {
-                chars = snprintf(out, SN_SELECTION_CRITERION_BUF_SIZE, "load = %8ld", peer->selection_criterion);
+                chars = snprintf(
+                    out,
+                    SN_SELECTION_CRITERION_BUF_SIZE,
+                    "load = %8u",
+                    (uint32_t)peer->selection_criterion
+                );
                 break;
             }
 
             case SN_SELECTION_STRATEGY_RTT: {
-                chars = snprintf(out, SN_SELECTION_CRITERION_BUF_SIZE, "rtt = %6ld ms", peer->selection_criterion);
+                chars = snprintf(
+                    out,
+                    SN_SELECTION_CRITERION_BUF_SIZE,
+                    "rtt = %6u ms",
+                    (uint32_t)peer->selection_criterion
+                );
                 break;
             }
 

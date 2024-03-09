@@ -50,6 +50,7 @@
 #include "uthash.h"             // for UT_hash_handle, HASH_ITER, HASH_DEL
 
 #ifdef _WIN32
+#include <direct.h>             // for _rmdir
 #include "win32/defs.h"
 #else
 #include <arpa/inet.h>          // for inet_addr, inet_ntoa
@@ -333,7 +334,13 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     re_register_and_purge_supernodes(sss, sss->federation, &any_time, any_time, 1 /* forced */);
 
     // format definition for possible user-key entries
-    sprintf(format, "%c %%%ds %%%lds", N2N_USER_KEY_LINE_STARTER, N2N_DESC_SIZE - 1, sizeof(ascii_public_key)-1);
+    sprintf(
+        format,
+        "%c %%%ds %%%us",
+        N2N_USER_KEY_LINE_STARTER,
+        N2N_DESC_SIZE - 1,
+        (uint32_t)sizeof(ascii_public_key)-1
+    );
 
     while((line = fgets(buffer, sizeof(buffer), fd)) != NULL) {
         int len = strlen(line);
@@ -450,8 +457,9 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
             if(has_net) {
                 comm->auto_ip_net.net_addr = ntohl(net);
                 comm->auto_ip_net.net_bitlen = bitlen;
+                struct in_addr *tmp = (struct in_addr *)&net;
                 traceEvent(TRACE_INFO, "assigned sub-network %s/%u to community '%s'",
-                           inet_ntoa(*(struct in_addr *) &net),
+                           inet_ntoa(*tmp),
                            comm->auto_ip_net.net_bitlen,
                            comm->community);
             } else {
@@ -538,7 +546,11 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
                             size_t pktsize) {
 
     ssize_t sent = 0;
+#ifdef _WIN32
+    char value = 0;
+#else
     int value = 0;
+#endif
 
     // if the connection is tcp, i.e. not the regular sock...
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
@@ -1378,8 +1390,9 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
         comm->auto_ip_net.net_addr = net_id_i;
         comm->auto_ip_net.net_bitlen = sss->conf.sn_min_auto_ip_net.net_bitlen;
         net = htonl(comm->auto_ip_net.net_addr);
+        struct in_addr *tmp = (struct in_addr *)&net;
         traceEvent(TRACE_INFO, "assigned sub-network %s/%u to community '%s'",
-                   inet_ntoa(*(struct in_addr *) &net),
+                   inet_ntoa(*tmp),
                    comm->auto_ip_net.net_bitlen,
                    comm->community);
         return 0;

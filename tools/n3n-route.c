@@ -45,6 +45,7 @@
 #ifdef _WIN32
 #include <winsock.h>
 #include <ws2tcpip.h>
+#include <iphlpapi.h>          // for GetIpForwardTable
 #else
 #include <arpa/inet.h>         // for inet_pton
 #include <net/if.h>            // for if_indextoname
@@ -528,7 +529,7 @@ void handle_route (n2n_route_t* in_route, int verb) {
     for(bitlen = 0; (int)mask < 0; mask <<= 1)
         bitlen++;
     if_idx = get_interface_index(in_route->gateway);
-    _snprintf(c_interface, sizeof(c_interface), "if %u", if_idx);
+    _snprintf(c_interface, sizeof(c_interface), "if %u", (uint32_t)if_idx);
     _snprintf(c_verb, sizeof(c_verb), (verb == ROUTE_ADD) ? "add" : "delete");
     _snprintf(cmd, sizeof(cmd), "route %s %s/%d %s %s > nul", c_verb, c_net_addr, bitlen, c_gateway, c_interface);
     traceEvent(TRACE_INFO, "ROUTE CMD = '%s'\n", cmd);

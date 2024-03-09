@@ -153,7 +153,7 @@ int get_best_interface_ip (uint32_t addr_v4, dec_ip_str_t *ip_addr){
             traceEvent(TRACE_DEBUG, "IP Address:    %s\n", pAdapter->IpAddressList.IpAddress.String);
             traceEvent(TRACE_DEBUG, "IP Mask:       %s\n", pAdapter->IpAddressList.IpMask.String);
             traceEvent(TRACE_DEBUG, "Gateway:       %s\n", pAdapter->GatewayList.IpAddress.String);
-            strncpy(ip_addr, pAdapter->IpAddressList.IpAddress.String, sizeof(*ip_addr));
+            strncpy((char *)ip_addr, pAdapter->IpAddressList.IpAddress.String, sizeof(*ip_addr));
         }
     } else {
         traceEvent(TRACE_WARNING, "GetAdaptersInfo failed with error: %d\n", dwRetVal);

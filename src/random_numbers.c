@@ -211,12 +211,17 @@ static uint64_t seed_rdseed () {
 #endif
 
 #ifdef _WIN32
+// Note that the functions used here are marked as deprecated and Microsoft
+// warns that they may remove this API in future releases.  They suggest
+// using Cryptography Next Generation (CNG) APIs instead.  The CryptGenKey
+// API works from WinXP through to Win11, whereas the CNG needs at least
+// WinVista.  Also, the CNG API is harder to use.
 static uint64_t seed_CryptGenRandom () {
     uint64_t seed;
     HCRYPTPROV crypto_provider;
     CryptAcquireContext(&crypto_provider, NULL, NULL,
                         PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
-    CryptGenRandom(crypto_provider, 8, &seed);
+    CryptGenRandom(crypto_provider, 8, (uint8_t*)&seed);
     CryptReleaseContext(crypto_provider, 0);
     return seed;
 }

@@ -19,7 +19,6 @@
  */
 
 
-#include <inttypes.h>  // for PRIx64, PRIi32
 #include <stdint.h>    // for uint8_t
 #include <stdio.h>     // for printf, fprintf, size_t, stderr, stdout
 #include <string.h>    // for memset, strcpy, strncpy
@@ -111,8 +110,8 @@ void test_REGISTER (n2n_common_t *common) {
     size_t idx = 0;
     size_t retval = encode_REGISTER( pktbuf, &idx, common, &reg);
 
-    printf("%s: output retval = 0x%" PRIx64 "\n", test_name, retval);
-    printf("%s: output idx = 0x%" PRIx64 "\n", test_name, idx);
+    printf("%s: output retval = 0x%x\n", test_name, (uint32_t)retval);
+    printf("%s: output idx = 0x%x\n", test_name, (uint32_t)idx);
     fhexdump(0, pktbuf, idx, stdout);
 
     // TODO: decode_REGISTER() and print
@@ -143,15 +142,15 @@ void test_REGISTER_SUPER (n2n_common_t *common) {
     print_ip_subnet(test_name, "reg.dev_addr", &reg.dev_addr);
     printf("%s: reg.dev_desc = \"%s\"\n", test_name, reg.dev_desc);
     print_auth(test_name, "reg.auth", &reg.auth);
-    printf("%s: reg.key_time = %" PRIi32 "\n", test_name, reg.key_time);
+    printf("%s: reg.key_time = %u\n", test_name, (uint32_t)reg.key_time);
     printf("\n");
 
     uint8_t pktbuf[N2N_PKT_BUF_SIZE];
     size_t idx = 0;
     size_t retval = encode_REGISTER_SUPER( pktbuf, &idx, common, &reg);
 
-    printf("%s: output retval = 0x%" PRIx64 "\n", test_name, retval);
-    printf("%s: output idx = 0x%" PRIx64 "\n", test_name, idx);
+    printf("%s: output retval = 0x%x\n", test_name, (uint32_t)retval);
+    printf("%s: output idx = 0x%x\n", test_name, (uint32_t)idx);
     fhexdump(0, pktbuf, idx, stdout);
 
     // TODO: decode_REGISTER_SUPER() and print
@@ -180,8 +179,8 @@ void test_UNREGISTER_SUPER (n2n_common_t *common) {
     size_t idx = 0;
     size_t retval = encode_UNREGISTER_SUPER( pktbuf, &idx, common, &unreg);
 
-    printf("%s: output retval = 0x%" PRIx64 "\n", test_name, retval);
-    printf("%s: output idx = 0x%" PRIx64 "\n", test_name, idx);
+    printf("%s: output retval = 0x%x\n", test_name, (uint32_t)retval);
+    printf("%s: output idx = 0x%x\n", test_name, (uint32_t)idx);
     fhexdump(0, pktbuf, idx, stdout);
 
     // TODO: decode_UNREGISTER_SUPER() and print

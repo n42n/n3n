@@ -23,6 +23,7 @@
 
 #ifdef _WIN32
 #include "win32/defs.h"
+#include <direct.h>             // for _mkdir
 #else
 #include <grp.h>                // for getgrnam
 #include <netinet/in.h>  // for sockaddr_in

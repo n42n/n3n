@@ -143,9 +143,9 @@ int test_hashing (int level) {
     char *test_name = "environment";
     if(level) {
         printf(
-            "%s: input size = 0x%" PRIx64 "\n",
+            "%s: input size = 0x%x\n",
             test_name,
-            sizeof(PKT_CONTENT)
+            (uint32_t)sizeof(PKT_CONTENT)
         );
         fhexdump(0, PKT_CONTENT, sizeof(PKT_CONTENT), stdout);
         printf("\n");

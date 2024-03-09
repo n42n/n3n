@@ -19,7 +19,6 @@
  */
 
 
-#include <inttypes.h>   // for PRIx64
 #include <n3n/edge.h>
 #include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h> // for traceEvent
@@ -86,7 +85,11 @@ int main (int argc, char * argv[]) {
     char *test_name = "environment";
     printf("%s: community_name = \"%s\"\n", test_name, conf.community_name);
     printf("%s: encrypt_key = \"%s\"\n", test_name, conf.encrypt_key);
-    printf("%s: input size = 0x%" PRIx64 "\n", test_name, sizeof(PKT_CONTENT));
+    printf(
+        "%s: input size = 0x%x\n",
+        test_name,
+        (uint32_t)sizeof(PKT_CONTENT)
+    );
     fhexdump(0, PKT_CONTENT, sizeof(PKT_CONTENT), stdout);
     printf("\n");
 
@@ -160,7 +163,7 @@ static void run_transop_benchmark (const char *op_name, n2n_trans_op_t *op_fn, n
                      pktbuf+nw, N2N_PKT_BUF_SIZE-nw,
                      PKT_CONTENT, sizeof(PKT_CONTENT), mac_buf);
 
-    printf("%s: output size = 0x%" PRIx64 "\n", op_name, nw);
+    printf("%s: output size = 0x%x\n", op_name, (uint32_t)nw);
     fhexdump(0, pktbuf, nw, stdout);
 
     // decrpytion

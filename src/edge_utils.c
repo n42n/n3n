@@ -57,6 +57,7 @@
 #include "uthash.h"                  // for UT_hash_handle, HASH_COUNT, HASH...
 
 #ifdef _WIN32
+#include <direct.h>                  // for _mkdir
 #include "win32/edge_utils_win32.h"
 #else
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop
