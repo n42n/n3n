@@ -930,7 +930,7 @@ reset_main_loop:
                 rrr.gateway_org = addr_tmp;
                 // delete all purgeable routes as they are still relying on old original default gateway
                 HASH_ITER(hh, rrr.routes, route, tmp_route) {
-                    if((route->purgeable == true)) {
+                    if(route->purgeable == true) {
                         handle_route(route, ROUTE_DEL);
                         HASH_DEL(rrr.routes, route);
                         free(route);
