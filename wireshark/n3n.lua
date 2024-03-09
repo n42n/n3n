@@ -242,14 +242,22 @@ function dissect_packet(subtree, buffer, flags, pinfo)
 
   pktree:add(packet_compression, buffer(idx,1))
   pktree:add(packet_transform, buffer(idx+1,1))
-  local payload = pktree:add(packet_payload, buffer(idx+2))
-  local transform = buffer(idx,2):uint()
+
+  local transform = buffer(idx,1):uint()
+  -- local compression = buffer(idx+1,1):uint()
+
+  local dis
 
   -- Can only dissect unencrypted data
   -- FIXME: compression!
   if(transform == PKT_TRANSFORM_NULL) then
-    Dissector.get("eth_withoutfcs"):call(buffer(idx+2):tvb(), pinfo, payload)
+    dis = Dissector.get("eth_withoutfcs")
+  else
+    dis = Dissector.get("data")
   end
+
+  dis:call(buffer(idx+2):tvb(), pinfo, pktree)
+
 
   return pktree
 end
