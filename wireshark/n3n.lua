@@ -231,7 +231,7 @@ end
 
 -- #############################################
 
-function dissect_packet(subtree, buffer, flags, pinfo)
+function dissect_packet(subtree, buffer, flags, pinfo, roottree)
   local pktree = subtree:add(packet_field, buffer)
 
   pktree:add(src_mac, buffer(0,6))
@@ -255,11 +255,12 @@ function dissect_packet(subtree, buffer, flags, pinfo)
   -- FIXME: compression!
   if(transform == PKT_TRANSFORM_NULL) then
     dis = Dissector.get("eth_withoutfcs")
+    dis:call(buffer(idx+2):tvb(), pinfo, roottree)
   else
     dis = Dissector.get("data")
+    dis:call(buffer(idx+2):tvb(), pinfo, pktree)
   end
 
-  dis:call(buffer(idx+2):tvb(), pinfo, pktree)
 
 
   return pktree
@@ -381,6 +382,8 @@ function n3n.dissector(buffer, pinfo, tree)
   local pkt_type = bit.band(buffer(2,2):uint(), packet_type_mask)
   local subtree = tree:add(n3n, buffer(), string.format("n3n Protocol, Type: %s", pkt_type_2_str[pkt_type] or "Unknown"))
 
+  pinfo.cols.info = string.format("n3n:%s", pkt_type_2_str[pkt_type] or "Unknown")
+
   -- Common
   subtree:add(version, buffer(0,1))
   subtree:add(ttl, buffer(1,1))
@@ -402,7 +405,7 @@ function n3n.dissector(buffer, pinfo, tree)
   elseif(pkt_type == PKT_TYPE_REGISTER_ACK) then
     dissect_register_ack(subtree, typebuf, flags)
   elseif(pkt_type == PKT_TYPE_PACKET) then
-    dissect_packet(subtree, typebuf, flags, pinfo)
+    dissect_packet(subtree, typebuf, flags, pinfo, tree)
   elseif(pkt_type == PKT_TYPE_REGISTER_SUPER) then
     dissect_register_super(subtree, typebuf, flags)
   elseif(pkt_type == PKT_TYPE_REGISTER_SUPER_ACK) then
