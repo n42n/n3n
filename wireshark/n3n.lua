@@ -291,7 +291,7 @@ function dissect_register_super_ack(subtree, buffer, flags)
   local regtree = subtree:add(register_super_ack_field, buffer)
 
   regtree:add(register_super_ack_cookie, buffer(0,4))
-  regtree:add(dst_mac, buffer(4,6))
+  regtree:add(src_mac, buffer(4,6))
   regtree:add(register_ipv4, buffer(10,4))
   regtree:add(register_ipv4_masklen, buffer(14,1))
   regtree:add(register_super_ack_lifetime, buffer(15,2))
