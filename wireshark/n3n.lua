@@ -316,8 +316,10 @@ function dissect_register_super_ack(subtree, buffer, flags)
   -- - decode supernode buffer - array of num_sn of:
   --    uint8_t sock[20]
   --    n2n_max_t mac
-  dissect_socket(sn_tree, buffer, idx)
-  sn_tree:add(src_mac, buffer(idx+20,6))
+  if num_sn > 0 then
+      dissect_socket(sn_tree, buffer, idx)
+      sn_tree:add(src_mac, buffer(idx+20,6))
+  end
 
   idx = idx + sn_info_len
 
