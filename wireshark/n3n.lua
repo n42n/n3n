@@ -77,7 +77,7 @@ socket_ipv6 = ProtoField.ipv6("n3n.socket.ipv6", "IPv6")
 -- #############################################
 
 peer_info_field = ProtoField.none("n3n.peer_info", "PeerInfo")
-peer_info_mac = ProtoField.ether("n3n.peer_info.query_mac", "Query")
+peer_info_targetmac = ProtoField.ether("n3n.peer_info.target_mac", "Query")
 peer_info_load = ProtoField.uint32("n3n.peer_info.load", "Load")
 peer_info_uptime = ProtoField.uint32("n3n.peer_info.uptime", "Uptime")
 peer_info_version = ProtoField.string("n3n.peer_info.version", "Version")
@@ -155,7 +155,7 @@ n3n.fields = {
   register_super_ack_lifetime, register_super_ack_num_sn,
   supernode_info,
   -- PKT_TYPE_PEER_INFO
-  peer_info_field, peer_info_mac,
+  peer_info_field, peer_info_targetmac,
   peer_info_load, peer_info_uptime, peer_info_version,
   -- PKT_TYPE_QUERY_PEER
   query_peer_field,
@@ -346,8 +346,8 @@ function dissect_peer_info(subtree, buffer, flags)
   local peertree = subtree:add(peer_info_field, buffer)
 
   peertree:add(aflags, buffer(0,2))
-  peertree:add(peer_info_mac, buffer(2,6))
-  peertree:add(peer_info_mac, buffer(8,6))
+  peertree:add(peer_info_targetmac, buffer(2,6))
+  peertree:add(src_mac, buffer(8,6))
   idx = dissect_socket(peertree, buffer, 14)
 
   peertree:add(peer_info_load, buffer(idx,4))
