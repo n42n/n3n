@@ -61,11 +61,15 @@ INSTALL_PROG=$(INSTALL) -m555
 INSTALL_DOC=$(INSTALL) -m444
 
 # DESTDIR set in debian make system
-PREFIX?=$(DESTDIR)/$(CONFIG_PREFIX)
+PREFIX=$(DESTDIR)/$(CONFIG_PREFIX)
 
-# TODO: both these dirs are outside of the CONFIG_PREFIX, which means that
-# they would not be in /usr/local if that is the expected install destination
-CONFIG_ETCDIR?=$(DESTDIR)/etc
+# Note that both these install dirs are outside of the CONFIG_PREFIX.
+# The ETCDIR is not configurable in the code, so no changes should be done
+# without code changes.
+# The systemd unit dir should default to /lib for most Debian packages (if
+# CONFIG_PREFIX is /usr) otherwise it should be based on the prefix.
+# The current autotools has hacks to apply this logic.
+ETCDIR=$(DESTDIR)/etc/n3n
 CONFIG_SYSTEMDDIR?=$(DESTDIR)/lib/systemd/system
 
 CONFIG_BINDIR?=$(PREFIX)/bin
@@ -359,7 +363,7 @@ dpkg:
 .PHONY: install.bin
 install.bin: apps
 	$(MAKE) -C apps install CONFIG_SBINDIR=$(abspath $(CONFIG_SBINDIR))
-	$(INSTALL) -d $(CONFIG_BINDIR) $(CONFIG_ETCDIR)/n3n
+	$(INSTALL) -d $(CONFIG_BINDIR) $(ETCDIR)
 	$(INSTALL_PROG) scripts/n3nctl $(CONFIG_BINDIR)
 
 # TODO: dont install.systemd for a non systemd host

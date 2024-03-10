@@ -1,5 +1,5 @@
-odnl> Do not add anything above
-AC_INIT([edge], m4_esyscmd([scripts/version.sh | tr -d '\n']))
+dnl> Do not add anything above
+AC_INIT([n3n], m4_esyscmd([scripts/version.sh | tr -d '\n']))
 dnl> Do not add anything above
 
 # Older versions of the autotools expect to find install-sh here.
@@ -42,6 +42,12 @@ case "$host_os" in
         EXE=""
         ;;
 esac
+
+AC_ARG_WITH([systemddir],
+    AS_HELP_STRING([--with-systemddir=DIR], [Where to install systemd units]),
+    [systemddir=$withval],
+    [systemddir=""]
+)
 
 # TODO: ideally, should use AC_ARG_ENABLE
 AC_ARG_WITH([zstd],
@@ -108,6 +114,32 @@ AS_IF([test "x$enable_pthread" != xno],
     )],
 )
 
+# The prefix var has no default at this point, so we cannot eval it without
+# this hack
+AS_IF([test "x$prefix" = "xNONE" ],
+    prefix=/usr/local
+)
+
+# The systemd unit dir should be in a sane location (based on the prefix) but
+# that is not always a dir underneath the prefix.  Apply another hack
+AS_IF([test "x$systemddir" = "x" ],
+    AS_IF([test "x$prefix" = "x/usr"],
+        systemddir=/lib/systemd/system,
+        systemddir=$prefix/lib/systemd/system
+    )
+)
+
+# All this indirection would be great, if the namespace wasnt poluted
+# (and for many of the dirs, if the directories were more modern)
+CONFIG_DOCDIR=$(eval echo $(eval echo $docdir))
+CONFIG_MANDIR=$(eval echo $(eval echo $mandir))
+CONFIG_PREFIX=$prefix
+CONFIG_SYSTEMDDIR=$systemddir
+
+AC_SUBST(CONFIG_DOCDIR)
+AC_SUBST(CONFIG_MANDIR)
+AC_SUBST(CONFIG_PREFIX)
+AC_SUBST(CONFIG_SYSTEMDDIR)
 
 AC_SUBST(host)
 AC_SUBST(host_os)
