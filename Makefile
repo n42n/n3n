@@ -4,14 +4,19 @@
 # Our default make target
 all:
 
-export CC
 export AR
-export EXE
+export CC
 export CFLAGS
-export LDFLAGS
-export LDLIBS_LOCAL
-export LDLIBS_EXTRA
 export CONFIG_HOST_OS
+export EXE
+export INSTALL
+export INSTALL_DOC
+export INSTALL_PROG
+export LDFLAGS
+export LDLIBS_EXTRA
+export LDLIBS_LOCAL
+export MKDIR
+
 
 VERSION:=$(shell scripts/version.sh)
 CFLAGS+=-DVERSION='"$(VERSION)"'
@@ -49,33 +54,29 @@ ifndef UNAME_S
 $(error Could not run uname command, cannot continue)
 endif
 
-export MKDIR
-export INSTALL
-export INSTALL_PROG
-export INSTALL_DOC
-export SBINDIR
-
 MKDIR=mkdir -p
 INSTALL=install
 INSTALL_PROG=$(INSTALL) -m555
 INSTALL_DOC=$(INSTALL) -m444
 
 # DESTDIR set in debian make system
-PREFIX?=$(DESTDIR)/$(CONFIG_PREFIX)
+PREFIX=$(DESTDIR)/$(CONFIG_PREFIX)
 
-# TODO: both these dirs are outside of the CONFIG_PREFIX, which means that
-# they would not be in /usr/local if that is the expected install destination
+# Note that both these install dirs are outside of the CONFIG_PREFIX.
+# The ETCDIR is not configurable in the code, so no changes should be done
+# without code changes.
+# The systemd unit dir should default to /lib for most Debian packages (if
+# CONFIG_PREFIX is /usr) otherwise it should be based on the prefix.
+# The current autotools has hacks to apply this logic.
 ETCDIR=$(DESTDIR)/etc/n3n
-SYSTEMDDIR=$(DESTDIR)/lib/systemd/system
+CONFIG_SYSTEMDDIR?=$(DESTDIR)/lib/systemd/system
 
-BINDIR=$(PREFIX)/bin
-SBINDIR=$(PREFIX)/sbin
-MANDIR?=$(PREFIX)/share/man
-MAN1DIR=$(MANDIR)/man1
-MAN7DIR=$(MANDIR)/man7
-MAN8DIR=$(MANDIR)/man8
-DOCDIR=$(PREFIX)/share/doc/n3n
-
+CONFIG_BINDIR?=$(PREFIX)/bin
+CONFIG_SBINDIR?=$(PREFIX)/sbin
+CONFIG_MANDIR?=$(PREFIX)/share/man
+MAN7DIR=$(CONFIG_MANDIR)/man7
+MAN8DIR=$(CONFIG_MANDIR)/man8
+CONFIG_DOCDIR?=$(PREFIX)/share/doc/n3n
 
 #######################################
 # All the additiona needed for using the n3n library
@@ -209,7 +210,7 @@ LINT_CCODE=\
 # TODO: change either the files or the linter to remove these failures
 LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
 
-DOCS=edge.8.gz supernode.1.gz n3n.7.gz
+DOCS=edge.8.gz supernode.8.gz n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
@@ -345,7 +346,7 @@ distclean:
 	rm -f tests/*.out src/*.indent src/*.unc-backup*
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
-	rm -f edge.8.gz n3n.7.gz supernode.1.gz
+	rm -f edge.8.gz n3n.7.gz supernode.8.gz
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
@@ -359,26 +360,26 @@ dpkg:
 
 .PHONY: install.bin
 install.bin: apps
-	$(MAKE) -C apps install SBINDIR=$(abspath $(SBINDIR))
-	$(INSTALL) -d $(BINDIR) $(ETCDIR)
-	$(INSTALL_PROG) scripts/n3nctl $(BINDIR)
+	$(MAKE) -C apps install CONFIG_SBINDIR=$(abspath $(CONFIG_SBINDIR))
+	$(INSTALL) -d $(CONFIG_BINDIR) $(ETCDIR)
+	$(INSTALL_PROG) scripts/n3nctl $(CONFIG_BINDIR)
 
 # TODO: dont install.systemd for a non systemd host
 .PHONY: install.systemd
 install.systemd:
-	$(INSTALL) -d $(SYSTEMDDIR)
-	$(INSTALL_DOC) packages/lib/systemd/system/edge@.service $(SYSTEMDDIR)
-	$(INSTALL_DOC) packages/lib/systemd/system/edge.service $(SYSTEMDDIR)
-	$(INSTALL_DOC) packages/lib/systemd/system/supernode.service $(SYSTEMDDIR)
+	$(INSTALL) -d $(CONFIG_SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/edge@.service $(CONFIG_SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/edge.service $(CONFIG_SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/supernode.service $(CONFIG_SYSTEMDDIR)
 
 .PHONY: install.doc
-install: edge.8.gz supernode.1.gz n3n.7.gz
-	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
+install: edge.8.gz supernode.8.gz n3n.7.gz
+	$(INSTALL) -d $(MAN7DIR) $(MAN8DIR) $(CONFIG_DOCDIR)
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
+	$(INSTALL_DOC) supernode.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
-	$(INSTALL_DOC) doc/*.md doc/*.sample $(DOCDIR)/
+	$(INSTALL_DOC) doc/*.md doc/*.sample $(CONFIG_DOCDIR)/
 
 # TODO:
 # install wireshark dissector

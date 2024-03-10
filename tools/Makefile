@@ -37,5 +37,5 @@ clean:
 	rm -f $(TESTS) *.gcno *.gcda
 
 install: $(TOOLS)
-	$(INSTALL) -d $(SBINDIR)
-	$(INSTALL_PROG) $(addsuffix $(EXE),$(TOOLS)) $(SBINDIR)/
+	$(INSTALL) -d $(CONFIG_SBINDIR)
+	$(INSTALL_PROG) $(addsuffix $(EXE),$(TOOLS)) $(CONFIG_SBINDIR)/
