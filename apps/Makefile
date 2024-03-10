@@ -37,9 +37,9 @@ $(APPS) $(EXAMPLES): ../src/libn3n.a
 
 .PHONY: install
 install: $(addsuffix $(EXE),$(APPS))
-	$(INSTALL) -d $(SBINDIR)
-	$(INSTALL_PROG) supernode$(EXE) $(SBINDIR)/
-	$(INSTALL_PROG) edge$(EXE) $(SBINDIR)/
+	$(INSTALL) -d $(CONFIG_SBINDIR)
+	$(INSTALL_PROG) supernode$(EXE) $(CONFIG_SBINDIR)/
+	$(INSTALL_PROG) edge$(EXE) $(CONFIG_SBINDIR)/
 
 # See comments in the topdir Makefile about how to generate coverage data.
 gcov:
