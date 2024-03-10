@@ -4,14 +4,19 @@
 # Our default make target
 all:
 
-export CC
 export AR
-export EXE
+export CC
 export CFLAGS
-export LDFLAGS
-export LDLIBS_LOCAL
-export LDLIBS_EXTRA
 export CONFIG_HOST_OS
+export EXE
+export INSTALL
+export INSTALL_DOC
+export INSTALL_PROG
+export LDFLAGS
+export LDLIBS_EXTRA
+export LDLIBS_LOCAL
+export MKDIR
+
 
 VERSION:=$(shell scripts/version.sh)
 CFLAGS+=-DVERSION='"$(VERSION)"'
@@ -49,12 +54,6 @@ ifndef UNAME_S
 $(error Could not run uname command, cannot continue)
 endif
 
-export MKDIR
-export INSTALL
-export INSTALL_PROG
-export INSTALL_DOC
-export CONFIG_SBINDIR
-
 MKDIR=mkdir -p
 INSTALL=install
 INSTALL_PROG=$(INSTALL) -m555
@@ -78,7 +77,6 @@ CONFIG_MANDIR?=$(PREFIX)/share/man
 MAN7DIR=$(CONFIG_MANDIR)/man7
 MAN8DIR=$(CONFIG_MANDIR)/man8
 CONFIG_DOCDIR?=$(PREFIX)/share/doc/n3n
-
 
 #######################################
 # All the additiona needed for using the n3n library
