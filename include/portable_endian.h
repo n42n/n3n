@@ -142,6 +142,8 @@
 
 #elif defined(__WINDOWS__)
 
+#   include <stdlib.h>  // for _byteswap_ushort, _byteswap_ulong
+
 #   if BYTE_ORDER == LITTLE_ENDIAN
 
 #       define htobe16(x) _byteswap_ushort(x)

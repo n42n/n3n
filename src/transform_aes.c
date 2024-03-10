@@ -28,7 +28,6 @@
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 #include "aes.h"             // for AES_BLOCK_SIZE, aes_cbc_decrypt, aes_cbc...
 #include "n2n.h"             // for n2n_trans_op_t
-#include "n2n_wire.h"        // for encode_uint64, encode_buf
 #include "pearson.h"         // for pearson_hash_256
 
 
@@ -94,14 +93,15 @@ static int transop_encode_aes (n2n_trans_op_t *arg,
             traceEvent(TRACE_DEBUG, "transop_encode_aes %lu bytes plaintext", in_len);
 
             // full block sized random value (128 bit)
-            encode_uint64(assembly, &idx, n3n_rand());
-            encode_uint64(assembly, &idx, n3n_rand());
+            *(uint64_t *)(&assembly[0]) = n3n_rand();
+            *(uint64_t *)(&assembly[8]) = n3n_rand();
 
             // adjust for maybe differently chosen AES_PREAMBLE_SIZE
             idx = AES_PREAMBLE_SIZE;
 
             // the plaintext data
-            encode_buf(assembly, &idx, inbuf, in_len);
+            memcpy((assembly + idx), inbuf, in_len);
+            idx += in_len;
 
             // round up to next whole AES block size
             padded_len = (((idx - 1) / AES_BLOCK_SIZE) + 1) * AES_BLOCK_SIZE;

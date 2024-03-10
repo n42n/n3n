@@ -86,6 +86,11 @@ static uint64_t splitmix64 (splitmix64_state_t *state) {
     return result ^ (result >> 31);
 }
 
+// Used mainly during testing to generate a known random sequence
+void n3n_srand_stable_default () {
+    rn_current_state.a = 0x9E3779B97F4A7C15;
+    rn_current_state.b = 0xBF58476D1CE4E5B9;
+}
 
 static int n3n_srand (uint64_t seed) {
 
@@ -101,8 +106,7 @@ static int n3n_srand (uint64_t seed) {
     // the following lines could be deleted as soon as it is formally prooved that
     // there is no seed leading to (a == b == 0). until then, just to be safe:
     if((rn_current_state.a == 0) && (rn_current_state.b == 0)) {
-        rn_current_state.a = 0x9E3779B97F4A7C15;
-        rn_current_state.b = 0xBF58476D1CE4E5B9;
+        n3n_srand_stable_default();
     }
 
     // stabilize in unlikely case of weak state with only a few bits set
@@ -156,7 +160,7 @@ static uint64_t seed_getrandom () {
         traceEvent(
             TRACE_ERROR,
             "getrandom syscall indicate not being able to provide enough entropy yet."
-            );
+        );
     }
     return 0;
 }
@@ -178,7 +182,7 @@ static uint64_t seed_rdrnd () {
     traceEvent(
         TRACE_ERROR,
         "unable to get a hardware generated random number from RDRND."
-        );
+    );
     return 0;
 }
 #endif
@@ -200,19 +204,24 @@ static uint64_t seed_rdseed () {
     traceEvent(
         TRACE_ERROR,
         "unable to get a hardware generated random number from RDSEED."
-        );
+    );
     return 0;
 }
 #endif
 #endif
 
 #ifdef _WIN32
+// Note that the functions used here are marked as deprecated and Microsoft
+// warns that they may remove this API in future releases.  They suggest
+// using Cryptography Next Generation (CNG) APIs instead.  The CryptGenKey
+// API works from WinXP through to Win11, whereas the CNG needs at least
+// WinVista.  Also, the CNG API is harder to use.
 static uint64_t seed_CryptGenRandom () {
     uint64_t seed;
     HCRYPTPROV crypto_provider;
     CryptAcquireContext(&crypto_provider, NULL, NULL,
                         PROV_RSA_FULL, CRYPT_VERIFYCONTEXT);
-    CryptGenRandom(crypto_provider, 8, &seed);
+    CryptGenRandom(crypto_provider, 8, (uint8_t*)&seed);
     CryptReleaseContext(crypto_provider, 0);
     return seed;
 }

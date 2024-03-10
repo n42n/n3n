@@ -25,6 +25,7 @@ struct peer_info {
     time_t last_seen;
     time_t last_p2p;
     time_t last_sent_query;
+    time_t time_alloc;
     SN_SELECTION_CRITERION_DATA_TYPE selection_criterion;
     uint64_t last_valid_time_stamp;
     char                             *ip_addr;
@@ -38,6 +39,7 @@ typedef struct peer_info peer_info_t;
 
 void peer_info_init (struct peer_info *, const n2n_mac_t mac);
 struct peer_info* peer_info_malloc (const n2n_mac_t mac);
+void peer_info_free (struct peer_info *);
 
 /* Operations on peer_info lists. */
 size_t purge_peer_list (struct peer_info ** peer_list,

@@ -156,6 +156,7 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
 
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
+    uint32_t age = time(NULL) - peer->time_alloc;
 
     /*
      * Just the peer_info bits that are needed for lookup (maccaddr) or
@@ -168,11 +169,13 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
         "\"event\":\"peer\","
         "\"action\":\"%s\","
         "\"macaddr\":\"%s\","
+        "\"age\":%u,"
         "\"sockaddr\":\"%s\"}\n",
         event_peer_actions[action],
         (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
+        age,
         sock_to_cstr(sockbuf, &(peer->sock))
-        );
+    );
 
     // TODO: a generic truncation watcher for these buffers
 }
@@ -308,7 +311,7 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
         id,
         code,
         message
-        );
+    );
 
     // Update the reply buffer after last potential realloc
     conn->reply = conn->request;
@@ -326,7 +329,7 @@ static void jsonrpc_result_head (char *id, conn_t *conn) {
         "\"id\":\"%s\","
         "\"result\":",
         id
-        );
+    );
 }
 
 static void jsonrpc_result_tail (conn_t *conn, int code) {
@@ -402,7 +405,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
             &conn->request,
             "[{\"community\":\"%s\"}]",
             eee->conf.community_name
-            );
+        );
         jsonrpc_result_tail(conn, 200);
         return;
     }
@@ -440,6 +443,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
 static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, const char *mode, const char *community) {
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
+    n2n_sock_str_t sockbuf2;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
 
     sb_reprintf(reply,
@@ -451,10 +455,15 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 "\"local\":%i,"
                 "\"macaddr\":\"%s\","
                 "\"sockaddr\":\"%s\","
-                "\"desc\":\"%s\","
-                "\"last_p2p\":%li,"
-                "\"last_sent_query\":%li,"
-                "\"last_seen\":%li},",
+                "\"prefered_sockaddr\":\"%s\","
+                "\"desc\":\"%.20s\","
+                "\"version\":\"%.20s\","
+                "\"timeout\":%i,"
+                "\"uptime\":%u,"
+                "\"time_alloc\":%u,"
+                "\"last_p2p\":%u,"
+                "\"last_sent_query\":%u,"
+                "\"last_seen\":%u},",
                 mode,
                 community,
                 (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
@@ -462,11 +471,16 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 peer->local,
                 (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
                 sock_to_cstr(sockbuf, &(peer->sock)),
+                sock_to_cstr(sockbuf2, &(peer->preferred_sock)),
                 peer->dev_desc,
-                peer->last_p2p,
-                peer->last_sent_query,
-                peer->last_seen
-                );
+                peer->version,
+                peer->timeout,
+                (uint32_t)peer->uptime,
+                (uint32_t)peer->time_alloc,
+                (uint32_t)peer->last_p2p,
+                (uint32_t)peer->last_sent_query,
+                (uint32_t)peer->last_seen
+    );
 
     // TODO: add a proto: TCP|UDP item to the output
 }
@@ -484,7 +498,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
             peer,
             "pSp",
             eee->conf.community_name
-            );
+        );
     }
 
     // dump peer-to-peer nodes
@@ -494,7 +508,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
             peer,
             "p2p",
             eee->conf.community_name
-            );
+        );
     }
 
     struct sn_community *community, *tmp;
@@ -505,7 +519,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
                 peer,
                 "sn",
                 (community->is_federation) ? "-/-" : community->community
-                );
+            );
         }
     }
 
@@ -547,7 +561,7 @@ static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *co
                 is_null_mac(eee->device.mac_addr) ? "" : macaddr_str(mac_buf, eee->device.mac_addr),
                 ip_address,
                 sock_to_cstr(sockbuf, &eee->conf.preferred_sock)
-                );
+    );
 
     jsonrpc_result_tail(conn, 200);
 }
@@ -578,16 +592,16 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
                     "\"macaddr\":\"%s\","
                     "\"sockaddr\":\"%s\","
                     "\"selection\":\"%s\","
-                    "\"last_seen\":%li,"
-                    "\"uptime\":%li},",
+                    "\"last_seen\":%u,"
+                    "\"uptime\":%u},",
                     peer->version,
                     peer->purgeable,
                     (peer == eee->curr_sn) ? (eee->sn_wait ? 2 : 1 ) : 0,
                     is_null_mac(peer->mac_addr) ? "" : macaddr_str(mac_buf, peer->mac_addr),
                     sock_to_cstr(sockbuf, &(peer->sock)),
                     sn_selection_criterion_str(eee, sel_buf, peer),
-                    peer->last_seen,
-                    peer->uptime);
+                    (uint32_t)peer->last_seen,
+                    (uint32_t)peer->uptime);
     }
 
     // HACK: back up over the final ','
@@ -603,21 +617,21 @@ static void jsonrpc_get_timestamps (char *id, struct n3n_runtime_data *eee, conn
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request,
                 "{"
-                "\"last_register_req\":%lu,"
-                "\"last_rx_p2p\":%ld,"
-                "\"last_rx_super\":%ld,"
-                "\"last_sweep\":%ld,"
-                "\"last_sn_fwd\":%ld,"
-                "\"last_sn_reg\":%ld,"
-                "\"start_time\":%lu}",
-                eee->last_register_req,
-                eee->last_p2p,
-                eee->last_sup,
-                eee->last_sweep,
-                eee->last_sn_fwd,
-                eee->last_sn_reg,
-                eee->start_time
-                );
+                "\"last_register_req\":%u,"
+                "\"last_rx_p2p\":%u,"
+                "\"last_rx_super\":%u,"
+                "\"last_sweep\":%u,"
+                "\"last_sn_fwd\":%u,"
+                "\"last_sn_reg\":%u,"
+                "\"start_time\":%u}",
+                (uint32_t)eee->last_register_req,
+                (uint32_t)eee->last_p2p,
+                (uint32_t)eee->last_sup,
+                (uint32_t)eee->last_sweep,
+                (uint32_t)eee->last_sn_fwd,
+                (uint32_t)eee->last_sn_reg,
+                (uint32_t)eee->start_time
+    );
 
     jsonrpc_result_tail(conn, 200);
 }
@@ -629,10 +643,10 @@ static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, con
     sb_reprintf(&conn->request,
                 "{"
                 "\"type\":\"transop\","
-                "\"tx_pkt\":%lu,"
-                "\"rx_pkt\":%lu},",
-                eee->transop.tx_cnt,
-                eee->transop.rx_cnt);
+                "\"tx_pkt\":%u,"
+                "\"rx_pkt\":%u},",
+                (uint32_t)eee->transop.tx_cnt,
+                (uint32_t)eee->transop.rx_cnt);
 
     sb_reprintf(&conn->request,
                 "{"
@@ -763,7 +777,7 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
                     host, sizeof(host),
                     serv, sizeof(serv),
                     NI_NUMERICHOST|NI_NUMERICSERV
-                    );
+                );
             }
         }
 
@@ -776,7 +790,7 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
             mgmt_events[topic].topic,
             host, serv,
             mgmt_events[topic].desc
-            );
+        );
     }
 
     // HACK: back up over the final ','
@@ -826,7 +840,7 @@ static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
                     "\"desc\":\"%s\"},",
                     jsonrpc_methods[i].method,
                     jsonrpc_methods[i].desc
-                    );
+        );
 
     }
     // HACK: back up over the final ','
@@ -859,7 +873,7 @@ static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
         json.id,
         json.method,
         json.params
-        );
+    );
 
     // Since we are going to reuse the request buffer for the reply, copy
     // the id string out of it as every single reply will need it
@@ -872,7 +886,7 @@ static void handle_jsonrpc (struct n3n_runtime_data *eee, conn_t *conn) {
         if(!strcmp(
                jsonrpc_methods[i].method,
                json.method
-               )) {
+           )) {
             break;
         }
     }
@@ -967,7 +981,7 @@ static void render_help_page (struct n3n_runtime_data *eee, conn_t *conn) {
             "%s, %s\n",
             api_endpoints[i].match,
             api_endpoints[i].desc
-            );
+        );
     }
 
     // Update the reply buffer only after last potential realloc

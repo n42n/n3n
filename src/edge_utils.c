@@ -47,7 +47,7 @@
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "management.h"              // for readFromMgmtSocket
 #include "n2n.h"                     // for n3n_runtime_data, n2n_edge_...
-#include "n2n_wire.h"                // for encode_mac, fill_sockaddr, decod...
+#include "n2n_wire.h"                // for fill_sockaddr, decod...
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
 #include "portable_endian.h"         // for be16toh, htobe16
@@ -57,6 +57,7 @@
 #include "uthash.h"                  // for UT_hash_handle, HASH_COUNT, HASH...
 
 #ifdef _WIN32
+#include <direct.h>                  // for _mkdir
 #include "win32/edge_utils_win32.h"
 #else
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop
@@ -319,7 +320,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
             eee->conf.bind_address,
             sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
             eee->conf.connect_tcp
-            );
+        );
 
         if(eee->sock < 0) {
             traceEvent(TRACE_ERROR, "failed to bind main UDP port");
@@ -370,7 +371,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
             TRACE_INFO,
             "Setting pmtu_discovery %s",
             (eee->conf.pmtu_discovery) ? "true" : "false"
-            );
+        );
 
         int i = setsockopt(
             eee->sock,
@@ -378,7 +379,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
             IP_MTU_DISCOVER,
             &sockopt,
             sizeof(sockopt)
-            );
+        );
 
         if(i < 0) {
             traceEvent(
@@ -386,7 +387,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
                 "Setting pmtu_discovery failed: %s(%d)",
                 strerror(errno),
                 errno
-                );
+            );
         }
 #else
         traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
@@ -1029,7 +1030,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
             /* The peer has changed public socket. It can no longer be assumed to be reachable. */
             HASH_DEL(eee->known_peers, scan);
             mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
-            free(scan);
+            peer_info_free(scan);
 
             register_with_new_peer(eee, from_supernode, via_multicast, mac, dev_addr, dev_desc, peer);
         } else {
@@ -1150,6 +1151,8 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         // invalid socket file descriptor, e.g. TCP unconnected has fd of '-1'
         return;
 
+    peer_addr.sin_port = 0;
+
     // network order socket
     fill_sockaddr((struct sockaddr *) &peer_addr, sizeof(peer_addr), dest);
 
@@ -1199,8 +1202,9 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
             struct ip_mreq mreq;
             mreq.imr_multiaddr.s_addr = inet_addr(N2N_MULTICAST_GROUP);
 #ifdef _WIN32
+            uint32_t raw_addr = *(uint32_t *)&eee->curr_sn->sock.addr.v4;
             dec_ip_str_t ip_addr;
-            get_best_interface_ip(eee, &ip_addr);
+            get_best_interface_ip(raw_addr, &ip_addr);
             mreq.imr_interface.s_addr = inet_addr(ip_addr);
 #else
             mreq.imr_interface.s_addr = htonl(INADDR_ANY);
@@ -1244,11 +1248,8 @@ void send_query_peer (struct n3n_runtime_data * eee,
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
-    idx = 0;
-    encode_mac(query.srcMac, &idx, eee->device.mac_addr);
-
-    idx = 0;
-    encode_mac(query.targetMac, &idx, dst_mac);
+    memcpy(query.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t));
+    memcpy(query.targetMac, dst_mac, sizeof(n2n_mac_t));
 
     idx = 0;
     encode_QUERY_PEER(pktbuf, &idx, &cmn, &query);
@@ -1338,8 +1339,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
     get_local_auth(eee, &(reg.auth));
 
-    idx = 0;
-    encode_mac(reg.edgeMac, &idx, eee->device.mac_addr);
+    memcpy(reg.edgeMac, eee->device.mac_addr, sizeof(n2n_mac_t));
 
     idx = 0;
     encode_REGISTER_SUPER(pktbuf, &idx, &cmn, &reg);
@@ -1381,8 +1381,7 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
     get_local_auth(eee, &(unreg.auth));
 
-    idx = 0;
-    encode_mac(unreg.srcMac, &idx, eee->device.mac_addr);
+    memcpy(unreg.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t));
 
     idx = 0;
     encode_UNREGISTER_SUPER(pktbuf, &idx, &cmn, &unreg);
@@ -1473,13 +1472,11 @@ static void send_register (struct n3n_runtime_data * eee,
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
     reg.cookie = cookie;
-    idx = 0;
-    encode_mac(reg.srcMac, &idx, eee->device.mac_addr);
+    memcpy(reg.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t));
 
     if(peer_mac) {
         // can be NULL for multicast registrations
-        idx = 0;
-        encode_mac(reg.dstMac, &idx, peer_mac);
+        memcpy(reg.dstMac, peer_mac, sizeof(n2n_mac_t));
     }
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
     reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
@@ -1674,7 +1671,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
             supernode_ip(eee),
             HASH_COUNT(eee->conf.supernodes),
             (unsigned int)eee->sup_attempts
-            );
+        );
 
         send_register_super(eee);
     }
@@ -1754,7 +1751,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
             rx_transop_id,
             macaddr_str(mac_buf, pkt->srcMac),
             sock_to_cstr(sockbuf, orig_sender)
-            );
+        );
         return -1;
     }
 
@@ -1791,7 +1788,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
                 TRACE_WARNING,
                 "decompression: failed: unsupported %i",
                 rx_compression_id
-                );
+            );
             return(-1); // cannot handle it
     }
 
@@ -1802,7 +1799,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
             rx_compression_id,
             eth_size,
             deflate_len
-            );
+        );
         eth_payload = deflate_buf;
         eth_size = deflate_len;
     }
@@ -1984,7 +1981,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
             traceEvent(TRACE_DEBUG, "refreshing idle known peer");
             HASH_DEL(eee->known_peers, scan);
             mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
-            free(scan);
+            peer_info_free(scan);
             /* NOTE: registration will be performed upon the receival of the next response packet */
         } else {
             /* Valid known peer found */
@@ -2216,7 +2213,7 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
             len,
             errno,
             strerror(errno)
-            );
+        );
         traceEvent(TRACE_WARNING, "TAP I/O operation aborted, restart later.");
         eee->stats.tx_tuntap_error++;
 
@@ -2229,7 +2226,7 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
                     eee->conf.device_mac,
                     eee->conf.mtu,
                     eee->conf.metric
-                    );
+        );
         return;
 
     }
@@ -2826,7 +2823,7 @@ int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
        || (sock == eee->udp_multicast_sock)
 #endif
-       ) {
+    ) {
         // udp
         bread = recvfrom(sock, (void *)pktbuf, N2N_PKT_BUF_SIZE, 0 /*flags*/,
                          sender_sock, &ss_size);
@@ -2835,7 +2832,7 @@ int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock
 #ifdef _WIN32
            && (WSAGetLastError() != WSAECONNRESET)
 #endif
-           ) {
+        ) {
             /* For UDP bread of zero just means no data (unlike TCP). */
             /* The fd is no good now. Maybe we lost our interface. */
             traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
@@ -2978,8 +2975,8 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 slots,
                 &readers,
                 &writers
-                )
-            );
+            )
+        );
 
         // FIXME:
         // unlock the windows tun reader thread before select() and lock it
@@ -3005,7 +3002,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                        &expected,
                        &position,
                        now
-                       )) {
+                   )) {
                     *eee->keep_running = false;
                 }
                 if(eee->conf.connect_tcp) {
@@ -3030,7 +3027,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                        &expected,
                        &position,
                        now
-                       )) {
+                   )) {
                     *eee->keep_running = false;
                 }
             }
@@ -3049,7 +3046,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 traceEvent(
                     TRACE_ERROR,
                     "slots_fdset_loop returns %i (Is daemon exiting?)", slots_ready
-                    );
+                );
             } else if(slots_ready > 0) {
                 // A linear scan is not ideal, but this is a select() loop
                 // not one built for performance.
@@ -3099,7 +3096,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 numPurged,
                 HASH_COUNT(eee->pending_peers),
                 HASH_COUNT(eee->known_peers)
-                );
+            );
         }
 
 #ifdef HAVE_BRIDGING_SUPPORT
@@ -3133,7 +3130,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             eee->resolve_parameter,
             eee->resolution_request,
             now
-            );
+        );
 
         if(eee->cb.main_loop_period)
             eee->cb.main_loop_period(eee, now);
@@ -3226,7 +3223,7 @@ void edge_term (struct n3n_runtime_data * eee) {
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
-    eee->mgmt_slots = slots_malloc(5, 3000, 500);
+    eee->mgmt_slots = slots_malloc(5, 4000, 500);
     if(!eee->mgmt_slots) {
         abort();
     }
@@ -3249,6 +3246,8 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
         exit(1);
     }
     chown(unixsock, eee->conf.userid, eee->conf.groupid);
+    // Deliberately ignore the result - either it worked or not
+    // TODO: mark it so the compiler doesnt complain
 #endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
@@ -3273,7 +3272,7 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
         (struct sockaddr *)&local_address,
         sizeof(local_address),
         0 /* UDP */
-        );
+    );
     if(eee->udp_multicast_sock < 0) {
         return(-3);
     }
@@ -3329,7 +3328,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
         sizeof(conf->tuntap_dev_name),
         "%s",
         conf->sessionname
-        );
+    );
 #endif
 
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;

@@ -118,7 +118,7 @@ int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t 
                 TRACE_ERROR,
                 "sn_selection_strategy unknown %i",
                 eee->conf.sn_selection_strategy
-                );
+            );
             break;
         }
     }
@@ -159,7 +159,7 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
                 TRACE_ERROR,
                 "sn_selection_strategy unknown %i",
                 eee->conf.sn_selection_strategy
-                );
+            );
             break;
         }
     }
@@ -240,12 +240,22 @@ extern char * sn_selection_criterion_str (struct n3n_runtime_data *eee, selectio
         switch(eee->conf.sn_selection_strategy) {
 
             case SN_SELECTION_STRATEGY_LOAD: {
-                chars = snprintf(out, SN_SELECTION_CRITERION_BUF_SIZE, "load = %8ld", peer->selection_criterion);
+                chars = snprintf(
+                    out,
+                    SN_SELECTION_CRITERION_BUF_SIZE,
+                    "load = %8u",
+                    (uint32_t)peer->selection_criterion
+                );
                 break;
             }
 
             case SN_SELECTION_STRATEGY_RTT: {
-                chars = snprintf(out, SN_SELECTION_CRITERION_BUF_SIZE, "rtt = %6ld ms", peer->selection_criterion);
+                chars = snprintf(
+                    out,
+                    SN_SELECTION_CRITERION_BUF_SIZE,
+                    "rtt = %6u ms",
+                    (uint32_t)peer->selection_criterion
+                );
                 break;
             }
 
@@ -261,7 +271,7 @@ extern char * sn_selection_criterion_str (struct n3n_runtime_data *eee, selectio
                     TRACE_ERROR,
                     "sn_selection_strategy unknown %i",
                     eee->conf.sn_selection_strategy
-                    );
+                );
                 break;
             }
         }

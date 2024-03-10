@@ -348,7 +348,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
 // TODO: move to a strings helper source file
 char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
 
-    snprintf(buf, sizeof(dec_ip_bit_str_t), "%hhu.%hhu.%hhu.%hhu/%hhu",
+    snprintf(buf, sizeof(dec_ip_bit_str_t), "%u.%u.%u.%u/%u",
              (uint8_t) ((ipaddr->net_addr >> 24) & 0xFF),
              (uint8_t) ((ipaddr->net_addr >> 16) & 0xFF),
              (uint8_t) ((ipaddr->net_addr >> 8) & 0xFF),

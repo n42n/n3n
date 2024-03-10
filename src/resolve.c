@@ -46,7 +46,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
             "size of supernode argument too long: %zu; maximum size is %d",
             length,
             N2N_EDGE_SN_HOST_SIZE
-            );
+        );
         return -5;;
     }
 
@@ -60,7 +60,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
             TRACE_WARNING,
             "malformed supernode parameter (should be <host:port>) %s",
             addrIn
-            );
+        );
         return -4;
     }
 
@@ -71,7 +71,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
             TRACE_WARNING,
             "malformed supernode parameter (should be <host:port>) %s",
             addrIn
-            );
+        );
         return -3;
     }
 
@@ -85,7 +85,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
             supernode_host,
             nameerr,
             gai_strerror(nameerr)
-            );
+        );
         return -2;
     }
 
@@ -102,7 +102,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
             TRACE_WARNING,
             "supernode2sock fails to resolve supernode IPv4 address for %s",
             supernode_host
-            );
+        );
         freeaddrinfo(ainfo);
         return -1;
     }

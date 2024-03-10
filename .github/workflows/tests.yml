@@ -263,7 +263,7 @@ jobs:
     name: Package for Debian/Ubuntu
     needs:
       - test_linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: true
       matrix:

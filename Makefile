@@ -130,6 +130,9 @@ OBJS=\
 	src/tuntap_osx.o \
 	src/wire.o \
 
+# TODO: add performance testing and then try to avoid ignoring this warning
+CFLAGS_src/speck.c := -Wno-maybe-uninitialized
+
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
 OBJS+=src/win32/edge_utils_win32.o
 OBJS+=src/win32/getopt1.o
@@ -251,8 +254,8 @@ src/win32/edge_rc.o: src/win32/edge.rc
 # Remember to keep the two CC lines in sync
 $(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
 %.o: %.c
-	@echo "  CC      $@"
-	@$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	@echo "  CC      $@ $(CFLAGS_$<)"
+	@$(CC) $(CFLAGS) $(CFLAGS_$<) $(CPPFLAGS) -c -o $@ $<
 
 %.gz : %
 	gzip -n -c $< > $@
@@ -376,6 +379,9 @@ install: edge.8.gz supernode.1.gz n3n.7.gz
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) doc/*.md doc/*.sample $(DOCDIR)/
+
+# TODO:
+# install wireshark dissector
 
 .PHONY: install
 install: install.bin install.doc install.systemd

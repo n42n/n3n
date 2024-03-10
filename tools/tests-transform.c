@@ -19,9 +19,10 @@
  */
 
 
-#include <inttypes.h>   // for PRIx64
 #include <n3n/edge.h>
+#include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/random.h> // for n3n_srand_stable_default
 #include <stdint.h>     // for uint8_t
 #include <stdio.h>      // for printf, fprintf, size_t, stderr, stdout
 #include <stdlib.h>     // for exit
@@ -73,6 +74,9 @@ int main (int argc, char * argv[]) {
 #endif
     n2n_edge_conf_t conf;
 
+    // Do this early to register all internals
+    n3n_initfuncs();
+
     /* Init configuration */
     edge_init_conf_defaults(&conf,"_TEST");
     strncpy((char *)conf.community_name, "abc123def456", sizeof(conf.community_name));
@@ -81,7 +85,11 @@ int main (int argc, char * argv[]) {
     char *test_name = "environment";
     printf("%s: community_name = \"%s\"\n", test_name, conf.community_name);
     printf("%s: encrypt_key = \"%s\"\n", test_name, conf.encrypt_key);
-    printf("%s: input size = 0x%" PRIx64 "\n", test_name, sizeof(PKT_CONTENT));
+    printf(
+        "%s: input size = 0x%x\n",
+        test_name,
+        (uint32_t)sizeof(PKT_CONTENT)
+    );
     fhexdump(0, PKT_CONTENT, sizeof(PKT_CONTENT), stdout);
     printf("\n");
 
@@ -150,11 +158,12 @@ static void run_transop_benchmark (const char *op_name, n2n_trans_op_t *op_fn, n
     memset(mac_buf, 0, sizeof(mac_buf));
 
     nw = do_encode_packet( pktbuf, N2N_PKT_BUF_SIZE, conf->community_name);
+    n3n_srand_stable_default();
     nw += op_fn->fwd(op_fn,
                      pktbuf+nw, N2N_PKT_BUF_SIZE-nw,
                      PKT_CONTENT, sizeof(PKT_CONTENT), mac_buf);
 
-    printf("%s: output size = 0x%" PRIx64 "\n", op_name, nw);
+    printf("%s: output size = 0x%x\n", op_name, (uint32_t)nw);
     fhexdump(0, pktbuf, nw, stdout);
 
     // decrpytion

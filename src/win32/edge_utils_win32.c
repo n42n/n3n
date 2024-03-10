@@ -22,8 +22,6 @@
 #include <iphlpapi.h>
 #include <n3n/logging.h>    // for traceEvent
 
-#include "../peer_info.h"   // FIXME: untangle include
-
 #include "edge_utils_win32.h"
 
 /* ************************************** */
@@ -113,14 +111,14 @@ HANDLE startTunReadThread (struct tunread_arg *arg) {
 
 
 
-int get_best_interface_ip (struct n3n_runtime_data * eee, dec_ip_str_t *ip_addr){
+int get_best_interface_ip (uint32_t addr_v4, dec_ip_str_t *ip_addr){
     DWORD interface_index = -1;
     DWORD dwRetVal = 0;
     PIP_ADAPTER_INFO pAdapterInfo = NULL, pAdapter = NULL;
     macstr_t mac_buf;
     ULONG ulOutBufLen = sizeof(IP_ADAPTER_INFO);
 
-    dwRetVal = GetBestInterface(*(IPAddr*)(&eee->curr_sn->sock.addr.v4), &interface_index);
+    dwRetVal = GetBestInterface(addr_v4, &interface_index);
     if(dwRetVal != NO_ERROR) return -1;
 
     pAdapterInfo = (PIP_ADAPTER_INFO)malloc(ulOutBufLen);
@@ -155,7 +153,7 @@ int get_best_interface_ip (struct n3n_runtime_data * eee, dec_ip_str_t *ip_addr)
             traceEvent(TRACE_DEBUG, "IP Address:    %s\n", pAdapter->IpAddressList.IpAddress.String);
             traceEvent(TRACE_DEBUG, "IP Mask:       %s\n", pAdapter->IpAddressList.IpMask.String);
             traceEvent(TRACE_DEBUG, "Gateway:       %s\n", pAdapter->GatewayList.IpAddress.String);
-            strncpy(ip_addr, pAdapter->IpAddressList.IpAddress.String, sizeof(*ip_addr));
+            strncpy((char *)ip_addr, pAdapter->IpAddressList.IpAddress.String, sizeof(*ip_addr));
         }
     } else {
         traceEvent(TRACE_WARNING, "GetAdaptersInfo failed with error: %d\n", dwRetVal);

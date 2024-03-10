@@ -36,7 +36,7 @@ struct tunread_arg {
 };
 
 extern HANDLE startTunReadThread (struct tunread_arg *arg);
-int get_best_interface_ip (struct n3n_runtime_data * eee, dec_ip_str_t *ip_addr);
+int get_best_interface_ip (uint32_t addr_v4, dec_ip_str_t *ip_addr);
 
 
 #endif /* _EDGE_UTILS_WIN32_H_ */

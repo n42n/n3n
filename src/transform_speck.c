@@ -27,7 +27,6 @@
 #include <string.h>          // for memset, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 #include "n2n.h"             // for n2n_trans_op_t
-#include "n2n_wire.h"        // for encode_uint64
 #include "pearson.h"         // for pearson_hash_256
 #include "speck.h"           // for N2N_SPECK_IVEC_SIZE, speck_ctr, speck_de...
 
@@ -75,13 +74,11 @@ static int transop_encode_speck (n2n_trans_op_t *arg,
 
     if(in_len <= N2N_PKT_BUF_SIZE) {
         if((in_len + TRANSOP_SPECK_PREAMBLE_SIZE) <= out_len) {
-            size_t idx = 0;
-
             traceEvent(TRACE_DEBUG, "encode_speck %lu bytes", in_len);
 
             // generate and encode the iv
-            encode_uint64(outbuf, &idx, n3n_rand());
-            encode_uint64(outbuf, &idx, n3n_rand());
+            *(uint64_t *)(&outbuf[0]) = n3n_rand();
+            *(uint64_t *)(&outbuf[8]) = n3n_rand();
 
             // encrypt the payload and write the ciphertext after the iv
             // len is set to the length of the cipher plain text to be encrpyted

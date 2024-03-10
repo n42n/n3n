@@ -23,6 +23,7 @@
 
 #ifdef _WIN32
 #include "win32/defs.h"
+#include <direct.h>             // for _mkdir
 #else
 #include <grp.h>                // for getgrnam
 #include <netinet/in.h>  // for sockaddr_in
@@ -819,7 +820,7 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
                 section->name,
                 option->name,
                 option->type
-                );
+            );
             option++;
         }
 
@@ -1023,7 +1024,7 @@ int n3n_config_load_file (void *conf, char *name) {
                     "Error:%s:%i: could not extract section\n",
                     filename,
                     linenr
-                    );
+                );
                 goto out;
             }
             section = strdup(tmp_section);
@@ -1038,7 +1039,7 @@ int n3n_config_load_file (void *conf, char *name) {
                 "Error:%s:%i: options outside of a section\n",
                 filename,
                 linenr
-                );
+            );
             goto out;
         }
 
@@ -1112,7 +1113,7 @@ int n3n_config_load_file (void *conf, char *name) {
                 section,
                 option,
                 line
-                );
+            );
         }
     }
     error = 0;
@@ -1136,7 +1137,7 @@ void n3n_subcmd_help (struct n3n_subcmd_def *p, int indent, bool recurse) {
             indent,
             ' ',
             p->name
-            );
+        );
         if(p->type == n3n_subcmd_type_nest) {
             printf(" ->");
         }
@@ -1158,7 +1159,7 @@ static void subcmd_help_simple (struct n3n_subcmd_def *p) {
         "\n"
         "or add a subcommand:\n"
         "\n"
-        );
+    );
     n3n_subcmd_help(p, 1, false);
     exit(1);
 }
@@ -1219,7 +1220,7 @@ struct n3n_subcmd_result n3n_subcmd_parse (int argc, char **argv, char *getopts,
             getopts,
             long_options,
             NULL
-            );
+        );
 
         switch(c) {
             case '?': // An invalid arg, or a missing optarg
@@ -1243,7 +1244,7 @@ struct n3n_subcmd_result n3n_subcmd_parse (int argc, char **argv, char *getopts,
         top,
         argc - optind,
         &argv[optind]
-        );
+    );
 
     return cmd;
 }
@@ -1270,7 +1271,7 @@ void n3n_config_from_getopt (const struct n3n_config_getopt *map, void *conf, in
             map[i].section,
             map[i].option,
             optarg
-            );
+        );
         if(rv==0) {
             return;
         }

@@ -54,7 +54,7 @@ int main () {
         (struct sockaddr *)&local_address,
         sizeof(local_address),
         0 /* UDP */
-        );
+    );
     if(-1 == sss_node.sock) {
         exit(-2);
     }

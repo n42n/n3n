@@ -199,7 +199,7 @@ const char* get_filter_rule_info_log_string (filter_rule_t* rule) {
                            ,
                            rule->bool_accept_tcp ? '+' : '-', rule->bool_accept_udp ? '+' : '-', rule->bool_accept_icmp ? '+' : '-'
 #endif
-                           );
+    );
     if(rule->key.bool_tcp_configured) {
         print_start += sprintf(print_start, ",TCP%c", rule->bool_accept_tcp ? '+' : '-');
     }

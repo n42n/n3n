@@ -64,7 +64,7 @@ int main () {
                    "DE:AD:BE:EF:01:10", // Set mac address
                    DEFAULT_MTU,         // MTU to use
                    0                    // Metric - unused in n2n on most OS
-                   ) < 0) {
+       ) < 0) {
         return -1;
     }
 

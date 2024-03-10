@@ -132,8 +132,12 @@
         "last_sent_query": 0,
         "local": 0,
         "mode": "sn",
+        "prefered_sockaddr": "0.0.0.0:0",
         "purgeable": 0,
-        "sockaddr": "127.0.0.1:7002"
+        "sockaddr": "127.0.0.1:7002",
+        "timeout": 0,
+        "uptime": 0,
+        "version": ""
     }
 ]
 
@@ -147,8 +151,12 @@
         "last_sent_query": 0,
         "local": 0,
         "mode": "sn",
+        "prefered_sockaddr": "0.0.0.0:0",
         "purgeable": 0,
-        "sockaddr": "127.0.0.1:7001"
+        "sockaddr": "127.0.0.1:7001",
+        "timeout": 0,
+        "uptime": 0,
+        "version": ""
     }
 ]
 

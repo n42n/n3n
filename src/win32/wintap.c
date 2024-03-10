@@ -3,9 +3,7 @@
  */
 
 #include "defs.h"
-#ifndef _WIN64
-#include <iphlpapi.h>
-#endif
+#include <iphlpapi.h>   // for GetAdaptersInfo
 
 #include "n2n.h"
 #include "n2n_win32.h"
@@ -313,13 +311,14 @@ int open_wintap (struct tuntap_dev *device,
                   device->ifName);
     }else {
         in_addr_t mask = htonl(bitlen2mask(v4subnet.net_bitlen));
+        struct in_addr *tmp = (struct in_addr *)&mask;
 
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" static %s %s > nul",
                   device->ifName,
                   addr_buf,
-                  inet_ntoa(*(struct in_addr*)&mask)
-                  );
+                  inet_ntoa(*tmp)
+        );
     }
 
     if(system(cmd) == 0) {
@@ -343,7 +342,7 @@ int open_wintap (struct tuntap_dev *device,
     // MTU per protocol
 
     if(system(cmd) != 0) {
-        printf("WARNING: Unable to set MTU [%s]\n", mtu, cmd);
+        printf("WARNING: Unable to set MTU [%s]\n", cmd);
     }
 #endif
 

@@ -82,6 +82,7 @@ struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
     if(!peer) {
         return NULL;
     }
+    peer->time_alloc = time(NULL);
 
     peer_info_init(peer, mac);
 
@@ -103,6 +104,12 @@ size_t purge_peer_list (struct peer_info **peer_list,
     struct peer_info *scan, *tmp;
     n2n_tcp_connection_t *conn;
     size_t retval = 0;
+
+    // If our table is small, dont bother purging it
+    // TODO: should the table size be a config param?
+    if(HASH_COUNT(*peer_list) < 16) {
+        return retval;
+    }
 
     HASH_ITER(hh, *peer_list, scan, tmp) {
         if(scan->purgeable && scan->last_seen < purge_before) {

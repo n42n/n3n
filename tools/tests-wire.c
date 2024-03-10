@@ -19,7 +19,6 @@
  */
 
 
-#include <inttypes.h>  // for PRIx64, PRIi32
 #include <stdint.h>    // for uint8_t
 #include <stdio.h>     // for printf, fprintf, size_t, stderr, stdout
 #include <string.h>    // for memset, strcpy, strncpy
@@ -111,8 +110,8 @@ void test_REGISTER (n2n_common_t *common) {
     size_t idx = 0;
     size_t retval = encode_REGISTER( pktbuf, &idx, common, &reg);
 
-    printf("%s: output retval = 0x%" PRIx64 "\n", test_name, retval);
-    printf("%s: output idx = 0x%" PRIx64 "\n", test_name, idx);
+    printf("%s: output retval = 0x%x\n", test_name, (uint32_t)retval);
+    printf("%s: output idx = 0x%x\n", test_name, (uint32_t)idx);
     fhexdump(0, pktbuf, idx, stdout);
 
     // TODO: decode_REGISTER() and print
@@ -143,15 +142,15 @@ void test_REGISTER_SUPER (n2n_common_t *common) {
     print_ip_subnet(test_name, "reg.dev_addr", &reg.dev_addr);
     printf("%s: reg.dev_desc = \"%s\"\n", test_name, reg.dev_desc);
     print_auth(test_name, "reg.auth", &reg.auth);
-    printf("%s: reg.key_time = %" PRIi32 "\n", test_name, reg.key_time);
+    printf("%s: reg.key_time = %u\n", test_name, (uint32_t)reg.key_time);
     printf("\n");
 
     uint8_t pktbuf[N2N_PKT_BUF_SIZE];
     size_t idx = 0;
     size_t retval = encode_REGISTER_SUPER( pktbuf, &idx, common, &reg);
 
-    printf("%s: output retval = 0x%" PRIx64 "\n", test_name, retval);
-    printf("%s: output idx = 0x%" PRIx64 "\n", test_name, idx);
+    printf("%s: output retval = 0x%x\n", test_name, (uint32_t)retval);
+    printf("%s: output idx = 0x%x\n", test_name, (uint32_t)idx);
     fhexdump(0, pktbuf, idx, stdout);
 
     // TODO: decode_REGISTER_SUPER() and print
@@ -180,14 +179,390 @@ void test_UNREGISTER_SUPER (n2n_common_t *common) {
     size_t idx = 0;
     size_t retval = encode_UNREGISTER_SUPER( pktbuf, &idx, common, &unreg);
 
-    printf("%s: output retval = 0x%" PRIx64 "\n", test_name, retval);
-    printf("%s: output idx = 0x%" PRIx64 "\n", test_name, idx);
+    printf("%s: output retval = 0x%x\n", test_name, (uint32_t)retval);
+    printf("%s: output idx = 0x%x\n", test_name, (uint32_t)idx);
     fhexdump(0, pktbuf, idx, stdout);
 
     // TODO: decode_UNREGISTER_SUPER() and print
 
     fprintf(stderr, "%s: tested\n", test_name);
     printf("\n");
+}
+
+/*
+ * Fill the memory region with a test pattern
+ */
+static void pattern_memset (void *buf, int size, int offset) {
+    unsigned char *p = (unsigned char *)buf;
+    unsigned char ch = (offset % 255) + 1;
+    while(size--) {
+        *p++ = ch++;
+        // Avoid zeros in the test pattern
+        if(!ch) {
+            ch = 1;
+        }
+    }
+}
+
+unsigned char pktbuf[1600];
+size_t pktbuf_size;
+n2n_common_t in_common, out_common;
+unsigned char in_data[1600], out_data[1600];
+unsigned char in_tmpbuf[1600], out_tmpbuf[1600];
+
+void pattern_init_out_buffers () {
+    memset(&pktbuf, 0, sizeof(pktbuf));
+    pktbuf_size = 0;
+    memset(&out_common, 0, sizeof(out_common));
+    memset(&out_data, 0, sizeof(out_data));
+}
+
+void pattern_print_pktbuf () {
+    printf("pktbuf:\n");
+    fhexdump(0, pktbuf, pktbuf_size, stdout);
+}
+
+void pattern_print_common () {
+    printf("out_common:\n");
+    fhexdump(0, (void *)&out_common, sizeof(out_common), stdout);
+}
+
+void pattern_REGISTER_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_REGISTER_t), sizeof(in_common));
+}
+
+void pattern_REGISTER_prep2 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    // relies on patterns remaining from prep1
+
+    in_common.flags = N2N_FLAGS_SOCKET;
+    n2n_REGISTER_t *reg = (n2n_REGISTER_t *)&in_data;
+    reg->sock.family = AF_INET;
+
+    pattern_init_out_buffers();
+}
+
+void pattern_REGISTER_codec () {
+    encode_REGISTER(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_REGISTER((n2n_REGISTER_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_REGISTER_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_REGISTER_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_PACKET_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_PACKET_t), sizeof(in_common));
+}
+
+void pattern_PACKET_codec () {
+    encode_PACKET(pktbuf, &pktbuf_size, &in_common, (n2n_PACKET_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_PACKET((n2n_PACKET_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_PACKET_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_PACKET_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_REGISTER_ACK_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_REGISTER_ACK_t), sizeof(in_common));
+}
+
+void pattern_REGISTER_ACK_codec () {
+    encode_REGISTER_ACK(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_ACK_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_REGISTER_ACK((n2n_REGISTER_ACK_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_REGISTER_ACK_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_REGISTER_ACK_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_REGISTER_SUPER_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_REGISTER_SUPER_t), sizeof(in_common));
+
+    n2n_REGISTER_SUPER_t *reg = (n2n_REGISTER_SUPER_t *)&in_data;
+    reg->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+}
+
+void pattern_REGISTER_SUPER_codec () {
+    encode_REGISTER_SUPER(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_SUPER_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_REGISTER_SUPER((n2n_REGISTER_SUPER_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_REGISTER_SUPER_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_REGISTER_SUPER_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_UNREGISTER_SUPER_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_UNREGISTER_SUPER_t), sizeof(in_common));
+
+    n2n_UNREGISTER_SUPER_t *reg = (n2n_UNREGISTER_SUPER_t *)&in_data;
+    reg->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+}
+
+void pattern_UNREGISTER_SUPER_codec () {
+    encode_UNREGISTER_SUPER(pktbuf, &pktbuf_size, &in_common, (n2n_UNREGISTER_SUPER_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_UNREGISTER_SUPER((n2n_UNREGISTER_SUPER_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_UNREGISTER_SUPER_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_UNREGISTER_SUPER_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_REGISTER_SUPER_ACK_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_REGISTER_SUPER_ACK_t), sizeof(in_common));
+    pattern_memset(&in_tmpbuf, sizeof(REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE), sizeof(in_common) + sizeof(n2n_REGISTER_SUPER_ACK_t));
+
+    n2n_REGISTER_SUPER_ACK_t *reg = (n2n_REGISTER_SUPER_ACK_t *)&in_data;
+    reg->sock.family = AF_INET;
+    reg->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+    reg->num_sn = 1;
+    *((uint16_t *)&in_tmpbuf) = AF_INET;
+}
+
+void pattern_REGISTER_SUPER_ACK_codec () {
+    encode_REGISTER_SUPER_ACK(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_SUPER_ACK_t *)&in_data, in_tmpbuf);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_REGISTER_SUPER_ACK((n2n_REGISTER_SUPER_ACK_t *)&out_data, &out_common, pktbuf, &rem, &idx, out_tmpbuf);
+
+}
+
+void pattern_REGISTER_SUPER_ACK_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_REGISTER_SUPER_ACK_t), stdout);
+    printf("out_tmpbuf:\n");
+    fhexdump(0, (void *)&out_tmpbuf, REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE, stdout);
+
+    printf("\n");
+}
+
+void pattern_REGISTER_SUPER_NAK_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_REGISTER_SUPER_NAK_t), sizeof(in_common));
+
+    n2n_REGISTER_SUPER_NAK_t *reg = (n2n_REGISTER_SUPER_NAK_t *)&in_data;
+    reg->auth.token_size = N2N_AUTH_ID_TOKEN_SIZE;
+}
+
+void pattern_REGISTER_SUPER_NAK_codec () {
+    encode_REGISTER_SUPER_NAK(pktbuf, &pktbuf_size, &in_common, (n2n_REGISTER_SUPER_NAK_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_REGISTER_SUPER_NAK((n2n_REGISTER_SUPER_NAK_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_REGISTER_SUPER_NAK_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_REGISTER_SUPER_NAK_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_PEER_INFO_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_PEER_INFO_t), sizeof(in_common));
+
+    n2n_PEER_INFO_t *reg = (n2n_PEER_INFO_t *)&in_data;
+    reg->sock.family = AF_INET;
+}
+
+void pattern_PEER_INFO_codec () {
+    encode_PEER_INFO(pktbuf, &pktbuf_size, &in_common, (n2n_PEER_INFO_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_PEER_INFO((n2n_PEER_INFO_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_PEER_INFO_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_PEER_INFO_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_QUERY_PEER_prep1 () {
+    printf("%s:\n", __func__);
+    fprintf(stderr,"%s:\n", __func__);
+
+    pattern_init_out_buffers();
+    pattern_memset(&in_common, sizeof(in_common), 0);
+    pattern_memset(&in_data, sizeof(n2n_QUERY_PEER_t), sizeof(in_common));
+}
+
+void pattern_QUERY_PEER_codec () {
+    encode_QUERY_PEER(pktbuf, &pktbuf_size, &in_common, (n2n_QUERY_PEER_t *)&in_data);
+
+    size_t rem = pktbuf_size;
+    size_t idx = 0;
+    decode_common(&out_common, pktbuf, &rem, &idx);
+    decode_QUERY_PEER((n2n_QUERY_PEER_t *)&out_data, &out_common, pktbuf, &rem, &idx);
+
+}
+
+void pattern_QUERY_PEER_print () {
+    pattern_print_pktbuf();
+    pattern_print_common();
+
+    printf("out_data:\n");
+    fhexdump(0, (void *)&out_data, sizeof(n2n_QUERY_PEER_t), stdout);
+
+    printf("\n");
+}
+
+void pattern_tests () {
+    pattern_REGISTER_prep1();
+    pattern_REGISTER_codec();
+    pattern_REGISTER_print();
+    pattern_REGISTER_prep2();
+    pattern_REGISTER_codec();
+    pattern_REGISTER_print();
+    // TODO: REGISTER_prep3() with IPv6 sock
+
+    pattern_PACKET_prep1();
+    pattern_PACKET_codec();
+    pattern_PACKET_print();
+
+    pattern_REGISTER_ACK_prep1();
+    pattern_REGISTER_ACK_codec();
+    pattern_REGISTER_ACK_print();
+
+    pattern_REGISTER_SUPER_prep1();
+    pattern_REGISTER_SUPER_codec();
+    pattern_REGISTER_SUPER_print();
+
+    pattern_UNREGISTER_SUPER_prep1();
+    pattern_UNREGISTER_SUPER_codec();
+    pattern_UNREGISTER_SUPER_print();
+
+    pattern_REGISTER_SUPER_ACK_prep1();
+    pattern_REGISTER_SUPER_ACK_codec();
+    pattern_REGISTER_SUPER_ACK_print();
+
+    pattern_REGISTER_SUPER_NAK_prep1();
+    pattern_REGISTER_SUPER_NAK_codec();
+    pattern_REGISTER_SUPER_NAK_print();
+
+    pattern_PEER_INFO_prep1();
+    pattern_PEER_INFO_codec();
+    pattern_PEER_INFO_print();
+
+    pattern_QUERY_PEER_prep1();
+    pattern_QUERY_PEER_codec();
+    pattern_QUERY_PEER_print();
+
 }
 
 int main (int argc, char * argv[]) {
@@ -202,6 +577,8 @@ int main (int argc, char * argv[]) {
     test_REGISTER_SUPER(&common);
     test_UNREGISTER_SUPER(&common);
     // TODO: add more wire tests
+
+    pattern_tests();
 
     return 0;
 }
