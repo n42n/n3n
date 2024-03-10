@@ -70,7 +70,7 @@ rm -fr $RPM_BUILD_ROOT
 /usr/share/doc/n3n/community.list.sample
 /usr/share/doc/n3n/edge.conf.sample
 /usr/share/doc/n3n/supernode.conf.sample
-/usr/share/man/man1/supernode.1.gz
+/usr/share/man/man1/supernode.8.gz
 /usr/share/man/man7/n3n.7.gz
 /usr/share/man/man8/edge.8.gz
 

@@ -71,7 +71,6 @@ SYSTEMDDIR=$(DESTDIR)/lib/systemd/system
 BINDIR=$(PREFIX)/bin
 SBINDIR=$(PREFIX)/sbin
 MANDIR?=$(PREFIX)/share/man
-MAN1DIR=$(MANDIR)/man1
 MAN7DIR=$(MANDIR)/man7
 MAN8DIR=$(MANDIR)/man8
 DOCDIR=$(PREFIX)/share/doc/n3n
@@ -209,7 +208,7 @@ LINT_CCODE=\
 # TODO: change either the files or the linter to remove these failures
 LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
 
-DOCS=edge.8.gz supernode.1.gz n3n.7.gz
+DOCS=edge.8.gz supernode.8.gz n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
@@ -345,7 +344,7 @@ distclean:
 	rm -f tests/*.out src/*.indent src/*.unc-backup*
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
-	rm -f edge.8.gz n3n.7.gz supernode.1.gz
+	rm -f edge.8.gz n3n.7.gz supernode.8.gz
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
@@ -372,10 +371,10 @@ install.systemd:
 	$(INSTALL_DOC) packages/lib/systemd/system/supernode.service $(SYSTEMDDIR)
 
 .PHONY: install.doc
-install: edge.8.gz supernode.1.gz n3n.7.gz
-	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
+install: edge.8.gz supernode.8.gz n3n.7.gz
+	$(INSTALL) -d $(MAN7DIR) $(MAN8DIR) $(DOCDIR)
 	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) supernode.1.gz $(MAN1DIR)/
+	$(INSTALL_DOC) supernode.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) doc/*.md doc/*.sample $(DOCDIR)/
