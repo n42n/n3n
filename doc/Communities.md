@@ -11,7 +11,7 @@ of 20 bytes.  Hence, the community name can never contain a NUL byte.  There
 are some other characters that cannot be used, namely `. * + ? [ ] \`.
 
 To make full use of character space, hex values could be used, e.g. from Linux
-bash applying something like `edge … -c $(echo -en '\x3a\x3b\x4a\x6a\xfa') …`
+bash applying something like `n3n-edge … -c $(echo -en '\x3a\x3b\x4a\x6a\xfa') …`
 as the command line syntax. If used with a configuration file, the bytes must
 be directly filled as characters into the corresponding `community.name` option
 

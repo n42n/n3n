@@ -10,11 +10,11 @@ Read about [Configuration Files](ConfigurationFiles.md) as they might come in ha
 edge can also be run as a service instead of cli:
 
 1. Edit `/etc/n3n/edge.conf` with your custom options. See [a sample](edge.conf.sample).
-2. Start the service: `sudo systemctl start edge`
-3. Optionally enable edge start on boot: `sudo systemctl enable edge`
+2. Start the service: `sudo systemctl start n3n-edge`
+3. Optionally enable edge start on boot: `sudo systemctl enable n3n-edge`
 
 You can run multiple edge service instances by creating `/etc/n3n/instance1.conf` and
-starting it with `sudo systemctl start edge@instance1`.
+starting it with `sudo systemctl start n3n-edge@instance1`.
 
 
 ## Communities

@@ -101,7 +101,7 @@ environment.  The password is set with the `auth.password` options.
 Continuing the given example, the edge could be invoked by:
 
 ```
-[user@host n3n]$ sudo ./edge \
+[user@host n3n]$ sudo ./n3n-edge \
     start \
     -l <supernode:port> \
     -c netleo \
@@ -131,7 +131,7 @@ auth.pubkey=opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
 Considering all this, our example expands to:
 
 ```
-[user@host n3n]$ sudo ./edge \
+[user@host n3n]$ sudo ./n3n-edge \
     start \
     -l <supernode:port> \
     -c netleo \

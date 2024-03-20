@@ -16,9 +16,9 @@ docmd() {
     return $S
 }
 
-docmd "$BINDIR"/apps/edge test hashing
+docmd "$BINDIR"/apps/n3n-edge test hashing
 
-docmd "$BINDIR"/apps/edge test config roundtrip
+docmd "$BINDIR"/apps/n3n-edge test config roundtrip
 
-docmd "$BINDIR"/apps/edge tools keygen logan 007
-docmd "$BINDIR"/apps/edge tools keygen secretFed
+docmd "$BINDIR"/apps/n3n-edge tools keygen logan 007
+docmd "$BINDIR"/apps/n3n-edge tools keygen secretFed

@@ -43,12 +43,12 @@ chmod u+w $RPM_BUILD_ROOT/usr/sbin/*
 rm -fr $RPM_BUILD_ROOT
 
 %files
-/lib/systemd/system/edge.service
-/lib/systemd/system/edge@.service
-/lib/systemd/system/supernode.service
+/lib/systemd/system/n3n-edge.service
+/lib/systemd/system/n3n-edge@.service
+/lib/systemd/system/n3n-supernode.service
 /usr/bin/n3nctl
-/usr/sbin/edge
-/usr/sbin/supernode
+/usr/sbin/n3n-edge
+/usr/sbin/n3n-supernode
 /usr/share/doc/n3n/Advanced.md
 /usr/share/doc/n3n/Authentication.md
 /usr/share/doc/n3n/Bridging.md
@@ -112,7 +112,7 @@ fi
 if [ -f /bin/systemctl ]; then
   if [ ! -f /.dockerenv ]; then
       # possibly remove the installed services
-      %systemd_preun supernode.service edge.service 'edge@*.service'
+      %systemd_preun supernode.service n3n-edge.service 'edge@*.service'
   fi
 fi
 
@@ -120,6 +120,6 @@ fi
 if [ -f /bin/systemctl ]; then
   if [ ! -f /.dockerenv ]; then
       # possibly restart the running services
-      %systemd_postun_with_restart supernode.service edge.service 'edge@*.service'
+      %systemd_postun_with_restart n3n-supernode.service n3n-edge.service 'n3n-edge@*.service'
   fi
 fi

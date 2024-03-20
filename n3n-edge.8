@@ -1,23 +1,23 @@
-.TH edge 8  "5 Jan 2024" "version 3" "SUPERUSER COMMANDS"
+.TH n3n-edge 8  "5 Jan 2024" "version 3" "SUPERUSER COMMANDS"
 .SH NAME
-edge \- n3n edge node daemon
+n3n-edge \- VPN edge node daemon
 .SH SYNOPSIS
 .B edge
 [\fIoptions..\fR] [command] [\fIcommand args\fR]
 .br
-.B edge start
+.B n3n-edge start
 [\fIsessionname\fR] [\fB\-c \fR<\fIcommunity\fR>] [\fB\-l \fR<\fIsupernode host:port\fR>]
 .br
-.B edge --help
+.B n3n-edge --help
 .SH DESCRIPTION
 n3n is a peer-to-peer VPN system - it is the LAN you have when you have noLAN.
 
-.B edge
+.B n3n-edge
 is a daemon for n3n which creates a TAP interface to expose
 the n3n virtual LAN, providing an "edge node".
 
 On startup
-.B edge
+.B n3n-edge
 will load any config file, then any environment variables and
 then load the settings from the command line.  Once it has the full config
 loaded, it will register with the supernode and create and setup the TAP
@@ -30,7 +30,7 @@ Some of the most common options also have a shortcut version and you can see
 all of them with:
 
 .RS
-.B edge help options
+.B n3n-edge help options
 .RE
 .TP
 .SH Generic Options
@@ -105,7 +105,7 @@ This file is an INI style file and a full description of the options is
 available with the commandline:
 
 .RS
-.B edge help config
+.B n3n-edge help config
 .RE
 .SH ENVIRONMENT
 After loading any config file, some settings are loaded from the environment.
@@ -130,7 +130,7 @@ set the password for user-password authentication (Equivalent to auth.password)
 For the simplest testing, without any encryption:
 
 .RS
-.B edge start -c mynetwork -l supernode.ntop.org:7777
+.B n3n-edge start -c mynetwork -l supernode.ntop.org:7777
 .RE
 .TP
 .SH Config file example
@@ -150,14 +150,14 @@ supernode=supernode.ntop.org:7777
 Then start the daemon in the foreground:
 
 .RS
-.B edge start mynetwork
+.B n3n-edge start mynetwork
 .RE
 
 .TP
 .SH Complex example
 
 .nf
-.B edge start \\\\
+.B n3n-edge start \\\\
     \--daemon \\
     \-O tuntap.name=n3n0 \\
     \-c mynetwork \\
@@ -181,7 +181,7 @@ after the TAP device is successfully configured.
 On a second computer setup another edge with similar parameters, eg:
 
 .nf
-.B edge start \\\\
+.B n3n-edge start \\\\
     \-O tuntap.name=n3n0 \\
     \-c mynetwork \\
     \-k encryptme \\

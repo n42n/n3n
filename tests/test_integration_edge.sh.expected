@@ -1,4 +1,4 @@
-### test: ./apps/supernode start ci_sn -v --daemon
+### test: ./apps/n3n-supernode start ci_sn -v --daemon
 
 ### test: ./scripts/n3nctl -s ci_edge1 get_communities
 [

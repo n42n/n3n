@@ -76,9 +76,11 @@ endef
 
 define Package/n3n-edge/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/edge $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/scripts/n3nctl $(1)/usr/bin/
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/n3n-edge $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/edge $(1)/etc/init.d/edge
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/n3n-edge $(1)/etc/init.d/n3n-edge
 	$(INSTALL_DIR) $(1)/etc/n3n
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/doc/edge.conf.sample $(1)/etc/n3n/edge.conf
 endef
@@ -88,10 +90,10 @@ define Package/n3n-supernode/conffiles
 endef
 
 define Package/n3n-supernode/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/supernode $(1)/usr/bin/
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/n3n-supernode $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/supernode $(1)/etc/init.d/supernode
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/n3n-supernode $(1)/etc/init.d/n3n-supernode
 	$(INSTALL_DIR) $(1)/etc/n3n
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/doc/supernode.conf.sample $(1)/etc/n3n/supernode.conf
 endef
