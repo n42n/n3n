@@ -48,7 +48,7 @@ jobs:
 
       - name: Set ref
         run: |
-          echo "N2N_REF=$(./scripts/version.sh)" >> $GITHUB_ENV
+          echo "N3N_REF=$(./scripts/version.sh)" >> $GITHUB_ENV
           ./scripts/version.sh
         working-directory: src
 
@@ -91,10 +91,10 @@ jobs:
 
       - name: Build openwrt packages
         env:
-          N2N_PKG_VERSION: ${{ env.N2N_REF }}
+          PKG_VERSION: ${{ env.N3N_REF }}
         run: |
-          echo "Build for $N2N_PKG_VERSION"
-          export N2N_PKG_VERSION
+          echo "Build for $PKG_VERSION"
+          export PKG_VERSION
           make package/n3n/clean V=s
           make package/n3n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n3n V=s
           make package/n3n/compile V=s
