@@ -13,9 +13,9 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
 # These are defaults for compiling without any environmental overrides
 # (eg, the github action calculates the correct overrides for each build)
-PKG_VERSION?=FIXME
-PKG_SOURCE_URL?=https://github.com/n42n/n3n
-PKG_SOURCE_VERSION?=main
+PKG_VERSION:=$(BUILD_VERSION)
+PKG_SOURCE_URL?=$(BUILD_SOURCE_URL)
+PKG_SOURCE_VERSION?=$(BUILD_SOURCE_REF)
 PKG_MIRROR_HASH:=skip
 
 PKG_MAINTAINER:=Hamish Coleman <hamish@zot.org>

@@ -412,9 +412,9 @@ jobs:
 
       - name: Build openwrt packages
         run: |
-          export PKG_VERSION=$(../n3n/scripts/version.sh)
-          export PKG_SOURCE_URL=https://github.com/${{github.repository}}
-          export PKG_SOURCE_VERSION=$GITHUB_REF
+          export BUILD_VERSION=$(../n3n/scripts/version.sh)
+          export BUILD_SOURCE_URL=https://github.com/${{github.repository}}
+          export BUILD_SOURCE_REF=$GITHUB_REF
           echo "Build for $PKG_VERSION"
           make package/n3n/clean V=s
           make package/n3n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n3n V=s
