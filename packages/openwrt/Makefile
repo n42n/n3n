@@ -10,11 +10,11 @@ PKG_RELEASE:=1
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
-PKG_SOURCE_URL:=https://github.com/n42n/n3n
 
 # These are defaults for compiling without any environmental overrides
 # (eg, the github action calculates the correct overrides for each build)
 PKG_VERSION?=FIXME
+PKG_SOURCE_URL?=https://github.com/n42n/n3n
 PKG_SOURCE_VERSION?=main
 PKG_MIRROR_HASH:=skip
 
