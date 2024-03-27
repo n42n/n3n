@@ -12,7 +12,7 @@ $ make install
 
 or
 
-$ make PREFIX=/usr install
+$ make CONFIG_PREFIX=/usr install
 
 Debian Package
 --------------
