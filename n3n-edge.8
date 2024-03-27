@@ -59,15 +59,6 @@ sets the encryption key from ASCII text (see also the ENVIRONMENT section). All
 edges communicating must use the same key and community name. If a key is not
 specified then edge uses cleartext mode (no encryption).
 .TP
-\fB\-A \fR<\fIcipher\fR>
-choose a cipher for payload encryption, requires a key,
-Twofish, AES (default if key provided),
-ChaCha20, Speck
-.TP
-\fB\-z \fR<\fIcompresion\fR>
-compress outgoing data packets. One of -z lzo, -z none
-or -z zstd (if supported)
-.TP
 .SH TUNTAP Options
 .TP
 \fB\-a \fR[\fImode\fR]<\fIip\fR>[\fI/n\fR]

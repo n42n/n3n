@@ -6,10 +6,10 @@
 
 Payload encryption currently comes in four different flavors using ciphers of different origins. Supported ciphers are enabled using the indicated command line option:
 
-- Twofish in CTS mode (`-ATwofish`)
-- AES in CBC mode (`-AAES`)
-- ChaCha20 (CTR) (`-AChaCha20`)
-- SPECK in CTR mode (`-ASpeck`)
+- Twofish in CTS mode (`-Ocommunity.cipher=Twofish`)
+- AES in CBC mode (`-Ocommunity.cipher=AES`)
+- ChaCha20 (CTR) (`-Ocommunity.cipher=ChaCha20`)
+- SPECK in CTR mode (`-Ocommunity.cipher=Speck`)
 
 The following chart might help to make a quick comparison and decide what cipher to use:
 
@@ -30,11 +30,12 @@ the key can also be supplied through the `N3N_KEY` environment variable: `sudo
 N3N_KEY=mysecretpass edge start -c mynetwork -a 192.168.100.1 -l
 supernode.ntop.org:7777`.
 
-Providing `-k <key>` without specifying any cipher by `-A_` will default to AES encryption.
+Providing a key (with a community.key option) without specifying any cipher
+(with a community.cipher` option) will default to AES encryption.
 
-To renounce encryption, `-Anull` enables the so called `null_transform`
-transmitting all payload data unencryptedly. Omitting `-A_` and not providing a
-key through `-k <key>` shows the same effect.
+To renounce encryption, `community.cipher=null` enables the so called
+`null_transform` transmitting all payload data unencryptedly. Omitting any
+cipher option and not providing a key through `-k <key>` has the same effect.
 
 ### Twofish
 
