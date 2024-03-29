@@ -1,9 +1,11 @@
 
 # Tools
+crypto_helper
 n3n-benchmark
 n3n-decode
 n3n-portfwd
 n3n-route
+crypto_helper.exe
 n3n-benchmark.exe
 n3n-decode.exe
 n3n-portfwd.exe

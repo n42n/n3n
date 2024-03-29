@@ -8,7 +8,7 @@ Type=simple
 User=n3n
 Group=n3n
 RuntimeDirectory=n3n
-ExecStart=/usr/sbin/supernode start
+ExecStart=/usr/sbin/n3n-supernode start
 Restart=on-abnormal
 RestartSec=5
 

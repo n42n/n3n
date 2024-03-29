@@ -24,7 +24,11 @@ name via the network, **all** edge nodes should use
 
 Also, please see the `community.list` file coming with n3n for advanced use of that file.
 
-Beyond this access barrier you may want to use payload encryption `-A_` at the edges. Only the edges – not the supernode – are able to decipher the payload data. So, even if anyone would be able to break the access barrier to the supernode, the payload remains protected by the payload crypto, see [this document](Crypto.md) for details.
+Beyond this access barrier you may want to use payload encryption (with the
+`community.cipher` option) at the edges. Only the edges – not the supernode –
+are able to decipher the payload data. So, even if anyone would be able to
+break the access barrier to the supernode, the payload remains protected by
+the payload crypto, see [this document](Crypto.md) for details.
 
 
 ### Can I get a list of connected edge nodes and their community and source IP address from the supernode?

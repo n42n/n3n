@@ -5,31 +5,21 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=n3n
-PKG_VERSION:=HEAD
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
+
 # These are defaults for compiling without any environmental overrides
 # (eg, the github action calculates the correct overrides for each build)
-PKG_SOURCE_URL:=https://github.com/n42n/n3n
-PKG_SOURCE_VERSION:=main
+PKG_VERSION:=$(BUILD_VERSION)
+PKG_SOURCE_URL?=$(BUILD_SOURCE_URL)
+PKG_SOURCE_VERSION?=$(BUILD_SOURCE_REF)
 PKG_MIRROR_HASH:=skip
 
-# Apply overrides from the build environment
-ifdef N2N_PKG_SOURCE_URL
-    PKG_SOURCE_URL:=$(N2N_PKG_SOURCE_URL)
-endif
-ifdef N2N_PKG_SOURCE_VERSION
-    PKG_SOURCE_VERSION:=$(N2N_PKG_SOURCE_VERSION)
-endif
-ifdef N2N_PKG_VERSION
-    PKG_VERSION:=$(N2N_PKG_VERSION)
-endif
-
-PKG_MAINTAINER:=Emanuele Faranda <faranda@ntop.org>
-PKG_LICENSE:=GPL3
+PKG_MAINTAINER:=Hamish Coleman <hamish@zot.org>
+PKG_LICENSE:=GPL-3.0-only
 
 # autogen fix
 PKG_FIXUP:=autoreconf
@@ -76,9 +66,11 @@ endef
 
 define Package/n3n-edge/install
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/edge $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/scripts/n3nctl $(1)/usr/bin/
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/n3n-edge $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/edge $(1)/etc/init.d/edge
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/n3n-edge $(1)/etc/init.d/n3n-edge
 	$(INSTALL_DIR) $(1)/etc/n3n
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/doc/edge.conf.sample $(1)/etc/n3n/edge.conf
 endef
@@ -88,10 +80,10 @@ define Package/n3n-supernode/conffiles
 endef
 
 define Package/n3n-supernode/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/supernode $(1)/usr/bin/
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/apps/n3n-supernode $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/supernode $(1)/etc/init.d/supernode
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/packages/openwrt/etc/init.d/n3n-supernode $(1)/etc/init.d/n3n-supernode
 	$(INSTALL_DIR) $(1)/etc/n3n
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/doc/supernode.conf.sample $(1)/etc/n3n/supernode.conf
 endef

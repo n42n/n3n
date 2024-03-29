@@ -25,7 +25,7 @@ The `filter.rule` option can be used multiple times to add multiple rules. Each
 `filter.rule` definition adds one rule. for example:
 
 ```
-edge \
+n3n-edge \
     -c xxxx \
     -k xxxx \
     -a 192.168.100.5 \

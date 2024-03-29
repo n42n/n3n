@@ -210,7 +210,7 @@ LINT_CCODE=\
 # TODO: change either the files or the linter to remove these failures
 LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
 
-DOCS=edge.8.gz supernode.8.gz n3n.7.gz
+DOCS=n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
@@ -346,7 +346,7 @@ distclean:
 	rm -f tests/*.out src/*.indent src/*.unc-backup*
 	rm -rf autom4te.cache/
 	rm -f config.mak config.log config.status configure include/config.h include/config.h.in
-	rm -f edge.8.gz n3n.7.gz supernode.8.gz
+	rm -f n3n-edge.8.gz n3n.7.gz n3n-supernode.8.gz
 	rm -f packages/debian/config.log packages/debian/config.status
 	rm -rf packages/debian/autom4te.cache/
 	rm -f packages/rpm/config.log packages/rpm/config.status
@@ -368,16 +368,15 @@ install.bin: apps
 .PHONY: install.systemd
 install.systemd:
 	$(INSTALL) -d $(CONFIG_SYSTEMDDIR)
-	$(INSTALL_DOC) packages/lib/systemd/system/edge@.service $(CONFIG_SYSTEMDDIR)
-	$(INSTALL_DOC) packages/lib/systemd/system/edge.service $(CONFIG_SYSTEMDDIR)
-	$(INSTALL_DOC) packages/lib/systemd/system/supernode.service $(CONFIG_SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/n3n-edge@.service $(CONFIG_SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/n3n-edge.service $(CONFIG_SYSTEMDDIR)
+	$(INSTALL_DOC) packages/lib/systemd/system/n3n-supernode.service $(CONFIG_SYSTEMDDIR)
 
 .PHONY: install.doc
-install: edge.8.gz supernode.8.gz n3n.7.gz
+install: n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
 	$(INSTALL) -d $(MAN7DIR) $(MAN8DIR) $(CONFIG_DOCDIR)
-	$(INSTALL_DOC) edge.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) supernode.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) n3n-edge.8.gz $(MAN8DIR)/
+	$(INSTALL_DOC) n3n-supernode.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) doc/*.md doc/*.sample $(CONFIG_DOCDIR)/
 

@@ -177,15 +177,20 @@ def num2timestr(seconds):
     hours, seconds = divmod(seconds, (60*60))
     minutes, seconds = divmod(seconds, 60)
 
+    fields = 0
     r = []
     if days:
         r += [f"{days}d"]
-    if hours:
+        fields += 1
+    if fields < 2 and hours:
         r += [f"{hours}h"]
-    if minutes:
+        fields += 1
+    if fields < 2 and minutes:
         r += [f"{minutes}m"]
-    if seconds:
+        fields += 1
+    if fields < 2 and seconds:
         r += [f"{seconds}s"]
+        fields += 1
     return "".join(r)
 
 

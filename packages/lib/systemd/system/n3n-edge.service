@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStartPre=
-ExecStart=/usr/sbin/edge start
+ExecStart=/usr/sbin/n3n-edge start
 Restart=on-abnormal
 RestartSec=5
 

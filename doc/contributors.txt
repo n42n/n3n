@@ -8,3 +8,5 @@ Code contributions courtesy of:
  * Babak Farrokhi <babak@farrokhi.net> [FreeBSD port]
  * Logan oos Even
  * Hamish Coleman <hamish@zot.org>
+
+and others, as seen in the commit history.

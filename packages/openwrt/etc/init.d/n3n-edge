@@ -3,8 +3,8 @@ START=90
 STOP=10
 
 USE_PROCD=1
-PROG=/usr/bin/supernode
-CONFIGFILE=/etc/n3n/supernode.conf
+PROG=/usr/sbin/n3n-edge
+CONFIGFILE=/etc/n3n/edge.conf
 
 start_service() {
 	procd_open_instance
@@ -21,5 +21,5 @@ stop_service()
 
 service_triggers()
 {
-	procd_add_reload_trigger "supernode"
+	procd_add_reload_trigger "n3n-edge"
 }

@@ -47,7 +47,7 @@ As an alternative to the `tools/n3n-route` utility, the `ip route` linux command
   `net.ipv4.ip_forward=1` could be added in /etc/sysctl.d/ – your distro
   may vary.
 - To allow n3n to forward packets, both edge nodes need to be started
-  with `-r` option on their command line. All other regular network
+  with the `filter.allow_routing=true` option on. All other regular network
   interfaces usually already allow packet forwarding and thus do not need
   any further configuration.
 

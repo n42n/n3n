@@ -102,7 +102,6 @@ static const struct option long_options[] = {
 };
 
 static const struct n3n_config_getopt option_map[] = {
-    { 'A',  "community",    "cipher",           NULL },
     { 'O', NULL, NULL, NULL, "<section>.<option>=<value>  Set any config" },
     { 'V', NULL, NULL, NULL, "       Show the version" },
     { 'a', NULL, NULL, NULL, "<arg>  Set tuntap.address and tuntap.address_mode" },
@@ -112,7 +111,6 @@ static const struct n3n_config_getopt option_map[] = {
     { 'l',  "community",    "supernode",        NULL },
     { 'r',  "filter",       "allow_routing",    "true" },
     { 'v', NULL, NULL, NULL, "       Increase logging verbosity" },
-    { 'z',  "community",    "compression",      NULL },
     { .optkey = 0 }
 };
 

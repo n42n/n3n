@@ -1,23 +1,23 @@
-.TH edge 8  "5 Jan 2024" "version 3" "SUPERUSER COMMANDS"
+.TH n3n-edge 8  "5 Jan 2024" "version 3" "SUPERUSER COMMANDS"
 .SH NAME
-edge \- n3n edge node daemon
+n3n-edge \- VPN edge node daemon
 .SH SYNOPSIS
 .B edge
 [\fIoptions..\fR] [command] [\fIcommand args\fR]
 .br
-.B edge start
+.B n3n-edge start
 [\fIsessionname\fR] [\fB\-c \fR<\fIcommunity\fR>] [\fB\-l \fR<\fIsupernode host:port\fR>]
 .br
-.B edge --help
+.B n3n-edge --help
 .SH DESCRIPTION
 n3n is a peer-to-peer VPN system - it is the LAN you have when you have noLAN.
 
-.B edge
+.B n3n-edge
 is a daemon for n3n which creates a TAP interface to expose
 the n3n virtual LAN, providing an "edge node".
 
 On startup
-.B edge
+.B n3n-edge
 will load any config file, then any environment variables and
 then load the settings from the command line.  Once it has the full config
 loaded, it will register with the supernode and create and setup the TAP
@@ -30,7 +30,7 @@ Some of the most common options also have a shortcut version and you can see
 all of them with:
 
 .RS
-.B edge help options
+.B n3n-edge help options
 .RE
 .TP
 .SH Generic Options
@@ -58,15 +58,6 @@ can be specified.
 sets the encryption key from ASCII text (see also the ENVIRONMENT section). All
 edges communicating must use the same key and community name. If a key is not
 specified then edge uses cleartext mode (no encryption).
-.TP
-\fB\-A \fR<\fIcipher\fR>
-choose a cipher for payload encryption, requires a key,
-Twofish, AES (default if key provided),
-ChaCha20, Speck
-.TP
-\fB\-z \fR<\fIcompresion\fR>
-compress outgoing data packets. One of -z lzo, -z none
-or -z zstd (if supported)
 .TP
 .SH TUNTAP Options
 .TP
@@ -105,7 +96,7 @@ This file is an INI style file and a full description of the options is
 available with the commandline:
 
 .RS
-.B edge help config
+.B n3n-edge help config
 .RE
 .SH ENVIRONMENT
 After loading any config file, some settings are loaded from the environment.
@@ -130,12 +121,13 @@ set the password for user-password authentication (Equivalent to auth.password)
 For the simplest testing, without any encryption:
 
 .RS
-.B edge start -c mynetwork -l supernode.ntop.org:7777
+.B n3n-edge start -c mynetwork -l supernode.ntop.org:7777
 .RE
 .TP
 .SH Config file example
 .RE
 
+Showing the same configuration as the above simple example.
 Create a file \fB/etc/n3n/mynetwork.conf\fR with these contents:
 
 .nf
@@ -150,14 +142,54 @@ supernode=supernode.ntop.org:7777
 Then start the daemon in the foreground:
 
 .RS
-.B edge start mynetwork
+.B n3n-edge start mynetwork
 .RE
 
 .TP
-.SH Complex example
+.SH Complex example with a config file
+.RE
+
+Create a config file \fB/etc/n3n/mynetwork.conf\fR with these contents:
 
 .nf
-.B edge start \\\\
+.RS
+[tuntap]
+name = n3n0
+macaddr = DE:AD:BE:EF:01:23
+address = 192.168.254.7
+[community]
+name = mynetwork
+key = encryptme
+supernode = 123.121.120.119:7654
+[daemon]
+userid = 99
+groupid = 99
+backgroun = true
+[connection]
+bind = 50001
+.RE
+.fi
+
+Then start the daemon with:
+
+.RS
+.B n3n-edge start mynetwork
+.RE
+
+Will start the edge with TAP device n3n0 on community "mynetwork" with
+community supernode at 123.121.120.119 UDP port 7654 and bind the locally used
+UDP port to 50001. Use "encryptme" as the single permanent shared encryption
+key. Assign MAC address DE:AD:BE:EF:01:23 to the n3n interface and drop to
+user=99 and group=99 after the TAP device is successfully configured.
+
+.TP
+.SH Complex example with no config file
+
+This will configure the edge with the same settings as the above config file
+but do it entirely from the commandline.
+
+.nf
+.B n3n-edge start \\\\
     \--daemon \\
     \-O tuntap.name=n3n0 \\
     \-c mynetwork \\
@@ -170,18 +202,14 @@ Then start the daemon in the foreground:
     \-l 123.121.120.119:7654
 .fi
 
-Starts edge with TAP device n3n0 on community "mynetwork" with community
-supernode at 123.121.120.119 UDP port 7654 and bind the locally used UDP port to
-50001. Use "encryptme" as the single permanent shared encryption key. Assign MAC
-address DE:AD:BE:EF:01:23 to the n3n interface and drop to user=99 and group=99
-after the TAP device is successfully configured.
-
 (Remove the \-\-daemon option to stop edge running as a daemon)
 
-On a second computer setup another edge with similar parameters, eg:
+
+To build a simple network, on a second computer setup another edge with
+similar parameters, eg:
 
 .nf
-.B edge start \\\\
+.B n3n-edge start \\\\
     \-O tuntap.name=n3n0 \\
     \-c mynetwork \\
     \-k encryptme \\
@@ -195,8 +223,12 @@ On a second computer setup another edge with similar parameters, eg:
 
 Now you can ping from 192.168.254.5 to 192.168.254.7.
 
-The MAC address (tuntap.macaddr) and virtual IP address (-a <addr>) must be
-different on all edges in the same community.
+It is not required to specify a MAC address as a random address will be chosen
+by the edge.  If no IP address is specified, the edge will request a suitable
+address to be allocated from the supernode.
+
+The MAC address (tuntap.macaddr) and virtual IP address (tuntap.address) must
+be different on all edges in the same community,
 
 .SH CLEARTEXT MODE
 If

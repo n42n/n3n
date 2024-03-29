@@ -23,11 +23,11 @@ sudo mkdir -p /run/n3n
 sudo chown "$USER" /run/n3n
 
 # start it running in the background
-docmd "${BINDIR}"/apps/supernode start ci_sn1 \
+docmd "${BINDIR}"/apps/n3n-supernode start ci_sn1 \
     --daemon \
     -Oconnection.bind=7001 \
     -Osupernode.peer=localhost:7002
-docmd "${BINDIR}"/apps/supernode start ci_sn2 \
+docmd "${BINDIR}"/apps/n3n-supernode start ci_sn2 \
     --daemon \
     -Oconnection.bind=7002 \
     -Osupernode.peer=localhost:7001

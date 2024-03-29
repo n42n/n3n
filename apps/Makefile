@@ -18,8 +18,8 @@
 # LDFLAGS+=-L../libs/connslot
 # LDLIBS_LOCAL+=-lconnslot
 
-APPS+=edge
-APPS+=supernode
+APPS+=n3n-edge
+APPS+=n3n-supernode
 
 EXAMPLES+=example_edge_embed_quick_edge_init
 EXAMPLES+=example_edge_embed
@@ -38,8 +38,8 @@ $(APPS) $(EXAMPLES): ../src/libn3n.a
 .PHONY: install
 install: $(addsuffix $(EXE),$(APPS))
 	$(INSTALL) -d $(CONFIG_SBINDIR)
-	$(INSTALL_PROG) supernode$(EXE) $(CONFIG_SBINDIR)/
-	$(INSTALL_PROG) edge$(EXE) $(CONFIG_SBINDIR)/
+	$(INSTALL_PROG) n3n-supernode$(EXE) $(CONFIG_SBINDIR)/
+	$(INSTALL_PROG) n3n-edge$(EXE) $(CONFIG_SBINDIR)/
 
 # See comments in the topdir Makefile about how to generate coverage data.
 gcov:

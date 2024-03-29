@@ -101,7 +101,7 @@ environment.  The password is set with the `auth.password` options.
 Continuing the given example, the edge could be invoked by:
 
 ```
-[user@host n3n]$ sudo ./edge \
+[user@host n3n]$ sudo ./n3n-edge \
     start \
     -l <supernode:port> \
     -c netleo \
@@ -113,8 +113,8 @@ Continuing the given example, the edge could be invoked by:
 Note that header encryption already is enabled automatically as this
 authentication scheme heavily relies on it. Also, currently only the stream
 ciphers work with this authentication scheme reliably in terms of security. So,
-`-AChaCha20` or `-ASpeck` along with a key `-k <key>` are required as
-additional parameters.
+`-Ocommunity.cipher=ChaCha20` or `-Ocommunity.cipher=Speck` along with a key
+`-k <key>` are required as additional parameters.
 
 The edges need to know the public key of the supernode. By default, the edges
 assume the default federation name, or more specific, the corresponding public
@@ -131,14 +131,14 @@ auth.pubkey=opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
 Considering all this, our example expands to:
 
 ```
-[user@host n3n]$ sudo ./edge \
+[user@host n3n]$ sudo ./n3n-edge \
     start \
     -l <supernode:port> \
     -c netleo \
     -Oconnection.description=logan \
     -Oauth.password=007 \
     -Oauth.pubkey=opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4 \
-    -ASpeck \
+    -Ocommunity.cipher=Speck \
     -k mySecretKey
 ```
 

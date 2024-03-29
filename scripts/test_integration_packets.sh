@@ -26,7 +26,7 @@ sudo chown "$USER" /run/n3n
 
 # start a supernode
 echo -e "### supernode started\n"
-apps/supernode \
+apps/n3n-supernode \
     -vv \
     -Oconnection.bind=7001 \
     -Osupernode.macaddr=02:00:00:00:00:01 \
