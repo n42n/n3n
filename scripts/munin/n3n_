@@ -28,9 +28,9 @@ sub new {
     bless($self, $class);
 
     $self->{sock} = IO::Socket::IP->new(
-        PeerAddr => 'localhost',
+        PeerHost => '::1',
         PeerPort => $port,
-        Proto    => 'tcp',
+        Type => SOCK_STREAM,
     );
     $self->{json} = JSON->new->utf8->relaxed->pretty->canonical;
     $self->{tag} = 0;
@@ -186,7 +186,7 @@ my $config = {
             type  => 'DERIVE',
             min   => 0,
         },
-        reg_super_rx_pkt => {
+        reg_super_tx_pkt => {
             label => 'Connect rate',
             type  => 'DERIVE',
             min   => 0,
@@ -234,6 +234,12 @@ my $fetchinfo = {
     supernode_pkts => {
         port => 5645,
         method => "get_packetstats",
+        rename_type => {
+            sn_fwd => "forward",
+            sn_broadcast => "broadcast",
+            sn_reg => "reg_super",
+            sn_errors => "errors",
+        },
     },
     supernode_counts => {
         port => 5645,
@@ -273,6 +279,10 @@ sub do_fetch {
         for my $row (@$db) {
             my $type = $row->{type};
             delete $row->{type};
+
+            $type = $fetchinfo->{$name}->{rename_type}->{$type};
+            next if (!defined($type));
+
             while (my ($key, $val) = each(%{$row})) {
                 my $metricname = $type."_".$key;
                 print($metricname,".value ",$val,"\n");
@@ -326,7 +336,7 @@ my $subc = {
 
 sub main() {
     my $name = $ARGV[1] || $0;
-    $name =~ s%^.*/n3n_([^/]+)%$1%;
+    $name =~ s%^.*/n[23]n_([^/]+)%$1%;
 
     # TODO:
     # - support a unix domain socket here
