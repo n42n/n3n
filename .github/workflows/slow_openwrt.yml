@@ -3,11 +3,6 @@ name: Slow full Openwrt Build
 
 # yamllint disable-line rule:truthy
 on:
-  release:
-    types:
-      - published
-      - created
-      - edited
   push:
     branches:
       - openwrt
