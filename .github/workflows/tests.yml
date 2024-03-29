@@ -687,5 +687,5 @@ jobs:
           files: |
             artifacts/packages-dpkg/*.deb
             artifacts/packages-rpm/*.rpm
-            artifacts/packages-ipk/*/base/*.pkg
-            artifacts/x86_64-w64-mingw32/usr/local/sbin/*.exe
+            artifacts/packages-ipk/*/base/*.ipk
+            artifacts/binaries/x86_64-w64-mingw32/usr/local/sbin/*.exe
