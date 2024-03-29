@@ -127,6 +127,7 @@ For the simplest testing, without any encryption:
 .SH Config file example
 .RE
 
+Showing the same configuration as the above simple example.
 Create a file \fB/etc/n3n/mynetwork.conf\fR with these contents:
 
 .nf
@@ -145,7 +146,47 @@ Then start the daemon in the foreground:
 .RE
 
 .TP
-.SH Complex example
+.SH Complex example with a config file
+.RE
+
+Create a config file \fB/etc/n3n/mynetwork.conf\fR with these contents:
+
+.nf
+.RS
+[tuntap]
+name = n3n0
+macaddr = DE:AD:BE:EF:01:23
+address = 192.168.254.7
+[community]
+name = mynetwork
+key = encryptme
+supernode = 123.121.120.119:7654
+[daemon]
+userid = 99
+groupid = 99
+backgroun = true
+[connection]
+bind = 50001
+.RE
+.fi
+
+Then start the daemon with:
+
+.RS
+.B n3n-edge start mynetwork
+.RE
+
+Will start the edge with TAP device n3n0 on community "mynetwork" with
+community supernode at 123.121.120.119 UDP port 7654 and bind the locally used
+UDP port to 50001. Use "encryptme" as the single permanent shared encryption
+key. Assign MAC address DE:AD:BE:EF:01:23 to the n3n interface and drop to
+user=99 and group=99 after the TAP device is successfully configured.
+
+.TP
+.SH Complex example with no config file
+
+This will configure the edge with the same settings as the above config file
+but do it entirely from the commandline.
 
 .nf
 .B n3n-edge start \\\\
@@ -161,15 +202,11 @@ Then start the daemon in the foreground:
     \-l 123.121.120.119:7654
 .fi
 
-Starts edge with TAP device n3n0 on community "mynetwork" with community
-supernode at 123.121.120.119 UDP port 7654 and bind the locally used UDP port to
-50001. Use "encryptme" as the single permanent shared encryption key. Assign MAC
-address DE:AD:BE:EF:01:23 to the n3n interface and drop to user=99 and group=99
-after the TAP device is successfully configured.
-
 (Remove the \-\-daemon option to stop edge running as a daemon)
 
-On a second computer setup another edge with similar parameters, eg:
+
+To build a simple network, on a second computer setup another edge with
+similar parameters, eg:
 
 .nf
 .B n3n-edge start \\\\
@@ -186,8 +223,12 @@ On a second computer setup another edge with similar parameters, eg:
 
 Now you can ping from 192.168.254.5 to 192.168.254.7.
 
-The MAC address (tuntap.macaddr) and virtual IP address (-a <addr>) must be
-different on all edges in the same community.
+It is not required to specify a MAC address as a random address will be chosen
+by the edge.  If no IP address is specified, the edge will request a suitable
+address to be allocated from the supernode.
+
+The MAC address (tuntap.macaddr) and virtual IP address (tuntap.address) must
+be different on all edges in the same community,
 
 .SH CLEARTEXT MODE
 If
