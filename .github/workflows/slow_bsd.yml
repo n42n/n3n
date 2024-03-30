@@ -88,6 +88,6 @@ jobs:
               python3 \
               jq \
               bash
-            AUTOCONF_VERSION=2.71 AUTOMAKE_VERSION=1.16./autogen.sh
+            AUTOCONF_VERSION=2.71 AUTOMAKE_VERSION=1.16 ./autogen.sh
             ./configure CC=clang
             gmake all
