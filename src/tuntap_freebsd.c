@@ -24,7 +24,7 @@
 #include "n2n.h"
 
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 
 
 #define N2N_FREEBSD_TAPDEVICE_SIZE 32
