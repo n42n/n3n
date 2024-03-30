@@ -1,15 +1,6 @@
 # n3n's Scratchpad
 
 
-## Version Update
-
-- change `VERSION` file to new version, e.g. `4.0.1`
-- `git add VERSION`
-- `git commit -m "moved to version 4.0.1"`
-- `git tag -a 4.0.1 -m "moved to version 4.0.1"`
-- `git push --tags`
-
-
 ## Draft changelog between 3.0 and 3.2 (as of 2022)
 
 ### New Features
