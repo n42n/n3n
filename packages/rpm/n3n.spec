@@ -61,6 +61,7 @@ rm -fr $RPM_BUILD_ROOT
 /usr/share/doc/n3n/Federation.md
 /usr/share/doc/n3n/Hacking.md
 /usr/share/doc/n3n/ManagementAPI.md
+/usr/share/doc/n3n/ReleaseProcess.md
 /usr/share/doc/n3n/Routing.md
 /usr/share/doc/n3n/Scratchpad.md
 /usr/share/doc/n3n/Scripts.md
