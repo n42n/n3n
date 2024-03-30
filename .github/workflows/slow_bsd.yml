@@ -21,6 +21,9 @@ jobs:
           - name: freebsd
             architecture: x86-64
             version: '13.2'
+          - name: openbsd
+            architecture: x86-64
+            version: '7.3'
 
     steps:
       - uses: actions/checkout@v4
