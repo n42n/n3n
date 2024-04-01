@@ -353,9 +353,14 @@ distclean:
 
 # A quick way to generate a dpkg from a checkout.
 #
+DEBEMAIL?=builder@example.com
+DEBFULLNAME?="Auto Build"
+export DEBEMAIL
+export DEBFULLNAME
 .PHONY: dpkg
 dpkg:
-	DEBEMAIL=builder@example.com dch -v ${VERSION}-1 --no-auto-nmu local package Auto Build
+	rm -f debian/changelog
+	dch --create --empty --package n3n -v ${VERSION}-1 --no-auto-nmu local package Auto Build
 	env -u CFLAGS dpkg-buildpackage -rfakeroot -d -us -uc --host-type ${CONFIG_HOST}
 
 .PHONY: install.bin
