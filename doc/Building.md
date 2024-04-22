@@ -52,9 +52,10 @@ directory to fetch the submodules:
 git submodule update --init --recursive
 ```
 
-# Build on Linux
+# Build on Linux / Generic build instructions
 
-On Linux, compilation from source is straight forward:
+On a system with standard posix tools and development libraries, the
+compilation from source is straight forward:
 
 ```sh
 ./autogen.sh
@@ -67,7 +68,14 @@ make install
 
 # Build on macOS
 
-In order to use n3n on macOS, you first need to install support for TUN/TAP interfaces:
+The macOS build essentially can use the generic build instructions (Above),
+but first needs a couple of other packages installed:
+
+```bash
+brew install automake
+```
+
+Then install support for TUN/TAP interfaces:
 
 ```bash
 brew tap homebrew/cask
@@ -82,6 +90,46 @@ Note that on the newest MacOS versions and on Apple Silicon, there may be
 increasing security restrictions in the OS that make installing the TUN/TAP
 kernel extension difficult.  Alternative software implementations to avoid
 these difficulties are being discussed for future n3n versions.
+
+# Build on BSD
+
+## FreeBSD
+
+This essentially is using the generic build instructions (Above), with a
+couple of required packages installed:
+
+```bash
+sudo pkg install -y \
+  autoconf \
+  automake \
+  git-tiny \
+  gmake \
+  python3 \
+  jq \
+  bash
+./autogen.sh
+./configure CC=clang
+gmake all
+```
+
+## OpenBSD
+
+Again, this is basically the generic build instructions, with some extra
+OS packages:
+
+```bash
+sudo pkg_add \
+  autoconf-2.71 \
+  automake-1.16.5 \
+  git \
+  gmake \
+  python3 \
+  jq \
+  bash
+AUTOCONF_VERSION=2.71 AUTOMAKE_VERSION=1.16 ./autogen.sh
+./configure CC=clang
+gmake all
+```
 
 # Build on Windows
 
