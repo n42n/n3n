@@ -405,7 +405,7 @@ jobs:
         run: |
           echo "BUILD_VERSION=$(scripts/version.sh)" >> "$GITHUB_ENV"
           echo "BUILD_SOURCE_URL=https://github.com/${{github.repository}}" >> "$GITHUB_ENV"
-          echo "BUILD_SOURCE_REF=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          echo "BUILD_SOURCE_REF=$GITHUB_REF" | sed -e 's%/merge$%%' >> "$GITHUB_ENV"
           cat "$GITHUB_ENV"
         working-directory: n3n
 
