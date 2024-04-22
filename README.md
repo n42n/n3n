@@ -64,20 +64,13 @@ option) in order to prevent other users from connecting to your computer.
 
 It is also suggested that you setup your own [supernode](doc/Supernode.md)
 
-## Build from Source
+# See Also
 
-See the [Building](doc/Building.md) document.
-
-## Security Considerations
-
-See the [Security](doc/Security.md) document.
-
-## Advanced Configuration
-
-More information about communities, support for multiple supernodes, routing,
-traffic restrictions and on how to run an edge as a service is available in the
-[more detailed documentation](doc/Advanced.md).
-
+- [Build from Source](doc/Building.md) document.
+- [Security Considerations](doc/Security.md) document.
+- [Advanced Configuration](doc/Advanced.md) document.
+- Answers to [frequently asked questions](doc/Faq.md) (FAQ).
+- Details about the internals in the [Hacking guide](doc/Hacking.md).
 
 ## Contribution
 
@@ -89,14 +82,6 @@ You can contribute to n3n in various ways:
 - Improve the documentation
 - Provide pull requests with enhancements
 
-For details about the internals of n3n check out the [Hacking
-guide](doc/Hacking.md).
-
-
-## Further Readings and Related Projects
-
-Answers to frequently asked questions can be found in our [FAQ
-document](doc/Faq.md).
 
 ---
 
