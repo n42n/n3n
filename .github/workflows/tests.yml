@@ -420,7 +420,8 @@ jobs:
 
       - name: Build openwrt packages
         run: |
-          echo "Build for $PKG_VERSION"
+          echo "Build for $BUILD_VERSION"
+          export
           make package/n3n/clean V=s
           make package/n3n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n3n V=s
           make package/n3n/compile V=s
