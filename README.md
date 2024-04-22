@@ -64,34 +64,9 @@ option) in order to prevent other users from connecting to your computer.
 
 It is also suggested that you setup your own [supernode](doc/Supernode.md)
 
-## Manual Compilation
+## Build from Source
 
-On Linux, compilation from source is straight forward:
-
-```sh
-./autogen.sh
-./configure
-make
-
-# optionally install
-make install
-```
-
-For compiling under Windows or MacOS, enabling various optimizations and
-generally other options available to build, please check the [Building
-documentation](doc/Building.md)
-
-The project _main_ branch is used for development work and reflects the code
-that is expected to go into the next release - it is thus possible that it
-has not been fully tested and may contain bugs or partially implemented
-features.  If you wish to help with testing or to implement a new feature, you
-are encouraged to compile from _main_.  Feedback in the _issues_ tracker is
-appreciated.
-
-Once a release is stable, it will be tagged - and if a bug fix needs to be
-backported to a stable release a branch will be created for the patch releases
-containing these backported patches.
-
+See the [Building](doc/Building.md) document.
 
 ## Security Considerations
 
