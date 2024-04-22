@@ -401,6 +401,13 @@ jobs:
           git fetch --force --tags
         working-directory: n3n
 
+      - name: Set environment for OpenWRT
+        run: |
+          echo "BUILD_VERSION=$(scripts/version.sh)" >> "$GITHUB_ENV"
+          echo "BUILD_SOURCE_URL=https://github.com/${{github.repository}}" >> "$GITHUB_ENV"
+          echo "BUILD_SOURCE_REF=$GITHUB_REF" >> "$GITHUB_ENV"
+        working-directory: n3n
+
       - name: Copy package definition into openwrt
         run: |
           cp -r n3n/packages/openwrt openwrt/package/n3n
@@ -412,9 +419,6 @@ jobs:
 
       - name: Build openwrt packages
         run: |
-          export BUILD_VERSION=$(../n3n/scripts/version.sh)
-          export BUILD_SOURCE_URL=https://github.com/${{github.repository}}
-          export BUILD_SOURCE_REF=$GITHUB_REF
           echo "Build for $PKG_VERSION"
           make package/n3n/clean V=s
           make package/n3n/prepare USE_SOURCE_DIR=$GITHUB_WORKSPACE/n3n V=s
