@@ -355,6 +355,7 @@ jobs:
   package_ipk:
     name: Package for OpenWrt
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
 
     strategy:
       fail-fast: true
@@ -405,7 +406,7 @@ jobs:
         run: |
           echo "BUILD_VERSION=$(scripts/version.sh)" >> "$GITHUB_ENV"
           echo "BUILD_SOURCE_URL=https://github.com/${{github.repository}}" >> "$GITHUB_ENV"
-          echo "BUILD_SOURCE_REF=$GITHUB_REF" | sed -e 's%/merge$%%' >> "$GITHUB_ENV"
+          echo "BUILD_SOURCE_REF=$GITHUB_REF" >> "$GITHUB_ENV"
           cat "$GITHUB_ENV"
         working-directory: n3n
 
