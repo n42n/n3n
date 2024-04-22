@@ -5,7 +5,15 @@
 
 ### Where can I find binaries for Windows?
 
-We do not explicitly release Windows binaries, but the automated test workflow creates them. You can find the the most current binaries at the _Actions_ tab, at the _Testing_ workflow, select the newest run, scroll down to the _Artifacts_ sections where the _binaries_ file contains the Windows binaries in its `/x86_64-pc-mingw64/usr/sbin/` folder.
+We do not have a Windows package, but EXE files for modern Windows can be
+found as part of the latest release.
+
+If you want to use with Windows XP - eg, for retro gaming - those binaries
+are not part of the standard release package.  The automated test workflow
+does create them and they can be downloaded from the _Actions_ tab, at the
+_Testing_ workflow, select the newest run, scroll down to the _Artifacts_
+sections where the _binaries_ file contains the Windows binaries in its
+`i686-w64-mingw32/usr/local/sbin/` folder.
 
 ## Supernode
 
