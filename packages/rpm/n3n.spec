@@ -65,6 +65,8 @@ rm -fr $RPM_BUILD_ROOT
 /usr/share/doc/n3n/Routing.md
 /usr/share/doc/n3n/Scratchpad.md
 /usr/share/doc/n3n/Scripts.md
+/usr/share/doc/n3n/Security.md
+/usr/share/doc/n3n/Supernode.md
 /usr/share/doc/n3n/TapConfiguration.md
 /usr/share/doc/n3n/Tools.md
 /usr/share/doc/n3n/TrafficRestrictions.md

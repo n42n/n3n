@@ -1,5 +1,7 @@
 # Advanced Configuration
 
+This document describes information about communities, support for multiple
+supernodes, routing, traffic restrictions and how to run an edge as a service.
 
 ## Configuration Files
 
