@@ -1,8 +1,7 @@
 
 # n3n
 
-n3n is a light VPN software which makes it easy to create virtual networks
-bypassing intermediate firewalls.
+n3n is a lightweight Peer-to-Peer VPN that creates virtual networks.
 
 In order to start using n3n, two elements are required:
 
@@ -12,9 +11,9 @@ In order to start using n3n, two elements are required:
 
 A virtual network shared between multiple edge nodes in n3n is called a
 _community_. A single supernode can relay multiple communities and a single
-computer can be part of multiple communities at the same time. An encryption
-key can be used by the edge nodes to encrypt the packets within their
-community.
+computer can be part of multiple communities at the same time (by running
+multiple _edge_ daemons). An encryption key can be used by the edge nodes to
+encrypt the packets within their community.
 
 n3n tries to establish a direct peer-to-peer connection via udp between the
 edge nodes when possible. When this is not possible (usually due to special NAT
@@ -22,6 +21,12 @@ devices), the supernode is also used to relay the packets.
 
 n3n was originally based on an older n2n project and hopes to keep protocol
 compatiblilty with that.
+
+Note that some distributions have very old versions of n2n packaged that are
+incompatible with the protocol used by n3n.  At the least, Debian has a n2n
+version 1.3.1 which uses a protocol from 2008 and has not been compatible with
+the stable releases of n2n for many years - thus will definitely not
+interoperate with n3n)
 
 ## License
 
@@ -31,39 +36,27 @@ compatiblilty with that.
 - There is no Contributor Licence Agreement and thus there is no single body
   that can take ownership of the code and/or change the licensing.
 
-## Quick Setup
+## Quick Start
 
-Up-to-date binaries and packages for most distributions are available as
-part of the [latest stable release](https://github.com/n42n/n3n/releases/latest).
+For Debian, Ubuntu or similar dpkg based systems:
 
-(Since the n3n is protocol compatible with the older n2n, you might be tempted
-to try and install a package provided by your distribution.  At the least
-Debian has a package called `n2n`, however it is based on the antique 1.2
-version from 2008 and that has not been compatible with n2n for many years, and
-thus is also not able to interoperate with n3n.)
+- Download the package from the [latest stable release](https://github.com/n42n/n3n/releases/latest).
 
-On host1 run:
+- Install the package
 
-```sh
-$ sudo edge start \
-    -c mynetwork \
-    -k mysecretpass \
-    -a 192.168.100.1 \
-    -l supernode.ntop.org:7777
-```
+- Create a config file - `/etc/n3n/mynetwork.conf` containing
+  ```
+  [community]
+  name=mynetwork
+  key=mypassword
+  supernode=supernode.ntop.org:7777
+  ```
 
-On host2 run:
+- Start the service: `sudo systemctl start n3n-edge@mynetwork`
 
-```sh
-$ sudo edge start \
-    -c mynetwork \
-    -k mysecretpass \
-    -a 192.168.100.2 \
-    -l supernode.ntop.org:7777
-```
+- Check the connection: `sudo n3nctl -s mynetwork supernodes`
 
-Now the two hosts can ping each other.  For a longer-term setup, we suggest
-you use a config file with the settings.
+- List other nodes found: `sudo n3nctl -s mynetwork edges`
 
 **IMPORTANT** It is strongly advised to choose a custom community name (the
 `community.name` option) and a secret encryption key (the `community.key`
