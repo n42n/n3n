@@ -302,6 +302,13 @@ static struct n3n_conf_option section_management[] = {
                 "Use this if you wish to use the TCP API.",
 
     },
+    {
+        .name = "unix_sock_perms",
+        .type = n3n_conf_uint32,
+        .offset = offsetof(n2n_edge_conf_t, mgmt_sock_perms),
+        .desc = "Unix management socket permissions",
+        .help = "Sets the permissions for the management interface socket.",
+    },
     {.name = NULL},
 };
 

@@ -19,6 +19,7 @@
 #include <string.h>
 #ifndef _WIN32
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/un.h>
@@ -437,7 +438,7 @@ int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
 }
 
 #ifndef _WIN32
-int slots_listen_unix(slots_t *slots, char *path) {
+int slots_listen_unix(slots_t *slots, char *path, int mode) {
     int listen_nr = _slots_listen_find_empty(slots);
     if (listen_nr <0) {
         return -2;
@@ -464,6 +465,14 @@ int slots_listen_unix(slots_t *slots, char *path) {
 
     if (bind(server, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         return -1;
+    }
+
+    if(mode > 0) {
+        fchmod(server, mode);
+        // Deliberately ignore the result - either it worked or not
+        // TODO:
+        // - mark it so the compiler doesnt complain
+        // - do we actually want to tie the user/group to the running pid?
     }
 
     // backlog of 1 - low, but sheds load quickly when we run out of slots

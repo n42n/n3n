@@ -596,7 +596,13 @@ int main (int argc, char * argv[]) {
     char unixsock[1024];
     snprintf(unixsock, sizeof(unixsock), "%s/mgmt", sss_node.conf.sessiondir);
 
-    if(slots_listen_unix(sss_node.mgmt_slots, unixsock)!=0) {
+    int e = slots_listen_unix(
+        sss_node.mgmt_slots,
+        unixsock,
+        sss_node.conf.mgmt_sock_perms
+    );
+
+    if(e !=0) {
         perror("slots_listen_tcp");
         exit(1);
     }
