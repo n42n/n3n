@@ -73,7 +73,7 @@ void httpd_test(int port) {
     }
 
 #ifndef _WIN32
-    if (slots_listen_unix(slots, "test.sock")!=0) {
+    if (slots_listen_unix(slots, "test.sock", -1, -1, -1)!=0) {
         perror("slots_listen_tcp");
         exit(1);
     }

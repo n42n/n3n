@@ -3241,13 +3241,20 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     char unixsock[1024];
     snprintf(unixsock, sizeof(unixsock), "%s/mgmt", eee->conf.sessiondir);
 
-    if(slots_listen_unix(eee->mgmt_slots, unixsock)!=0) {
+    int e = slots_listen_unix(
+        eee->mgmt_slots,
+        unixsock,
+        eee->conf.mgmt_sock_perms,
+        eee->conf.userid,
+        eee->conf.groupid
+    );
+    // TODO:
+    // - do we actually want to tie the user/group to the running pid?
+
+    if(e!=0) {
         perror("slots_listen_tcp");
         exit(1);
     }
-    chown(unixsock, eee->conf.userid, eee->conf.groupid);
-    // Deliberately ignore the result - either it worked or not
-    // TODO: mark it so the compiler doesnt complain
 #endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
