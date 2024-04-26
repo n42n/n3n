@@ -248,13 +248,13 @@ static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
     // will usefully show you the raw streaming data if we use the wrong
     // content type
     char *msg1 = "HTTP/1.1 200 event\r\nContent-Type: application/json\r\n\r\n";
-    write(mgmt_event_subscribers[topicid], msg1, strlen(msg1));
+    (void)write(mgmt_event_subscribers[topicid], msg1, strlen(msg1));
     // Ignore the result
     // (the message is leaving here fine, the problem must be at your end)
 
     if(replacing) {
         char *msg2 = "\x1e\"replacing\"\n";
-        write(mgmt_event_subscribers[topicid], msg2, strlen(msg2));
+        (void)write(mgmt_event_subscribers[topicid], msg2, strlen(msg2));
     }
 }
 

@@ -474,11 +474,11 @@ int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
     // - mark it so the compiler doesnt complain
 
     if(mode > 0) {
-        fchmod(server, mode);
+        (void)fchmod(server, mode);
     }
 
     if(uid != -1 && gid != -1) {
-        chown(path, uid, gid);
+        (void)chown(path, uid, gid);
     }
 
     // backlog of 1 - low, but sheds load quickly when we run out of slots
