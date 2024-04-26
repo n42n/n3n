@@ -467,18 +467,20 @@ int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
         return -1;
     }
 
-    // For both the chmod and chown, we ignore the result: either it worked or
-    // not.
+    // For both the chmod and chown, we would be happy to ignore the result:
+    // either it worked or not. But -Wunused-result will not let us do that
     //
     // TODO:
     // - mark it so the compiler doesnt complain
 
+    int result = 0;
+
     if(mode > 0) {
-        (void)fchmod(server, mode);
+        result += fchmod(server, mode);
     }
 
     if(uid != -1 && gid != -1) {
-        (void)chown(path, uid, gid);
+        result += chown(path, uid, gid);
     }
 
     // backlog of 1 - low, but sheds load quickly when we run out of slots
@@ -487,7 +489,7 @@ int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
     }
 
     slots->listen[listen_nr] = server;
-    return 0;
+    return result;
 }
 #endif
 

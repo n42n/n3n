@@ -30,6 +30,10 @@
 #include <sys/socket.h>  // for sendto, sockaddr
 #endif
 
+static struct metrics {
+    uint32_t event_write_error;
+} metrics;
+
 static void generate_http_headers (conn_t *conn, const char *type, int code) {
     strbuf_t **pp = &conn->reply_header;
     sb_reprintf(pp, "HTTP/1.1 %i result\r\n", code);
@@ -248,13 +252,15 @@ static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
     // will usefully show you the raw streaming data if we use the wrong
     // content type
     char *msg1 = "HTTP/1.1 200 event\r\nContent-Type: application/json\r\n\r\n";
-    (void)write(mgmt_event_subscribers[topicid], msg1, strlen(msg1));
-    // Ignore the result
-    // (the message is leaving here fine, the problem must be at your end)
+    if(write(mgmt_event_subscribers[topicid], msg1, strlen(msg1))<1) {
+        metrics.event_write_error++;
+    }
 
     if(replacing) {
         char *msg2 = "\x1e\"replacing\"\n";
-        (void)write(mgmt_event_subscribers[topicid], msg2, strlen(msg2));
+        if(write(mgmt_event_subscribers[topicid], msg2, strlen(msg2))<1) {
+            metrics.event_write_error++;
+        }
     }
 }
 
