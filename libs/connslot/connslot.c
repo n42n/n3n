@@ -438,7 +438,7 @@ int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
 }
 
 #ifndef _WIN32
-int slots_listen_unix(slots_t *slots, char *path, int mode) {
+int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
     int listen_nr = _slots_listen_find_empty(slots);
     if (listen_nr <0) {
         return -2;
@@ -467,12 +467,18 @@ int slots_listen_unix(slots_t *slots, char *path, int mode) {
         return -1;
     }
 
+    // For both the chmod and chown, we ignore the result: either it worked or
+    // not.
+    //
+    // TODO:
+    // - mark it so the compiler doesnt complain
+
     if(mode > 0) {
         fchmod(server, mode);
-        // Deliberately ignore the result - either it worked or not
-        // TODO:
-        // - mark it so the compiler doesnt complain
-        // - do we actually want to tie the user/group to the running pid?
+    }
+
+    if(uid != -1 && gid != -1) {
+        chown(path, uid, gid);
     }
 
     // backlog of 1 - low, but sheds load quickly when we run out of slots

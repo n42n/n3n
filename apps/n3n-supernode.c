@@ -599,14 +599,17 @@ int main (int argc, char * argv[]) {
     int e = slots_listen_unix(
         sss_node.mgmt_slots,
         unixsock,
-        sss_node.conf.mgmt_sock_perms
+        sss_node.conf.mgmt_sock_perms,
+        sss_node.conf.userid,
+        sss_node.conf.groupid
     );
+    // TODO:
+    // - do we actually want to tie the user/group to the running pid?
 
     if(e !=0) {
         perror("slots_listen_tcp");
         exit(1);
     }
-    chown(unixsock, sss_node.conf.userid, sss_node.conf.groupid);
 #endif
 
     // Add our freshly opened socket to any edges added by federation
