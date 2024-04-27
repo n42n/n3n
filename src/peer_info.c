@@ -219,6 +219,7 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
 
     memset(&sock, 0, sizeof(sock));
 
+    // WARN: this function could block for a name resolution
     rv = supernode2sock(&sock, ip_and_port);
 
     if(rv < -2) { /* we accept resolver failure as it might resolve later */

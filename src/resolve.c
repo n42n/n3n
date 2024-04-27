@@ -26,6 +26,9 @@
 #include <sys/socket.h>      // for AF_INET, PF_INET
 #endif
 
+#define N2N_RESOLVE_INTERVAL            300 /* seconds until edge and supernode try to resolve supernode names again */
+#define N2N_RESOLVE_CHECK_INTERVAL       30 /* seconds until main loop checking in on changes from resolver thread */
+
 /** Resolve the supernode IP address.
  *
  */
