@@ -66,7 +66,8 @@ int find_and_remove_peer (struct peer_info **, const n2n_mac_t);
 struct peer_info* find_peer_by_sock (const n2n_sock_t *, struct peer_info *);
 
 int find_peer_time_stamp_and_verify (
-    struct n3n_runtime_data * eee,
+    struct peer_info *peers1,
+    struct peer_info *peers2,
     struct peer_info *sn,
     const n2n_mac_t mac,
     uint64_t stamp,
