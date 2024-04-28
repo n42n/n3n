@@ -9,6 +9,7 @@
 #include <n2n_define.h> // for TIME_STAMP_FRAME
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/metrics.h> // for traceEvent
+#include <sn_selection.h>   // for sn_selection_criterion_default
 #include <stdbool.h>
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
@@ -208,6 +209,59 @@ struct peer_info* find_peer_by_sock (const n2n_sock_t *sock, struct peer_info *p
     }
 
     return ret;
+}
+
+/* *********************************************** */
+
+struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add) {
+
+    struct peer_info *scan, *tmp, *peer = NULL;
+
+    if(!is_null_mac(mac)) { /* not zero MAC */
+        HASH_FIND_PEER(*sn_list, mac, peer);
+    }
+
+    if(peer) {
+        return peer;
+    }
+
+    /* zero MAC, search by socket */
+    HASH_ITER(hh, *sn_list, scan, tmp) {
+        if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) != 0) {
+            continue;
+        }
+
+        // update mac if appropriate
+        // (needs to be deleted first because it is key to the hash list)
+        if(!is_null_mac(mac)) {
+            HASH_DEL(*sn_list, scan);
+            memcpy(scan->mac_addr, mac, sizeof(n2n_mac_t));
+            HASH_ADD_PEER(*sn_list, scan);
+        }
+
+        peer = scan;
+        break;
+    }
+
+    if(peer) {
+        return peer;
+    }
+
+    if(*skip_add != SN_ADD) {
+        return peer;
+    }
+
+    peer = peer_info_malloc(mac);
+    if(!peer) {
+        return peer;
+    }
+
+    sn_selection_criterion_default(&(peer->selection_criterion));
+    memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
+    HASH_ADD_PEER(*sn_list, peer);
+    *skip_add = SN_ADD_ADDED;
+
+    return peer;
 }
 
 /* ************************************** */
