@@ -2359,12 +2359,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     if(!find_peer_time_stamp_and_verify(
-                                eee->pending_peers,
-                                eee->known_peers,
-                                sn,
-                                pkt.srcMac,
-                                stamp,
-                                TIME_STAMP_ALLOW_JITTER)) {
+                           eee->pending_peers,
+                           eee->known_peers,
+                           sn,
+                           pkt.srcMac,
+                           stamp,
+                           TIME_STAMP_ALLOW_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped PACKET due to time stamp error");
                         return;
                     }
@@ -2417,12 +2417,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     if(!find_peer_time_stamp_and_verify(
-                                eee->pending_peers,
-                                eee->known_peers,
-                                sn,
-                                reg.srcMac,
-                                stamp,
-                                via_multicast ? TIME_STAMP_ALLOW_JITTER : TIME_STAMP_NO_JITTER)) {
+                           eee->pending_peers,
+                           eee->known_peers,
+                           sn,
+                           reg.srcMac,
+                           stamp,
+                           via_multicast ? TIME_STAMP_ALLOW_JITTER : TIME_STAMP_NO_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped REGISTER due to time stamp error");
                         return;
                     }
@@ -2474,12 +2474,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     if(!find_peer_time_stamp_and_verify(
-                                eee->pending_peers,
-                                eee->known_peers,
-                                sn,
-                                ra.srcMac,
-                                stamp,
-                                TIME_STAMP_NO_JITTER)) {
+                           eee->pending_peers,
+                           eee->known_peers,
+                           sn,
+                           ra.srcMac,
+                           stamp,
+                           TIME_STAMP_NO_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped REGISTER_ACK due to time stamp error");
                         return;
                     }
@@ -2520,12 +2520,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     if(!find_peer_time_stamp_and_verify(
-                                eee->pending_peers,
-                                eee->known_peers,
-                                sn,
-                                ra.srcMac,
-                                stamp,
-                                TIME_STAMP_NO_JITTER)) {
+                           eee->pending_peers,
+                           eee->known_peers,
+                           sn,
+                           ra.srcMac,
+                           stamp,
+                           TIME_STAMP_NO_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK due to time stamp error");
                         return;
                     }
@@ -2644,12 +2644,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     if(!find_peer_time_stamp_and_verify(
-                                eee->pending_peers,
-                                eee->known_peers,
-                                sn,
-                                nak.srcMac,
-                                stamp,
-                                TIME_STAMP_NO_JITTER)) {
+                           eee->pending_peers,
+                           eee->known_peers,
+                           sn,
+                           nak.srcMac,
+                           stamp,
+                           TIME_STAMP_NO_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_NAK due to time stamp error");
                         return;
                     }
@@ -2698,12 +2698,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     if(!find_peer_time_stamp_and_verify(
-                                eee->pending_peers,
-                                eee->known_peers,
-                                sn,
-                                null_mac,
-                                stamp,
-                                TIME_STAMP_ALLOW_JITTER)) {
+                           eee->pending_peers,
+                           eee->known_peers,
+                           sn,
+                           null_mac,
+                           stamp,
+                           TIME_STAMP_ALLOW_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped PEER_INFO due to time stamp error");
                         return;
                     }
@@ -2772,12 +2772,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     if(!find_peer_time_stamp_and_verify(
-                                eee->pending_peers,
-                                eee->known_peers,
-                                sn,
-                                null_mac,
-                                stamp,
-                                TIME_STAMP_NO_JITTER)) {
+                           eee->pending_peers,
+                           eee->known_peers,
+                           sn,
+                           null_mac,
+                           stamp,
+                           TIME_STAMP_NO_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped RE_REGISTER due to time stamp error");
                         return;
                     }
