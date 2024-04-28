@@ -311,3 +311,39 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
 
     return 0;
 }
+
+/* ***************************************************** */
+
+
+/***
+ *
+ * For a given packet, find the apporopriate internal last valid time stamp for lookup
+ * and verify it (and also update, if applicable).
+ */
+int find_peer_time_stamp_and_verify (struct n3n_runtime_data * eee,
+                                            struct peer_info *sn, const n2n_mac_t mac,
+                                            uint64_t stamp, int allow_jitter) {
+
+    uint64_t *previous_stamp = NULL;
+
+    if(sn) {
+        // from supernode
+        previous_stamp = &(sn->last_valid_time_stamp);
+    } else {
+        // from (peer) edge
+        struct peer_info *peer;
+        HASH_FIND_PEER(eee->pending_peers, mac, peer);
+        if(!peer) {
+            HASH_FIND_PEER(eee->known_peers, mac, peer);
+        }
+
+        if(peer) {
+            // time_stamp_verify_and_update allows the pointer a previous stamp to be NULL
+            // if it is a (so far) unknown peer
+            previous_stamp = &(peer->last_valid_time_stamp);
+        }
+    }
+
+    // failure --> 0;    success --> 1
+    return time_stamp_verify_and_update(stamp, previous_stamp, allow_jitter);
+}

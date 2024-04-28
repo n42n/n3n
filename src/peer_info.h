@@ -65,4 +65,12 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (
 int find_and_remove_peer (struct peer_info **, const n2n_mac_t);
 struct peer_info* find_peer_by_sock (const n2n_sock_t *, struct peer_info *);
 
+int find_peer_time_stamp_and_verify (
+    struct n3n_runtime_data * eee,
+    struct peer_info *sn,
+    const n2n_mac_t mac,
+    uint64_t stamp,
+    int allow_jitter
+);
+
 #endif
