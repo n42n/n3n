@@ -2251,7 +2251,7 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
     size_t msg_type;
     uint8_t from_supernode;
     uint8_t via_multicast;
-    peer_info_t           *sn = NULL;
+    struct peer_info *sn = NULL;
     n2n_sock_t sender;
     n2n_sock_t *          orig_sender = NULL;
     uint32_t header_enc = 0;

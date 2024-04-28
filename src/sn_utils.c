@@ -1587,7 +1587,7 @@ static int process_udp (struct n3n_runtime_data * sss,
     size_t idx;
     size_t msg_type;
     uint8_t from_supernode;
-    peer_info_t         *sn = NULL;
+    struct peer_info *sn = NULL;
     n2n_sock_t sender;
     n2n_sock_t          *orig_sender;
     macstr_t mac_buf;
