@@ -2600,7 +2600,6 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                             sprintf(ip_tmp, "%s:%u", (char*)sn->hostname, (uint16_t)(payload_sock.port));
                             memcpy(sn->hostname, ip_tmp, sizeof(ip_tmp));
                         }
-                        sn_selection_criterion_default(&(sn->selection_criterion));
                         sn->last_seen = 0; /* as opposed to payload handling in supernode */
                         traceEvent(
                             TRACE_NORMAL,
