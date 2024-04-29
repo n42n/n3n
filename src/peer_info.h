@@ -15,6 +15,9 @@
 #define HASH_FIND_PEER(head,mac,out) \
     HASH_FIND(hh,head,mac,sizeof(n2n_mac_t),out)
 
+/* flag used in add_sn_to_list_by_mac_or_sock */
+enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
+
 struct peer_info {
     n2n_mac_t mac_addr;
     bool purgeable;
