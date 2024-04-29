@@ -70,7 +70,6 @@
 
 /* ************************************** */
 
-static const char * supernode_ip (const struct n3n_runtime_data * eee);
 static void send_register (struct n3n_runtime_data *eee, const n2n_sock_t *remote_peer, const n2n_mac_t peer_mac, n2n_cookie_t cookie);
 
 static void check_peer_registration_needed (struct n3n_runtime_data *eee,
@@ -475,7 +474,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
     traceEvent(TRACE_INFO, "number of supernodes in the list: %d\n", HASH_COUNT(eee->conf.supernodes));
     HASH_ITER(hh, eee->conf.supernodes, scan, tmp) {
-        traceEvent(TRACE_INFO, "supernode %u => %s\n", i, (scan->ip_addr));
+        traceEvent(TRACE_INFO, "supernode %u => %s\n", i, (scan->hostname));
         i++;
     }
 
@@ -1381,8 +1380,13 @@ static int sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
             reset_sup_attempts(eee);
             supernode_connect(eee);
 
-            traceEvent(TRACE_INFO, "registering with supernode [%s][number of supernodes %d][attempts left %u]",
-                       supernode_ip(eee), HASH_COUNT(eee->conf.supernodes), (unsigned int)eee->sup_attempts);
+            traceEvent(
+                TRACE_INFO,
+                "registering with supernode [%s][number of supernodes %d][attempts left %u]",
+                eee->curr_sn->hostname,
+                HASH_COUNT(eee->conf.supernodes),
+                (unsigned int)eee->sup_attempts
+            );
 
             send_register_super(eee);
             eee->last_register_req = now;
@@ -1583,7 +1587,11 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
         sn_selection_criterion_bad(&(eee->curr_sn->selection_criterion));
         sn_selection_sort(&(eee->conf.supernodes));
         eee->curr_sn = eee->conf.supernodes;
-        traceEvent(TRACE_WARNING, "supernode not responding, now trying [%s]", supernode_ip(eee));
+        traceEvent(
+            TRACE_WARNING,
+            "supernode not responding, now trying [%s]",
+            eee->curr_sn->hostname
+        );
         reset_sup_attempts(eee);
         // trigger out-of-schedule DNS resolution
         eee->resolution_request = true;
@@ -1627,11 +1635,11 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
         --(eee->sup_attempts);
     }
 
-    if(maybe_supernode2sock(&(eee->curr_sn->sock), eee->curr_sn->ip_addr) == 0) {
+    if(maybe_supernode2sock(&(eee->curr_sn->sock), eee->curr_sn->hostname) == 0) {
         traceEvent(
             TRACE_INFO,
             "registering with supernode [%s][number of supernodes %d][attempts left %u]",
-            supernode_ip(eee),
+            eee->curr_sn->hostname,
             HASH_COUNT(eee->conf.supernodes),
             (unsigned int)eee->sup_attempts
         );
@@ -1651,14 +1659,6 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
     eee->sn_wait = 1;
 
     eee->last_register_req = now - off;
-}
-
-/* ************************************** */
-
-/** Return the IP address of the current supernode in the ring. */
-static const char * supernode_ip (const struct n3n_runtime_data * eee) {
-
-    return (eee->curr_sn->ip_addr);
 }
 
 /* ************************************** */
@@ -2504,7 +2504,6 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
             case MSG_TYPE_REGISTER_SUPER_ACK: {
                 n2n_REGISTER_SUPER_ACK_t ra;
                 uint8_t tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
-                char ip_tmp[N2N_EDGE_SN_HOST_SIZE];
                 n2n_REGISTER_SUPER_ACK_payload_t *payload;
                 n2n_sock_t payload_sock;
                 int i;
@@ -2583,17 +2582,22 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                     sn = add_sn_to_list_by_mac_or_sock(&(eee->conf.supernodes), &payload_sock, payload->mac, &skip_add);
 
                     if(skip_add == SN_ADD_ADDED) {
-                        sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-                        if(sn->ip_addr != NULL) {
+                        // TODO: could just avoid adding the special string
+                        // with the hostname when we are adding a supernode
+                        // discovered from the reg packet
+                        sn->hostname = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+                        if(sn->hostname != NULL) {
+                            char ip_tmp[N2N_EDGE_SN_HOST_SIZE];
+
                             inet_ntop(payload_sock.family,
                                       (payload_sock.family == AF_INET) ? (void*)&(payload_sock.addr.v4) : (void*)&(payload_sock.addr.v6),
-                                      sn->ip_addr, N2N_EDGE_SN_HOST_SIZE - 1);
-                            sprintf(ip_tmp, "%s:%u", (char*)sn->ip_addr, (uint16_t)(payload_sock.port));
-                            memcpy(sn->ip_addr, ip_tmp, sizeof(ip_tmp));
+                                      sn->hostname, N2N_EDGE_SN_HOST_SIZE - 1);
+                            sprintf(ip_tmp, "%s:%u", (char*)sn->hostname, (uint16_t)(payload_sock.port));
+                            memcpy(sn->hostname, ip_tmp, sizeof(ip_tmp));
                         }
                         sn_selection_criterion_default(&(sn->selection_criterion));
                         sn->last_seen = 0; /* as opposed to payload handling in supernode */
-                        traceEvent(TRACE_NORMAL, "supernode '%s' added to the list of supernodes.", sn->ip_addr);
+                        traceEvent(TRACE_NORMAL, "supernode '%s' added to the list of supernodes.", sn->hostname);
                     }
                     // shift to next payload entry
                     payload++;

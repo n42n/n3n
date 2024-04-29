@@ -33,7 +33,7 @@ struct peer_info {
     time_t time_alloc;
     SN_SELECTION_CRITERION_DATA_TYPE selection_criterion;
     uint64_t last_valid_time_stamp;
-    char                             *ip_addr;
+    char *hostname;
     time_t uptime;
     n2n_version_t version;
 

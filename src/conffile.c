@@ -730,7 +730,7 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
             struct peer_info **supernodes = (struct peer_info **)valvoid;
             struct peer_info *scan, *tmp;
             HASH_ITER(hh, *supernodes, scan, tmp) {
-                fprintf(f, "%s=%s\n", option->name, scan->ip_addr);
+                fprintf(f, "%s=%s\n", option->name, scan->hostname);
             }
             fprintf(f, "\n");
             return;

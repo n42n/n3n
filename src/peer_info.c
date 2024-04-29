@@ -92,6 +92,7 @@ struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
 
 void peer_info_free (struct peer_info *p) {
     metrics.free++;
+    free(p->hostname);
     free(p);
 }
 
@@ -143,9 +144,6 @@ size_t clear_peer_list (struct peer_info ** peer_list) {
     size_t retval = 0;
 
     HASH_ITER(hh, *peer_list, scan, tmp) {
-        if(!scan->purgeable && scan->ip_addr) {
-            free(scan->ip_addr);
-        }
         HASH_DEL(*peer_list, scan);
         mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_CLEAR,scan);
         /* FIXME: generates events for more than just p2p */
@@ -288,13 +286,13 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
         return 1;
     }
 
-    // FIXME: what if ->ip_addr is already set?
-    sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-    if(!sn->ip_addr) {
+    // FIXME: what if ->hostname is already set?
+    sn->hostname = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+    if(!sn->hostname) {
         // FIXME: add to list, but left half initialised
         return 1;
     }
-    strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
+    strncpy(sn->hostname, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
     memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
 
     // If it added an entry, it is already peer_info_init()
@@ -306,7 +304,7 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
     // is overwritten
     sn->purgeable = false;
 
-    traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
+    traceEvent(TRACE_INFO, "adding supernode = %s", sn->hostname);
     metrics.hostname++;
 
     return 0;
