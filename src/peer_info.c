@@ -321,12 +321,12 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
  * and verify it (and also update, if applicable).
  */
 int find_peer_time_stamp_and_verify (
-        struct peer_info *peers1,
-        struct peer_info *peers2,
-        struct peer_info *sn,
-        const n2n_mac_t mac,
-        uint64_t stamp,
-        int allow_jitter) {
+    struct peer_info *peers1,
+    struct peer_info *peers2,
+    struct peer_info *sn,
+    const n2n_mac_t mac,
+    uint64_t stamp,
+    int allow_jitter) {
 
     uint64_t *previous_stamp = NULL;
 
