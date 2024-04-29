@@ -474,7 +474,12 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
     traceEvent(TRACE_INFO, "number of supernodes in the list: %d\n", HASH_COUNT(eee->conf.supernodes));
     HASH_ITER(hh, eee->conf.supernodes, scan, tmp) {
-        traceEvent(TRACE_INFO, "supernode %u => %s\n", i, (scan->hostname));
+        traceEvent(
+            TRACE_INFO,
+            "supernode %u => %s\n",
+            i,
+            peer_info_get_hostname(scan)
+        );
         i++;
     }
 
@@ -1383,7 +1388,7 @@ static int sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
             traceEvent(
                 TRACE_INFO,
                 "registering with supernode [%s][number of supernodes %d][attempts left %u]",
-                eee->curr_sn->hostname,
+                peer_info_get_hostname(eee->curr_sn),
                 HASH_COUNT(eee->conf.supernodes),
                 (unsigned int)eee->sup_attempts
             );
@@ -1590,7 +1595,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
         traceEvent(
             TRACE_WARNING,
             "supernode not responding, now trying [%s]",
-            eee->curr_sn->hostname
+            peer_info_get_hostname(eee->curr_sn)
         );
         reset_sup_attempts(eee);
         // trigger out-of-schedule DNS resolution
@@ -1635,11 +1640,11 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
         --(eee->sup_attempts);
     }
 
-    if(maybe_supernode2sock(&(eee->curr_sn->sock), eee->curr_sn->hostname) == 0) {
+    if(maybe_supernode2sock(&(eee->curr_sn->sock), peer_info_get_hostname(eee->curr_sn)) == 0) {
         traceEvent(
             TRACE_INFO,
             "registering with supernode [%s][number of supernodes %d][attempts left %u]",
-            eee->curr_sn->hostname,
+            peer_info_get_hostname(eee->curr_sn),
             HASH_COUNT(eee->conf.supernodes),
             (unsigned int)eee->sup_attempts
         );
@@ -2504,8 +2509,6 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
             case MSG_TYPE_REGISTER_SUPER_ACK: {
                 n2n_REGISTER_SUPER_ACK_t ra;
                 uint8_t tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
-                n2n_REGISTER_SUPER_ACK_payload_t *payload;
-                n2n_sock_t payload_sock;
                 int i;
                 int skip_add;
 
@@ -2567,10 +2570,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                     HASH_ADD_PEER(eee->conf.supernodes, eee->curr_sn);
                 }
 
+                n2n_REGISTER_SUPER_ACK_payload_t *payload;
                 payload = (n2n_REGISTER_SUPER_ACK_payload_t*)tmpbuf;
 
                 // from here on, 'sn' gets used differently
                 for(i = 0; i < ra.num_sn; i++) {
+                    n2n_sock_t payload_sock;
                     skip_add = SN_ADD;
 
                     // bugfix for https://github.com/ntop/n2n/issues/1029
@@ -2597,7 +2602,11 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                         }
                         sn_selection_criterion_default(&(sn->selection_criterion));
                         sn->last_seen = 0; /* as opposed to payload handling in supernode */
-                        traceEvent(TRACE_NORMAL, "supernode '%s' added to the list of supernodes.", sn->hostname);
+                        traceEvent(
+                            TRACE_NORMAL,
+                            "supernode '%s' added to the list of supernodes.",
+                            peer_info_get_hostname(sn)
+                        );
                     }
                     // shift to next payload entry
                     payload++;

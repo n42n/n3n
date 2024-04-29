@@ -96,6 +96,10 @@ void peer_info_free (struct peer_info *p) {
     free(p);
 }
 
+inline char *peer_info_get_hostname (struct peer_info *p) {
+    return p->hostname;
+}
+
 /** Purge old items from the peer_list, eventually close the related socket, and
  * return the number of items that were removed. */
 size_t purge_peer_list (struct peer_info **peer_list,
@@ -304,7 +308,11 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
     // is overwritten
     sn->purgeable = false;
 
-    traceEvent(TRACE_INFO, "adding supernode = %s", sn->hostname);
+    traceEvent(
+        TRACE_INFO,
+        "adding supernode = %s",
+        peer_info_get_hostname(sn)
+    );
     metrics.hostname++;
 
     return 0;
