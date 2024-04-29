@@ -10,6 +10,11 @@
 
 #include <n2n_typedefs.h>   // for n2n_mac_t, n2n_ip_subnet_t, n2n_desc_t, n2n_sock_t
 
+#define HASH_ADD_PEER(head,add) \
+    HASH_ADD(hh,head,mac_addr,sizeof(n2n_mac_t),add)
+#define HASH_FIND_PEER(head,mac,out) \
+    HASH_FIND(hh,head,mac,sizeof(n2n_mac_t),out)
+
 struct peer_info {
     n2n_mac_t mac_addr;
     bool purgeable;
