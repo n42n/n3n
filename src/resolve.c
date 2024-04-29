@@ -189,16 +189,20 @@ int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn
     *param = (n3n_resolve_parameter_t*)calloc(1, sizeof(n3n_resolve_parameter_t));
     if(*param) {
         HASH_ITER(hh, sn_list, sn, tmp_sn) {
-            // create entries for those peers that come with ip_addr string (from command-line)
-            if(sn->ip_addr) {
+            // create entries for those peers that come with hostname string (from command-line)
+            if(sn->hostname) {
                 entry = (struct n3n_resolve_ip_sock*)calloc(1, sizeof(struct n3n_resolve_ip_sock));
                 if(entry) {
-                    entry->org_ip = sn->ip_addr;
+                    entry->org_ip = sn->hostname;
                     entry->org_sock = &(sn->sock);
                     memcpy(&(entry->sock), &(sn->sock), sizeof(n2n_sock_t));
                     HASH_ADD(hh, (*param)->list, org_ip, sizeof(char*), entry);
                 } else
-                    traceEvent(TRACE_WARNING, "resolve_create_thread was unable to add list entry for supernode '%s'", sn->ip_addr);
+                    traceEvent(
+                        TRACE_WARNING,
+                        "resolve_create_thread was unable to add list entry for supernode '%s'",
+                        sn->hostname
+                    );
             }
         }
         (*param)->check_interval = N2N_RESOLVE_CHECK_INTERVAL;
