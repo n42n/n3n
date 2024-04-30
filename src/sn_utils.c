@@ -2320,7 +2320,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((!from_supernode) || (comm->is_federation)) {
+            if((!from_supernode) || (!comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK, should not come from an edge or regular community");
                 return -1;
             }
