@@ -230,6 +230,25 @@ def subcmd_show_edges(rpc, args):
     return str_table(rows, columns, args.orderby)
 
 
+def subcmd_mac(rpc, args):
+    if args.orderby is None:
+        args.orderby = "mac"
+
+    rows = rpc.get('get_mac')
+    columns = [
+        '_type',
+        'mac',
+        'dest',
+        'age',
+    ]
+
+    now = int(time.time())
+    for row in rows:
+        row["age"] = num2timestr(now - int(row["last_seen"]))
+
+    return str_table(rows, columns, args.orderby)
+
+
 def subcmd_show_help(rpc, args):
     result = 'Commands with pretty-printed output:\n\n'
     for name, cmd in subcmds.items():
@@ -261,6 +280,10 @@ subcmds = {
     'edges': {
         'func': subcmd_show_edges,
         'help': 'Show the list of edges/peers',
+    },
+    'mac': {
+        'func': subcmd_mac,
+        'help': 'Show the mac address routing information',
     },
 }
 
