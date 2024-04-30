@@ -313,6 +313,7 @@ jobs:
           dpkg -I n3n_*.deb
           dpkg --contents n3n_*.deb
           echo "-------------------------------"
+          git status
 
       - name: Upload dpkg
         uses: actions/upload-artifact@v3
