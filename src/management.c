@@ -431,7 +431,7 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
                         "\"_type\":\"assoc\","
                         "\"mac\":\"%s\","
                         "\"dest\":\"%s:%s\","
-                        "\"last_seen\":\"%u\"},",
+                        "\"last_seen\":%u},",
                         macaddr_str(mac_buf, assoc->mac),
                         buf,
                         port,
