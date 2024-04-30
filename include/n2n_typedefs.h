@@ -515,6 +515,7 @@ struct n2n_edge_stats {
     uint32_t sn_reg_nak;        /* Number of REGISTER_SUPER requests declined. */
     uint32_t sn_fwd;            /* Number of messages forwarded. */
     uint32_t sn_broadcast;      /* Number of messages broadcast to a community. */
+    uint32_t sn_drop;
 };
 
 typedef struct n2n_tcp_connection {

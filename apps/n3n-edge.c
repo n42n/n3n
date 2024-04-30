@@ -888,7 +888,11 @@ int main (int argc, char* argv[]) {
                 sn_selection_sort(&(eee->conf.supernodes));
                 eee->curr_sn = eee->conf.supernodes;
                 supernode_connect(eee);
-                traceEvent(TRACE_NORMAL, "received first PONG from supernode [%s]", eee->curr_sn->ip_addr);
+                traceEvent(
+                    TRACE_NORMAL,
+                    "received first PONG from supernode [%s]",
+                    eee->curr_sn->hostname
+                );
                 runlevel++;
             } else if(last_action <= (now - BOOTSTRAP_TIMEOUT)) {
                 // timeout
@@ -918,8 +922,11 @@ int main (int argc, char* argv[]) {
                 eee->sn_wait = 1;
                 send_register_super(eee);
                 runlevel++;
-                traceEvent(TRACE_INFO, "send REGISTER_SUPER to supernode [%s] asking for IP address",
-                           eee->curr_sn->ip_addr);
+                traceEvent(
+                    TRACE_INFO,
+                    "send REGISTER_SUPER to supernode [%s] asking for IP address",
+                    eee->curr_sn->hostname
+                );
             } else {
                 runlevel += 2; /* skip waiting for TUNTAP IP address */
                 traceEvent(TRACE_DEBUG, "skip auto IP address asignment");

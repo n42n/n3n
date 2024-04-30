@@ -9,6 +9,7 @@
 #include <n2n_define.h> // for TIME_STAMP_FRAME
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/metrics.h> // for traceEvent
+#include <sn_selection.h>   // for sn_selection_criterion_default
 #include <stdbool.h>
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
@@ -91,7 +92,12 @@ struct peer_info* peer_info_malloc (const n2n_mac_t mac) {
 
 void peer_info_free (struct peer_info *p) {
     metrics.free++;
+    free(p->hostname);
     free(p);
+}
+
+inline char *peer_info_get_hostname (struct peer_info *p) {
+    return p->hostname;
 }
 
 /** Purge old items from the peer_list, eventually close the related socket, and
@@ -142,9 +148,6 @@ size_t clear_peer_list (struct peer_info ** peer_list) {
     size_t retval = 0;
 
     HASH_ITER(hh, *peer_list, scan, tmp) {
-        if(!scan->purgeable && scan->ip_addr) {
-            free(scan->ip_addr);
-        }
         HASH_DEL(*peer_list, scan);
         mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_CLEAR,scan);
         /* FIXME: generates events for more than just p2p */
@@ -210,6 +213,59 @@ struct peer_info* find_peer_by_sock (const n2n_sock_t *sock, struct peer_info *p
     return ret;
 }
 
+/* *********************************************** */
+
+struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add) {
+
+    struct peer_info *scan, *tmp, *peer = NULL;
+
+    if(!is_null_mac(mac)) { /* not zero MAC */
+        HASH_FIND_PEER(*sn_list, mac, peer);
+    }
+
+    if(peer) {
+        return peer;
+    }
+
+    /* zero MAC, search by socket */
+    HASH_ITER(hh, *sn_list, scan, tmp) {
+        if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) != 0) {
+            continue;
+        }
+
+        // update mac if appropriate
+        // (needs to be deleted first because it is key to the hash list)
+        if(!is_null_mac(mac)) {
+            HASH_DEL(*sn_list, scan);
+            memcpy(scan->mac_addr, mac, sizeof(n2n_mac_t));
+            HASH_ADD_PEER(*sn_list, scan);
+        }
+
+        peer = scan;
+        break;
+    }
+
+    if(peer) {
+        return peer;
+    }
+
+    if(*skip_add != SN_ADD) {
+        return peer;
+    }
+
+    peer = peer_info_malloc(mac);
+    if(!peer) {
+        return peer;
+    }
+
+    sn_selection_criterion_default(&(peer->selection_criterion));
+    memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
+    HASH_ADD_PEER(*sn_list, peer);
+    *skip_add = SN_ADD_ADDED;
+
+    return peer;
+}
+
 /* ************************************** */
 
 int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) {
@@ -219,6 +275,7 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
 
     memset(&sock, 0, sizeof(sock));
 
+    // WARN: this function could block for a name resolution
     rv = supernode2sock(&sock, ip_and_port);
 
     if(rv < -2) { /* we accept resolver failure as it might resolve later */
@@ -233,13 +290,13 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
         return 1;
     }
 
-    // FIXME: what if ->ip_addr is already set?
-    sn->ip_addr = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-    if(!sn->ip_addr) {
+    // FIXME: what if ->hostname is already set?
+    sn->hostname = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+    if(!sn->hostname) {
         // FIXME: add to list, but left half initialised
         return 1;
     }
-    strncpy(sn->ip_addr, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
+    strncpy(sn->hostname, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
     memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
 
     // If it added an entry, it is already peer_info_init()
@@ -251,8 +308,52 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
     // is overwritten
     sn->purgeable = false;
 
-    traceEvent(TRACE_INFO, "adding supernode = %s", sn->ip_addr);
+    traceEvent(
+        TRACE_INFO,
+        "adding supernode = %s",
+        peer_info_get_hostname(sn)
+    );
     metrics.hostname++;
 
     return 0;
+}
+
+/* ***************************************************** */
+
+
+/***
+ *
+ * For a given packet, find the apporopriate internal last valid time stamp for lookup
+ * and verify it (and also update, if applicable).
+ */
+int find_peer_time_stamp_and_verify (
+    struct peer_info *peers1,
+    struct peer_info *peers2,
+    struct peer_info *sn,
+    const n2n_mac_t mac,
+    uint64_t stamp,
+    int allow_jitter) {
+
+    uint64_t *previous_stamp = NULL;
+
+    if(sn) {
+        // from supernode
+        previous_stamp = &(sn->last_valid_time_stamp);
+    } else {
+        // from (peer) edge
+        struct peer_info *peer;
+        HASH_FIND_PEER(peers1, mac, peer);
+        if(!peer && peers2) {
+            HASH_FIND_PEER(peers2, mac, peer);
+        }
+
+        if(peer) {
+            // time_stamp_verify_and_update allows the pointer a previous
+            // stamp to be NULL if it is a (so far) unknown peer
+            previous_stamp = &(peer->last_valid_time_stamp);
+        }
+    }
+
+    // failure --> 0;    success --> 1
+    return time_stamp_verify_and_update(stamp, previous_stamp, allow_jitter);
 }

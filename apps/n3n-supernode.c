@@ -27,7 +27,6 @@
 #include <n3n/conffile.h>      // for n3n_config_set_option
 #include <n3n/initfuncs.h>     // for n3n_initfuncs()
 #include <n3n/logging.h>       // for traceEvent
-#include <n3n/peer_info.h>     // for n3n_peer_add_by_hostname
 #include <n3n/supernode.h>     // for load_allowed_sn_community, calculate_s...
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
@@ -42,7 +41,7 @@
 #include "uthash.h"            // for UT_hash_handle, HASH_ITER, HASH_ADD_STR
 
 // FIXME, including private headers
-#include "../src/peer_info.h"         // for peer_info, peer_info_init
+#include "../src/peer_info.h"         // for peer_info
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -354,43 +353,6 @@ static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runt
 
 /* *************************************************** */
 
-#ifdef __linux__
-// TODO: this uses internal peer_info structures, move it to src/ or replace
-// it with a mangement api
-static void dump_registrations (int signo) {
-
-    struct sn_community *comm, *ctmp;
-    struct peer_info *list, *tmp;
-    char buf[32];
-    time_t now = time(NULL);
-    u_int num = 0;
-
-    traceEvent(TRACE_NORMAL, "====================================");
-
-    HASH_ITER(hh, sss_node.communities, comm, ctmp) {
-        traceEvent(TRACE_NORMAL, "dumping community: %s", comm->community);
-
-        HASH_ITER(hh, comm->edges, list, tmp) {
-            if(list->sock.family == AF_INET) {
-                traceEvent(TRACE_NORMAL, "[id: %u][MAC: %s][edge: %u.%u.%u.%u:%u][last seen: %u sec ago]",
-                           ++num, macaddr_str(buf, list->mac_addr),
-                           list->sock.addr.v4[0], list->sock.addr.v4[1], list->sock.addr.v4[2], list->sock.addr.v4[3],
-                           list->sock.port,
-                           now - list->last_seen);
-            } else {
-                traceEvent(TRACE_NORMAL, "[id: %u][MAC: %s][edge: IPv6:%u][last seen: %u sec ago]",
-                           ++num, macaddr_str(buf, list->mac_addr), list->sock.port,
-                           now - list->last_seen);
-            }
-        }
-    }
-
-    traceEvent(TRACE_NORMAL, "====================================");
-}
-#endif
-
-/* *************************************************** */
-
 static bool keep_running = true;
 
 #if defined(__linux__) || defined(_WIN32)
@@ -614,6 +576,7 @@ int main (int argc, char * argv[]) {
 
     // Add our freshly opened socket to any edges added by federation
     // TODO: this uses internal peer_info struct, move it to sn_utils?
+    // (It is the last user in this file, so yes, move it)
     struct peer_info *scan, *tmp;
     HASH_ITER(hh, sss_node.federation->edges, scan, tmp) {
         scan->socket_fd = sss_node.sock;
@@ -652,7 +615,6 @@ int main (int argc, char * argv[]) {
     signal(SIGPIPE, SIG_IGN);
     signal(SIGTERM, term_handler);
     signal(SIGINT,  term_handler);
-    signal(SIGHUP,  dump_registrations);
 #endif
 #ifdef _WIN32
     SetConsoleCtrlHandler(term_handler, TRUE);

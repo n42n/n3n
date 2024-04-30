@@ -30,7 +30,6 @@
 #include <sys/time.h>        // for gettimeofday, timeval
 #include <time.h>            // for time, localtime, strftime
 #include "n2n.h"
-#include "sn_selection.h"    // for sn_selection_criterion_default
 #include "uthash.h"          // for UT_hash_handle, HASH_DEL, HASH_ITER, HAS...
 
 #ifdef _WIN32
@@ -165,59 +164,6 @@ char * macaddr_str (macstr_t buf,
              mac[3] & 0xFF, mac[4] & 0xFF, mac[5] & 0xFF);
 
     return(buf);
-}
-
-/* *********************************************** */
-
-struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add) {
-
-    struct peer_info *scan, *tmp, *peer = NULL;
-
-    if(!is_null_mac(mac)) { /* not zero MAC */
-        HASH_FIND_PEER(*sn_list, mac, peer);
-    }
-
-    if(peer) {
-        return peer;
-    }
-
-    /* zero MAC, search by socket */
-    HASH_ITER(hh, *sn_list, scan, tmp) {
-        if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) != 0) {
-            continue;
-        }
-
-        // update mac if appropriate
-        // (needs to be deleted first because it is key to the hash list)
-        if(!is_null_mac(mac)) {
-            HASH_DEL(*sn_list, scan);
-            memcpy(scan->mac_addr, mac, sizeof(n2n_mac_t));
-            HASH_ADD_PEER(*sn_list, scan);
-        }
-
-        peer = scan;
-        break;
-    }
-
-    if(peer) {
-        return peer;
-    }
-
-    if(*skip_add != SN_ADD) {
-        return peer;
-    }
-
-    peer = peer_info_malloc(mac);
-    if(!peer) {
-        return peer;
-    }
-
-    sn_selection_criterion_default(&(peer->selection_criterion));
-    memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
-    HASH_ADD_PEER(*sn_list, peer);
-    *skip_add = SN_ADD_ADDED;
-
-    return peer;
 }
 
 /* ************************************************ */

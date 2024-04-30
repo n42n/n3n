@@ -624,14 +624,14 @@ static ssize_t sendto_peer (struct n3n_runtime_data *sss,
  *    This will send the exact same datagram to zero or more edges registered to
  *    the supernode.
  */
-static int try_broadcast (struct n3n_runtime_data * sss,
-                          const struct sn_community *comm,
-                          const n2n_common_t * cmn,
-                          const n2n_mac_t srcMac,
-                          uint8_t from_supernode,
-                          const uint8_t * pktbuf,
-                          size_t pktsize,
-                          time_t now) {
+static void try_broadcast (struct n3n_runtime_data * sss,
+                           const struct sn_community *comm,
+                           const n2n_common_t * cmn,
+                           const n2n_mac_t srcMac,
+                           bool from_supernode,
+                           const uint8_t * pktbuf,
+                           size_t pktsize,
+                           time_t now) {
 
     struct peer_info        *scan, *tmp;
     macstr_t mac_buf;
@@ -645,6 +645,8 @@ static int try_broadcast (struct n3n_runtime_data * sss,
      * nodes of community AND all supernodes associated with the community */
 
     if(!from_supernode) {
+        // If the broadcast is not from a supernode, send it to all supernodes
+
         HASH_ITER(hh, sss->federation->edges, scan, tmp) {
             int data_sent_len;
 
@@ -672,6 +674,8 @@ static int try_broadcast (struct n3n_runtime_data * sss,
     }
 
     if(comm) {
+        // If we know this community, send the broadcast to all known edges
+
         HASH_ITER(hh, comm->edges, scan, tmp) {
             if(memcmp(srcMac, scan->mac_addr, sizeof(n2n_mac_t)) != 0) {
                 /* REVISIT: exclude if the destination socket is where the packet came from. */
@@ -697,18 +701,18 @@ static int try_broadcast (struct n3n_runtime_data * sss,
         }
     }
 
-    return 0;
+    return;
 }
 
 
-static int try_forward (struct n3n_runtime_data * sss,
-                        const struct sn_community *comm,
-                        const n2n_common_t * cmn,
-                        const n2n_mac_t dstMac,
-                        uint8_t from_supernode,
-                        const uint8_t * pktbuf,
-                        size_t pktsize,
-                        time_t now) {
+static void try_forward (struct n3n_runtime_data * sss,
+                         const struct sn_community *comm,
+                         const n2n_common_t * cmn,
+                         const n2n_mac_t dstMac,
+                         bool from_supernode,
+                         const uint8_t * pktbuf,
+                         size_t pktsize,
+                         time_t now) {
 
     struct peer_info *             scan;
     node_supernode_association_t   *assoc;
@@ -717,7 +721,9 @@ static int try_forward (struct n3n_runtime_data * sss,
 
     HASH_FIND_PEER(comm->edges, dstMac, scan);
 
-    if(NULL != scan) {
+    if(scan) {
+        // We found an edge matching the dest mac
+
         int data_sent_len;
         data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
@@ -727,6 +733,7 @@ static int try_forward (struct n3n_runtime_data * sss,
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
                        macaddr_str(mac_buf, scan->mac_addr));
+            return;
         } else {
             ++(sss->stats.sn_errors);
             traceEvent(TRACE_ERROR, "unicast %lu to [%s] %s FAILED (%d: %s)",
@@ -734,30 +741,51 @@ static int try_forward (struct n3n_runtime_data * sss,
                        sock_to_cstr(sockbuf, &(scan->sock)),
                        macaddr_str(mac_buf, scan->mac_addr),
                        errno, strerror(errno));
-            return -1;
+            return;
         }
-    } else {
-        if(!from_supernode) {
-            // check if target edge is associated with a certain supernode
-            HASH_FIND(hh, comm->assoc, dstMac, sizeof(n2n_mac_t), assoc);
-            if(assoc) {
-                traceEvent(TRACE_DEBUG, "found mac address associated with a known supernode, forwarding packet to that supernode");
-                sendto_sock(sss, sss->sock,
-                            &(assoc->sock),
-                            pktbuf, pktsize);
-            } else {
-                // forwarding packet to all federated supernodes
-                traceEvent(TRACE_DEBUG, "unknown mac address, broadcasting packet to all federated supernodes");
-                try_broadcast(sss, NULL, cmn, sss->conf.sn_mac_addr, from_supernode, pktbuf, pktsize, now);
-            }
+
+    }
+
+    if(!from_supernode) {
+        HASH_FIND(hh, comm->assoc, dstMac, sizeof(n2n_mac_t), assoc);
+        if(assoc) {
+            // if target edge is associated with a certain supernode
+            traceEvent(
+                TRACE_DEBUG,
+                "found mac address associated with a known supernode, forwarding packet to that supernode"
+            );
+            sendto_sock(sss, sss->sock,
+                        &(assoc->sock),
+                        pktbuf, pktsize);
+            return;
         } else {
-            traceEvent(TRACE_DEBUG, "unknown mac address in packet from a supernode, dropping the packet");
-            /* Not a known MAC so drop. */
-            return -2;
+            // otherwise, forwarding packet to all federated supernodes
+            traceEvent(
+                TRACE_DEBUG,
+                "unknown mac address, broadcasting packet to all federated supernodes"
+            );
+            try_broadcast(
+                sss,
+                NULL,
+                cmn,
+                sss->conf.sn_mac_addr,
+                from_supernode,
+                pktbuf,
+                pktsize,
+                now
+            );
+            return;
         }
     }
 
-    return 0;
+    // Must be from a supernode then
+    sss->stats.sn_drop++;
+    traceEvent(
+        TRACE_DEBUG,
+        "unknown mac address in packet from a supernode, dropping the packet"
+    );
+    /* Not a known MAC so drop. */
+    return;
 }
 
 
@@ -959,28 +987,35 @@ void sn_term (struct n3n_runtime_data *sss) {
 }
 
 void update_node_supernode_association (struct sn_community *comm,
-                                        n2n_mac_t *edgeMac, const struct sockaddr *sender_sock, socklen_t sock_size,
+                                        n2n_mac_t *edgeMac,
+                                        const struct sockaddr *sender_sock,
+                                        socklen_t sock_size,
                                         time_t now) {
 
     node_supernode_association_t *assoc;
 
+    // Look for an existing assoc entry
     HASH_FIND(hh, comm->assoc, edgeMac, sizeof(n2n_mac_t), assoc);
+
     if(!assoc) {
-        // create a new association
+        // none found, create a new association
         assoc = (node_supernode_association_t*)calloc(1, sizeof(node_supernode_association_t));
-        if(assoc) {
-            memcpy(&(assoc->mac), edgeMac, sizeof(n2n_mac_t));
-            memcpy(&(assoc->sock), sender_sock, sock_size);
-            assoc->sock_len = sock_size;
-            assoc->last_seen = now;
-            HASH_ADD(hh, comm->assoc, mac, sizeof(n2n_mac_t), assoc);
-        } else {
-            // already there, update socket and time only
-            memcpy(&(assoc->sock), sender_sock, sock_size);
-            assoc->sock_len = sock_size;
-            assoc->last_seen = now;
+        if(!assoc) {
+            // TODO: log/abort on alloc failure
+            return;
         }
+
+        // Initialise the required fields
+        memcpy(&(assoc->mac), edgeMac, sizeof(n2n_mac_t));
+        HASH_ADD(hh, comm->assoc, mac, sizeof(n2n_mac_t), assoc);
     }
+
+    // update old entry or initialise new entry
+    // TODO: check sock_size for overflow
+    memcpy(&(assoc->sock), sender_sock, sock_size);
+    assoc->sock_len = sock_size;
+    assoc->last_seen = now;
+    return;
 }
 
 
@@ -1145,6 +1180,7 @@ static int update_edge (struct n3n_runtime_data *sss,
     // if unknown, make sure it is also not known by IP address
     if(NULL == scan) {
         HASH_ITER(hh,comm->edges,iter,tmp) {
+            // TODO: needs ipv6 support
             if(iter->dev_addr.net_addr == reg->dev_addr.net_addr) {
                 scan = iter;
                 HASH_DEL(comm->edges, scan);
@@ -1406,35 +1442,6 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
 }
 
 
-/***
- *
- * For a given packet, find the apporopriate internal last valid time stamp for lookup
- * and verify it (and also update, if applicable).
- */
-static int find_edge_time_stamp_and_verify (struct peer_info * edges,
-                                            peer_info_t *sn, n2n_mac_t mac,
-                                            uint64_t stamp, int allow_jitter) {
-
-    uint64_t *previous_stamp = NULL;
-
-    if(sn) {
-        previous_stamp = &(sn->last_valid_time_stamp);
-    } else {
-        struct peer_info *edge;
-        HASH_FIND_PEER(edges, mac, edge);
-
-        if(edge) {
-            // time_stamp_verify_and_update allows the pointer a previous stamp to be NULL
-            // if it is a (so far) unknown edge
-            previous_stamp = &(edge->last_valid_time_stamp);
-        }
-    }
-
-    // failure --> 0;    success --> 1
-    return time_stamp_verify_and_update(stamp, previous_stamp, allow_jitter);
-}
-
-
 static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
 
     time_t time;
@@ -1615,8 +1622,8 @@ static int process_udp (struct n3n_runtime_data * sss,
     size_t rem;
     size_t idx;
     size_t msg_type;
-    uint8_t from_supernode;
-    peer_info_t         *sn = NULL;
+    bool from_supernode;
+    struct peer_info *sn = NULL;
     n2n_sock_t sender;
     n2n_sock_t          *orig_sender;
     macstr_t mac_buf;
@@ -1792,7 +1799,13 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             // already checked for valid comm
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                if(!find_edge_time_stamp_and_verify(comm->edges, sn, pkt.srcMac, stamp, TIME_STAMP_ALLOW_JITTER)) {
+                if(!find_peer_time_stamp_and_verify(
+                       comm->edges,
+                       NULL,
+                       sn,
+                       pkt.srcMac,
+                       stamp,
+                       TIME_STAMP_ALLOW_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped PACKET due to time stamp error");
                     return -1;
                 }
@@ -1875,7 +1888,13 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             // already checked for valid comm
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                if(!find_edge_time_stamp_and_verify(comm->edges, sn, reg.srcMac, stamp, TIME_STAMP_NO_JITTER)) {
+                if(!find_peer_time_stamp_and_verify(
+                       comm->edges,
+                       NULL,
+                       sn,
+                       reg.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped REGISTER due to time stamp error");
                     return -1;
                 }
@@ -1956,7 +1975,13 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             if(comm) {
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_edge_time_stamp_and_verify(comm->edges, sn, reg.edgeMac, stamp, TIME_STAMP_NO_JITTER)) {
+                    if(!find_peer_time_stamp_and_verify(
+                           comm->edges,
+                           NULL,
+                           sn,
+                           reg.edgeMac,
+                           stamp,
+                           TIME_STAMP_NO_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER due to time stamp error");
                         return -1;
                     }
@@ -2239,7 +2264,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 1) || (comm->is_federation)) {
+            if((from_supernode) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER: should not come from a supernode or federation.");
                 return -1;
             }
@@ -2247,7 +2272,13 @@ static int process_udp (struct n3n_runtime_data * sss,
             decode_UNREGISTER_SUPER(&unreg, &cmn, udp_buf, &rem, &idx);
 
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                if(!find_edge_time_stamp_and_verify(comm->edges, sn, unreg.srcMac, stamp, TIME_STAMP_NO_JITTER)) {
+                if(!find_peer_time_stamp_and_verify(
+                       comm->edges,
+                       NULL,
+                       sn,
+                       unreg.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER due to time stamp error");
                     return -1;
                 }
@@ -2290,7 +2321,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 0) || (comm->is_federation)) {
+            if((!from_supernode) || (!comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK, should not come from an edge or regular community");
                 return -1;
             }
@@ -2299,7 +2330,13 @@ static int process_udp (struct n3n_runtime_data * sss,
             orig_sender = &(ack.sock);
 
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                if(!find_edge_time_stamp_and_verify(comm->edges, sn, ack.srcMac, stamp, TIME_STAMP_NO_JITTER)) {
+                if(!find_peer_time_stamp_and_verify(
+                       comm->edges,
+                       NULL,
+                       sn,
+                       ack.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK due to time stamp error");
                     return -1;
                 }
@@ -2379,7 +2416,13 @@ static int process_udp (struct n3n_runtime_data * sss,
             decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
 
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                if(!find_edge_time_stamp_and_verify(comm->edges, sn, nak.srcMac, stamp, TIME_STAMP_NO_JITTER)) {
+                if(!find_peer_time_stamp_and_verify(
+                       comm->edges,
+                       NULL,
+                       sn,
+                       nak.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "process_udp dropped REGISTER_SUPER_NAK due to time stamp error");
                     return -1;
                 }
@@ -2465,7 +2508,13 @@ static int process_udp (struct n3n_runtime_data * sss,
             // community connected (several supernodes in a federation setup)
             if(comm) {
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_edge_time_stamp_and_verify(comm->edges, sn, query.srcMac, stamp, TIME_STAMP_ALLOW_JITTER)) {
+                    if(!find_peer_time_stamp_and_verify(
+                           comm->edges,
+                           NULL,
+                           sn,
+                           query.srcMac,
+                           stamp,
+                           TIME_STAMP_ALLOW_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped QUERY_PEER due to time stamp error");
                         return -1;
                     }
@@ -2590,7 +2639,13 @@ static int process_udp (struct n3n_runtime_data * sss,
             decode_PEER_INFO(&pi, &cmn, udp_buf, &rem, &idx);
 
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                if(!find_edge_time_stamp_and_verify(comm->edges, sn, pi.srcMac, stamp, TIME_STAMP_NO_JITTER)) {
+                if(!find_peer_time_stamp_and_verify(
+                       comm->edges,
+                       NULL,
+                       sn,
+                       pi.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped PEER_INFO due to time stamp error");
                     return -1;
                 }

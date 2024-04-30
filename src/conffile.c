@@ -178,7 +178,7 @@ try_uint32:
             return -1;
         }
         case n3n_conf_supernode: {
-            struct peer_info **supernodes = (struct peer_info **)valvoid;
+            peer_info_t **supernodes = (peer_info_t **)valvoid;
             return n3n_peer_add_by_hostname(supernodes, value);
         }
         case n3n_conf_privatekey: {
@@ -730,7 +730,12 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
             struct peer_info **supernodes = (struct peer_info **)valvoid;
             struct peer_info *scan, *tmp;
             HASH_ITER(hh, *supernodes, scan, tmp) {
-                fprintf(f, "%s=%s\n", option->name, scan->ip_addr);
+                fprintf(
+                    f,
+                    "%s=%s\n",
+                    option->name,
+                    peer_info_get_hostname(scan)
+                );
             }
             fprintf(f, "\n");
             return;

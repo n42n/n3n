@@ -68,8 +68,6 @@
 #define SORT_COMMUNITIES_INTERVAL        90 /* sec. until supernode sorts communities' hash list again */
 
 #define AF_INVALID                     0xff /* to mark a socket invalid by an invalid address family (do not use AF_UNSPEC, it could turn into auto-detect) */
-#define N2N_RESOLVE_INTERVAL            300 /* seconds until edge and supernode try to resolve supernode names again */
-#define N2N_RESOLVE_CHECK_INTERVAL       30 /* seconds until main loop checking in on changes from resolver thread */
 
 #define ETH_FRAMESIZE 14
 #define IP4_SRCOFFSET 12
@@ -107,10 +105,6 @@
 
 #define DEFAULT_MTU     1290
 
-#define HASH_ADD_PEER(head,add) \
-    HASH_ADD(hh,head,mac_addr,sizeof(n2n_mac_t),add)
-#define HASH_FIND_PEER(head,mac,out) \
-    HASH_FIND(hh,head,mac,sizeof(n2n_mac_t),out)
 #define N2N_EDGE_SN_HOST_SIZE     48
 #define N2N_EDGE_SUP_ATTEMPTS     3             /* Number of failed attmpts before moving on to next supernode. */
 #define N2N_PATHNAME_MAXLEN       256
@@ -136,9 +130,6 @@ enum n3n_event_topic {
 
 #define N2N_CLOSE_SOCKET_COUNTER_MAX 15        /* number of times of edge's reconnects to supernode after   */
                                                /* which the socket explicitly is closed before reopening    */
-
-/* flag used in add_sn_to_list_by_mac_or_sock */
-enum skip_add {SN_ADD = 0, SN_ADD_SKIP = 1, SN_ADD_ADDED = 2};
 
 #define N2N_NETMASK_STR_SIZE      16 /* dotted decimal 12 numbers + 3 dots */
 #define N2N_MACNAMSIZ             18 /* AA:BB:CC:DD:EE:FF + NULL*/

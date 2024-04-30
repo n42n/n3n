@@ -398,6 +398,57 @@ static void jsonrpc_stop (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
     jsonrpc_1uint(id, conn, *eee->keep_running);
 }
 
+static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
+    // Want to eventually output all the known MAC addresses and the routing
+    // destination for each one.  Kind of a superset of the get_edges output
+    // but intended to be both more complete and more focused
+
+    jsonrpc_result_head(id, conn);
+    sb_reprintf(&conn->request, "[");
+
+    struct sn_community *community;
+    struct sn_community *tmp_community;
+    struct node_supernode_association *assoc;
+    struct node_supernode_association *tmp_assoc;
+    HASH_ITER(hh, eee->communities, community, tmp_community) {
+        HASH_ITER(hh, community->assoc, assoc, tmp_assoc) {
+
+            char buf[1000];
+            char port[10];
+            getnameinfo(
+                &assoc->sock,
+                assoc->sock_len,
+                buf,
+                sizeof(buf),
+                port,
+                sizeof(port),
+                NI_NUMERICHOST | NI_NUMERICSERV
+            );
+
+            macstr_t mac_buf;
+            sb_reprintf(&conn->request,
+                        "{"
+                        "\"_type\":\"assoc\","
+                        "\"mac\":\"%s\","
+                        "\"dest\":\"%s:%s\","
+                        "\"last_seen\":%u},",
+                        macaddr_str(mac_buf, assoc->mac),
+                        buf,
+                        port,
+                        (uint32_t)assoc->last_seen
+            );
+        }
+    }
+
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
+
+    sb_reprintf(&conn->request, "]");
+    jsonrpc_result_tail(conn, 200);
+}
+
 static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     if(!eee->communities) {
         // This is an edge
@@ -820,6 +871,7 @@ static const struct mgmt_jsonrpc_method jsonrpc_methods[] = {
     { "get_communities", jsonrpc_get_communities, "Show current communities" },
     { "get_edges", jsonrpc_get_edges, "List current edges/peers" },
     { "get_info", jsonrpc_get_info, "Provide basic edge information" },
+    { "get_mac", jsonrpc_get_mac, "Show known mac addresses" },
     { "get_packetstats", jsonrpc_get_packetstats, "traffic counters" },
     { "get_supernodes", jsonrpc_get_supernodes, "List current supernodes" },
     { "get_timestamps", jsonrpc_get_timestamps, "Event timestamps" },
