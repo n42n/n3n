@@ -427,15 +427,15 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
 
             macstr_t mac_buf;
             sb_reprintf(&conn->request,
-                "{"
-                "\"_type\":\"assoc\","
-                "\"mac\":\"%s\","
-                "\"dest\":\"%s:%s\","
-                "\"last_seen\":\"%u\"},",
-                macaddr_str(mac_buf, assoc->mac),
-                buf,
-                port,
-                (uint32_t)assoc->last_seen
+                        "{"
+                        "\"_type\":\"assoc\","
+                        "\"mac\":\"%s\","
+                        "\"dest\":\"%s:%s\","
+                        "\"last_seen\":\"%u\"},",
+                        macaddr_str(mac_buf, assoc->mac),
+                        buf,
+                        port,
+                        (uint32_t)assoc->last_seen
             );
         }
     }
