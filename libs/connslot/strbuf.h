@@ -23,6 +23,7 @@ typedef struct strbuf {
     unsigned int capacity_max;  //!< The largest automatic allowed capacity
     unsigned int wr_pos;        //!< str[] append position (arriving data)
     unsigned int rd_pos;        //!< str[] read position (processing data)
+    bool overflowed;            //!< set if the str is overflowed
     char str[];
 } strbuf_t;
 
@@ -46,6 +47,7 @@ strbuf_t *sb_realloc(strbuf_t **, size_t);
 size_t sb_len(strbuf_t *);
 ssize_t sb_avail(strbuf_t *);
 bool sb_full(strbuf_t *);
+bool sb_overflowed(strbuf_t *);
 size_t sb_append(strbuf_t *, void *, ssize_t);
 strbuf_t *sb_reappend(strbuf_t **, void *, size_t);
 size_t sb_vprintf(strbuf_t *, const char *, va_list);
