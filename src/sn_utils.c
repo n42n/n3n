@@ -721,7 +721,9 @@ static void try_forward (struct n3n_runtime_data * sss,
 
     HASH_FIND_PEER(comm->edges, dstMac, scan);
 
-    if(NULL != scan) {
+    if(scan) {
+        // We found an edge matching the dest mac
+
         int data_sent_len;
         data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
@@ -731,6 +733,7 @@ static void try_forward (struct n3n_runtime_data * sss,
                        pktsize,
                        sock_to_cstr(sockbuf, &(scan->sock)),
                        macaddr_str(mac_buf, scan->mac_addr));
+            return;
         } else {
             ++(sss->stats.sn_errors);
             traceEvent(TRACE_ERROR, "unicast %lu to [%s] %s FAILED (%d: %s)",
@@ -740,27 +743,48 @@ static void try_forward (struct n3n_runtime_data * sss,
                        errno, strerror(errno));
             return;
         }
-    } else {
-        if(!from_supernode) {
-            // check if target edge is associated with a certain supernode
-            HASH_FIND(hh, comm->assoc, dstMac, sizeof(n2n_mac_t), assoc);
-            if(assoc) {
-                traceEvent(TRACE_DEBUG, "found mac address associated with a known supernode, forwarding packet to that supernode");
-                sendto_sock(sss, sss->sock,
-                            &(assoc->sock),
-                            pktbuf, pktsize);
-            } else {
-                // forwarding packet to all federated supernodes
-                traceEvent(TRACE_DEBUG, "unknown mac address, broadcasting packet to all federated supernodes");
-                try_broadcast(sss, NULL, cmn, sss->conf.sn_mac_addr, from_supernode, pktbuf, pktsize, now);
-            }
+
+    }
+
+    if(!from_supernode) {
+        HASH_FIND(hh, comm->assoc, dstMac, sizeof(n2n_mac_t), assoc);
+        if(assoc) {
+            // if target edge is associated with a certain supernode
+            traceEvent(
+                TRACE_DEBUG,
+                "found mac address associated with a known supernode, forwarding packet to that supernode"
+            );
+            sendto_sock(sss, sss->sock,
+                        &(assoc->sock),
+                        pktbuf, pktsize);
+            return;
         } else {
-            traceEvent(TRACE_DEBUG, "unknown mac address in packet from a supernode, dropping the packet");
-            /* Not a known MAC so drop. */
+            // otherwise, forwarding packet to all federated supernodes
+            traceEvent(
+                TRACE_DEBUG,
+                "unknown mac address, broadcasting packet to all federated supernodes"
+            );
+            try_broadcast(
+                sss,
+                NULL,
+                cmn,
+                sss->conf.sn_mac_addr,
+                from_supernode,
+                pktbuf,
+                pktsize,
+                now
+            );
             return;
         }
     }
 
+    // Must be from a supernode then
+    sss->stats.sn_drop++;
+    traceEvent(
+        TRACE_DEBUG,
+        "unknown mac address in packet from a supernode, dropping the packet"
+    );
+    /* Not a known MAC so drop. */
     return;
 }
 
