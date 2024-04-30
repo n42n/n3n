@@ -6,8 +6,8 @@
 # Files created by autogen
 configure
 include/config.h.in
-#scripts/config.guess
-#scripts/config.sub
+scripts/config.guess
+scripts/config.sub
 
 # Files created by configure
 config.log
