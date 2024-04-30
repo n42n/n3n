@@ -625,13 +625,13 @@ static ssize_t sendto_peer (struct n3n_runtime_data *sss,
  *    the supernode.
  */
 static void try_broadcast (struct n3n_runtime_data * sss,
-                          const struct sn_community *comm,
-                          const n2n_common_t * cmn,
-                          const n2n_mac_t srcMac,
-                          bool from_supernode,
-                          const uint8_t * pktbuf,
-                          size_t pktsize,
-                          time_t now) {
+                           const struct sn_community *comm,
+                           const n2n_common_t * cmn,
+                           const n2n_mac_t srcMac,
+                           bool from_supernode,
+                           const uint8_t * pktbuf,
+                           size_t pktsize,
+                           time_t now) {
 
     struct peer_info        *scan, *tmp;
     macstr_t mac_buf;
@@ -706,13 +706,13 @@ static void try_broadcast (struct n3n_runtime_data * sss,
 
 
 static void try_forward (struct n3n_runtime_data * sss,
-                        const struct sn_community *comm,
-                        const n2n_common_t * cmn,
-                        const n2n_mac_t dstMac,
-                        bool from_supernode,
-                        const uint8_t * pktbuf,
-                        size_t pktsize,
-                        time_t now) {
+                         const struct sn_community *comm,
+                         const n2n_common_t * cmn,
+                         const n2n_mac_t dstMac,
+                         bool from_supernode,
+                         const uint8_t * pktbuf,
+                         size_t pktsize,
+                         time_t now) {
 
     struct peer_info *             scan;
     node_supernode_association_t   *assoc;
