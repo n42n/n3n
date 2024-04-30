@@ -624,7 +624,7 @@ static ssize_t sendto_peer (struct n3n_runtime_data *sss,
  *    This will send the exact same datagram to zero or more edges registered to
  *    the supernode.
  */
-static int try_broadcast (struct n3n_runtime_data * sss,
+static void try_broadcast (struct n3n_runtime_data * sss,
                           const struct sn_community *comm,
                           const n2n_common_t * cmn,
                           const n2n_mac_t srcMac,
@@ -645,6 +645,8 @@ static int try_broadcast (struct n3n_runtime_data * sss,
      * nodes of community AND all supernodes associated with the community */
 
     if(!from_supernode) {
+        // If the broadcast is not from a supernode, send it to all supernodes
+
         HASH_ITER(hh, sss->federation->edges, scan, tmp) {
             int data_sent_len;
 
@@ -672,6 +674,8 @@ static int try_broadcast (struct n3n_runtime_data * sss,
     }
 
     if(comm) {
+        // If we know this community, send the broadcast to all known edges
+
         HASH_ITER(hh, comm->edges, scan, tmp) {
             if(memcmp(srcMac, scan->mac_addr, sizeof(n2n_mac_t)) != 0) {
                 /* REVISIT: exclude if the destination socket is where the packet came from. */
@@ -697,11 +701,11 @@ static int try_broadcast (struct n3n_runtime_data * sss,
         }
     }
 
-    return 0;
+    return;
 }
 
 
-static int try_forward (struct n3n_runtime_data * sss,
+static void try_forward (struct n3n_runtime_data * sss,
                         const struct sn_community *comm,
                         const n2n_common_t * cmn,
                         const n2n_mac_t dstMac,
@@ -734,7 +738,7 @@ static int try_forward (struct n3n_runtime_data * sss,
                        sock_to_cstr(sockbuf, &(scan->sock)),
                        macaddr_str(mac_buf, scan->mac_addr),
                        errno, strerror(errno));
-            return -1;
+            return;
         }
     } else {
         if(!from_supernode) {
@@ -753,11 +757,11 @@ static int try_forward (struct n3n_runtime_data * sss,
         } else {
             traceEvent(TRACE_DEBUG, "unknown mac address in packet from a supernode, dropping the packet");
             /* Not a known MAC so drop. */
-            return -2;
+            return;
         }
     }
 
-    return 0;
+    return;
 }
 
 
