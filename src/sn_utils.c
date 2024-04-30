@@ -628,7 +628,7 @@ static int try_broadcast (struct n3n_runtime_data * sss,
                           const struct sn_community *comm,
                           const n2n_common_t * cmn,
                           const n2n_mac_t srcMac,
-                          uint8_t from_supernode,
+                          bool from_supernode,
                           const uint8_t * pktbuf,
                           size_t pktsize,
                           time_t now) {
@@ -705,7 +705,7 @@ static int try_forward (struct n3n_runtime_data * sss,
                         const struct sn_community *comm,
                         const n2n_common_t * cmn,
                         const n2n_mac_t dstMac,
-                        uint8_t from_supernode,
+                        bool from_supernode,
                         const uint8_t * pktbuf,
                         size_t pktsize,
                         time_t now) {
@@ -1586,7 +1586,7 @@ static int process_udp (struct n3n_runtime_data * sss,
     size_t rem;
     size_t idx;
     size_t msg_type;
-    uint8_t from_supernode;
+    bool from_supernode;
     struct peer_info *sn = NULL;
     n2n_sock_t sender;
     n2n_sock_t          *orig_sender;
@@ -2228,7 +2228,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 1) || (comm->is_federation)) {
+            if((from_supernode) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER: should not come from a supernode or federation.");
                 return -1;
             }
@@ -2285,7 +2285,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 return -1;
             }
 
-            if((from_supernode == 0) || (comm->is_federation)) {
+            if((!from_supernode) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK, should not come from an edge or regular community");
                 return -1;
             }
