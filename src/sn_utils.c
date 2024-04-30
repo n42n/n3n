@@ -987,28 +987,35 @@ void sn_term (struct n3n_runtime_data *sss) {
 }
 
 void update_node_supernode_association (struct sn_community *comm,
-                                        n2n_mac_t *edgeMac, const struct sockaddr *sender_sock, socklen_t sock_size,
+                                        n2n_mac_t *edgeMac,
+                                        const struct sockaddr *sender_sock,
+                                        socklen_t sock_size,
                                         time_t now) {
 
     node_supernode_association_t *assoc;
 
+    // Look for an existing assoc entry
     HASH_FIND(hh, comm->assoc, edgeMac, sizeof(n2n_mac_t), assoc);
+
     if(!assoc) {
-        // create a new association
+        // none found, create a new association
         assoc = (node_supernode_association_t*)calloc(1, sizeof(node_supernode_association_t));
-        if(assoc) {
-            memcpy(&(assoc->mac), edgeMac, sizeof(n2n_mac_t));
-            memcpy(&(assoc->sock), sender_sock, sock_size);
-            assoc->sock_len = sock_size;
-            assoc->last_seen = now;
-            HASH_ADD(hh, comm->assoc, mac, sizeof(n2n_mac_t), assoc);
-        } else {
-            // already there, update socket and time only
-            memcpy(&(assoc->sock), sender_sock, sock_size);
-            assoc->sock_len = sock_size;
-            assoc->last_seen = now;
+        if(!assoc) {
+            // TODO: log/abort on alloc failure
+            return;
         }
+
+        // Initialise the required fields
+        memcpy(&(assoc->mac), edgeMac, sizeof(n2n_mac_t));
+        HASH_ADD(hh, comm->assoc, mac, sizeof(n2n_mac_t), assoc);
     }
+
+    // update old entry or initialise new entry
+    // TODO: check sock_size for overflow
+    memcpy(&(assoc->sock), sender_sock, sock_size);
+    assoc->sock_len = sock_size;
+    assoc->last_seen = now;
+    return;
 }
 
 
