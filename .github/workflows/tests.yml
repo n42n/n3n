@@ -301,6 +301,7 @@ jobs:
           HOST_TRIPLET=$(dpkg-architecture -a${{ matrix.arch }} -q DEB_HOST_GNU_TYPE)
           ./autogen.sh
           ./configure --host $HOST_TRIPLET --prefix=/usr
+          git restore scripts/config.sub scripts/config.guess
         # yamllint enable rule:line-length
 
       - name: Build
