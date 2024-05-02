@@ -440,11 +440,13 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
             macstr_t mac_buf;
             sb_reprintf(&conn->request,
                         "{"
-                        "\"_type\":\"assoc\","
+                        "\"_type\":\"assoc\","  // Federated Supernode
                         "\"mac\":\"%s\","
+                        "\"community\":\"%s\","
                         "\"dest\":\"%s:%s\","
                         "\"last_seen\":%u},",
                         macaddr_str(mac_buf, assoc->mac),
+                        (community->is_federation) ? "-/-" : community->community,
                         buf,
                         port,
                         (uint32_t)assoc->last_seen
