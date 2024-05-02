@@ -12,7 +12,7 @@
 
 #include "defs.h"
 
-void n3n_initfunc_win32 () {
+void n3n_initfuncs_win32 () {
     WSADATA wsaData;
     int err;
 
