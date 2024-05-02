@@ -6,7 +6,9 @@
  * Windows specific common functions
  */
 
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "defs.h"
 
