@@ -29,4 +29,6 @@ int fill_inet_pton (int af, const char *restrict src, void *restrict dst);
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+extern void destroyWin32 ();
+
 #endif

@@ -754,9 +754,6 @@ int main (int argc, char* argv[]) {
 #ifdef HAVE_LIBCAP
     cap_t caps;
 #endif
-#ifdef _WIN32
-    initWin32();
-#endif
 
     // Do this early to register all internals
     n3n_initfuncs();

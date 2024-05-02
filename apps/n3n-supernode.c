@@ -384,10 +384,6 @@ static void term_handler (int sig)
 /** Main program entry point from kernel. */
 int main (int argc, char * argv[]) {
 
-#ifdef _WIN32
-    initWin32();
-#endif
-
     // Do this early to register all internals
     n3n_initfuncs();
 

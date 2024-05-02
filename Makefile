@@ -138,6 +138,7 @@ ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
 OBJS+=src/win32/edge_utils_win32.o
 OBJS+=src/win32/getopt1.o
 OBJS+=src/win32/getopt.o
+OBJS+=src/win32/win32.o
 OBJS+=src/win32/wintap.o
 OBJS+=src/win32/edge_rc.o
 endif
