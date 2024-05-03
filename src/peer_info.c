@@ -22,30 +22,26 @@ static struct metrics {
     uint32_t hostname;
 } metrics;
 
-static struct n3n_metrics_item metrics_items[] = {
+static struct n3n_metrics_items_uint32 metrics_items[] = {
     {
         .name = "alloc",
         .desc = "peer_info_malloc() is called",
         .offset = offsetof(struct metrics, alloc),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "free",
         .desc = "peer_info_free() is called",
         .offset = offsetof(struct metrics, free),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "hostname",
         .desc = "n3n_peer_add_by_hostname() is called",
         .offset = offsetof(struct metrics, hostname),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "init",
         .desc = "peer_info_init() is called",
         .offset = offsetof(struct metrics, init),
-        .size = n3n_metrics_uint32,
     },
     { },
 };
@@ -53,8 +49,8 @@ static struct n3n_metrics_item metrics_items[] = {
 static struct n3n_metrics_module metrics_module = {
     .name = "peer_info",
     .data = &metrics,
-    .item = metrics_items,
-    .enabled = true,
+    .items_uint32 = metrics_items,
+    .type = n3n_metrics_type_uint32,
 };
 
 void n3n_initfuncs_peer_info () {

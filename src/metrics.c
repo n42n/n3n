@@ -16,46 +16,90 @@ void n3n_metrics_register (struct n3n_metrics_module *module) {
     registered_metrics = module;
 }
 
-static void metric_stringify (strbuf_t **buf, const struct n3n_metrics_item item, void *data) {
-    if(item.offset < 0) {
+static void metric_stringify_uint32 (strbuf_t **buf, const int offset, void *data) {
+    if(offset < 0) {
         sb_reprintf(buf, "offset<0");
         return;
     }
-    void *valvoid = (char *)data + item.offset;
+    void *valvoid = (char *)data + offset;
+    uint32_t *val = (uint32_t *)valvoid;
+    sb_reprintf(buf, "%u", *val);
+    return;
+}
 
-    switch(item.size) {
-        case n3n_metrics_invalid:
-            sb_reprintf(buf, "n3n_metrics_invalid");
-            return;
-        case n3n_metrics_uint32: {
-            uint32_t *val = (uint32_t *)valvoid;
-            sb_reprintf(buf, "%u", *val);
-            return;
-        }
+static void metrics_name(strbuf_t **reply, const char *module_name, const char *name) {
+    const char *program_prefix = "n3n";
+    // TODO session_name
+
+    sb_reprintf(
+        reply,
+        "%s_%s_%s",
+        program_prefix,
+        module_name,
+        name
+    );
+}
+
+static void metrics_render_uint32(strbuf_t **reply, struct n3n_metrics_module *module) {
+    for(int i = 0; module->items_uint32[i].name; i++) {
+        // TODO:
+        // - " TYPE name type\n"
+        // - " UNIT name type\n"
+        // - " HELP name type\n"
+        metrics_name(reply, module->name, module->items_uint32[i].name);
+        sb_reprintf(reply, " ");
+        metric_stringify_uint32(
+            reply,
+            module->items_uint32[i].offset,
+            module->data
+        );
+        sb_reprintf(reply, "\n");
+    }
+}
+
+static void metrics_render_llu32(strbuf_t **reply, struct n3n_metrics_module *module) {
+    const struct n3n_metrics_items_llu32 *info = module->items_llu32;
+
+    for(int i = 0; info->items[i].val1; i++) {
+        // TODO:
+        // - " TYPE name type\n"
+        // - " UNIT name type\n"
+        // - " HELP name type\n"
+        metrics_name(reply, module->name, info->name);
+        sb_reprintf(
+            reply,
+            "{%s=\"%s\",%s=\"%s\"} ",
+            info->name1,
+            info->items[i].val1,
+            info->name2,
+            info->items[i].val2
+        );
+        metric_stringify_uint32(
+            reply,
+            info->items[i].offset,
+            module->data
+        );
+        sb_reprintf(reply, "\n");
     }
 }
 
 void n3n_metrics_render (strbuf_t **reply) {
     sb_zero(*reply);
-    sb_reprintf(reply, "Temporary testing format for metric output!\n");
+    sb_reprintf(reply, "Still unstable testing format for metric output!\n");
 
     struct n3n_metrics_module *module;
     for(module = registered_metrics; module; module = module->next) {
-        sb_reprintf(reply, "[%s]\n", module->name);
-        if(!module->item) {
-            continue;
-        }
-        if(!module->data) {
-            continue;
-        }
-        if(!module->enabled) {
-            continue;
-        }
+        sb_reprintf(reply, "## module=%s\n", module->name);
 
-        for(int i = 0; module->item[i].name; i++) {
-            sb_reprintf(reply, "%s=", module->item[i].name);
-            metric_stringify(reply, module->item[i], module->data);
-            sb_reprintf(reply, "\n");
+        switch (module->type) {
+            case n3n_metrics_type_invalid:
+                break;
+            case n3n_metrics_type_uint32:
+                metrics_render_uint32(reply, module);
+                break;
+            case n3n_metrics_type_llu32:
+                metrics_render_llu32(reply, module);
+                break;
         }
     }
 }
@@ -63,36 +107,30 @@ void n3n_metrics_render (strbuf_t **reply) {
 /**********************************************************/
 // Register some metrics captured by external libraries
 
-static struct n3n_metrics_item strbuf_metrics_items[] = {
+static struct n3n_metrics_items_uint32 strbuf_metrics_items[] = {
     {
         .name = "zero",
         .offset = offsetof(struct strbuf_metrics, zero),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "alloc",
         .offset = offsetof(struct strbuf_metrics, alloc),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "realloc",
         .offset = offsetof(struct strbuf_metrics, realloc),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "realloc_full",
         .offset = offsetof(struct strbuf_metrics, realloc_full),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "append_full",
         .offset = offsetof(struct strbuf_metrics, append_full),
-        .size = n3n_metrics_uint32,
     },
     {
         .name = "append_trunc",
         .offset = offsetof(struct strbuf_metrics, append_trunc),
-        .size = n3n_metrics_uint32,
     },
     { },
 };
@@ -100,8 +138,8 @@ static struct n3n_metrics_item strbuf_metrics_items[] = {
 static struct n3n_metrics_module strbuf_metrics_module = {
     .name = "strbuf",
     .data = &strbuf_metrics,
-    .item = strbuf_metrics_items,
-    .enabled = true,
+    .items_uint32 = strbuf_metrics_items,
+    .type = n3n_metrics_type_uint32,
 };
 
 /**********************************************************/

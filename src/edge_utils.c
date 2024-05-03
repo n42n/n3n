@@ -94,59 +94,73 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /* ************************************** */
 
-static struct n3n_metrics_item edge_utils_metrics_items[] = {
-    {
-        .name = "tx_p2p",
-        .offset = offsetof(struct n2n_edge_stats, tx_p2p),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_p2p",
-        .offset = offsetof(struct n2n_edge_stats, rx_p2p),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "tx_sup",
-        .offset = offsetof(struct n2n_edge_stats, tx_sup),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_sup",
-        .offset = offsetof(struct n2n_edge_stats, rx_sup),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "tx_sup_broadcast",
-        .offset = offsetof(struct n2n_edge_stats, tx_sup_broadcast),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_sup_broadcast",
-        .offset = offsetof(struct n2n_edge_stats, rx_sup_broadcast),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "tx_multicast_drop",
-        .offset = offsetof(struct n2n_edge_stats, tx_multicast_drop),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_multicast_drop",
-        .offset = offsetof(struct n2n_edge_stats, rx_multicast_drop),
-        .size = n3n_metrics_uint32,
-    },
+static struct n3n_metrics_items_uint32 edge_utils_metrics_items1[] = {
     {
         .name = "tx_tuntap_error",
         .offset = offsetof(struct n2n_edge_stats, tx_tuntap_error),
-        .size = n3n_metrics_uint32,
     },
     { },
 };
 
-static struct n3n_metrics_module edge_utils_metrics_module = {
-    .name = "edge_utils",
-    .item = edge_utils_metrics_items,
-    .enabled = true,
+static struct n3n_metrics_items_llu32 edge_utils_metrics_items2 = {
+    .name = "packets",
+    .name1 = "direction",
+    .name2 = "event",
+    .items = {
+        {
+            .val1 = "tx",
+            .val2 = "p2p",
+            .offset = offsetof(struct n2n_edge_stats, tx_p2p),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "p2p",
+            .offset = offsetof(struct n2n_edge_stats, rx_p2p),
+        },
+        {
+            .val1 = "tx",
+            .val2 = "sup",
+            .offset = offsetof(struct n2n_edge_stats, tx_sup),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "sup",
+            .offset = offsetof(struct n2n_edge_stats, rx_sup),
+        },
+        {
+            .val1 = "tx",
+            .val2 = "sup_broadcast",
+            .offset = offsetof(struct n2n_edge_stats, tx_sup_broadcast),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "sup_broadcast",
+            .offset = offsetof(struct n2n_edge_stats, rx_sup_broadcast),
+        },
+        {
+            .val1 = "tx",
+            .val2 = "multicast_drop",
+            .offset = offsetof(struct n2n_edge_stats, tx_multicast_drop),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "multicast_drop",
+            .offset = offsetof(struct n2n_edge_stats, rx_multicast_drop),
+        },
+        { },
+    },
+};
+
+static struct n3n_metrics_module edge_metrics_module1 = {
+    .name = "edge",
+    .items_uint32 = edge_utils_metrics_items1,
+    .type = n3n_metrics_type_uint32,
+};
+
+static struct n3n_metrics_module edge_metrics_module2 = {
+    .name = "edge",
+    .items_llu32 = &edge_utils_metrics_items2,
+    .type = n3n_metrics_type_llu32,
 };
 
 /* ************************************** */
@@ -2947,8 +2961,10 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
     *eee->keep_running = true;
     update_supernode_reg(eee, time(NULL));
 
-    edge_utils_metrics_module.data = &eee->stats;
-    n3n_metrics_register(&edge_utils_metrics_module);
+    edge_metrics_module1.data = &eee->stats;
+    edge_metrics_module2.data = &eee->stats;
+    n3n_metrics_register(&edge_metrics_module1);
+    n3n_metrics_register(&edge_metrics_module2);
 
     /* Main loop
      *
