@@ -825,7 +825,6 @@ static void peer_set_p2p_confirmed (struct n3n_runtime_data * eee,
         scan_tmp = find_peer_by_sock(peer, eee->known_peers);
         if(scan_tmp != NULL) {
             HASH_DEL(eee->known_peers, scan_tmp);
-            mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
             free(scan);
             scan = scan_tmp;
             memcpy(scan->mac_addr, mac, sizeof(n2n_mac_t));
