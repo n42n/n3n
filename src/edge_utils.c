@@ -1027,21 +1027,28 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
  * TODO: for the TCP case, this could cause a stall in the packet
  * send path, so this probably should be reworked to use a queue
  */
-static int check_sock_ready (struct n3n_runtime_data *eee) {
-    // if required (tcp), wait until writeable as soket is set to
-    // O_NONBLOCK, could require some wait time directly after re-opening
-    if(eee->conf.connect_tcp) {
-        fd_set socket_mask;
-        struct timeval wait_time;
-
-        FD_ZERO(&socket_mask);
-        FD_SET(eee->sock, &socket_mask);
-        wait_time.tv_sec = 0;
-        wait_time.tv_usec = 500000;
-        return select(eee->sock + 1, NULL, &socket_mask, NULL, &wait_time);
+static bool check_sock_ready (struct n3n_runtime_data *eee) {
+    if(!eee->conf.connect_tcp) {
+        // Just show udp sockets as ready
+        // TODO: this is may not be always true
+        return true;
     }
 
-    return 1;
+    if(eee->sock == -1) {
+        // If we have no sock, dont attempt to FD_SET() it
+        return false;
+    }
+
+    // if required (tcp), wait until writeable as soket is set to
+    // O_NONBLOCK, could require some wait time directly after re-opening
+    fd_set socket_mask;
+    struct timeval wait_time;
+
+    FD_ZERO(&socket_mask);
+    FD_SET(eee->sock, &socket_mask);
+    wait_time.tv_sec = 0;
+    wait_time.tv_usec = 500000;
+    return select(eee->sock + 1, NULL, &socket_mask, NULL, &wait_time);
 }
 
 /** Send a datagram to a socket file descriptor */
@@ -1051,7 +1058,7 @@ static ssize_t sendto_fd (struct n3n_runtime_data *eee, const void *buf,
 
     ssize_t sent = 0;
 
-    if(check_sock_ready(eee) < 1) {
+    if(!check_sock_ready(eee)) {
         goto err_out;
     }
 
@@ -3024,8 +3031,8 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         if(rc > 0) {
             // any or all of the FDs could have input; check them all
 
-            // external
-            if(FD_ISSET(eee->sock, &readers)) {
+            // external packets
+            if((eee->sock != -1) && FD_ISSET(eee->sock, &readers)) {
                 if(0 != fetch_and_eventually_process_data(
                        eee,
                        eee->sock,
@@ -3050,7 +3057,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-            if(FD_ISSET(eee->udp_multicast_sock, &readers)) {
+            if((eee->udp_multicast_sock != -1) && FD_ISSET(eee->udp_multicast_sock, &readers)) {
                 if(0 != fetch_and_eventually_process_data(
                        eee,
                        eee->udp_multicast_sock,
@@ -3065,7 +3072,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 #endif
 
 #ifndef _WIN32
-            if(FD_ISSET(eee->device.fd, &readers)) {
+            if((eee->device.fd != -1) && FD_ISSET(eee->device.fd, &readers)) {
                 // read an ethernet frame from the TAP socket; write on the IP socket
                 edge_read_from_tap(eee);
             }
