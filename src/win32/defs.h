@@ -29,7 +29,7 @@ int fill_inet_pton (int af, const char *restrict src, void *restrict dst);
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-int fill_gettimeofday (struct timeval *, struct timezone *);
+int fill_gettimeofday (struct timeval *, void *);
 void fill_timersub (struct timeval *, struct timeval *, struct timeval *);
 #define gettimeofday fill_gettimeofday
 #define timersub fill_timersub

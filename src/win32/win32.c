@@ -100,7 +100,7 @@ void fill_timersub (struct timeval *a, struct timeval *b, struct timeval *res) {
     res->tv_sec = a->tv_sec - b->tv_sec;
 }
 
-int fill_gettimeofday (struct timeval * tv, struct timezone * tz) {
+int fill_gettimeofday (struct timeval * tv, void * tz) {
     if(!tv) {
         return -1;
     }
