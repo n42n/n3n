@@ -16,45 +16,47 @@
 #include "resolve.h"    // for supernode2sock
 
 static struct metrics {
-    uint32_t init;
-    uint32_t alloc;
-    uint32_t free;
-    uint32_t hostname;
+    uint32_t init;      // peer_info_init() is called
+    uint32_t alloc;     // peer_info_malloc() is called
+    uint32_t free;      // peer_info_free() is called
+    uint32_t hostname;  // n3n_peer_add_by_hostname() is called
 } metrics;
 
-static struct n3n_metrics_item metrics_items[] = {
-    {
-        .name = "alloc",
-        .desc = "peer_info_malloc() is called",
-        .offset = offsetof(struct metrics, alloc),
-        .size = n3n_metrics_uint32,
+static struct n3n_metrics_items_llu32 metrics_items = {
+    .name = "count",
+    .desc = "Track the events in the lifecycle of peer_info objects",
+    .name1 = "speed",
+    .name2 = "event",
+    .items = {
+        {
+            .val1 = "fast",
+            .val2 = "alloc",
+            .offset = offsetof(struct metrics, alloc),
+        },
+        {
+            .val1 = "fast",
+            .val2 = "free",
+            .offset = offsetof(struct metrics, free),
+        },
+        {
+            .val1 = "slow",
+            .val2 = "hostname",
+            .offset = offsetof(struct metrics, hostname),
+        },
+        {
+            .val1 = "fast",
+            .val2 = "init",
+            .offset = offsetof(struct metrics, init),
+        },
+        { },
     },
-    {
-        .name = "free",
-        .desc = "peer_info_free() is called",
-        .offset = offsetof(struct metrics, free),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "hostname",
-        .desc = "n3n_peer_add_by_hostname() is called",
-        .offset = offsetof(struct metrics, hostname),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "init",
-        .desc = "peer_info_init() is called",
-        .offset = offsetof(struct metrics, init),
-        .size = n3n_metrics_uint32,
-    },
-    { },
 };
 
 static struct n3n_metrics_module metrics_module = {
     .name = "peer_info",
     .data = &metrics,
-    .item = metrics_items,
-    .enabled = true,
+    .items_llu32 = &metrics_items,
+    .type = n3n_metrics_type_llu32,
 };
 
 void n3n_initfuncs_peer_info () {

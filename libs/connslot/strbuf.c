@@ -35,6 +35,7 @@ void sb_zero(strbuf_t *p) {
     STRBUF_METRIC(zero);
     p->wr_pos = 0;
     p->rd_pos = 0;
+    p->overflowed = false;
     p->str[0] = 0;
 }
 
@@ -73,6 +74,7 @@ strbuf_t *sb_realloc(strbuf_t **pp, size_t size) {
     strbuf_t *p = *pp;
     if (size > p->capacity_max) {
         STRBUF_METRIC(realloc_full);
+        p->overflowed = true;
         size = p->capacity_max;
     }
 
@@ -127,6 +129,13 @@ bool sb_full(strbuf_t *p) {
 }
 
 /**
+ * Check if the buffer looks like it has overflowed.
+ */
+bool sb_overflowed(strbuf_t *p) {
+    return p->overflowed;
+}
+
+/**
  * Appends (by copying) the given buffer to the strbuf.
  * If the strbuf is not large enough to store the new buffer then as much as
  * will fit is copied (this will result in setting the sb_full() condition)
@@ -146,6 +155,7 @@ size_t sb_append(strbuf_t *p, void *buf, ssize_t bufsize) {
     if (avail < bufsize) {
         // Truncate the new data to fit
         STRBUF_METRIC(append_trunc);
+        p->overflowed = true;
         bufsize = avail;
     }
 

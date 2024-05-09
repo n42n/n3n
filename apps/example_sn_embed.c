@@ -18,6 +18,7 @@
  */
 
 
+#include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/supernode.h>  // for sn_init_conf_defaults
 #include <stdbool.h>
 #include <stdlib.h>      // for exit
@@ -38,9 +39,8 @@ int main () {
     int rc;
     struct sockaddr_in local_address;
 
-#ifdef _WIN32
-    initWin32();
-#endif
+    // Do this early to register all internals
+    n3n_initfuncs();
 
     sn_init_conf_defaults(&sss_node,"supernode");
     int lport = 1234; // Main UDP listen port

@@ -10,24 +10,6 @@
 
 /* ***************************************************** */
 
-void initWin32 () {
-    WSADATA wsaData;
-    int err;
-
-    err = WSAStartup(MAKEWORD(2, 2), &wsaData );
-    if( err != 0 ) {
-        /* Tell the user that we could not find a usable */
-        /* WinSock DLL.                                  */
-        printf("FATAL ERROR: unable to initialise Winsock 2.x.");
-        exit(EXIT_FAILURE);
-    }
-}
-
-
-void destroyWin32 () {
-    WSACleanup();
-}
-
 struct win_adapter_info {
     HANDLE handle;
     char adapterid[1024];

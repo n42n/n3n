@@ -57,7 +57,6 @@
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
 #else
-#include <arpa/inet.h>               // for inet_addr, inet_ntop
 #include <netinet/in.h>              // for INADDR_ANY, INADDR_NONE, ntohl
 #include <pwd.h>                     // for getpwnam, passwd
 #include <sys/select.h>              // for select, FD_ISSET, FD_SET, FD_ZERO
@@ -754,9 +753,6 @@ int main (int argc, char* argv[]) {
 
 #ifdef HAVE_LIBCAP
     cap_t caps;
-#endif
-#ifdef _WIN32
-    initWin32();
 #endif
 
     // Do this early to register all internals

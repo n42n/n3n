@@ -2,15 +2,21 @@
 *.a
 *.gz
 *.exe
+
+# Files created by autogen
 configure
+include/config.h.in
+scripts/config.guess
+scripts/config.sub
+
+# Files created by configure
 config.log
 config.mak
 config.rpath
 config.status
 include/config.h
-include/config.h.in
 autom4te.cache
-packages/debian/debian/files
+
 *dSYM*
 
 __pycache__

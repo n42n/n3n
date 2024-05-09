@@ -8,6 +8,7 @@
 
 #include <n2n.h>             // for sock_equal
 #include <n3n/logging.h>
+#include <n3n/metrics.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
 #include <n3n/strings.h>     // for sock_to_cstr
 #include <unistd.h>          // for sleep
@@ -24,10 +25,47 @@
 #else
 #include <netdb.h>           // for addrinfo, freeaddrinfo, gai_strerror
 #include <sys/socket.h>      // for AF_INET, PF_INET
+#include <sys/time.h>        // for gettimeofday, timersub
 #endif
 
 #define N2N_RESOLVE_INTERVAL            300 /* seconds until edge and supernode try to resolve supernode names again */
 #define N2N_RESOLVE_CHECK_INTERVAL       30 /* seconds until main loop checking in on changes from resolver thread */
+
+/**********************************************************/
+
+static struct metrics {
+    uint32_t count;
+    uint32_t total_usec;
+    uint32_t longest_usec;
+} metrics;
+
+static struct n3n_metrics_items_uint32 metrics_items[] = {
+    {
+        .name = "count",
+        .desc = "Incremented for each name resolve",
+        .offset = offsetof(struct metrics, count),
+    },
+    {
+        .name = "total_usec",
+        .desc = "Accumulated useconds waiting for name resolve results",
+        .offset = offsetof(struct metrics, total_usec),
+    },
+    {
+        .name = "longest_usec",
+        .desc = "Time taken for longest resolve",
+        .offset = offsetof(struct metrics, longest_usec),
+    },
+    { },
+};
+
+static struct n3n_metrics_module metrics_module = {
+    .name = "resolve",
+    .data = &metrics,
+    .items_uint32 = metrics_items,
+    .type = n3n_metrics_type_uint32,
+};
+
+/**********************************************************/
 
 /** Resolve the supernode IP address.
  *
@@ -79,7 +117,24 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     }
 
     sn->port = atoi(supernode_port);
+
+    struct timeval time1;
+    struct timeval time2;
+
+    gettimeofday(&time1, NULL);
     nameerr = getaddrinfo(supernode_host, NULL, &aihints, &ainfo);
+    gettimeofday(&time2, NULL);
+
+    struct timeval elapsed;
+    timersub(&time2, &time1, &elapsed);
+
+    uint64_t elapsed_usec = elapsed.tv_sec * 1000000 + elapsed.tv_usec;
+
+    metrics.count++;
+    metrics.total_usec += elapsed_usec;
+    if(metrics.longest_usec < elapsed_usec) {
+        metrics.longest_usec = elapsed_usec;
+    }
 
     if(nameerr != 0) {
         traceEvent(
@@ -124,6 +179,8 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
 #ifdef HAVE_LIBPTHREAD
 
 #ifdef _MSC_VER
+// FIXME: this code may not work as expected - see also src/win32/n2n_win32.h
+//
 #define N2N_THREAD_RETURN_DATATYPE       DWORD WINAPI
 #define N2N_THREAD_PARAMETER_DATATYPE    LPVOID
 #else
@@ -307,3 +364,7 @@ int maybe_supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn) {
     return supernode2sock(sn, addrIn);
 }
 #endif
+
+void n3n_initfuncs_resolve () {
+    n3n_metrics_register(&metrics_module);
+}

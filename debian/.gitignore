@@ -3,6 +3,7 @@
 .debhelper/
 autoreconf.after
 autoreconf.before
+changelog
 debhelper-build-stamp
 files
 n3n.debhelper.log

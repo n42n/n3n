@@ -384,10 +384,6 @@ static void term_handler (int sig)
 /** Main program entry point from kernel. */
 int main (int argc, char * argv[]) {
 
-#ifdef _WIN32
-    initWin32();
-#endif
-
     // Do this early to register all internals
     n3n_initfuncs();
 
@@ -539,7 +535,7 @@ int main (int argc, char * argv[]) {
     }
 #endif
 
-    sss_node.mgmt_slots = slots_malloc(5, 4000, 500);
+    sss_node.mgmt_slots = slots_malloc(5, 5000, 500);
     if(!sss_node.mgmt_slots) {
         abort();
     }

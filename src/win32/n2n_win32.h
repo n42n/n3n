@@ -44,7 +44,7 @@
 
 
 /* ************************************* */
-
+// FIXME: this code has rotted and no longer works as expected
 
 #define HAVE_PTHREAD
 #define pthread_t       HANDLE

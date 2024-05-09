@@ -398,6 +398,18 @@ static void jsonrpc_stop (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
     jsonrpc_1uint(id, conn, *eee->keep_running);
 }
 
+static void jsonrpc_listend_overflow (conn_t *conn) {
+    if(sb_overflowed(conn->request)) {
+        // Make a clear indicator in the output
+        sb_append(conn->request, "\"overflow\"", 10);
+    }
+
+    // HACK: back up over the final ','
+    if(conn->request->str[conn->request->wr_pos-1] == ',') {
+        conn->request->wr_pos--;
+    }
+}
+
 static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     // Want to eventually output all the known MAC addresses and the routing
     // destination for each one.  Kind of a superset of the get_edges output
@@ -428,11 +440,13 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
             macstr_t mac_buf;
             sb_reprintf(&conn->request,
                         "{"
-                        "\"_type\":\"assoc\","
+                        "\"_type\":\"assoc\","  // Federated Supernode
                         "\"mac\":\"%s\","
+                        "\"community\":\"%s\","
                         "\"dest\":\"%s:%s\","
                         "\"last_seen\":%u},",
                         macaddr_str(mac_buf, assoc->mac),
+                        (community->is_federation) ? "-/-" : community->community,
                         buf,
                         port,
                         (uint32_t)assoc->last_seen
@@ -440,11 +454,7 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
         }
     }
 
-    // HACK: back up over the final ','
-    if(conn->request->str[conn->request->wr_pos-1] == ',') {
-        conn->request->wr_pos--;
-    }
-
+    jsonrpc_listend_overflow(conn);
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
@@ -488,11 +498,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
                     (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
     }
 
-    // HACK: back up over the final ','
-    if(conn->request->str[conn->request->wr_pos-1] == ',') {
-        conn->request->wr_pos--;
-    }
-
+    jsonrpc_listend_overflow(conn);
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
@@ -581,11 +587,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
     }
 
 
-    // HACK: back up over the final ','
-    if(conn->request->str[conn->request->wr_pos-1] == ',') {
-        conn->request->wr_pos--;
-    }
-
+    jsonrpc_listend_overflow(conn);
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
@@ -661,11 +663,7 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
                     (uint32_t)peer->uptime);
     }
 
-    // HACK: back up over the final ','
-    if(conn->request->str[conn->request->wr_pos-1] == ',') {
-        conn->request->wr_pos--;
-    }
-
+    jsonrpc_listend_overflow(conn);
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
@@ -772,11 +770,7 @@ static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, con
                 "\"tx_pkt\":%u},",
                 eee->stats.sn_errors);
 
-    // HACK: back up over the final ','
-    if(conn->request->str[conn->request->wr_pos-1] == ',') {
-        conn->request->wr_pos--;
-    }
-
+    jsonrpc_listend_overflow(conn);
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
@@ -850,11 +844,7 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
         );
     }
 
-    // HACK: back up over the final ','
-    if(conn->request->str[conn->request->wr_pos-1] == ',') {
-        conn->request->wr_pos--;
-    }
-
+    jsonrpc_listend_overflow(conn);
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }
@@ -901,11 +891,8 @@ static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
         );
 
     }
-    // HACK: back up over the final ','
-    if(conn->request->str[conn->request->wr_pos-1] == ',') {
-        conn->request->wr_pos--;
-    }
 
+    jsonrpc_listend_overflow(conn);
     sb_reprintf(&conn->request, "]");
     jsonrpc_result_tail(conn, 200);
 }

@@ -476,7 +476,7 @@ int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
     int result = 0;
 
     if(mode > 0) {
-        result += fchmod(server, mode);
+        result += chmod(path, mode);
     }
 
     if(uid != -1 && gid != -1) {

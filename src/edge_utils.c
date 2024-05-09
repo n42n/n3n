@@ -94,59 +94,73 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /* ************************************** */
 
-static struct n3n_metrics_item edge_utils_metrics_items[] = {
-    {
-        .name = "tx_p2p",
-        .offset = offsetof(struct n2n_edge_stats, tx_p2p),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_p2p",
-        .offset = offsetof(struct n2n_edge_stats, rx_p2p),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "tx_sup",
-        .offset = offsetof(struct n2n_edge_stats, tx_sup),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_sup",
-        .offset = offsetof(struct n2n_edge_stats, rx_sup),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "tx_sup_broadcast",
-        .offset = offsetof(struct n2n_edge_stats, tx_sup_broadcast),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_sup_broadcast",
-        .offset = offsetof(struct n2n_edge_stats, rx_sup_broadcast),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "tx_multicast_drop",
-        .offset = offsetof(struct n2n_edge_stats, tx_multicast_drop),
-        .size = n3n_metrics_uint32,
-    },
-    {
-        .name = "rx_multicast_drop",
-        .offset = offsetof(struct n2n_edge_stats, rx_multicast_drop),
-        .size = n3n_metrics_uint32,
-    },
+static struct n3n_metrics_items_uint32 edge_utils_metrics_items1[] = {
     {
         .name = "tx_tuntap_error",
         .offset = offsetof(struct n2n_edge_stats, tx_tuntap_error),
-        .size = n3n_metrics_uint32,
     },
     { },
 };
 
-static struct n3n_metrics_module edge_utils_metrics_module = {
-    .name = "edge_utils",
-    .item = edge_utils_metrics_items,
-    .enabled = true,
+static struct n3n_metrics_items_llu32 edge_utils_metrics_items2 = {
+    .name = "packets",
+    .name1 = "direction",
+    .name2 = "event",
+    .items = {
+        {
+            .val1 = "tx",
+            .val2 = "p2p",
+            .offset = offsetof(struct n2n_edge_stats, tx_p2p),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "p2p",
+            .offset = offsetof(struct n2n_edge_stats, rx_p2p),
+        },
+        {
+            .val1 = "tx",
+            .val2 = "sup",
+            .offset = offsetof(struct n2n_edge_stats, tx_sup),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "sup",
+            .offset = offsetof(struct n2n_edge_stats, rx_sup),
+        },
+        {
+            .val1 = "tx",
+            .val2 = "sup_broadcast",
+            .offset = offsetof(struct n2n_edge_stats, tx_sup_broadcast),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "sup_broadcast",
+            .offset = offsetof(struct n2n_edge_stats, rx_sup_broadcast),
+        },
+        {
+            .val1 = "tx",
+            .val2 = "multicast_drop",
+            .offset = offsetof(struct n2n_edge_stats, tx_multicast_drop),
+        },
+        {
+            .val1 = "rx",
+            .val2 = "multicast_drop",
+            .offset = offsetof(struct n2n_edge_stats, rx_multicast_drop),
+        },
+        { },
+    },
+};
+
+static struct n3n_metrics_module edge_metrics_module1 = {
+    .name = "edge",
+    .items_uint32 = edge_utils_metrics_items1,
+    .type = n3n_metrics_type_uint32,
+};
+
+static struct n3n_metrics_module edge_metrics_module2 = {
+    .name = "edge",
+    .items_llu32 = &edge_utils_metrics_items2,
+    .type = n3n_metrics_type_llu32,
 };
 
 /* ************************************** */
@@ -811,7 +825,6 @@ static void peer_set_p2p_confirmed (struct n3n_runtime_data * eee,
         scan_tmp = find_peer_by_sock(peer, eee->known_peers);
         if(scan_tmp != NULL) {
             HASH_DEL(eee->known_peers, scan_tmp);
-            mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
             free(scan);
             scan = scan_tmp;
             memcpy(scan->mac_addr, mac, sizeof(n2n_mac_t));
@@ -1014,21 +1027,28 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
  * TODO: for the TCP case, this could cause a stall in the packet
  * send path, so this probably should be reworked to use a queue
  */
-static int check_sock_ready (struct n3n_runtime_data *eee) {
-    // if required (tcp), wait until writeable as soket is set to
-    // O_NONBLOCK, could require some wait time directly after re-opening
-    if(eee->conf.connect_tcp) {
-        fd_set socket_mask;
-        struct timeval wait_time;
-
-        FD_ZERO(&socket_mask);
-        FD_SET(eee->sock, &socket_mask);
-        wait_time.tv_sec = 0;
-        wait_time.tv_usec = 500000;
-        return select(eee->sock + 1, NULL, &socket_mask, NULL, &wait_time);
+static bool check_sock_ready (struct n3n_runtime_data *eee) {
+    if(!eee->conf.connect_tcp) {
+        // Just show udp sockets as ready
+        // TODO: this is may not be always true
+        return true;
     }
 
-    return 1;
+    if(eee->sock == -1) {
+        // If we have no sock, dont attempt to FD_SET() it
+        return false;
+    }
+
+    // if required (tcp), wait until writeable as soket is set to
+    // O_NONBLOCK, could require some wait time directly after re-opening
+    fd_set socket_mask;
+    struct timeval wait_time;
+
+    FD_ZERO(&socket_mask);
+    FD_SET(eee->sock, &socket_mask);
+    wait_time.tv_sec = 0;
+    wait_time.tv_usec = 500000;
+    return select(eee->sock + 1, NULL, &socket_mask, NULL, &wait_time);
 }
 
 /** Send a datagram to a socket file descriptor */
@@ -1038,7 +1058,7 @@ static ssize_t sendto_fd (struct n3n_runtime_data *eee, const void *buf,
 
     ssize_t sent = 0;
 
-    if(check_sock_ready(eee) < 1) {
+    if(!check_sock_ready(eee)) {
         goto err_out;
     }
 
@@ -2947,8 +2967,10 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
     *eee->keep_running = true;
     update_supernode_reg(eee, time(NULL));
 
-    edge_utils_metrics_module.data = &eee->stats;
-    n3n_metrics_register(&edge_utils_metrics_module);
+    edge_metrics_module1.data = &eee->stats;
+    edge_metrics_module2.data = &eee->stats;
+    n3n_metrics_register(&edge_metrics_module1);
+    n3n_metrics_register(&edge_metrics_module2);
 
     /* Main loop
      *
@@ -3009,8 +3031,8 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         if(rc > 0) {
             // any or all of the FDs could have input; check them all
 
-            // external
-            if(FD_ISSET(eee->sock, &readers)) {
+            // external packets
+            if((eee->sock != -1) && FD_ISSET(eee->sock, &readers)) {
                 if(0 != fetch_and_eventually_process_data(
                        eee,
                        eee->sock,
@@ -3035,7 +3057,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-            if(FD_ISSET(eee->udp_multicast_sock, &readers)) {
+            if((eee->udp_multicast_sock != -1) && FD_ISSET(eee->udp_multicast_sock, &readers)) {
                 if(0 != fetch_and_eventually_process_data(
                        eee,
                        eee->udp_multicast_sock,
@@ -3050,7 +3072,7 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 #endif
 
 #ifndef _WIN32
-            if(FD_ISSET(eee->device.fd, &readers)) {
+            if((eee->device.fd != -1) && FD_ISSET(eee->device.fd, &readers)) {
                 // read an ethernet frame from the TAP socket; write on the IP socket
                 edge_read_from_tap(eee);
             }
@@ -3239,7 +3261,7 @@ void edge_term (struct n3n_runtime_data * eee) {
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
-    eee->mgmt_slots = slots_malloc(5, 4000, 500);
+    eee->mgmt_slots = slots_malloc(5, 5000, 500);
     if(!eee->mgmt_slots) {
         abort();
     }
