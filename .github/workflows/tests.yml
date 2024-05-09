@@ -81,7 +81,7 @@ jobs:
       - name: Install essential
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential
+          sudo apt-get install build-essential autoconf
 
       - name: generate a makefile and use it to install more packages
         run: |
