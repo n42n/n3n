@@ -130,7 +130,7 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
 
     uint64_t elapsed_usec = elapsed.tv_sec * 1000000 + elapsed.tv_usec;
 
-    metrics.count ++;
+    metrics.count++;
     metrics.total_usec += elapsed_usec;
     if(metrics.longest_usec < elapsed_usec) {
         metrics.longest_usec = elapsed_usec;

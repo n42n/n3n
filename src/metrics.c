@@ -27,7 +27,7 @@ static void metric_stringify_uint32 (strbuf_t **buf, const int offset, void *dat
     return;
 }
 
-static void metrics_name(strbuf_t **reply, const char *module_name, const char *name) {
+static void metrics_name (strbuf_t **reply, const char *module_name, const char *name) {
     const char *program_prefix = "n3n";
     // TODO session_name
 
@@ -40,7 +40,7 @@ static void metrics_name(strbuf_t **reply, const char *module_name, const char *
     );
 }
 
-static void metrics_render_uint32(strbuf_t **reply, struct n3n_metrics_module *module) {
+static void metrics_render_uint32 (strbuf_t **reply, struct n3n_metrics_module *module) {
     for(int i = 0; module->items_uint32[i].name; i++) {
         // TODO:
         // - " TYPE name type\n"
@@ -57,7 +57,7 @@ static void metrics_render_uint32(strbuf_t **reply, struct n3n_metrics_module *m
     }
 }
 
-static void metrics_render_llu32(strbuf_t **reply, struct n3n_metrics_module *module) {
+static void metrics_render_llu32 (strbuf_t **reply, struct n3n_metrics_module *module) {
     const struct n3n_metrics_items_llu32 *info = module->items_llu32;
 
     if(info->desc) {
@@ -96,7 +96,7 @@ void n3n_metrics_render (strbuf_t **reply) {
     for(module = registered_metrics; module; module = module->next) {
         sb_reprintf(reply, "## module=%s\n", module->name);
 
-        switch (module->type) {
+        switch(module->type) {
             case n3n_metrics_type_invalid:
                 break;
             case n3n_metrics_type_uint32:
