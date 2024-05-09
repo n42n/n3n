@@ -60,11 +60,16 @@ static void metrics_render_uint32(strbuf_t **reply, struct n3n_metrics_module *m
 static void metrics_render_llu32(strbuf_t **reply, struct n3n_metrics_module *module) {
     const struct n3n_metrics_items_llu32 *info = module->items_llu32;
 
+    if(info->desc) {
+        sb_reprintf(reply, "# HELP ");
+        metrics_name(reply, module->name, info->name);
+        sb_reprintf(reply, "%s\n", info->desc);
+    }
+
     for(int i = 0; info->items[i].val1; i++) {
         // TODO:
         // - " TYPE name type\n"
         // - " UNIT name type\n"
-        // - " HELP name type\n"
         metrics_name(reply, module->name, info->name);
         sb_reprintf(
             reply,
@@ -85,7 +90,7 @@ static void metrics_render_llu32(strbuf_t **reply, struct n3n_metrics_module *mo
 
 void n3n_metrics_render (strbuf_t **reply) {
     sb_zero(*reply);
-    sb_reprintf(reply, "Still unstable testing format for metric output!\n");
+    sb_reprintf(reply, "# Still unstable testing format for metric output!\n");
 
     struct n3n_metrics_module *module;
     for(module = registered_metrics; module; module = module->next) {
@@ -107,39 +112,51 @@ void n3n_metrics_render (strbuf_t **reply) {
 /**********************************************************/
 // Register some metrics captured by external libraries
 
-static struct n3n_metrics_items_uint32 strbuf_metrics_items[] = {
-    {
-        .name = "zero",
-        .offset = offsetof(struct strbuf_metrics, zero),
+static struct n3n_metrics_items_llu32 strbuf_metrics_items = {
+    .name = "count",
+    .desc = "Track the events in the lifecycle of strbuf objects",
+    .name1 = "severity",
+    .name2 = "event",
+    .items = {
+        {
+            .val1 = "info",
+            .val2 = "zero",
+            .offset = offsetof(struct strbuf_metrics, zero),
+        },
+        {
+            .val1 = "info",
+            .val2 = "alloc",
+            .offset = offsetof(struct strbuf_metrics, alloc),
+        },
+        {
+            .val1 = "info",
+            .val2 = "realloc",
+            .offset = offsetof(struct strbuf_metrics, realloc),
+        },
+        {
+            .val1 = "warn",
+            .val2 = "realloc_full",
+            .offset = offsetof(struct strbuf_metrics, realloc_full),
+        },
+        {
+            .val1 = "warn",
+            .val2 = "append_full",
+            .offset = offsetof(struct strbuf_metrics, append_full),
+        },
+        {
+            .val1 = "warn",
+            .val2 = "append_trunc",
+            .offset = offsetof(struct strbuf_metrics, append_trunc),
+        },
+        { },
     },
-    {
-        .name = "alloc",
-        .offset = offsetof(struct strbuf_metrics, alloc),
-    },
-    {
-        .name = "realloc",
-        .offset = offsetof(struct strbuf_metrics, realloc),
-    },
-    {
-        .name = "realloc_full",
-        .offset = offsetof(struct strbuf_metrics, realloc_full),
-    },
-    {
-        .name = "append_full",
-        .offset = offsetof(struct strbuf_metrics, append_full),
-    },
-    {
-        .name = "append_trunc",
-        .offset = offsetof(struct strbuf_metrics, append_trunc),
-    },
-    { },
 };
 
 static struct n3n_metrics_module strbuf_metrics_module = {
     .name = "strbuf",
     .data = &strbuf_metrics,
-    .items_uint32 = strbuf_metrics_items,
-    .type = n3n_metrics_type_uint32,
+    .items_llu32 = &strbuf_metrics_items,
+    .type = n3n_metrics_type_llu32,
 };
 
 /**********************************************************/
