@@ -24,6 +24,9 @@ const char *fill_inet_ntop (int, const void *, char *, int);
 int fill_inet_pton (int af, const char *restrict src, void *restrict dst);
 #define inet_ntop fill_inet_ntop
 #define inet_pton fill_inet_pton
+
+void fill_timersub (struct timeval *a, struct timeval *b, struct timeval *res);
+#define timersub fill_timersub
 #endif
 
 #include <winsock2.h>

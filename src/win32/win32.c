@@ -86,3 +86,16 @@ int fill_inet_pton (int af, const char *restrict src, void *restrict dst) {
     *((uint32_t *)dst) = sa->sin_addr.s_addr;
     return 1;
 }
+
+void fill_timersub (struct timeval *a, struct timeval *b, struct timeval *res) {
+    if(!a || !b || !res) {
+        return;
+    }
+
+    res->tv_usec = a->tv_usec - b->tv_usec;
+    if(res->tv_usec < 0) {
+        a->tv_sec--;
+        res->tv_usec += 1000000;
+    }
+    res->tv_sec = a->tv_sec - b->tv_sec;
+}
