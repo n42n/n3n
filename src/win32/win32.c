@@ -99,3 +99,26 @@ void fill_timersub (struct timeval *a, struct timeval *b, struct timeval *res) {
     }
     res->tv_sec = a->tv_sec - b->tv_sec;
 }
+
+int fill_gettimeofday (struct timeval * tv, struct timezone * tz) {
+    if(!tv) {
+        return -1;
+    }
+
+    SYSTEMTIME st;
+    FILETIME ft;
+    ULARGE_INTEGER wtf;
+
+    GetSystemTime(&st);
+    SystemTimeToFileTime(&st, &ft);
+
+    wtf.u.LowPart = ft.dwLowDateTime;
+    wtf.u.HighPart = ft.dwHighDateTime;
+
+    // Convert from Windows Epoch to unix Epoch
+    wtf.QuadPart -= 116444736000000000ULL;
+
+    tv->tv_sec = wtf.QuadPart / 10000000L;
+    tv->tv_usec = st.wMilliseconds * 1000;
+    return 0;
+}

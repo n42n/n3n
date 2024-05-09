@@ -26,11 +26,13 @@ int fill_inet_pton (int af, const char *restrict src, void *restrict dst);
 #define inet_pton fill_inet_pton
 #endif
 
-void fill_timersub (struct timeval *a, struct timeval *b, struct timeval *res);
-#define timersub fill_timersub
-
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+int fill_gettimeofday (struct timeval *, struct timezone *);
+void fill_timersub (struct timeval *, struct timeval *, struct timeval *);
+#define gettimeofday fill_gettimeofday
+#define timersub fill_timersub
 
 extern void destroyWin32 ();
 
