@@ -172,7 +172,6 @@ int calculate_dynamic_key (uint8_t out_key[N2N_AUTH_CHALLENGE_SIZE],
 
     memxor(key, tmp, N2N_AUTH_CHALLENGE_SIZE);
 
-    ctx = (speck_context_t*)calloc(1, sizeof(speck_context_t));
     speck_init((speck_context_t**)&ctx, key, 128);
 
     pearson_hash_128(tmp, (uint8_t*)&key_time, sizeof(key_time));
@@ -181,7 +180,7 @@ int calculate_dynamic_key (uint8_t out_key[N2N_AUTH_CHALLENGE_SIZE],
 
     speck_128_encrypt(out_key, ctx);
 
-    free(ctx);
+    speck_deinit(ctx);
 
     return 0;
 }
