@@ -155,7 +155,6 @@ void calculate_shared_secrets (struct n3n_runtime_data *sss) {
             // calculate common shared secret (ECDH)
             generate_shared_secret(user->shared_secret, sss->private_key, user->public_key);
             // prepare for use as key
-            user->shared_secret_ctx = (he_context_t*)calloc(1, sizeof(speck_context_t));
             speck_init((speck_context_t**)&user->shared_secret_ctx, user->shared_secret, 128);
         }
     }
@@ -302,7 +301,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
 
         // remove allowed users from community
         HASH_ITER(hh, comm->allowed_users, user, tmp_user) {
-            free(user->shared_secret_ctx);
+            speck_deinit((speck_context_t*)user->shared_secret_ctx);
             HASH_DEL(comm->allowed_users, user);
             free(user);
         }
@@ -950,6 +949,15 @@ void sn_term (struct n3n_runtime_data *sss) {
             HASH_DEL(community->assoc, assoc);
             free(assoc);
         }
+
+        // remove allowed users from community
+        sn_user_t *user, *tmp_user;
+        HASH_ITER(hh, community->allowed_users, user, tmp_user) {
+            speck_deinit((speck_context_t*)user->shared_secret_ctx);
+            HASH_DEL(community->allowed_users, user);
+            free(user);
+        }
+
         HASH_DEL(sss->communities, community);
         free(community);
     }
