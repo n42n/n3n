@@ -2596,6 +2596,7 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                 // from here on, 'sn' gets used differently
                 for(i = 0; i < ra.num_sn; i++) {
                     n2n_sock_t payload_sock;
+                    memset(&payload_sock, 0, sizeof(payload_sock));
                     skip_add = SN_ADD;
 
                     // bugfix for https://github.com/ntop/n2n/issues/1029
