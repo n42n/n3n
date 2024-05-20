@@ -1512,7 +1512,6 @@ static void send_register_ack (struct n3n_runtime_data * eee,
 
     // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
-    memset(&ack, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = n2n_register_ack;
     cmn.flags = 0;
