@@ -8,7 +8,7 @@
 
 #include <getopt.h>             // for required_argument, getopt_long, no_arg...
 #include <header_encryption.h>  // for packet_header_setup_key, packet_header...
-#include <n2n_typedefs.h>       // for he_context_t
+#include <n2n_typedefs.h>       //
 #include <n3n/conffile.h>
 #include <n3n/initfuncs.h>
 #include <pearson.h>
@@ -37,10 +37,10 @@ static void cmd_header_decrypt (int argc, char **argv, void *conf) {
     strncpy((char *)&community, argv[1], sizeof(community));
     community[sizeof(community)-1] = 0;
 
-    he_context_t *ctx_static;
-    he_context_t *ctx_dynamic;
-    he_context_t *ctx_iv_static;
-    he_context_t *ctx_iv_dynamic;
+    struct speck_context_t *ctx_static;
+    struct speck_context_t *ctx_dynamic;
+    struct speck_context_t *ctx_iv_static;
+    struct speck_context_t *ctx_iv_dynamic;
 
     packet_header_setup_key(
         community,

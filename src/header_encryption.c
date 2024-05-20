@@ -25,9 +25,9 @@
 #include <stdlib.h>             // for calloc
 #include <string.h>             // for memcpy
 #include "header_encryption.h"  // for packet_header_change_dynamic_key, pac...
-#include "n2n.h"                // for he_context_t, N2N_COMMUNITY_SIZE...
+#include "n2n.h"                // for N2N_COMMUNITY_SIZE...
 #include "n2n_define.h"         // for N2N_COMMUNITY_SIZE
-#include "n2n_typedefs.h"       // for he_context_t, N2N_AUTH_CHALLENGE_SIZE
+#include "n2n_typedefs.h"       // for N2N_AUTH_CHALLENGE_SIZE
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_64
 #include "portable_endian.h"    // for htobe32, be32toh, be64toh, htobe64
 #include "speck.h"              // for speck_init, speck_context_t, speck_ctr
@@ -39,7 +39,8 @@
 
 int packet_header_decrypt (uint8_t packet[], uint16_t packet_len,
                            char *community_name,
-                           he_context_t *ctx, he_context_t *ctx_iv,
+                           struct speck_context_t *ctx,
+                           struct speck_context_t *ctx_iv,
                            uint64_t *stamp) {
 
     // try community name as possible key and check for magic bytes "n2__"
@@ -93,7 +94,8 @@ int packet_header_decrypt (uint8_t packet[], uint16_t packet_len,
 
 
 int packet_header_encrypt (uint8_t packet[], uint16_t header_len, uint16_t packet_len,
-                           he_context_t *ctx, he_context_t *ctx_iv,
+                           struct speck_context_t *ctx,
+                           struct speck_context_t *ctx_iv,
                            uint64_t stamp) {
 
     uint32_t *p32 = (uint32_t*)packet;
@@ -135,8 +137,10 @@ int packet_header_encrypt (uint8_t packet[], uint16_t header_len, uint16_t packe
 
 
 void packet_header_setup_key (const char *community_name,
-                              he_context_t **ctx_static, he_context_t **ctx_dynamic,
-                              he_context_t **ctx_iv_static, he_context_t **ctx_iv_dynamic) {
+                              struct speck_context_t **ctx_static,
+                              struct speck_context_t **ctx_dynamic,
+                              struct speck_context_t **ctx_iv_static,
+                              struct speck_context_t **ctx_iv_dynamic) {
 
     uint8_t key[16];
 
@@ -160,7 +164,8 @@ void packet_header_setup_key (const char *community_name,
 
 
 void packet_header_change_dynamic_key (uint8_t *key_dynamic,
-                                       he_context_t **ctx_dynamic, he_context_t **ctx_iv_dynamic) {
+                                       struct speck_context_t **ctx_dynamic,
+                                       struct speck_context_t **ctx_iv_dynamic) {
 
     uint8_t key[16];
     pearson_hash_128(key, key_dynamic, N2N_AUTH_CHALLENGE_SIZE);

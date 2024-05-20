@@ -252,6 +252,7 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
     SOCKET probe_sock;
     int ret = 0;
 
+    memset(out_sock, 0, sizeof(*out_sock));
     out_sock->family = AF_INVALID;
 
     // always detect local port even/especially if chosen by OS...
@@ -406,7 +407,6 @@ int supernode_connect (struct n3n_runtime_data *eee) {
         traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
 #endif
 
-        memset(&local_sock, 0, sizeof(n2n_sock_t));
         if(detect_local_ip_address(&local_sock, eee) == 0) {
             // always overwrite local port even/especially if chosen by OS...
             eee->conf.preferred_sock.port = local_sock.port;
@@ -1305,6 +1305,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     n2n_REGISTER_SUPER_t reg;
     n2n_sock_str_t sockbuf;
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&reg, 0, sizeof(reg));
 
@@ -1359,6 +1360,7 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     n2n_UNREGISTER_SUPER_t unreg;
     n2n_sock_str_t sockbuf;
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&unreg, 0, sizeof(unreg));
 
@@ -1456,6 +1458,7 @@ static void send_register (struct n3n_runtime_data * eee,
         return;
     }
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&reg, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
@@ -1507,13 +1510,14 @@ static void send_register_ack (struct n3n_runtime_data * eee,
         return;
     }
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
-    memset(&ack, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = n2n_register_ack;
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&ack, 0, sizeof(ack));
     ack.cookie = reg->cookie;
     memcpy(ack.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
@@ -2093,12 +2097,14 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
     }
 #endif
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = n2n_packet;
     cmn.flags = 0; /* no options, not from supernode, no socket */
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&pkt, 0, sizeof(pkt));
     memcpy(pkt.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
     memcpy(pkt.dstMac, destMac, N2N_MAC_SIZE);
@@ -2286,12 +2292,12 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
     /* REVISIT: when UDP/IPv6 is supported we will need a flag to indicate which
      * IP transport version the packet arrived on. May need to UDP sockets. */
 
-    memset(&sender, 0, sizeof(n2n_sock_t));
-
     if(eee->conf.connect_tcp)
         // TCP expects that we know our comm partner and does not deliver the sender
-        memcpy(&sender, &(eee->curr_sn->sock), sizeof(struct sockaddr_in));
+        memcpy(&sender, &(eee->curr_sn->sock), sizeof(sender));
     else {
+        // FIXME: do not do random memset on the packet processing path
+        memset(&sender, 0, sizeof(sender));
         // REVISIT: type conversion back and forth, choose a consistent approach throughout whole code,
         //          i.e. stick with more general sockaddr as long as possible and narrow only if required
         fill_n2nsock(&sender, sender_sock);
@@ -2537,7 +2543,8 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                     return;
                 }
 
-                memset(&ra, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
+                // FIXME: fix decode_* functions to not need memsets
+                memset(&ra, 0, sizeof(ra));
                 decode_REGISTER_SUPER_ACK(&ra, &cmn, udp_buf, &rem, &idx, tmpbuf);
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2596,7 +2603,6 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                 // from here on, 'sn' gets used differently
                 for(i = 0; i < ra.num_sn; i++) {
                     n2n_sock_t payload_sock;
-                    memset(&payload_sock, 0, sizeof(payload_sock));
                     skip_add = SN_ADD;
 
                     // bugfix for https://github.com/ntop/n2n/issues/1029
@@ -2672,7 +2678,8 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                     return;
                 }
 
-                memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
+                // FIXME: fix decode_* functions to not need memsets
+                memset(&nak, 0, sizeof(nak));
                 decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {

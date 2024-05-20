@@ -363,6 +363,7 @@ int decode_sock_payload (n2n_sock_t * sock,
     uint8_t port_low = 0;
     uint8_t port_high = 0;
 
+    memset(sock, 0, sizeof(*sock));
     retval += decode_uint8(&(sock->family), base, rem, idx);
     ++(*idx); // skip blank
     --(*rem);
