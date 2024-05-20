@@ -1305,6 +1305,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     n2n_REGISTER_SUPER_t reg;
     n2n_sock_str_t sockbuf;
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&reg, 0, sizeof(reg));
 
@@ -1359,6 +1360,7 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     n2n_UNREGISTER_SUPER_t unreg;
     n2n_sock_str_t sockbuf;
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&unreg, 0, sizeof(unreg));
 
@@ -1456,6 +1458,7 @@ static void send_register (struct n3n_runtime_data * eee,
         return;
     }
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&reg, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
@@ -1507,6 +1510,7 @@ static void send_register_ack (struct n3n_runtime_data * eee,
         return;
     }
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&ack, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
@@ -1514,6 +1518,7 @@ static void send_register_ack (struct n3n_runtime_data * eee,
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&ack, 0, sizeof(ack));
     ack.cookie = reg->cookie;
     memcpy(ack.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
@@ -2093,12 +2098,14 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
     }
 #endif
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = n2n_packet;
     cmn.flags = 0; /* no options, not from supernode, no socket */
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
+    // FIXME: fix encode_* functions to not need memsets
     memset(&pkt, 0, sizeof(pkt));
     memcpy(pkt.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
     memcpy(pkt.dstMac, destMac, N2N_MAC_SIZE);
@@ -2537,7 +2544,8 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                     return;
                 }
 
-                memset(&ra, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
+                // FIXME: fix decode_* functions to not need memsets
+                memset(&ra, 0, sizeof(ra));
                 decode_REGISTER_SUPER_ACK(&ra, &cmn, udp_buf, &rem, &idx, tmpbuf);
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2672,7 +2680,8 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
                     return;
                 }
 
-                memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
+                // FIXME: fix decode_* functions to not need memsets
+                memset(&nak, 0, sizeof(nak));
                 decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
 
                 if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
