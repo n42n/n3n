@@ -2313,7 +2313,8 @@ static int process_udp (struct n3n_runtime_data * sss,
             uint8_t dec_tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
             n2n_REGISTER_SUPER_ACK_payload_t *payload;
             n2n_sock_t payload_sock;
-
+            
+            memset(&payload_sock, 0, sizeof(payload_sock));
             memset(&ack, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
 
             if(!comm) {
