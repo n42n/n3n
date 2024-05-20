@@ -252,6 +252,7 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
     SOCKET probe_sock;
     int ret = 0;
 
+    memset(out_sock, 0, sizeof(*out_sock));
     out_sock->family = AF_INVALID;
 
     // always detect local port even/especially if chosen by OS...
@@ -406,7 +407,6 @@ int supernode_connect (struct n3n_runtime_data *eee) {
         traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
 #endif
 
-        memset(&local_sock, 0, sizeof(n2n_sock_t));
         if(detect_local_ip_address(&local_sock, eee) == 0) {
             // always overwrite local port even/especially if chosen by OS...
             eee->conf.preferred_sock.port = local_sock.port;
