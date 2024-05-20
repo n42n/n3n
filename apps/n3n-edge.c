@@ -794,8 +794,8 @@ int main (int argc, char* argv[]) {
                 generate_public_key(*conf.public_key, *(conf.shared_secret));
             generate_shared_secret(*(conf.shared_secret), *(conf.shared_secret), *(conf.federation_public_key));
             // prepare (first 128 bit) for use as key
-            conf.shared_secret_ctx = (he_context_t*)calloc(1, sizeof(speck_context_t));
-            speck_init((speck_context_t**)&(conf.shared_secret_ctx), *(conf.shared_secret), 128);
+            conf.shared_secret_ctx = calloc(1, sizeof(*conf.shared_secret_ctx));
+            speck_init(&conf.shared_secret_ctx, *(conf.shared_secret), 128);
         }
         // force header encryption
         if(conf.header_encryption != HEADER_ENCRYPTION_ENABLED) {

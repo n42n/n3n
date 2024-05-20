@@ -17,20 +17,25 @@
  */
 
 #include "n2n_typedefs.h"
+#include "speck.h"          // for struct speck_context_t
 
 int packet_header_decrypt (uint8_t packet[], uint16_t packet_len,
                            char *community_name,
-                           he_context_t *ctx, he_context_t *ctx_iv,
+                           struct speck_context_t *ctx,
+                           struct speck_context_t *ctx_iv,
                            uint64_t *stamp);
 
 int packet_header_encrypt (uint8_t packet[], uint16_t header_len, uint16_t packet_len,
-                           he_context_t *ctx, he_context_t *ctx_iv,
+                           struct speck_context_t *ctx,
+                           struct speck_context_t *ctx_iv,
                            uint64_t stamp);
 
 void packet_header_setup_key (const char *community_name,
-                              he_context_t **ctx_static, he_context_t **ctx_dynamic,
-                              he_context_t **ctx_iv_static, he_context_t **ctx_iv_dynamic);
+                              struct speck_context_t **ctx_static,
+                              struct speck_context_t **ctx_dynamic,
+                              struct speck_context_t **ctx_iv_static,
+                              struct speck_context_t **ctx_iv_dynamic);
 
 void packet_header_change_dynamic_key (uint8_t *key_dynamic,
-                                       he_context_t **ctx_dynamic,
-                                       he_context_t **ctx_iv_dynamic);
+                                       struct speck_context_t **ctx_dynamic,
+                                       struct speck_context_t **ctx_iv_dynamic);

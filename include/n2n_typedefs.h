@@ -36,6 +36,8 @@
 
 #include <config.h>     // for HAVE_LIBZSTD
 
+#include "speck.h"      // for struct speck_context_t
+
 typedef char n2n_community_t[N2N_COMMUNITY_SIZE];
 typedef uint8_t n2n_private_public_key_t[N2N_PRIVATE_PUBLIC_KEY_SIZE];
 typedef uint32_t n2n_cookie_t;
@@ -135,7 +137,6 @@ typedef u_short sa_family_t;
 #endif
 
 
-typedef struct speck_context_t he_context_t;
 typedef char n2n_sn_name_t[N2N_EDGE_SN_HOST_SIZE];
 
 typedef enum n2n_pc {
@@ -450,12 +451,12 @@ typedef struct n2n_edge_conf {
     bool allow_p2p;                                  /**< Allow P2P connection */
     n2n_private_public_key_t *public_key;            /**< edge's public key (for user/password based authentication) */
     n2n_private_public_key_t *shared_secret;         /**< shared secret derived from federation public key, username and password */
-    he_context_t             *shared_secret_ctx;     /**< context holding the roundkeys derived from shared secret */
+    speck_context_t *shared_secret_ctx;              /**< context holding the roundkeys derived from shared secret */
     n2n_private_public_key_t *federation_public_key; /**< federation public key provided by command line */
-    he_context_t     *header_encryption_ctx_static;  /**< Header encryption cipher context. */
-    he_context_t     *header_encryption_ctx_dynamic; /**< Header encryption cipher context. */
-    he_context_t             *header_iv_ctx_static;  /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
-    he_context_t             *header_iv_ctx_dynamic; /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
+    struct speck_context_t *header_encryption_ctx_static;  /**< Header encryption cipher context. */
+    struct speck_context_t *header_encryption_ctx_dynamic; /**< Header encryption cipher context. */
+    struct speck_context_t *header_iv_ctx_static;    /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
+    struct speck_context_t *header_iv_ctx_dynamic;   /**< Header IV ecnryption cipher context, REMOVE as soon as separate fileds for checksum and replay protection available */
     uint8_t header_encryption;                       /**< Header encryption indicator. */
     uint8_t transop_id;                              /**< The transop to use. */
     uint8_t compression;                             /**< Compress outgoing data packets before encryption */
@@ -616,7 +617,7 @@ typedef struct node_supernode_association {
 typedef struct sn_user {
     n2n_private_public_key_t public_key;
     n2n_private_public_key_t shared_secret;
-    he_context_t               *shared_secret_ctx;
+    struct speck_context_t *shared_secret_ctx;
     n2n_desc_t name;
 
     UT_hash_handle hh;
@@ -627,10 +628,10 @@ struct sn_community {
     bool is_federation;                                /* if true, then the current community is the federation of supernodes */
     bool purgeable;                                       /* indicates purgeable community (fixed-name, predetermined (-c parameter) communties usually are unpurgeable) */
     uint8_t header_encryption;                            /* Header encryption indicator. */
-    he_context_t          *header_encryption_ctx_static;  /* Header encryption cipher context. */
-    he_context_t          *header_encryption_ctx_dynamic; /* Header encryption cipher context. */
-    he_context_t                  *header_iv_ctx_static;  /* Header IV encryption cipher context, REMOVE as soon as separate fields for checksum and replay protection available */
-    he_context_t                  *header_iv_ctx_dynamic; /* Header IV encryption cipher context, REMOVE as soon as separate fields for checksum and replay protection available */
+    struct speck_context_t *header_encryption_ctx_static;  /* Header encryption cipher context. */
+    struct speck_context_t *header_encryption_ctx_dynamic; /* Header encryption cipher context. */
+    struct speck_context_t *header_iv_ctx_static;          /* Header IV encryption cipher context, REMOVE as soon as separate fields for checksum and replay protection available */
+    struct speck_context_t *header_iv_ctx_dynamic;         /* Header IV encryption cipher context, REMOVE as soon as separate fields for checksum and replay protection available */
     uint8_t dynamic_key[N2N_AUTH_CHALLENGE_SIZE];                       /* dynamic key */
     struct                        peer_info *edges;       /* Link list of registered edges. */
     node_supernode_association_t  *assoc;                 /* list of other edges from this community and their supernodes */
