@@ -1027,6 +1027,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
  * Confirm that we can send to this edge.
  * TODO: for the TCP case, this could cause a stall in the packet
  * send path, so this probably should be reworked to use a queue
+ * (and non blocking IO)
  */
 static bool check_sock_ready (struct n3n_runtime_data *eee) {
     if(!eee->conf.connect_tcp) {
@@ -1103,6 +1104,7 @@ err_out:
     if(eee->conf.connect_tcp) {
         supernode_disconnect(eee);
         eee->sn_wait = 1;
+        // Not true if eee->sock == -1
         traceEvent(TRACE_DEBUG, "error in sendto_fd");
     }
 
@@ -2886,6 +2888,9 @@ int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock
 #endif
             return -1;
         }
+
+        // TODO: if bread > 64K, something is wrong
+        // but this case should not happen
 
         // we have a datagram to process...
         if(bread > 0) {
