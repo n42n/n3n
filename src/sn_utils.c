@@ -308,13 +308,11 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
 
         // remove community
         HASH_DEL(sss->communities, comm);
-        if(NULL != comm->header_encryption_ctx_static) {
-            // remove header encryption keys
-            free(comm->header_encryption_ctx_static);
-            free(comm->header_iv_ctx_static);
-            free(comm->header_encryption_ctx_dynamic);
-            free(comm->header_iv_ctx_dynamic);
-        }
+        // remove header encryption keys
+        free(comm->header_encryption_ctx_static);
+        free(comm->header_iv_ctx_static);
+        free(comm->header_encryption_ctx_dynamic);
+        free(comm->header_iv_ctx_dynamic);
         free(comm);
     }
 
@@ -527,7 +525,7 @@ static ssize_t sendto_fd (struct n3n_runtime_data *sss,
             return -1;
         }
     } else {
-        traceEvent(TRACE_DEBUG, "sendto sent=%d to ", (signed int)sent);
+        traceEvent(TRACE_DEBUG, "sendto_fd sent=%d", (signed int)sent);
     }
 
     return sent;
@@ -1680,7 +1678,9 @@ static int process_udp (struct n3n_runtime_data * sss,
                            "unencrypted headers", comm->community);
                 /* set 'no encryption' in case it is not set yet */
                 comm->header_encryption = HEADER_ENCRYPTION_NONE;
+                free(comm->header_encryption_ctx_static);
                 comm->header_encryption_ctx_static = NULL;
+                free(comm->header_encryption_ctx_dynamic);
                 comm->header_encryption_ctx_dynamic = NULL;
             }
         }
@@ -2028,7 +2028,9 @@ static int process_udp (struct n3n_runtime_data * sss,
                     comm_init(comm, (char *)cmn.community);
                     /* new communities introduced by REGISTERs could not have had encrypted header... */
                     comm->header_encryption = HEADER_ENCRYPTION_NONE;
+                    free(comm->header_encryption_ctx_static);
                     comm->header_encryption_ctx_static = NULL;
+                    free(comm->header_encryption_ctx_dynamic);
                     comm->header_encryption_ctx_dynamic = NULL;
                     /* ... and also are purgeable during periodic purge */
                     comm->purgeable = true;
