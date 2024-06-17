@@ -96,7 +96,7 @@ The COMMON section is built as follows:
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    ! Version = 3   ! TTL           ! Flags                         !
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- 4 ! Community ...                                                  :
+ 4 ! Community ...                                                 :
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  8 ! ... Community ...                                             :
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -159,7 +159,7 @@ The scheme applied tries to maintain compatibility with current packet format an
 20 ! Version = 3   ! TTL           ! Flags                         !
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-- To be able to identify a correctly decrpyted header later on, a magic number is stamped in fourth line starting at byte number 16. We use "n2" string and add the 16-bit header length to be able to stop header decryption right before an eventually following ethernet data payload begins – in case of PACKET-type, header-length does not equal packet-length. 16-bit length is required because REGISTER_SUPER_ACK packets consist of header only and could grow quite large due to their payload (other supernodes of federation) – don't mix up this kind of payload (part of the header) with the ethernet data payload of PACKET messages.
+- To be able to identify a correctly decrpyted header later on, a magic number is stamped in fifth line starting at byte number 16. We use "n2" string and add the 16-bit header length to be able to stop header decryption right before an eventually following ethernet data payload begins – in case of PACKET-type, header-length does not equal packet-length. 16-bit length is required because REGISTER_SUPER_ACK packets consist of header only and could grow quite large due to their payload (other supernodes of federation) – don't mix up this kind of payload (part of the header) with the ethernet data payload of PACKET messages.
 
 - The rest of the community field, namely the first 16 bytes, is reframed towards a 128-bit IV for the header encryption.
 
@@ -199,7 +199,7 @@ former unecrypted communities: their names were transmitted openly.
 
 ### Checksum
 
-The whole packet including the eventually present payload is checksummed using a Person block hashing scheme. The 64-bit checksum is exclusive-ored with a (shifted by 32 bit) 64-bit time stamp and filled up with 32 more random bits to obtain a 128-bit pre-IV. This pre-IV gets encrypted using a single block-cipher step to get the pseudo-random looking IV. This way, the checksum resists targeted bit-flips (to header, payload, and IV) as any change to the whole 128-bit IV would render the header un-decryptable. Also, as explained below, the checksum comes along with a time stamp minimizing opportunities for random attacks.
+The whole packet including the eventually present payload is checksummed using a Pearson block hashing scheme. The 64-bit checksum is exclusive-ored with a (shifted by 32 bit) 64-bit time stamp and filled up with 32 more random bits to obtain a 128-bit pre-IV. This pre-IV gets encrypted using a single block-cipher step to get the pseudo-random looking IV. This way, the checksum resists targeted bit-flips (to header, payload, and IV) as any change to the whole 128-bit IV would render the header un-decryptable. Also, as explained below, the checksum comes along with a time stamp minimizing opportunities for random attacks.
 
 The single block-cipher step employs SPECK because it is quite fast and it offers a 128-bit block cipher version. The key is derived from the header key – a hash of the hash.
 
@@ -219,7 +219,7 @@ The aforementioned 128-bit pre-IV can be depicted as follows:
 
 ```
 
-The time stamp consists of the 52-bit microsecond value, a 8-bit counter in case of equal following time stamps and, a 4-bit flag field F (accuracy indicator in last bit). edge and supernode monitor their own time stamps for doublets which would indicate an accuracy issue. If the counter overflows on the same time stamp, the sub-second part of the time stamp will also become counter. In this case, the whole stamp carries the accuracy bit flag (lowest bit) set so other edges and supernodes can handle this stamp appropriately.
+The time stamp consists of the 52-bit microsecond value, an 8-bit counter in case of equal following time stamps and, a 4-bit flag field F (accuracy indicator in last bit). edge and supernode monitor their own time stamps for doublets which would indicate an accuracy issue. If the counter overflows on the same time stamp, the sub-second part of the time stamp will also become counter. In this case, the whole stamp carries the accuracy bit flag (lowest bit) set so other edges and supernodes can handle this stamp appropriately.
 
 Encrypting this pre-IV using a block cipher step will generate a pseudo-random looking IV which gets written to the packet and used for the header encryption.
 
@@ -231,6 +231,6 @@ Upon receival, the time stamp as well as the checksum can be extracted from the 
 
 - Valid (remote) time stamps get stored as "last valid time stamp" seen from each node (supernode and edges). So, a newly arriving packet's time stamp can be compared to the last valid one. It should be equal or higher. However, as UDP packets may overtake each other just by taking another path through the internet, they are allowed to be 160 millisecond earlier than the last valid one. This limit is set with the `TIME_STAMP_JITTER` definition. If the accuracy flag is set, the time stamp will be allowed a jitter eight times as high, corresponding to 1.25 seconds by default.
 
-- However, the systemic packets such as REGISTER_SUPER are not allowed any time stamp jitter because n3n relies on the actual sender's socket. A replay from another IP within any allowed jitter time frame would deviate the traffic which shall be prevented (even if it remains undecryptable). Under absolutely rare (!) circumstances, this might cause a re-registration requirement which happens automatically but might cause a small delay – security (including network availability) first! REGISTER packets from the local multicast environment are exempt from the very strict no-jitter requirement because they indeed regularly can show some deviation if compared to time stamps in packets received on the regular socket. As these packets are incoming on different sockets, their processing is more likely to no take place in the order these packets were sent.
+- However, the systemic packets such as REGISTER_SUPER are not allowed any time stamp jitter because n3n relies on the actual sender's socket. A replay from another IP within any allowed jitter time frame would deviate the traffic which shall be prevented (even if it remains undecryptable). Under absolutely rare (!) circumstances, this might cause a re-registration requirement which happens automatically but might cause a small delay – security (including network availability) first! REGISTER packets from the local multicast environment are exempt from the very strict no-jitter requirement because they indeed regularly can show some deviation if compared to time stamps in packets received on the regular socket. As these packets are incoming on different sockets, their processing is more likely to not take place in the order these packets were sent.
 
 The way the IV is used for replay protection and for checksumming makes enabled header encryption a prerequisite for these features.

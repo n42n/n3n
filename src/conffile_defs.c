@@ -38,7 +38,7 @@ static struct n3n_conf_option section_community[] = {
         .desc = "The name of the cipher to use",
         .help = "Choose from any of the registered ciphers for payload "
                 "encryption (requires a key). "
-                "(eg: Twofish, AES, ChaCha20, Speck-CTR).",
+                "(eg: Twofish, AES, ChaCha20, Speck).",
     },
     {
         .name = "compression",
