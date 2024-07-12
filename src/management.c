@@ -329,11 +329,7 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int 
             count
         );
     }
-    sb_reprintf(&conn->request, "}}");
-
-    // Update the reply buffer after last potential realloc
-    conn->reply = conn->request;
-    generate_http_headers(conn, "application/json", code);
+    sb_reprintf(&conn->request, "}");
 }
 
 static void jsonrpc_result_head (char *id, conn_t *conn) {
@@ -410,12 +406,18 @@ static void jsonrpc_stop (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
     jsonrpc_1uint(id, conn, *eee->keep_running);
 }
 
-static void jsonrpc_listend_hack (conn_t *conn, const char *endch) {
-    if(sb_overflowed(conn->request)) {
-        // Make a clear indicator in the output
-        sb_append(conn->request, "\"overflow\"", 10);
+static bool jsonrpc_error_overflow (char *id, conn_t *conn, int count) {
+    if(!sb_overflowed(conn->request)) {
+        // Nothing to do
+        return false;
     }
 
+    jsonrpc_error(id, conn, 507, "overflow", count);
+    jsonrpc_result_tail(conn, 507);
+    return true;
+}
+
+static void jsonrpc_listend_hack (conn_t *conn, const char *endch) {
     // HACK: back up over the final ','
     if(conn->request->str[conn->request->wr_pos-1] == ',') {
         conn->request->wr_pos--;
@@ -436,6 +438,7 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
     struct sn_community *tmp_community;
     struct node_supernode_association *assoc;
     struct node_supernode_association *tmp_assoc;
+    int count = 0;
     HASH_ITER(hh, eee->communities, community, tmp_community) {
         HASH_ITER(hh, community->assoc, assoc, tmp_assoc) {
 
@@ -465,6 +468,11 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
                         port,
                         (uint32_t)assoc->last_seen
             );
+
+            if(jsonrpc_error_overflow(id, conn, count)) {
+                return;
+            }
+            count++;
         }
     }
 
@@ -497,6 +505,8 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
 
+    int count = 0;
+
     HASH_ITER(hh, eee->communities, community, tmp) {
 
         sb_reprintf(&conn->request,
@@ -509,6 +519,11 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
                     community->purgeable,
                     community->is_federation,
                     (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
+
+        if(jsonrpc_error_overflow(id, conn, count)) {
+            return;
+        }
+        count++;
     }
 
     jsonrpc_listend_hack(conn, "]");
@@ -566,6 +581,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
 
+    int count = 0;
     // dump nodes with forwarding through supernodes
     HASH_ITER(hh, eee->pending_peers, peer, tmpPeer) {
         jsonrpc_get_edges_row(
@@ -574,6 +590,11 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
             "pSp",
             eee->conf.community_name
         );
+
+        if(jsonrpc_error_overflow(id, conn, count)) {
+            return;
+        }
+        count++;
     }
 
     // dump peer-to-peer nodes
@@ -584,6 +605,11 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
             "p2p",
             eee->conf.community_name
         );
+
+        if(jsonrpc_error_overflow(id, conn, count)) {
+            return;
+        }
+        count++;
     }
 
     struct sn_community *community, *tmp;
@@ -596,6 +622,11 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
                 (community->is_federation) ? "-/-" : community->community
             );
         }
+
+        if(jsonrpc_error_overflow(id, conn, count)) {
+            return;
+        }
+        count++;
     }
 
 
