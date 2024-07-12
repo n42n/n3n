@@ -398,7 +398,7 @@ static void jsonrpc_stop (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
     jsonrpc_1uint(id, conn, *eee->keep_running);
 }
 
-static void jsonrpc_listend_overflow (conn_t *conn) {
+static void jsonrpc_listend_hack (conn_t *conn, const char *endch) {
     if(sb_overflowed(conn->request)) {
         // Make a clear indicator in the output
         sb_append(conn->request, "\"overflow\"", 10);
@@ -408,6 +408,8 @@ static void jsonrpc_listend_overflow (conn_t *conn) {
     if(conn->request->str[conn->request->wr_pos-1] == ',') {
         conn->request->wr_pos--;
     }
+    // and replace with the relevant list ending char
+    sb_reprintf(&conn->request, endch);
 }
 
 static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
@@ -454,8 +456,7 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
         }
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -498,8 +499,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
                     (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -587,8 +587,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
     }
 
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -663,8 +662,7 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
                     (uint32_t)peer->uptime);
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -770,8 +768,7 @@ static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, con
                 "\"tx_pkt\":%u},",
                 eee->stats.sn_errors);
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -844,8 +841,7 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
         );
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -892,8 +888,7 @@ static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
 
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
