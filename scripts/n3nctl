@@ -99,7 +99,14 @@ class JsonRPC:
         return req
 
     class Unauthenticated(Exception):
+        """Raised if the request needs authentication added"""
         pass
+
+    class Overflow(Exception):
+        """Raised if the daemon overflows its internal buffer"""
+        def __init__(self, count):
+            self.count = count
+            super().__init__()
 
     def get(self, method, params=None):
         req = self._request_obj(method, params)
@@ -111,23 +118,25 @@ class JsonRPC:
                 raise JsonRPC.Unauthenticated
             raise e
 
-        if r.status == 401:
-            raise JsonRPC.Unauthenticated
-        if r.status != 200:
-            raise ValueError(f"urllib request got {r.status} {r.reason}")
-
         body = r.read()
 
         if self.debug:
             print("reply:", body)
-        r = json.loads(body)
+        body = json.loads(body)
 
-        if "result" not in r:
+        if r.status == 401:
+            raise JsonRPC.Unauthenticated
+        if r.status == 507:
+            raise JsonRPC.Overflow(body["error"]["data"]["count"])
+        if r.status != 200:
+            raise ValueError(f"urllib request got {r.status} {r.reason}")
+
+        if "result" not in body:
             raise ValueError("jsonrpc error")
 
-        assert (r['id'] == str(self.id))
+        assert (body['id'] == str(self.id))
 
-        return r['result']
+        return body['result']
 
 
 def str_table(rows, columns, orderby):
