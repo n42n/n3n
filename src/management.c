@@ -301,7 +301,7 @@ void mgmt_event_post (const enum n3n_event_topic topic, int data0, const void *d
     // - if the write returns EWOULDBLOCK, increment a metric and return
 }
 
-static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
+static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int count) {
     // Reuse the request buffer
     sb_zero(conn->request);
 
@@ -311,13 +311,25 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
         "\"jsonrpc\":\"2.0\","
         "\"id\":\"%s\","
         "\"error\":{"
-        " \"code\":%i,"
-        " \"message\":\"%s\""
-        "}}",
+        "\"code\":%i,"
+        "\"message\":\"%s\"",
         id,
         code,
         message
     );
+
+    if(count) {
+        sb_reprintf(
+            &conn->request,
+            ","
+            "\"data\":"
+            "{"
+            "\"count\":%i"
+            "}",
+            count
+        );
+    }
+    sb_reprintf(&conn->request, "}}");
 
     // Update the reply buffer after last potential realloc
     conn->reply = conn->request;
@@ -364,12 +376,12 @@ static void jsonrpc_set_verbose (char *id, struct n3n_runtime_data *eee, conn_t 
     }
 
     if(!params_in) {
-        jsonrpc_error(id, conn, 400, "missing param");
+        jsonrpc_error(id, conn, 400, "missing param", 0);
         return;
     }
 
     if(*params_in != '[') {
-        jsonrpc_error(id, conn, 400, "expecting array");
+        jsonrpc_error(id, conn, 400, "expecting array", 0);
         return;
     }
 
@@ -464,7 +476,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
     if(!eee->communities) {
         // This is an edge
         if(eee->conf.header_encryption != HEADER_ENCRYPTION_NONE) {
-            jsonrpc_error(id, conn, 403, "Forbidden");
+            jsonrpc_error(id, conn, 403, "Forbidden", 0);
             return;
         }
 
