@@ -102,3 +102,14 @@ defaults to 'n3n' and can either be set with the config option
 If the result of an API call will overrun the size of the internal buffer,
 the response will indicate an "overflow" condition by returning a 507 result
 and a JsonRPC error object.
+
+When an overflow condition is returned, the error object may contain the
+count of the number of items that could be added before the overflow occured.
+The request can be retried with pagination parameters to avoid the overflow.
+(Note that this also opens up a window for the internal data to change during
+the paginated request)
+
+Add the offset and limit values to the param dictionary.
+
+The n3nctl tool has an example on how to use this implemented in its
+JsonRPC.get() method
