@@ -17,10 +17,6 @@ import urllib.parse
 import urllib.request
 
 
-class Unauthenticated(Exception):
-    pass
-
-
 class UnixHandler(urllib.request.BaseHandler):
     def __init__(self, basepath):
         self.basepath = basepath
@@ -102,6 +98,9 @@ class JsonRPC:
             req.add_header("Authorization", b"Basic " + encoded)
         return req
 
+    class Unauthenticated(Exception):
+        pass
+
     def get(self, method, params=None):
         req = self._request_obj(method, params)
 
@@ -109,11 +108,11 @@ class JsonRPC:
             r = urllib.request.urlopen(req, timeout=self.timeout)
         except urllib.error.HTTPError as e:
             if e.code == 401:
-                raise Unauthenticated
+                raise JsonRPC.Unauthenticated
             raise e
 
         if r.status == 401:
-            raise Unauthenticated
+            raise JsonRPC.Unauthenticated
         if r.status != 200:
             raise ValueError(f"urllib request got {r.status} {r.reason}")
 
@@ -362,7 +361,7 @@ def main():
 
     try:
         result = func(rpc, args)
-    except Unauthenticated:
+    except JsonRPC.Unauthenticated:
         print("This request requires an authentication key")
         exit(1)
     except FileNotFoundError:
