@@ -96,3 +96,9 @@ will check for a standard HTTP Authorization header in the request.
 The authentication is a simple password that the client must provide. It
 defaults to 'n3n' and can either be set with the config option
 `management.password`
+
+## Pagination
+
+If the result of an API call will overrun the size of the internal buffer,
+the response will indicate an "overflow" condition by returning a 507 result
+and a JsonRPC error object.
