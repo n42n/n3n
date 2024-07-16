@@ -444,7 +444,7 @@ static void jsonrpc_listend_hack (conn_t *conn, const char *endch) {
         conn->request->wr_pos--;
     }
     // and replace with the relevant list ending char
-    sb_reprintf(&conn->request, endch);
+    sb_reprintf(&conn->request, "%s", endch);
 }
 
 static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
