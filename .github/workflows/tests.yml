@@ -150,6 +150,10 @@ jobs:
         run: |
           git fetch --force --tags
 
+      - name: Install packages
+        run: |
+          brew install automake
+
       - name: generate a makefile and use it to install more packages
         run: |
           ./autogen.sh
