@@ -1021,7 +1021,18 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_WARNING, "unable to retain permitted capabilities [%s]\n", strerror(errno));
 #else
 #ifndef __APPLE__
-    traceEvent(TRACE_WARNING, "n3n has not been compiled with libcap-dev; some commands may fail");
+    // TODO:
+    // - refactor and the libcap usage and prove exactly where any issues may
+    //   occur
+    // - Output any informational warnings before taking those actions,
+    //   instead of this nebulous warning at startup time
+    // - Continue improving the ability to run with reduced runtime permissions
+    //   and incorporate that in the standard examples
+    traceEvent(
+        TRACE_WARNING,
+        "The build option to add libcap-dev was not used. "
+        "Some actions may cause permissions messages."
+    );
 #endif
 #endif /* HAVE_LIBCAP */
 
