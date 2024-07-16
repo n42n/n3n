@@ -17,10 +17,6 @@ import urllib.parse
 import urllib.request
 
 
-class Unauthenticated(Exception):
-    pass
-
-
 class UnixHandler(urllib.request.BaseHandler):
     def __init__(self, basepath):
         self.basepath = basepath
@@ -102,33 +98,109 @@ class JsonRPC:
             req.add_header("Authorization", b"Basic " + encoded)
         return req
 
-    def get(self, method, params=None):
+    class Unauthenticated(Exception):
+        """Raised if the request needs authentication added"""
+        pass
+
+    class Overflow(Exception):
+        """Raised if the daemon overflows its internal buffer"""
+        def __init__(self, count):
+            self.count = count
+            super().__init__()
+
+    def get_nopagination(self, method, params=None):
+        """Makes the RPC request, with no automated pagination retry"""
+
         req = self._request_obj(method, params)
 
         try:
             r = urllib.request.urlopen(req, timeout=self.timeout)
         except urllib.error.HTTPError as e:
             if e.code == 401:
-                raise Unauthenticated
+                raise JsonRPC.Unauthenticated
             raise e
 
         if r.status == 401:
-            raise Unauthenticated
-        if r.status != 200:
-            raise ValueError(f"urllib request got {r.status} {r.reason}")
+            raise JsonRPC.Unauthenticated
 
         body = r.read()
 
         if self.debug:
             print("reply:", body)
-        r = json.loads(body)
+        body = json.loads(body)
 
-        if "result" not in r:
+        if r.status == 507:
+            raise JsonRPC.Overflow(body["error"]["data"]["count"])
+        if r.status != 200:
+            raise ValueError(f"urllib request got {r.status} {r.reason}")
+
+        if "result" not in body:
             raise ValueError("jsonrpc error")
 
-        assert (r['id'] == str(self.id))
+        assert (body['id'] == str(self.id))
 
-        return r['result']
+        return body['result']
+
+    def get(self, method, offset=None, limit=None, params=None):
+        if params is not None and len(params) == 0:
+            # This can happen with the args passed from CLI
+            params = None
+
+        # Populate the params if needed
+        if offset is not None:
+            if params is None:
+                params = dict()
+            params["offset"] = offset
+        if limit is not None:
+            if params is None:
+                params = dict()
+            params["limit"] = limit
+
+        # Try once, possibly without pagination, to see if we overflow. And
+        # if so, to detect a good size for the limit
+        try:
+            return self.get_nopagination(method, params)
+        except JsonRPC.Overflow as e:
+            count_max = e.count
+
+        if params is None:
+            params = dict()
+
+        if not isinstance(params, dict):
+            """Since we overflowed, params must be compatible"""
+            raise ValueError(f"Cannot use params={params} with autopagination")
+
+        params["limit"] = count_max
+        params["offset"] = 0
+
+        result = []
+
+        while True:
+            try:
+                partial = self.get_nopagination(method, params)
+            except JsonRPC.Overflow as e:
+                if count_max == e.count:
+                    # If the limit didnt get smaller, there is a problem with
+                    # the daemon, so we just bail out
+                    raise
+
+                # reduce our asking size and try again
+                count_max = e.count
+                params["limit"] = count_max
+                continue
+
+            if not isinstance(partial, list):
+                # The current API only returns lists, but there could be
+                # dicts in the future, catch this
+                raise NotImplementedError
+
+            result.extend(partial)
+            params["offset"] = len(result)
+
+            if len(partial) < params["limit"]:
+                # We fetched less than we asked for, so we must be at the end
+                # of the list
+                return result
 
 
 def str_table(rows, columns, orderby):
@@ -292,7 +364,7 @@ def subcmd_default(rpc, args):
     """Just pass command through to edge"""
     method = args.cmd
     params = args.args
-    rows = rpc.get(method, params)
+    rows = rpc.get(method, params=params)
     return json.dumps(rows, sort_keys=True, indent=4)
 
 
@@ -362,7 +434,7 @@ def main():
 
     try:
         result = func(rpc, args)
-    except Unauthenticated:
+    except JsonRPC.Unauthenticated:
         print("This request requires an authentication key")
         exit(1)
     except FileNotFoundError:

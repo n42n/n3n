@@ -301,7 +301,27 @@ void mgmt_event_post (const enum n3n_event_topic topic, int data0, const void *d
     // - if the write returns EWOULDBLOCK, increment a metric and return
 }
 
-static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
+static void extract_pagination (char *params, int *limit, int *offset) {
+    char *limitstr = json_find_field(params, "\"limit\"");
+    char *offsetstr = json_find_field(params, "\"offset\"");
+
+    // do all the field finding first, since the value extractor will
+    // insert nulls at the end of its strings
+
+    if(limitstr) {
+        *limit = atoi(json_extract_val(limitstr));
+    } else {
+        *limit = 2147483647; // default
+    }
+
+    if(offsetstr) {
+        *offset = atoi(json_extract_val(offsetstr));
+    } else {
+        offset = 0;
+    }
+}
+
+static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int count) {
     // Reuse the request buffer
     sb_zero(conn->request);
 
@@ -311,17 +331,25 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message) {
         "\"jsonrpc\":\"2.0\","
         "\"id\":\"%s\","
         "\"error\":{"
-        " \"code\":%i,"
-        " \"message\":\"%s\""
-        "}}",
+        "\"code\":%i,"
+        "\"message\":\"%s\"",
         id,
         code,
         message
     );
 
-    // Update the reply buffer after last potential realloc
-    conn->reply = conn->request;
-    generate_http_headers(conn, "application/json", code);
+    if(count) {
+        sb_reprintf(
+            &conn->request,
+            ","
+            "\"data\":"
+            "{"
+            "\"count\":%i"
+            "}",
+            count
+        );
+    }
+    sb_reprintf(&conn->request, "}");
 }
 
 static void jsonrpc_result_head (char *id, conn_t *conn) {
@@ -364,16 +392,17 @@ static void jsonrpc_set_verbose (char *id, struct n3n_runtime_data *eee, conn_t 
     }
 
     if(!params_in) {
-        jsonrpc_error(id, conn, 400, "missing param");
+        jsonrpc_error(id, conn, 400, "missing param", 0);
         return;
     }
 
     if(*params_in != '[') {
-        jsonrpc_error(id, conn, 400, "expecting array");
+        jsonrpc_error(id, conn, 400, "expecting array", 0);
         return;
     }
 
     // Avoid discarding the const attribute
+    // TODO: avoid malloc()
     char *params = strdup(params_in+1);
 
     char *arg1 = json_extract_val(params);
@@ -398,16 +427,24 @@ static void jsonrpc_stop (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
     jsonrpc_1uint(id, conn, *eee->keep_running);
 }
 
-static void jsonrpc_listend_overflow (conn_t *conn) {
-    if(sb_overflowed(conn->request)) {
-        // Make a clear indicator in the output
-        sb_append(conn->request, "\"overflow\"", 10);
+static bool jsonrpc_error_overflow (char *id, conn_t *conn, int count) {
+    if(!sb_overflowed(conn->request)) {
+        // Nothing to do
+        return false;
     }
 
+    jsonrpc_error(id, conn, 507, "overflow", count);
+    jsonrpc_result_tail(conn, 507);
+    return true;
+}
+
+static void jsonrpc_listend_hack (conn_t *conn, const char *endch) {
     // HACK: back up over the final ','
     if(conn->request->str[conn->request->wr_pos-1] == ',') {
         conn->request->wr_pos--;
     }
+    // and replace with the relevant list ending char
+    sb_reprintf(&conn->request, "%s", endch);
 }
 
 static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
@@ -422,8 +459,21 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
     struct sn_community *tmp_community;
     struct node_supernode_association *assoc;
     struct node_supernode_association *tmp_assoc;
+
+    int limit;      // max number of items to add to this packet
+    int offset = 0; // Number of items to skip before adding
+    extract_pagination((char *)params, &limit, &offset);
+    int count = 0;  // Number of items in this reply packet
+    int index = 0;  // Track the current item number
+
     HASH_ITER(hh, eee->communities, community, tmp_community) {
         HASH_ITER(hh, community->assoc, assoc, tmp_assoc) {
+            if(index < offset) {
+                index++;
+                continue;
+            }
+            index++;
+
 
             char buf[1000];
             char port[10];
@@ -451,11 +501,18 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
                         port,
                         (uint32_t)assoc->last_seen
             );
+
+            if(jsonrpc_error_overflow(id, conn, count)) {
+                return;
+            }
+            count++;
+            if(count >= limit) {
+                break;
+            }
         }
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -463,7 +520,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
     if(!eee->communities) {
         // This is an edge
         if(eee->conf.header_encryption != HEADER_ENCRYPTION_NONE) {
-            jsonrpc_error(id, conn, 403, "Forbidden");
+            jsonrpc_error(id, conn, 403, "Forbidden", 0);
             return;
         }
 
@@ -484,7 +541,18 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
 
+    int limit;      // max number of items to add to this packet
+    int offset = 0; // Number of items to skip before adding
+    extract_pagination((char *)params, &limit, &offset);
+    int count = 0;  // Number of items in this reply packet
+    int index = 0;  // Track the current item number
+
     HASH_ITER(hh, eee->communities, community, tmp) {
+        if(index < offset) {
+            index++;
+            continue;
+        }
+        index++;
 
         sb_reprintf(&conn->request,
                     "{"
@@ -496,10 +564,17 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
                     community->purgeable,
                     community->is_federation,
                     (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
+
+        if(jsonrpc_error_overflow(id, conn, count)) {
+            return;
+        }
+        count++;
+        if(count >= limit) {
+            break;
+        }
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -554,41 +629,88 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
 
+    int limit;      // max number of items to add to this packet
+    int offset = 0; // Number of items to skip before adding
+    extract_pagination((char *)params, &limit, &offset);
+    int count = 0;  // Number of items in this reply packet
+    int index = 0;  // Track the current item number
+
     // dump nodes with forwarding through supernodes
     HASH_ITER(hh, eee->pending_peers, peer, tmpPeer) {
+        if(index < offset) {
+            index++;
+            continue;
+        }
+        index++;
+
         jsonrpc_get_edges_row(
             &conn->request,
             peer,
             "pSp",
             eee->conf.community_name
         );
+
+        if(jsonrpc_error_overflow(id, conn, count)) {
+            return;
+        }
+        count++;
+        if(count >= limit) {
+            break;
+        }
     }
 
     // dump peer-to-peer nodes
     HASH_ITER(hh, eee->known_peers, peer, tmpPeer) {
+        if(index < offset) {
+            index++;
+            continue;
+        }
+        index++;
+
         jsonrpc_get_edges_row(
             &conn->request,
             peer,
             "p2p",
             eee->conf.community_name
         );
+
+        if(jsonrpc_error_overflow(id, conn, count)) {
+            return;
+        }
+        count++;
+        if(count >= limit) {
+            break;
+        }
     }
 
     struct sn_community *community, *tmp;
     HASH_ITER(hh, eee->communities, community, tmp) {
         HASH_ITER(hh, community->edges, peer, tmpPeer) {
+            if(index < offset) {
+                index++;
+                continue;
+            }
+            index++;
+
             jsonrpc_get_edges_row(
                 &conn->request,
                 peer,
                 "sn",
                 (community->is_federation) ? "-/-" : community->community
             );
+
+            if(jsonrpc_error_overflow(id, conn, count)) {
+                return;
+            }
+            count++;
+            if(count >= limit) {
+                break;
+            }
         }
     }
 
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -663,8 +785,7 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
                     (uint32_t)peer->uptime);
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -770,8 +891,7 @@ static void jsonrpc_get_packetstats (char *id, struct n3n_runtime_data *eee, con
                 "\"tx_pkt\":%u},",
                 eee->stats.sn_errors);
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -844,8 +964,7 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
         );
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 
@@ -892,8 +1011,7 @@ static void jsonrpc_help (char *id, struct n3n_runtime_data *eee, conn_t *conn, 
 
     }
 
-    jsonrpc_listend_overflow(conn);
-    sb_reprintf(&conn->request, "]");
+    jsonrpc_listend_hack(conn, "]");
     jsonrpc_result_tail(conn, 200);
 }
 

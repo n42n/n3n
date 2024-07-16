@@ -54,8 +54,6 @@
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
-static struct n3n_runtime_data sss_node;
-
 /* *************************************************** */
 
 #define GETOPTS "O:Vdhv"
@@ -383,6 +381,7 @@ static void term_handler (int sig)
 
 /** Main program entry point from kernel. */
 int main (int argc, char * argv[]) {
+    static struct n3n_runtime_data sss_node;
 
     // Do this early to register all internals
     n3n_initfuncs();

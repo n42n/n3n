@@ -316,7 +316,7 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
 
 // open socket, close it before if TCP
 // in case of TCP, 'connect()' is required
-int supernode_connect (struct n3n_runtime_data *eee) {
+void supernode_connect (struct n3n_runtime_data *eee) {
 
     int sockopt;
     struct sockaddr_in sn_sock;
@@ -338,7 +338,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
 
         if(eee->sock < 0) {
             traceEvent(TRACE_ERROR, "failed to bind main UDP port");
-            return -1;
+            return;
         }
 
         fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
@@ -354,8 +354,9 @@ int supernode_connect (struct n3n_runtime_data *eee) {
 #endif
             if((connect(eee->sock, (struct sockaddr*)&(sn_sock), sizeof(struct sockaddr)) < 0)
                && (errno != EINPROGRESS)) {
+                traceEvent(TRACE_INFO, "Error connecting TCP: %i", errno);
                 eee->sock = -1;
-                return -1;
+                return;
             }
         }
 
@@ -426,7 +427,7 @@ int supernode_connect (struct n3n_runtime_data *eee) {
     // REVISIT: add mgmt port notification to listener for better mgmt port
     //          subscription support
 
-    return 0;
+    return;
 }
 
 
@@ -1026,6 +1027,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
  * Confirm that we can send to this edge.
  * TODO: for the TCP case, this could cause a stall in the packet
  * send path, so this probably should be reworked to use a queue
+ * (and non blocking IO)
  */
 static bool check_sock_ready (struct n3n_runtime_data *eee) {
     if(!eee->conf.connect_tcp) {
@@ -1102,6 +1104,7 @@ err_out:
     if(eee->conf.connect_tcp) {
         supernode_disconnect(eee);
         eee->sn_wait = 1;
+        // Not true if eee->sock == -1
         traceEvent(TRACE_DEBUG, "error in sendto_fd");
     }
 
@@ -2885,6 +2888,9 @@ int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock
 #endif
             return -1;
         }
+
+        // TODO: if bread > 64K, something is wrong
+        // but this case should not happen
 
         // we have a datagram to process...
         if(bread > 0) {
