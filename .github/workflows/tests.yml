@@ -140,7 +140,6 @@ jobs:
       fail-fast: true
       matrix:
         os:
-          - macos-11
           - macos-12
 
     steps:
@@ -150,11 +149,6 @@ jobs:
       - name: Fix Checkout
         run: |
           git fetch --force --tags
-
-
-      - name: Install packages
-        run: |
-          brew install automake
 
       - name: generate a makefile and use it to install more packages
         run: |
