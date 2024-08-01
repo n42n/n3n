@@ -1383,7 +1383,11 @@ int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
 
 #ifndef _WIN32
+#ifndef BUILD_OPENWRT
     char *basedir = "/run/n3n";
+#else
+    char *basedir = "/tmp/run/n3n";
+#endif
 #endif
 #ifdef _WIN32
     char basedir[1024];

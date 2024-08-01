@@ -32,7 +32,6 @@ define Package/n3n/Default
   TITLE:=N2N Peer-to-peer VPN
   URL:=http://github.com/n42n/n3n
   SUBMENU:=VPN
-  DEPENDS+=+libcap
 endef
 
 define Package/n3n-edge
@@ -57,7 +56,7 @@ endef
 define Build/Configure
 	( cd $(PKG_BUILD_DIR); \
 	./autogen.sh; \
-	LDFLAGS=--static ./configure )
+	LDFLAGS=--static ./configure CFLAGS="-DBUILD_OPENWRT" )
 endef
 
 define Package/n3n-edge/conffiles
