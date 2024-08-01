@@ -119,8 +119,9 @@ enum n3n_event_topic {
 
 #define N3N_EVENT_PEER_PURGE    1
 #define N3N_EVENT_PEER_CLEAR    2
-#define N3N_EVENT_PEER_DEL_P2P  3
-#define N3N_EVENT_PEER_ADD_P2P  4
+#define N3N_EVENT_PEER_P2P_ADD  3
+#define N3N_EVENT_PEER_P2P_CHANGED  4
+#define N3N_EVENT_PEER_P2P_EXPIRED  5
 
 #define N3N_MGMT_PASSWORD  "n3n"               /* default password for management port access (so far, json only) */
 
