@@ -150,8 +150,9 @@ static void event_test (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
 static const char *event_peer_actions[] = {
     [N3N_EVENT_PEER_PURGE] = "purge",
     [N3N_EVENT_PEER_CLEAR] = "clear",
-    [N3N_EVENT_PEER_DEL_P2P] = "del_p2p",
-    [N3N_EVENT_PEER_ADD_P2P] = "add_p2p",
+    [N3N_EVENT_PEER_P2P_ADD] = "p2p_add",
+    [N3N_EVENT_PEER_P2P_CHANGED] = "p2p_changed",
+    [N3N_EVENT_PEER_P2P_EXPIRED] = "p2p_expired",
 };
 
 static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, const void *data1) {

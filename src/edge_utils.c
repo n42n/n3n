@@ -843,7 +843,7 @@ static void peer_set_p2p_confirmed (struct n3n_runtime_data * eee,
 
         HASH_ADD_PEER(eee->known_peers, scan);
         scan->last_p2p = now;
-        mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_ADD_P2P,scan);
+        mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_P2P_ADD,scan);
 
         traceEvent(TRACE_DEBUG, "p2p connection established: %s [%s]",
                    macaddr_str(mac_buf, mac),
@@ -1010,7 +1010,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
                        sock_to_cstr(sockbuf2, peer));
             /* The peer has changed public socket. It can no longer be assumed to be reachable. */
             HASH_DEL(eee->known_peers, scan);
-            mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
+            mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_P2P_CHANGED,scan);
             peer_info_free(scan);
 
             register_with_new_peer(eee, from_supernode, via_multicast, mac, dev_addr, dev_desc, peer);
@@ -1975,7 +1975,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
              * since the peer address may have changed. */
             traceEvent(TRACE_DEBUG, "refreshing idle known peer");
             HASH_DEL(eee->known_peers, scan);
-            mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_DEL_P2P,scan);
+            mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_P2P_EXPIRED,scan);
             peer_info_free(scan);
             /* NOTE: registration will be performed upon the receival of the next response packet */
         } else {

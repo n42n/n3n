@@ -62,13 +62,14 @@ INSTALL_DOC=$(INSTALL) -m444
 # DESTDIR set in debian make system
 PREFIX=$(DESTDIR)/$(CONFIG_PREFIX)
 
-# Note that both these install dirs are outside of the CONFIG_PREFIX.
+# Note that these three install dirs are outside of the CONFIG_PREFIX.
 # The ETCDIR is not configurable in the code, so no changes should be done
 # without code changes.
 # The systemd unit dir should default to /lib for most Debian packages (if
 # CONFIG_PREFIX is /usr) otherwise it should be based on the prefix.
 # The current autotools has hacks to apply this logic.
 ETCDIR=$(DESTDIR)/etc/n3n
+CONFIG_RUNDIR?=$(DESTDIR)/run
 CONFIG_SYSTEMDDIR?=$(DESTDIR)/lib/systemd/system
 
 CONFIG_BINDIR?=$(PREFIX)/bin
@@ -77,6 +78,8 @@ CONFIG_MANDIR?=$(PREFIX)/share/man
 MAN7DIR=$(CONFIG_MANDIR)/man7
 MAN8DIR=$(CONFIG_MANDIR)/man8
 CONFIG_DOCDIR?=$(PREFIX)/share/doc/n3n
+
+CFLAGS+=-DCONFIG_RUNDIR='"$(CONFIG_RUNDIR)"'
 
 #######################################
 # All the additiona needed for using the n3n library

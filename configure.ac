@@ -43,6 +43,12 @@ case "$host_os" in
         ;;
 esac
 
+AC_ARG_WITH([rundir],
+    AS_HELP_STRING([--with-rundir=DIR], [location of the system /run dir]),
+    [rundir=$withval],
+    [rundir="/run"]
+)
+
 AC_ARG_WITH([systemddir],
     AS_HELP_STRING([--with-systemddir=DIR], [Where to install systemd units]),
     [systemddir=$withval],
@@ -134,13 +140,18 @@ AS_IF([test "x$systemddir" = "x" ],
 CONFIG_DOCDIR=$(eval echo $(eval echo $docdir))
 CONFIG_MANDIR=$(eval echo $(eval echo $mandir))
 CONFIG_PREFIX=$prefix
+CONFIG_RUNDIR=$rundir
 CONFIG_SYSTEMDDIR=$systemddir
+
+configure_command=$0$ac_configure_args_raw
 
 AC_SUBST(CONFIG_DOCDIR)
 AC_SUBST(CONFIG_MANDIR)
 AC_SUBST(CONFIG_PREFIX)
+AC_SUBST(CONFIG_RUNDIR)
 AC_SUBST(CONFIG_SYSTEMDDIR)
 
+AC_SUBST(configure_command)
 AC_SUBST(host)
 AC_SUBST(host_os)
 AC_SUBST(EXE)

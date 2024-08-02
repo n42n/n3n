@@ -1,7 +1,10 @@
 # Release Process
 
 ## Regular release process
-First, locally:
+First, ensure that all the changes to be included in the release have been
+committed and merged in to the main branch of the public repository.
+
+Next, locally:
 - edit `VERSION` file to new version, e.g. `4.0.1`
 - `git add VERSION`
 - `git commit -m "Bump version file"`

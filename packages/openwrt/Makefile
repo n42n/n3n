@@ -57,7 +57,7 @@ endef
 define Build/Configure
 	( cd $(PKG_BUILD_DIR); \
 	./autogen.sh; \
-	LDFLAGS=--static ./configure )
+	LDFLAGS=--static ./configure --with-rundir=/var/run )
 endef
 
 define Package/n3n-edge/conffiles

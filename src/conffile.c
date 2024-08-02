@@ -1383,7 +1383,7 @@ int n3n_config_setup_sessiondir (n2n_edge_conf_t *conf) {
 
 
 #ifndef _WIN32
-    char *basedir = "/run/n3n";
+    char *basedir = CONFIG_RUNDIR "/n3n";
 #endif
 #ifdef _WIN32
     char basedir[1024];
