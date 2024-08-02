@@ -43,6 +43,12 @@ case "$host_os" in
         ;;
 esac
 
+AC_ARG_WITH([rundir],
+    AS_HELP_STRING([--with-rundir=DIR], [location of the system /run dir]),
+    [rundir=$withval],
+    [rundir="/run"]
+)
+
 AC_ARG_WITH([systemddir],
     AS_HELP_STRING([--with-systemddir=DIR], [Where to install systemd units]),
     [systemddir=$withval],
@@ -120,10 +126,6 @@ AS_IF([test "x$prefix" = "xNONE" ],
     prefix=/usr/local
 )
 
-AS_IF([test "x$runstatedir" = 'x${localstatedir}/run' ],
-    runstatedir=/run
-)
-
 # The systemd unit dir should be in a sane location (based on the prefix) but
 # that is not always a dir underneath the prefix.  Apply another hack
 AS_IF([test "x$systemddir" = "x" ],
@@ -138,7 +140,7 @@ AS_IF([test "x$systemddir" = "x" ],
 CONFIG_DOCDIR=$(eval echo $(eval echo $docdir))
 CONFIG_MANDIR=$(eval echo $(eval echo $mandir))
 CONFIG_PREFIX=$prefix
-CONFIG_RUNDIR=$runstatedir
+CONFIG_RUNDIR=$rundir
 CONFIG_SYSTEMDDIR=$systemddir
 
 configure_command=$0$ac_configure_args_raw
