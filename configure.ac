@@ -120,6 +120,10 @@ AS_IF([test "x$prefix" = "xNONE" ],
     prefix=/usr/local
 )
 
+AS_IF([test "x$runstatedir" = 'x${localstatedir}/run' ],
+    runstatedir=/run
+)
+
 # The systemd unit dir should be in a sane location (based on the prefix) but
 # that is not always a dir underneath the prefix.  Apply another hack
 AS_IF([test "x$systemddir" = "x" ],
@@ -134,6 +138,7 @@ AS_IF([test "x$systemddir" = "x" ],
 CONFIG_DOCDIR=$(eval echo $(eval echo $docdir))
 CONFIG_MANDIR=$(eval echo $(eval echo $mandir))
 CONFIG_PREFIX=$prefix
+CONFIG_RUNDIR=$runstatedir
 CONFIG_SYSTEMDDIR=$systemddir
 
 configure_command=$0$ac_configure_args_raw
@@ -141,6 +146,7 @@ configure_command=$0$ac_configure_args_raw
 AC_SUBST(CONFIG_DOCDIR)
 AC_SUBST(CONFIG_MANDIR)
 AC_SUBST(CONFIG_PREFIX)
+AC_SUBST(CONFIG_RUNDIR)
 AC_SUBST(CONFIG_SYSTEMDDIR)
 
 AC_SUBST(configure_command)
