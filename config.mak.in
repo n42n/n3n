@@ -1,5 +1,7 @@
 # Global configuration, included in top Makefile and exported from there.
-# @configure_input@
+#
+# @configure_command@
+
 
 CONFIG_HOST=@host@
 CONFIG_HOST_OS=@host_os@

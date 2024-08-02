@@ -136,11 +136,14 @@ CONFIG_MANDIR=$(eval echo $(eval echo $mandir))
 CONFIG_PREFIX=$prefix
 CONFIG_SYSTEMDDIR=$systemddir
 
+configure_command=$0$ac_configure_args_raw
+
 AC_SUBST(CONFIG_DOCDIR)
 AC_SUBST(CONFIG_MANDIR)
 AC_SUBST(CONFIG_PREFIX)
 AC_SUBST(CONFIG_SYSTEMDDIR)
 
+AC_SUBST(configure_command)
 AC_SUBST(host)
 AC_SUBST(host_os)
 AC_SUBST(EXE)
