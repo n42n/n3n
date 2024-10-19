@@ -1045,6 +1045,12 @@ static uint16_t reg_lifetime (struct n3n_runtime_data *sss) {
 static int auth_edge (const n2n_auth_t *present, const n2n_auth_t *presented, n2n_auth_t *answer, struct sn_community *community) {
 
     sn_user_t *user = NULL;
+    traceEvent(
+        TRACE_INFO,
+        "token scheme present=%i, presented=%i",
+        present->scheme,
+        presented->scheme
+    );
 
     if(present->scheme == n2n_auth_none) {
         // n2n_auth_none scheme (set at supernode if cli option '-M')
@@ -1090,6 +1096,7 @@ static int auth_edge (const n2n_auth_t *present, const n2n_auth_t *presented, n2
     }
 
     // if not successful earlier: failure
+    traceEvent(TRACE_INFO, "auth default fail");
     return -1;
 }
 
@@ -1113,9 +1120,11 @@ static int handle_remote_auth (struct n3n_runtime_data *sss, const n2n_auth_t *r
                                struct sn_community *community) {
 
     sn_user_t *user = NULL;
+    traceEvent(TRACE_INFO, "token scheme %i", remote_auth->scheme);
 
     if((NULL == community->allowed_users) != (remote_auth->scheme != n2n_auth_user_password)) {
         // received token's scheme does not match expected scheme
+        traceEvent(TRACE_INFO, "token scheme mismatch");
         return -1;
     }
 
@@ -1156,6 +1165,7 @@ static int handle_remote_auth (struct n3n_runtime_data *sss, const n2n_auth_t *r
     }
 
     // if not successful earlier: failure
+    traceEvent(TRACE_INFO, "auth default fail");
     return -1;
 }
 
@@ -1175,7 +1185,6 @@ static int update_edge (struct n3n_runtime_data *sss,
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
     struct peer_info *scan, *iter, *tmp;
-    int ret;
 
     traceEvent(TRACE_DEBUG, "update_edge for %s [%s]",
                macaddr_str(mac_buf, reg->edgeMac),
