@@ -88,7 +88,7 @@ void print_common (char *test_name, n2n_common_t *common) {
 void test_REGISTER (n2n_common_t *common) {
     char *test_name = "REGISTER";
 
-    common->pc = n2n_register;
+    common->pc = MSG_TYPE_REGISTER;
     printf("%s: common.pc = %i\n", test_name, common->pc);
 
     n2n_REGISTER_t reg;
@@ -123,7 +123,7 @@ void test_REGISTER (n2n_common_t *common) {
 void test_REGISTER_SUPER (n2n_common_t *common) {
     char *test_name = "REGISTER_SUPER";
 
-    common->pc = n2n_register_super;
+    common->pc = MSG_TYPE_REGISTER_SUPER;
     printf("%s: common.pc = %i\n", test_name, common->pc);
 
     n2n_REGISTER_SUPER_t reg;
@@ -162,7 +162,7 @@ void test_REGISTER_SUPER (n2n_common_t *common) {
 void test_UNREGISTER_SUPER (n2n_common_t *common) {
     char *test_name = "UNREGISTER_SUPER";
 
-    common->pc = n2n_unregister_super;
+    common->pc = MSG_TYPE_UNREGISTER_SUPER;
     printf("%s: common.pc = %i\n", test_name, common->pc);
 
     n2n_UNREGISTER_SUPER_t unreg;

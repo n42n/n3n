@@ -1234,7 +1234,7 @@ void send_query_peer (struct n3n_runtime_data * eee,
     int n_o_skip_sn = 0;
 
     cmn.ttl = N2N_DEFAULT_TTL;
-    cmn.pc = n2n_query_peer;
+    cmn.pc = MSG_TYPE_QUERY_PEER;
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
@@ -1313,7 +1313,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     memset(&reg, 0, sizeof(reg));
 
     cmn.ttl = N2N_DEFAULT_TTL;
-    cmn.pc = n2n_register_super;
+    cmn.pc = MSG_TYPE_REGISTER_SUPER;
     if(eee->conf.preferred_sock.family == (uint8_t)AF_INVALID) {
         cmn.flags = 0;
     } else {
@@ -1368,7 +1368,7 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     memset(&unreg, 0, sizeof(unreg));
 
     cmn.ttl = N2N_DEFAULT_TTL;
-    cmn.pc = n2n_unregister_super;
+    cmn.pc = MSG_TYPE_UNREGISTER_SUPER;
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
     get_local_auth(eee, &(unreg.auth));
@@ -1465,7 +1465,7 @@ static void send_register (struct n3n_runtime_data * eee,
     memset(&cmn, 0, sizeof(cmn));
     memset(&reg, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
-    cmn.pc = n2n_register;
+    cmn.pc = MSG_TYPE_REGISTER;
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
@@ -1516,7 +1516,7 @@ static void send_register_ack (struct n3n_runtime_data * eee,
     // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
-    cmn.pc = n2n_register_ack;
+    cmn.pc = MSG_TYPE_REGISTER_ACK;
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
@@ -2103,7 +2103,7 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
     // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
-    cmn.pc = n2n_packet;
+    cmn.pc = MSG_TYPE_PACKET;
     cmn.flags = 0; /* no options, not from supernode, no socket */
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 

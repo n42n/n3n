@@ -209,7 +209,7 @@ void send_re_register_super (struct n3n_runtime_data *sss) {
         if(comm->allowed_users) {
             // prepare
             cmn.ttl = N2N_DEFAULT_TTL;
-            cmn.pc = n2n_re_register_super;
+            cmn.pc = MSG_TYPE_RE_REGISTER_SUPER;
             cmn.flags = N2N_FLAGS_FROM_SUPERNODE;
             memcpy(cmn.community, comm->community, N2N_COMMUNITY_SIZE);
 
@@ -1488,7 +1488,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             memset(&reg, 0, sizeof(reg));
 
             cmn.ttl = N2N_DEFAULT_TTL;
-            cmn.pc = n2n_register_super;
+            cmn.pc = MSG_TYPE_REGISTER_SUPER;
             cmn.flags = N2N_FLAGS_FROM_SUPERNODE;
             memcpy(cmn.community, comm->community, N2N_COMMUNITY_SIZE);
 
@@ -1657,6 +1657,8 @@ static int process_udp (struct n3n_runtime_data * sss,
         traceEvent(TRACE_DEBUG, "dropped a packet too short to be valid");
         return -1;
     }
+    // FIXME: if this is using be16toh then it is doing wire processing and
+    // should be located in wire.c with the rest of the wire processing.
     if((udp_buf[23] == (uint8_t)0x00) // null terminated community name
        && (udp_buf[00] == N2N_PKT_VERSION) // correct packet version
        && ((be16toh(*(uint16_t*)&(udp_buf[02])) & N2N_FLAGS_TYPE_MASK) <= MSG_TYPE_MAX_TYPE) // message type
@@ -2070,7 +2072,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             }
 
             cmn2.ttl = N2N_DEFAULT_TTL;
-            cmn2.pc = n2n_register_super_ack;
+            cmn2.pc = MSG_TYPE_REGISTER_SUPER_ACK;
             cmn2.flags = N2N_FLAGS_SOCKET | N2N_FLAGS_FROM_SUPERNODE;
             memcpy(cmn2.community, cmn.community, sizeof(n2n_community_t));
 
@@ -2148,7 +2150,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             if(ret_value == update_edge_auth_fail) {
                 // send REGISTER_SUPER_NAK
-                cmn2.pc = n2n_register_super_nak;
+                cmn2.pc = MSG_TYPE_REGISTER_SUPER_NAK;
                 nak.cookie = reg.cookie;
                 memcpy(nak.srcMac, reg.edgeMac, sizeof(n2n_mac_t));
 
@@ -2177,7 +2179,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                     if(!is_null_mac(reg.edgeMac)) {
                         memcpy(&reg.sock, &sender, sizeof(sender));
 
-                        cmn2.pc = n2n_register_super;
+                        cmn2.pc = MSG_TYPE_REGISTER_SUPER;
                         encode_REGISTER_SUPER(ackbuf, &encx, &cmn2, &reg);
 
                         if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2216,7 +2218,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                     // send REGISTER_SUPER_ACK
                     encx = 0;
-                    cmn2.pc = n2n_register_super_ack;
+                    cmn2.pc = MSG_TYPE_REGISTER_SUPER_ACK;
 
                     encode_REGISTER_SUPER_ACK(ackbuf, &encx, &cmn2, &ack, payload_buf);
 
@@ -2536,7 +2538,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                            macaddr_str(mac_buf, query.srcMac));
 
                 cmn2.ttl = N2N_DEFAULT_TTL;
-                cmn2.pc = n2n_peer_info;
+                cmn2.pc = MSG_TYPE_PEER_INFO;
                 cmn2.flags = N2N_FLAGS_FROM_SUPERNODE;
                 memcpy(cmn2.community, cmn.community, sizeof(n2n_community_t));
 
@@ -2582,7 +2584,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 HASH_FIND_PEER(comm->edges, query.targetMac, scan);
                 if(scan) {
                     cmn2.ttl = N2N_DEFAULT_TTL;
-                    cmn2.pc = n2n_peer_info;
+                    cmn2.pc = MSG_TYPE_PEER_INFO;
                     cmn2.flags = N2N_FLAGS_FROM_SUPERNODE;
                     memcpy(cmn2.community, cmn.community, sizeof(n2n_community_t));
 
