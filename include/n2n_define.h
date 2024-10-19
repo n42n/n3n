@@ -19,21 +19,6 @@
 #ifndef _N2N_DEFINE_H_
 #define _N2N_DEFINE_H_
 
-/* N2N packet header indicators. */
-#define MSG_TYPE_REGISTER                   1
-#define MSG_TYPE_DEREGISTER                 2   // unused
-#define MSG_TYPE_PACKET                     3
-#define MSG_TYPE_REGISTER_ACK               4
-#define MSG_TYPE_REGISTER_SUPER             5
-#define MSG_TYPE_UNREGISTER_SUPER           6
-#define MSG_TYPE_REGISTER_SUPER_ACK         7
-#define MSG_TYPE_REGISTER_SUPER_NAK         8
-#define MSG_TYPE_FEDERATION                 9   // unused
-#define MSG_TYPE_PEER_INFO                  10
-#define MSG_TYPE_QUERY_PEER                 11
-#define MSG_TYPE_RE_REGISTER_SUPER          12
-#define MSG_TYPE_MAX_TYPE                   12
-
 /* Max available space to add supernodes' informations (sockets and MACs) in REGISTER_SUPER_ACK
  * Field sizes of REGISTER_SUPER_ACK as used in encode/decode fucntions in src/wire.c
  */

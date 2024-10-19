@@ -206,8 +206,11 @@ jobs:
       #    name: coverage
       #    path: coverage
 
-      - name: Upload data to codecov
-        uses: codecov/codecov-action@v3
+      # Now the codecov on a mac fails with
+      # Error: spawn Unknown system error -86
+      # I guess mac people just dont like coverage
+      # - name: Upload data to codecov
+      #   uses: codecov/codecov-action@v3
 
   test_windows:
     name: Test Windows

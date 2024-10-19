@@ -195,7 +195,7 @@ static ssize_t do_encode_packet ( uint8_t * pktbuf, size_t bufsize, const n2n_co
 
     memset( &cmn, 0, sizeof(cmn) );
     cmn.ttl = N2N_DEFAULT_TTL;
-    cmn.pc = n2n_packet;
+    cmn.pc = MSG_TYPE_PACKET;
     cmn.flags=0; /* no options, not from supernode, no socket */
     memcpy( cmn.community, c, N2N_COMMUNITY_SIZE );
 

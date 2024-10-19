@@ -16,6 +16,10 @@
 char *json_find_field(char *haystack, char *field) {
     // field must include the start and end doublequotes
 
+    if (!haystack) {
+        return NULL;
+    }
+
     char *p = strstr(haystack, field);
     if (!p) {
         return NULL;

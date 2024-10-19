@@ -206,19 +206,19 @@ static int run_packet_loop () {
         }
 
         switch(common.pc) {
-            case n2n_ping:
-            case n2n_register:
-            case n2n_deregister:
-            case n2n_register_ack:
-            case n2n_register_super:
-            case n2n_register_super_ack:
-            case n2n_register_super_nak:
-            case n2n_federation:
-            case n2n_peer_info:
-            case n2n_query_peer:
+            case MSG_TYPE_PING:
+            case MSG_TYPE_REGISTER:
+            case MSG_TYPE_DEREGISTER:
+            case MSG_TYPE_REGISTER_ACK:
+            case MSG_TYPE_REGISTER_SUPER:
+            case MSG_TYPE_REGISTER_SUPER_ACK:
+            case MSG_TYPE_REGISTER_SUPER_NAK:
+            case MSG_TYPE_FEDERATION:
+            case MSG_TYPE_PEER_INFO:
+            case MSG_TYPE_QUERY_PEER:
                 write_packet(packet, &header);
                 break;
-            case n2n_packet:
+            case MSG_TYPE_PACKET:
                 decode_PACKET(&pkt, &common, packet, &rem, &idx);
                 decode_encrypted_packet(packet, &header, &pkt, idx);
                 break;

@@ -98,6 +98,28 @@ void peer_info_free (struct peer_info *p) {
     free(p);
 }
 
+/*
+ * If the peer is still valid, returns it.
+ * If the peer has timed out, frees it and returns NULL
+ * Used after a HASH_FIND_PEER to validate the found peer
+ */
+struct peer_info* peer_info_validate (struct peer_info **list, struct peer_info *p) {
+    if(!p) {
+        return NULL;
+    }
+    if(!p->purgeable) {
+        return p;
+    }
+    time_t now = time(NULL);
+    if(p->last_seen >= now - REGISTRATION_TIMEOUT) {
+        return p;
+    }
+    HASH_DEL(*list, p);
+    mgmt_event_post(N3N_EVENT_PEER,N3N_EVENT_PEER_PURGE,p);
+    peer_info_free(p);
+    return NULL;
+}
+
 inline char *peer_info_get_hostname (struct peer_info *p) {
     return p->hostname;
 }
@@ -120,6 +142,8 @@ size_t purge_peer_list (struct peer_info **peer_list,
     }
 
     HASH_ITER(hh, *peer_list, scan, tmp) {
+        // TODO: untangle the tcp_connections usage and use
+        // peer_info_validate() as the core of this loop
         if(scan->purgeable && scan->last_seen < purge_before) {
             if((scan->socket_fd >=0) && (scan->socket_fd != socket_not_to_close)) {
                 if(tcp_connections) {
