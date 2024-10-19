@@ -3175,11 +3175,16 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         }
 #endif
 
+        // TODO:
+        // - a static ip address mode
+        // - a notifier so we dont need to poll for changes
+        // - ipv6 support
+        // - multi-homing support
         if((eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_DHCP) &&
            ((now - lastIfaceCheck) > IFACE_UPDATE_INTERVAL)) {
             uint32_t old_ip = eee->device.ip_addr;
 
-            traceEvent(TRACE_NORMAL, "re-checking dynamic IP address");
+            traceEvent(TRACE_INFO, "re-checking dynamic IP address");
             tuntap_get_address(&(eee->device));
             lastIfaceCheck = now;
 
