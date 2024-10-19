@@ -1228,11 +1228,14 @@ static int update_edge (struct n3n_runtime_data *sss,
                 traceEvent(TRACE_INFO, "created edge  %s ==> %s",
                            macaddr_str(mac_buf, reg->edgeMac),
                            sock_to_cstr(sockbuf, sender_sock));
+
+                scan->last_seen = now;
+                return update_edge_new_sn;
             }
-            ret = update_edge_new_sn;
+            return update_edge_new_sn;
         } else {
             traceEvent(TRACE_INFO, "authentication failed");
-            ret = update_edge_auth_fail;
+            return update_edge_auth_fail;
         }
     } else {
         /* Known */
@@ -1253,7 +1256,8 @@ static int update_edge (struct n3n_runtime_data *sss,
                 traceEvent(TRACE_INFO, "updated edge  %s ==> %s",
                            macaddr_str(mac_buf, reg->edgeMac),
                            sock_to_cstr(sockbuf, sender_sock));
-                ret = update_edge_sock_change;
+                scan->last_seen = now;
+                return update_edge_sock_change;
             } else {
                 scan->last_cookie = reg->cookie;
 
@@ -1261,19 +1265,16 @@ static int update_edge (struct n3n_runtime_data *sss,
                            macaddr_str(mac_buf, reg->edgeMac),
                            sock_to_cstr(sockbuf, sender_sock));
 
-                ret = update_edge_no_change;
+                scan->last_seen = now;
+                return update_edge_no_change;
             }
         } else {
             traceEvent(TRACE_INFO, "authentication failed");
-            ret = update_edge_auth_fail;
+            return update_edge_auth_fail;
         }
     }
 
-    if((scan != NULL) && (ret != update_edge_auth_fail)) {
-        scan->last_seen = now;
-    }
-
-    return ret;
+    return 0;
 }
 
 
