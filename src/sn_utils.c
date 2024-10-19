@@ -2169,58 +2169,21 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 traceEvent(TRACE_DEBUG, "Tx REGISTER_SUPER_NAK for %s",
                            macaddr_str(mac_buf, reg.edgeMac));
-            } else {
-                // if this is not already from a supernode ...
-                // and not from federation, ...
-                if((!(cmn.flags & N2N_FLAGS_FROM_SUPERNODE)) || (!(cmn.flags & N2N_FLAGS_SOCKET))) {
-                    // ... forward to all other supernodes (note try_broadcast()'s behavior with
-                    //     NULL comm and from_supernode parameter)
-                    // exception: do not forward auto ip draw
-                    if(!is_null_mac(reg.edgeMac)) {
-                        memcpy(&reg.sock, &sender, sizeof(sender));
 
-                        cmn2.pc = MSG_TYPE_REGISTER_SUPER;
-                        encode_REGISTER_SUPER(ackbuf, &encx, &cmn2, &reg);
+                break;
+            }
 
-                        if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                            packet_header_encrypt(ackbuf, encx, encx,
-                                                  comm->header_encryption_ctx_static, comm->header_iv_ctx_static,
-                                                  time_stamp());
-                            // if user-password-auth
-                            if(comm->allowed_users) {
-                                // append an encrypted packet hash
-                                pearson_hash_128(hash_buf, ackbuf, encx);
-                                // same 'user' as above
-                                speck_128_encrypt(hash_buf, (speck_context_t*)user->shared_secret_ctx);
-                                encode_buf(ackbuf, &encx, hash_buf, N2N_REG_SUP_HASH_CHECK_LEN);
-                            }
-                        }
+            // if this is not already from a supernode ...
+            // and not from federation, ...
+            if((!(cmn.flags & N2N_FLAGS_FROM_SUPERNODE)) || (!(cmn.flags & N2N_FLAGS_SOCKET))) {
+                // ... forward to all other supernodes (note try_broadcast()'s behavior with
+                //     NULL comm and from_supernode parameter)
+                // exception: do not forward auto ip draw
+                if(!is_null_mac(reg.edgeMac)) {
+                    memcpy(&reg.sock, &sender, sizeof(sender));
 
-                        try_broadcast(sss, NULL, &cmn, reg.edgeMac, from_supernode, ackbuf, encx, now);
-                    }
-
-                    // dynamic key time handling if appropriate
-                    ack.key_time = 0;
-                    if(comm->is_federation) {
-                        if(reg.key_time > sss->dynamic_key_time) {
-                            traceEvent(TRACE_DEBUG, "setting new key time");
-                            // have all edges re_register (using old dynamic key)
-                            send_re_register_super(sss);
-                            // set new key time
-                            sss->dynamic_key_time = reg.key_time;
-                            // calculate new dynamic keys for all communities
-                            calculate_dynamic_keys(sss);
-                            // force re-register with all supernodes
-                            re_register_and_purge_supernodes(sss, sss->federation, &any_time, now, 1 /* forced */);
-                        }
-                        ack.key_time = sss->dynamic_key_time;
-                    }
-
-                    // send REGISTER_SUPER_ACK
-                    encx = 0;
-                    cmn2.pc = MSG_TYPE_REGISTER_SUPER_ACK;
-
-                    encode_REGISTER_SUPER_ACK(ackbuf, &encx, &cmn2, &ack, payload_buf);
+                    cmn2.pc = MSG_TYPE_REGISTER_SUPER;
+                    encode_REGISTER_SUPER(ackbuf, &encx, &cmn2, &reg);
 
                     if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                         packet_header_encrypt(ackbuf, encx, encx,
@@ -2236,26 +2199,65 @@ static int process_udp (struct n3n_runtime_data * sss,
                         }
                     }
 
-                    sendto_sock(sss, socket_fd, sender_sock, ackbuf, encx);
+                    try_broadcast(sss, NULL, &cmn, reg.edgeMac, from_supernode, ackbuf, encx, now);
+                }
 
-                    traceEvent(TRACE_DEBUG, "Tx REGISTER_SUPER_ACK for %s [%s]",
-                               macaddr_str(mac_buf, reg.edgeMac),
-                               sock_to_cstr(sockbuf, &(ack.sock)));
-                } else {
-                    // this is an edge with valid authentication registering with another supernode, so ...
-                    // 1- ... associate it with that other supernode
-                    update_node_supernode_association(comm, &(reg.edgeMac), sender_sock, sock_size, now);
-                    // 2- ... we can delete it from regular list if present (can happen)
-                    HASH_FIND_PEER(comm->edges, reg.edgeMac, peer);
-                    if(peer != NULL) {
-                        if((peer->socket_fd != sss->sock) && (peer->socket_fd >= 0)) {
-                            n2n_tcp_connection_t *conn;
-                            HASH_FIND_INT(sss->tcp_connections, &(peer->socket_fd), conn);
-                            close_tcp_connection(sss, conn); /* also deletes the peer */
-                        } else {
-                            HASH_DEL(comm->edges, peer);
-                            free(peer);
-                        }
+                // dynamic key time handling if appropriate
+                ack.key_time = 0;
+                if(comm->is_federation) {
+                    if(reg.key_time > sss->dynamic_key_time) {
+                        traceEvent(TRACE_DEBUG, "setting new key time");
+                        // have all edges re_register (using old dynamic key)
+                        send_re_register_super(sss);
+                        // set new key time
+                        sss->dynamic_key_time = reg.key_time;
+                        // calculate new dynamic keys for all communities
+                        calculate_dynamic_keys(sss);
+                        // force re-register with all supernodes
+                        re_register_and_purge_supernodes(sss, sss->federation, &any_time, now, 1 /* forced */);
+                    }
+                    ack.key_time = sss->dynamic_key_time;
+                }
+
+                // send REGISTER_SUPER_ACK
+                encx = 0;
+                cmn2.pc = MSG_TYPE_REGISTER_SUPER_ACK;
+
+                encode_REGISTER_SUPER_ACK(ackbuf, &encx, &cmn2, &ack, payload_buf);
+
+                if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                    packet_header_encrypt(ackbuf, encx, encx,
+                                          comm->header_encryption_ctx_static, comm->header_iv_ctx_static,
+                                          time_stamp());
+                    // if user-password-auth
+                    if(comm->allowed_users) {
+                        // append an encrypted packet hash
+                        pearson_hash_128(hash_buf, ackbuf, encx);
+                        // same 'user' as above
+                        speck_128_encrypt(hash_buf, (speck_context_t*)user->shared_secret_ctx);
+                        encode_buf(ackbuf, &encx, hash_buf, N2N_REG_SUP_HASH_CHECK_LEN);
+                    }
+                }
+
+                sendto_sock(sss, socket_fd, sender_sock, ackbuf, encx);
+
+                traceEvent(TRACE_DEBUG, "Tx REGISTER_SUPER_ACK for %s [%s]",
+                           macaddr_str(mac_buf, reg.edgeMac),
+                           sock_to_cstr(sockbuf, &(ack.sock)));
+            } else {
+                // this is an edge with valid authentication registering with another supernode, so ...
+                // 1- ... associate it with that other supernode
+                update_node_supernode_association(comm, &(reg.edgeMac), sender_sock, sock_size, now);
+                // 2- ... we can delete it from regular list if present (can happen)
+                HASH_FIND_PEER(comm->edges, reg.edgeMac, peer);
+                if(peer != NULL) {
+                    if((peer->socket_fd != sss->sock) && (peer->socket_fd >= 0)) {
+                        n2n_tcp_connection_t *conn;
+                        HASH_FIND_INT(sss->tcp_connections, &(peer->socket_fd), conn);
+                        close_tcp_connection(sss, conn); /* also deletes the peer */
+                    } else {
+                        HASH_DEL(comm->edges, peer);
+                        free(peer);
                     }
                 }
             }
