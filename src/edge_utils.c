@@ -2383,473 +2383,484 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
         }
     }
 
-    if(0 == memcmp(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE)) {
-        switch(msg_type) {
-            case MSG_TYPE_PACKET: {
-                /* process PACKET - most frequent so first in list. */
-                n2n_PACKET_t pkt;
+    if(0 != memcmp(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE)) {
+        // The community in the packet is not matching ours
 
-                decode_PACKET(&pkt, &cmn, udp_buf, &rem, &idx);
+        if(from_supernode) {
+            traceEvent(TRACE_INFO, "received packet with unknown community");
+            // TODO:
+            // stats.errors.community.supernode ++;
+        } else {
+            traceEvent(TRACE_INFO, "ignoring packet with unknown community");
+            // TODO:
+            // stats.errors.community.other ++;
+        }
 
-                if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_peer_time_stamp_and_verify(
-                           eee->pending_peers,
-                           eee->known_peers,
-                           sn,
-                           pkt.srcMac,
-                           stamp,
-                           TIME_STAMP_ALLOW_JITTER)) {
-                        traceEvent(TRACE_DEBUG, "dropped PACKET due to time stamp error");
-                        return;
-                    }
-                }
+        return;
+    }
 
-                if(!eee->last_sup) {
-                    // drop packets received before first registration with supernode
-                    traceEvent(TRACE_DEBUG, "dropped PACKET recevied before first registration with supernode");
+    switch(msg_type) {
+        case MSG_TYPE_PACKET: {
+            /* process PACKET - most frequent so first in list. */
+            n2n_PACKET_t pkt;
+
+            decode_PACKET(&pkt, &cmn, udp_buf, &rem, &idx);
+
+            if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                if(!find_peer_time_stamp_and_verify(
+                       eee->pending_peers,
+                       eee->known_peers,
+                       sn,
+                       pkt.srcMac,
+                       stamp,
+                       TIME_STAMP_ALLOW_JITTER)) {
+                    traceEvent(TRACE_DEBUG, "dropped PACKET due to time stamp error");
                     return;
                 }
+            }
 
-                if(!from_supernode) {
-                    /* This is a P2P packet from the peer. We purge a pending
-                     * registration towards the possibly nat-ted peer address as we now have
-                     * a valid channel. We still use check_peer_registration_needed in
-                     * handle_PACKET to double check this.
-                     */
-                    traceEvent(TRACE_DEBUG, "[p2p] from %s",
-                               macaddr_str(mac_buf1, pkt.srcMac));
-                    find_and_remove_peer(&eee->pending_peers, pkt.srcMac);
-                } else {
-                    /* [PsP] : edge Peer->Supernode->edge Peer */
+            if(!eee->last_sup) {
+                // drop packets received before first registration with supernode
+                traceEvent(TRACE_DEBUG, "dropped PACKET recevied before first registration with supernode");
+                return;
+            }
 
-                    if(is_valid_peer_sock(&pkt.sock))
-                        orig_sender = &(pkt.sock);
+            if(!from_supernode) {
+                /* This is a P2P packet from the peer. We purge a pending
+                 * registration towards the possibly nat-ted peer address as we now have
+                 * a valid channel. We still use check_peer_registration_needed in
+                 * handle_PACKET to double check this.
+                 */
+                traceEvent(TRACE_DEBUG, "[p2p] from %s",
+                           macaddr_str(mac_buf1, pkt.srcMac));
+                find_and_remove_peer(&eee->pending_peers, pkt.srcMac);
+            } else {
+                /* [PsP] : edge Peer->Supernode->edge Peer */
 
-                    traceEvent(TRACE_DEBUG, "[pSp] from %s via [%s]",
-                               macaddr_str(mac_buf1, pkt.srcMac),
-                               sock_to_cstr(sockbuf1, &sender));
+                if(is_valid_peer_sock(&pkt.sock))
+                    orig_sender = &(pkt.sock);
+
+                traceEvent(TRACE_DEBUG, "[pSp] from %s via [%s]",
+                           macaddr_str(mac_buf1, pkt.srcMac),
+                           sock_to_cstr(sockbuf1, &sender));
+            }
+
+            /* Update the sender in peer table entry */
+            check_peer_registration_needed(eee, from_supernode, via_multicast,
+                                           pkt.srcMac,
+                                           // REVISIT: also consider PORT_REG_COOKIEs when implemented
+                                           from_supernode ? N2N_FORWARDED_REG_COOKIE : N2N_REGULAR_REG_COOKIE,
+                                           NULL, NULL, orig_sender);
+
+            handle_PACKET(eee, from_supernode, &pkt, orig_sender, udp_buf + idx, udp_size - idx);
+            break;
+        }
+
+        case MSG_TYPE_REGISTER: {
+            /* Another edge is registering with us */
+            n2n_REGISTER_t reg;
+
+            decode_REGISTER(&reg, &cmn, udp_buf, &rem, &idx);
+
+            via_multicast &= is_null_mac(reg.dstMac);
+
+            if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                if(!find_peer_time_stamp_and_verify(
+                       eee->pending_peers,
+                       eee->known_peers,
+                       sn,
+                       reg.srcMac,
+                       stamp,
+                       via_multicast ? TIME_STAMP_ALLOW_JITTER : TIME_STAMP_NO_JITTER)) {
+                    traceEvent(TRACE_DEBUG, "dropped REGISTER due to time stamp error");
+                    return;
                 }
+            }
 
-                /* Update the sender in peer table entry */
-                check_peer_registration_needed(eee, from_supernode, via_multicast,
-                                               pkt.srcMac,
-                                               // REVISIT: also consider PORT_REG_COOKIEs when implemented
-                                               from_supernode ? N2N_FORWARDED_REG_COOKIE : N2N_REGULAR_REG_COOKIE,
-                                               NULL, NULL, orig_sender);
+            if(is_valid_peer_sock(&reg.sock))
+                orig_sender = &(reg.sock);
 
-                handle_PACKET(eee, from_supernode, &pkt, orig_sender, udp_buf + idx, udp_size - idx);
+            if(via_multicast && !memcmp(reg.srcMac, eee->device.mac_addr, N2N_MAC_SIZE)) {
+                traceEvent(TRACE_DEBUG, "skipping REGISTER from self");
                 break;
             }
 
-            case MSG_TYPE_REGISTER: {
-                /* Another edge is registering with us */
-                n2n_REGISTER_t reg;
-
-                decode_REGISTER(&reg, &cmn, udp_buf, &rem, &idx);
-
-                via_multicast &= is_null_mac(reg.dstMac);
-
-                if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_peer_time_stamp_and_verify(
-                           eee->pending_peers,
-                           eee->known_peers,
-                           sn,
-                           reg.srcMac,
-                           stamp,
-                           via_multicast ? TIME_STAMP_ALLOW_JITTER : TIME_STAMP_NO_JITTER)) {
-                        traceEvent(TRACE_DEBUG, "dropped REGISTER due to time stamp error");
-                        return;
-                    }
-                }
-
-                if(is_valid_peer_sock(&reg.sock))
-                    orig_sender = &(reg.sock);
-
-                if(via_multicast && !memcmp(reg.srcMac, eee->device.mac_addr, N2N_MAC_SIZE)) {
-                    traceEvent(TRACE_DEBUG, "skipping REGISTER from self");
-                    break;
-                }
-
-                if(!via_multicast && memcmp(reg.dstMac, eee->device.mac_addr, N2N_MAC_SIZE)) {
-                    traceEvent(TRACE_DEBUG, "skipping REGISTER for other peer");
-                    break;
-                }
-
-                if(!from_supernode) {
-                    /* This is a P2P registration from the peer. We purge a pending
-                     * registration towards the possibly nat-ted peer address as we now have
-                     * a valid channel. We still use check_peer_registration_needed below
-                     * to double check this.
-                     */
-                    traceEvent(TRACE_INFO, "[p2p] Rx REGISTER from %s [%s]%s",
-                               macaddr_str(mac_buf1, reg.srcMac),
-                               sock_to_cstr(sockbuf1, &sender),
-                               (reg.cookie & N2N_LOCAL_REG_COOKIE) ? " (local)" : "");
-                    find_and_remove_peer(&eee->pending_peers, reg.srcMac);
-
-                    /* NOTE: only ACK to peers */
-                    send_register_ack(eee, orig_sender, &reg);
-                } else {
-                    traceEvent(TRACE_INFO, "[pSp] Rx REGISTER from %s [%s] to %s via [%s]",
-                               macaddr_str(mac_buf1, reg.srcMac), sock_to_cstr(sockbuf2, orig_sender),
-                               macaddr_str(mac_buf2, reg.dstMac), sock_to_cstr(sockbuf1, &sender));
-                }
-
-                check_peer_registration_needed(eee, from_supernode, via_multicast,
-                                               reg.srcMac, reg.cookie, &reg.dev_addr, (const n2n_desc_t*)&reg.dev_desc, orig_sender);
+            if(!via_multicast && memcmp(reg.dstMac, eee->device.mac_addr, N2N_MAC_SIZE)) {
+                traceEvent(TRACE_DEBUG, "skipping REGISTER for other peer");
                 break;
             }
 
-            case MSG_TYPE_REGISTER_ACK: {
-                /* Peer edge is acknowledging our register request */
-                n2n_REGISTER_ACK_t ra;
-
-                decode_REGISTER_ACK(&ra, &cmn, udp_buf, &rem, &idx);
-
-                if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_peer_time_stamp_and_verify(
-                           eee->pending_peers,
-                           eee->known_peers,
-                           sn,
-                           ra.srcMac,
-                           stamp,
-                           TIME_STAMP_NO_JITTER)) {
-                        traceEvent(TRACE_DEBUG, "dropped REGISTER_ACK due to time stamp error");
-                        return;
-                    }
-                }
-
-                if(is_valid_peer_sock(&ra.sock))
-                    orig_sender = &(ra.sock);
-
-                traceEvent(TRACE_INFO, "Rx REGISTER_ACK from %s [%s] to %s via [%s]%s",
-                           macaddr_str(mac_buf1, ra.srcMac),
-                           sock_to_cstr(sockbuf2, orig_sender),
-                           macaddr_str(mac_buf2, ra.dstMac),
+            if(!from_supernode) {
+                /* This is a P2P registration from the peer. We purge a pending
+                 * registration towards the possibly nat-ted peer address as we now have
+                 * a valid channel. We still use check_peer_registration_needed below
+                 * to double check this.
+                 */
+                traceEvent(TRACE_INFO, "[p2p] Rx REGISTER from %s [%s]%s",
+                           macaddr_str(mac_buf1, reg.srcMac),
                            sock_to_cstr(sockbuf1, &sender),
-                           (ra.cookie & N2N_LOCAL_REG_COOKIE) ? " (local)" : "");
+                           (reg.cookie & N2N_LOCAL_REG_COOKIE) ? " (local)" : "");
+                find_and_remove_peer(&eee->pending_peers, reg.srcMac);
 
-                peer_set_p2p_confirmed(eee, ra.srcMac,
-                                       ra.cookie,
-                                       &sender, now);
-                break;
+                /* NOTE: only ACK to peers */
+                send_register_ack(eee, orig_sender, &reg);
+            } else {
+                traceEvent(TRACE_INFO, "[pSp] Rx REGISTER from %s [%s] to %s via [%s]",
+                           macaddr_str(mac_buf1, reg.srcMac), sock_to_cstr(sockbuf2, orig_sender),
+                           macaddr_str(mac_buf2, reg.dstMac), sock_to_cstr(sockbuf1, &sender));
             }
 
-            case MSG_TYPE_REGISTER_SUPER_ACK: {
-                n2n_REGISTER_SUPER_ACK_t ra;
-                uint8_t tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
-                int i;
-                int skip_add;
+            check_peer_registration_needed(eee, from_supernode, via_multicast,
+                                           reg.srcMac, reg.cookie, &reg.dev_addr, (const n2n_desc_t*)&reg.dev_desc, orig_sender);
+            break;
+        }
 
-                if(!(eee->sn_wait)) {
-                    traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_ACK with no outstanding REGISTER_SUPER");
+        case MSG_TYPE_REGISTER_ACK: {
+            /* Peer edge is acknowledging our register request */
+            n2n_REGISTER_ACK_t ra;
+
+            decode_REGISTER_ACK(&ra, &cmn, udp_buf, &rem, &idx);
+
+            if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                if(!find_peer_time_stamp_and_verify(
+                       eee->pending_peers,
+                       eee->known_peers,
+                       sn,
+                       ra.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
+                    traceEvent(TRACE_DEBUG, "dropped REGISTER_ACK due to time stamp error");
                     return;
                 }
+            }
 
-                // FIXME: fix decode_* functions to not need memsets
-                memset(&ra, 0, sizeof(ra));
-                decode_REGISTER_SUPER_ACK(&ra, &cmn, udp_buf, &rem, &idx, tmpbuf);
+            if(is_valid_peer_sock(&ra.sock))
+                orig_sender = &(ra.sock);
 
-                if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_peer_time_stamp_and_verify(
-                           eee->pending_peers,
-                           eee->known_peers,
-                           sn,
-                           ra.srcMac,
-                           stamp,
-                           TIME_STAMP_NO_JITTER)) {
-                        traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK due to time stamp error");
-                        return;
-                    }
+            traceEvent(TRACE_INFO, "Rx REGISTER_ACK from %s [%s] to %s via [%s]%s",
+                       macaddr_str(mac_buf1, ra.srcMac),
+                       sock_to_cstr(sockbuf2, orig_sender),
+                       macaddr_str(mac_buf2, ra.dstMac),
+                       sock_to_cstr(sockbuf1, &sender),
+                       (ra.cookie & N2N_LOCAL_REG_COOKIE) ? " (local)" : "");
+
+            peer_set_p2p_confirmed(eee, ra.srcMac,
+                                   ra.cookie,
+                                   &sender, now);
+            break;
+        }
+
+        case MSG_TYPE_REGISTER_SUPER_ACK: {
+            n2n_REGISTER_SUPER_ACK_t ra;
+            uint8_t tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
+            int i;
+            int skip_add;
+
+            if(!(eee->sn_wait)) {
+                traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_ACK with no outstanding REGISTER_SUPER");
+                return;
+            }
+
+            // FIXME: fix decode_* functions to not need memsets
+            memset(&ra, 0, sizeof(ra));
+            decode_REGISTER_SUPER_ACK(&ra, &cmn, udp_buf, &rem, &idx, tmpbuf);
+
+            if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                if(!find_peer_time_stamp_and_verify(
+                       eee->pending_peers,
+                       eee->known_peers,
+                       sn,
+                       ra.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
+                    traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK due to time stamp error");
+                    return;
                 }
+            }
 
-                // hash check (user/pw auth only)
+            // hash check (user/pw auth only)
+            if(eee->conf.shared_secret) {
+                speck_128_encrypt(hash_buf, (speck_context_t*)eee->conf.shared_secret_ctx);
+                if(memcmp(hash_buf, udp_buf + udp_size - N2N_REG_SUP_HASH_CHECK_LEN /* length is has already been checked */, N2N_REG_SUP_HASH_CHECK_LEN)) {
+                    traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong hash");
+                    return;
+                }
+            }
+
+            if(ra.cookie != eee->curr_sn->last_cookie) {
+                traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong or old cookie");
+                return;
+            }
+
+            if(handle_remote_auth(eee, sn, &(ra.auth))) {
+                traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong or old response to challenge");
                 if(eee->conf.shared_secret) {
-                    speck_128_encrypt(hash_buf, (speck_context_t*)eee->conf.shared_secret_ctx);
-                    if(memcmp(hash_buf, udp_buf + udp_size - N2N_REG_SUP_HASH_CHECK_LEN /* length is has already been checked */, N2N_REG_SUP_HASH_CHECK_LEN)) {
-                        traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong hash");
-                        return;
-                    }
+                    traceEvent(TRACE_NORMAL, "Rx REGISTER_SUPER_ACK with wrong or old response to challenge, maybe indicating wrong federation public key (-P)");
                 }
+                return;
+            }
 
-                if(ra.cookie != eee->curr_sn->last_cookie) {
-                    traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong or old cookie");
+            if(is_valid_peer_sock(&ra.sock))
+                orig_sender = &(ra.sock);
+
+            traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK from %s [%s] (external %s) with %u attempts left",
+                       macaddr_str(mac_buf1, ra.srcMac),
+                       sock_to_cstr(sockbuf1, &sender),
+                       sock_to_cstr(sockbuf2, orig_sender),
+                       (unsigned int)eee->sup_attempts);
+
+            if(is_null_mac(eee->curr_sn->mac_addr)) {
+                HASH_DEL(eee->conf.supernodes, eee->curr_sn);
+                memcpy(&eee->curr_sn->mac_addr, ra.srcMac, N2N_MAC_SIZE);
+                HASH_ADD_PEER(eee->conf.supernodes, eee->curr_sn);
+            }
+
+            n2n_REGISTER_SUPER_ACK_payload_t *payload;
+            payload = (n2n_REGISTER_SUPER_ACK_payload_t*)tmpbuf;
+
+            // from here on, 'sn' gets used differently
+            for(i = 0; i < ra.num_sn; i++) {
+                n2n_sock_t payload_sock;
+                skip_add = SN_ADD;
+
+                // bugfix for https://github.com/ntop/n2n/issues/1029
+                // REVISIT: best to be removed with 4.0
+                idx = 0;
+                rem = sizeof(payload->sock);
+                decode_sock_payload(&payload_sock, payload->sock, &rem, &idx);
+
+                sn = add_sn_to_list_by_mac_or_sock(&(eee->conf.supernodes), &payload_sock, payload->mac, &skip_add);
+
+                if(skip_add == SN_ADD_ADDED) {
+                    // TODO: could just avoid adding the special string
+                    // with the hostname when we are adding a supernode
+                    // discovered from the reg packet
+                    sn->hostname = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+                    if(sn->hostname != NULL) {
+                        char ip_tmp[N2N_EDGE_SN_HOST_SIZE];
+
+                        inet_ntop(payload_sock.family,
+                                  (payload_sock.family == AF_INET) ? (void*)&(payload_sock.addr.v4) : (void*)&(payload_sock.addr.v6),
+                                  sn->hostname, N2N_EDGE_SN_HOST_SIZE - 1);
+                        sprintf(ip_tmp, "%s:%u", (char*)sn->hostname, (uint16_t)(payload_sock.port));
+                        memcpy(sn->hostname, ip_tmp, sizeof(ip_tmp));
+                    }
+                    sn->last_seen = 0; /* as opposed to payload handling in supernode */
+                    traceEvent(
+                        TRACE_NORMAL,
+                        "supernode '%s' added to the list of supernodes.",
+                        peer_info_get_hostname(sn)
+                    );
+                }
+                // shift to next payload entry
+                payload++;
+            }
+
+            if(eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
+                if((ra.dev_addr.net_addr != 0) && (ra.dev_addr.net_bitlen != 0)) {
+                    eee->conf.tuntap_v4.net_addr = htonl(ra.dev_addr.net_addr);
+                    eee->conf.tuntap_v4.net_bitlen = ra.dev_addr.net_bitlen;
+                }
+            }
+
+            eee->sn_wait = 0;
+            reset_sup_attempts(eee); /* refresh because we got a response */
+
+            // update last_sup only on 'real' REGISTER_SUPER_ACKs, not on bootstrap ones (own MAC address
+            // still null_mac) this allows reliable in/out PACKET drop if not really registered with a supernode yet
+            if(!is_null_mac(eee->device.mac_addr)) {
+                if(!eee->last_sup) {
+                    // indicates first successful connection between the edge and a supernode
+                    traceEvent(TRACE_NORMAL, "[OK] edge <<< ================ >>> supernode");
+                    // send gratuitous ARP only upon first registration with supernode
+                    send_grat_arps(eee);
+                }
+                eee->last_sup = now;
+            }
+
+            // NOTE: the register_interval should be chosen by the edge node based on its NAT configuration.
+            // eee->conf.register_interval = ra.lifetime;
+
+            if(eee->cb.sn_registration_updated && !is_null_mac(eee->device.mac_addr))
+                eee->cb.sn_registration_updated(eee, now, &sender);
+
+            break;
+        }
+
+        case MSG_TYPE_REGISTER_SUPER_NAK: {
+
+            n2n_REGISTER_SUPER_NAK_t nak;
+
+            if(!(eee->sn_wait)) {
+                traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_NAK with no outstanding REGISTER_SUPER");
+                return;
+            }
+
+            // FIXME: fix decode_* functions to not need memsets
+            memset(&nak, 0, sizeof(nak));
+            decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
+
+            if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                if(!find_peer_time_stamp_and_verify(
+                       eee->pending_peers,
+                       eee->known_peers,
+                       sn,
+                       nak.srcMac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
+                    traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_NAK due to time stamp error");
                     return;
                 }
+            }
 
-                if(handle_remote_auth(eee, sn, &(ra.auth))) {
-                    traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong or old response to challenge");
-                    if(eee->conf.shared_secret) {
-                        traceEvent(TRACE_NORMAL, "Rx REGISTER_SUPER_ACK with wrong or old response to challenge, maybe indicating wrong federation public key (-P)");
-                    }
+            if(nak.cookie != eee->curr_sn->last_cookie) {
+                traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_NAK with wrong or old cookie");
+                return;
+            }
+
+            // REVISIT: authenticate the NAK packet really originating from the supernode along the auth token.
+            //          this must follow a different scheme because it needs to prove authenticity although the
+            //          edge-provided credentials are wrong
+
+            traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_NAK");
+
+            if((memcmp(nak.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t))) == 0) {
+                if(eee->conf.shared_secret) {
+                    traceEvent(TRACE_ERROR, "authentication error, username or password not recognized by supernode");
+                } else {
+                    traceEvent(TRACE_ERROR, "authentication error, MAC or IP address already in use or not released yet by supernode");
+                }
+                // REVISIT: the following portion is too harsh, repeated error warning should be sufficient until it eventually is resolved,
+                //           preventing de-auth attacks
+                /* exit(1); this is too harsh, repeated error warning should be sufficient until it eventually is resolved, preventing de-auth attacks
+                   } else {
+                   HASH_FIND_PEER(eee->known_peers, nak.srcMac, peer);
+                   if(peer != NULL) {
+                    HASH_DEL(eee->known_peers, peer);
+                   }
+                   HASH_FIND_PEER(eee->pending_peers, nak.srcMac, scan);
+                   if(scan != NULL) {
+                    HASH_DEL(eee->pending_peers, scan);
+                   } */
+            }
+            break;
+        }
+
+        case MSG_TYPE_PEER_INFO: {
+
+            n2n_PEER_INFO_t pi;
+            struct peer_info * scan;
+            int skip_add;
+
+            decode_PEER_INFO(&pi, &cmn, udp_buf, &rem, &idx);
+
+            if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                if(!find_peer_time_stamp_and_verify(
+                       eee->pending_peers,
+                       eee->known_peers,
+                       sn,
+                       null_mac,
+                       stamp,
+                       TIME_STAMP_ALLOW_JITTER)) {
+                    traceEvent(TRACE_DEBUG, "dropped PEER_INFO due to time stamp error");
                     return;
                 }
+            }
 
-                if(is_valid_peer_sock(&ra.sock))
-                    orig_sender = &(ra.sock);
-
-                traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK from %s [%s] (external %s) with %u attempts left",
-                           macaddr_str(mac_buf1, ra.srcMac),
-                           sock_to_cstr(sockbuf1, &sender),
-                           sock_to_cstr(sockbuf2, orig_sender),
-                           (unsigned int)eee->sup_attempts);
-
-                if(is_null_mac(eee->curr_sn->mac_addr)) {
-                    HASH_DEL(eee->conf.supernodes, eee->curr_sn);
-                    memcpy(&eee->curr_sn->mac_addr, ra.srcMac, N2N_MAC_SIZE);
-                    HASH_ADD_PEER(eee->conf.supernodes, eee->curr_sn);
-                }
-
-                n2n_REGISTER_SUPER_ACK_payload_t *payload;
-                payload = (n2n_REGISTER_SUPER_ACK_payload_t*)tmpbuf;
-
-                // from here on, 'sn' gets used differently
-                for(i = 0; i < ra.num_sn; i++) {
-                    n2n_sock_t payload_sock;
-                    skip_add = SN_ADD;
-
-                    // bugfix for https://github.com/ntop/n2n/issues/1029
-                    // REVISIT: best to be removed with 4.0
-                    idx = 0;
-                    rem = sizeof(payload->sock);
-                    decode_sock_payload(&payload_sock, payload->sock, &rem, &idx);
-
-                    sn = add_sn_to_list_by_mac_or_sock(&(eee->conf.supernodes), &payload_sock, payload->mac, &skip_add);
-
-                    if(skip_add == SN_ADD_ADDED) {
-                        // TODO: could just avoid adding the special string
-                        // with the hostname when we are adding a supernode
-                        // discovered from the reg packet
-                        sn->hostname = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-                        if(sn->hostname != NULL) {
-                            char ip_tmp[N2N_EDGE_SN_HOST_SIZE];
-
-                            inet_ntop(payload_sock.family,
-                                      (payload_sock.family == AF_INET) ? (void*)&(payload_sock.addr.v4) : (void*)&(payload_sock.addr.v6),
-                                      sn->hostname, N2N_EDGE_SN_HOST_SIZE - 1);
-                            sprintf(ip_tmp, "%s:%u", (char*)sn->hostname, (uint16_t)(payload_sock.port));
-                            memcpy(sn->hostname, ip_tmp, sizeof(ip_tmp));
-                        }
-                        sn->last_seen = 0; /* as opposed to payload handling in supernode */
-                        traceEvent(
-                            TRACE_NORMAL,
-                            "supernode '%s' added to the list of supernodes.",
-                            peer_info_get_hostname(sn)
-                        );
-                    }
-                    // shift to next payload entry
-                    payload++;
-                }
-
-                if(eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
-                    if((ra.dev_addr.net_addr != 0) && (ra.dev_addr.net_bitlen != 0)) {
-                        eee->conf.tuntap_v4.net_addr = htonl(ra.dev_addr.net_addr);
-                        eee->conf.tuntap_v4.net_bitlen = ra.dev_addr.net_bitlen;
-                    }
-                }
-
-                eee->sn_wait = 0;
-                reset_sup_attempts(eee); /* refresh because we got a response */
-
-                // update last_sup only on 'real' REGISTER_SUPER_ACKs, not on bootstrap ones (own MAC address
-                // still null_mac) this allows reliable in/out PACKET drop if not really registered with a supernode yet
-                if(!is_null_mac(eee->device.mac_addr)) {
-                    if(!eee->last_sup) {
-                        // indicates first successful connection between the edge and a supernode
-                        traceEvent(TRACE_NORMAL, "[OK] edge <<< ================ >>> supernode");
-                        // send gratuitous ARP only upon first registration with supernode
-                        send_grat_arps(eee);
-                    }
-                    eee->last_sup = now;
-                }
-
-                // NOTE: the register_interval should be chosen by the edge node based on its NAT configuration.
-                // eee->conf.register_interval = ra.lifetime;
-
-                if(eee->cb.sn_registration_updated && !is_null_mac(eee->device.mac_addr))
-                    eee->cb.sn_registration_updated(eee, now, &sender);
-
+            if((cmn.flags & N2N_FLAGS_SOCKET) && !is_valid_peer_sock(&pi.sock)) {
+                traceEvent(TRACE_DEBUG, "skip invalid PEER_INFO from %s [%s]",
+                           macaddr_str(mac_buf1, pi.mac),
+                           sock_to_cstr(sockbuf1, &pi.sock));
                 break;
             }
 
-            case MSG_TYPE_REGISTER_SUPER_NAK: {
+            if(is_null_mac(pi.mac)) {
+                // PONG - answer to PING (QUERY_PEER_INFO with null mac)
+                skip_add = SN_ADD_SKIP;
+                scan = add_sn_to_list_by_mac_or_sock(&(eee->conf.supernodes), &sender, pi.srcMac, &skip_add);
+                if(scan != NULL) {
+                    eee->sn_pong = 1;
+                    scan->last_seen = now;
+                    scan->uptime = pi.uptime;
+                    memcpy(scan->version, pi.version, sizeof(n2n_version_t));
+                    /* The data type depends on the actual selection strategy that has been chosen. */
+                    SN_SELECTION_CRITERION_DATA_TYPE sn_sel_tmp = pi.load;
+                    sn_selection_criterion_calculate(eee, scan, &sn_sel_tmp);
 
-                n2n_REGISTER_SUPER_NAK_t nak;
+                    traceEvent(TRACE_INFO, "Rx PONG from supernode %s version '%s'",
+                               macaddr_str(mac_buf1, pi.srcMac),
+                               pi.version);
 
-                if(!(eee->sn_wait)) {
-                    traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_NAK with no outstanding REGISTER_SUPER");
-                    return;
+                    break;
                 }
+            } else {
+                // regular PEER_INFO
+                HASH_FIND_PEER(eee->pending_peers, pi.mac, scan);
+                if(!scan)
+                    // just in case the remote edge has been upgraded by the REG/ACK mechanism in the meantime
+                    HASH_FIND_PEER(eee->known_peers, pi.mac, scan);
 
-                // FIXME: fix decode_* functions to not need memsets
-                memset(&nak, 0, sizeof(nak));
-                decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
+                if(scan) {
+                    scan->sock = pi.sock;
 
-                if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_peer_time_stamp_and_verify(
-                           eee->pending_peers,
-                           eee->known_peers,
-                           sn,
-                           nak.srcMac,
-                           stamp,
-                           TIME_STAMP_NO_JITTER)) {
-                        traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_NAK due to time stamp error");
-                        return;
-                    }
-                }
-
-                if(nak.cookie != eee->curr_sn->last_cookie) {
-                    traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_NAK with wrong or old cookie");
-                    return;
-                }
-
-                // REVISIT: authenticate the NAK packet really originating from the supernode along the auth token.
-                //          this must follow a different scheme because it needs to prove authenticity although the
-                //          edge-provided credentials are wrong
-
-                traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_NAK");
-
-                if((memcmp(nak.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t))) == 0) {
-                    if(eee->conf.shared_secret) {
-                        traceEvent(TRACE_ERROR, "authentication error, username or password not recognized by supernode");
-                    } else {
-                        traceEvent(TRACE_ERROR, "authentication error, MAC or IP address already in use or not released yet by supernode");
-                    }
-                    // REVISIT: the following portion is too harsh, repeated error warning should be sufficient until it eventually is resolved,
-                    //           preventing de-auth attacks
-                    /* exit(1); this is too harsh, repeated error warning should be sufficient until it eventually is resolved, preventing de-auth attacks
-                       } else {
-                       HASH_FIND_PEER(eee->known_peers, nak.srcMac, peer);
-                       if(peer != NULL) {
-                        HASH_DEL(eee->known_peers, peer);
-                       }
-                       HASH_FIND_PEER(eee->pending_peers, nak.srcMac, scan);
-                       if(scan != NULL) {
-                        HASH_DEL(eee->pending_peers, scan);
-                       } */
-                }
-                break;
-            }
-
-            case MSG_TYPE_PEER_INFO: {
-
-                n2n_PEER_INFO_t pi;
-                struct peer_info * scan;
-                int skip_add;
-
-                decode_PEER_INFO(&pi, &cmn, udp_buf, &rem, &idx);
-
-                if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_peer_time_stamp_and_verify(
-                           eee->pending_peers,
-                           eee->known_peers,
-                           sn,
-                           null_mac,
-                           stamp,
-                           TIME_STAMP_ALLOW_JITTER)) {
-                        traceEvent(TRACE_DEBUG, "dropped PEER_INFO due to time stamp error");
-                        return;
-                    }
-                }
-
-                if((cmn.flags & N2N_FLAGS_SOCKET) && !is_valid_peer_sock(&pi.sock)) {
-                    traceEvent(TRACE_DEBUG, "skip invalid PEER_INFO from %s [%s]",
+                    traceEvent(TRACE_INFO, "Rx PEER_INFO %s can be found at [%s]",
                                macaddr_str(mac_buf1, pi.mac),
                                sock_to_cstr(sockbuf1, &pi.sock));
-                    break;
-                }
 
-                if(is_null_mac(pi.mac)) {
-                    // PONG - answer to PING (QUERY_PEER_INFO with null mac)
-                    skip_add = SN_ADD_SKIP;
-                    scan = add_sn_to_list_by_mac_or_sock(&(eee->conf.supernodes), &sender, pi.srcMac, &skip_add);
-                    if(scan != NULL) {
-                        eee->sn_pong = 1;
-                        scan->last_seen = now;
-                        scan->uptime = pi.uptime;
-                        memcpy(scan->version, pi.version, sizeof(n2n_version_t));
-                        /* The data type depends on the actual selection strategy that has been chosen. */
-                        SN_SELECTION_CRITERION_DATA_TYPE sn_sel_tmp = pi.load;
-                        sn_selection_criterion_calculate(eee, scan, &sn_sel_tmp);
+                    if(cmn.flags & N2N_FLAGS_SOCKET) {
+                        scan->preferred_sock = pi.preferred_sock;
+                        send_register(eee, &scan->preferred_sock, scan->mac_addr, N2N_LOCAL_REG_COOKIE);
 
-                        traceEvent(TRACE_INFO, "Rx PONG from supernode %s version '%s'",
-                                   macaddr_str(mac_buf1, pi.srcMac),
-                                   pi.version);
-
-                        break;
-                    }
-                } else {
-                    // regular PEER_INFO
-                    HASH_FIND_PEER(eee->pending_peers, pi.mac, scan);
-                    if(!scan)
-                        // just in case the remote edge has been upgraded by the REG/ACK mechanism in the meantime
-                        HASH_FIND_PEER(eee->known_peers, pi.mac, scan);
-
-                    if(scan) {
-                        scan->sock = pi.sock;
-
-                        traceEvent(TRACE_INFO, "Rx PEER_INFO %s can be found at [%s]",
+                        traceEvent(TRACE_INFO, "%s has preferred local socket at [%s]",
                                    macaddr_str(mac_buf1, pi.mac),
-                                   sock_to_cstr(sockbuf1, &pi.sock));
-
-                        if(cmn.flags & N2N_FLAGS_SOCKET) {
-                            scan->preferred_sock = pi.preferred_sock;
-                            send_register(eee, &scan->preferred_sock, scan->mac_addr, N2N_LOCAL_REG_COOKIE);
-
-                            traceEvent(TRACE_INFO, "%s has preferred local socket at [%s]",
-                                       macaddr_str(mac_buf1, pi.mac),
-                                       sock_to_cstr(sockbuf1, &pi.preferred_sock));
-                        }
-
-                        send_register(eee, &scan->sock, scan->mac_addr, N2N_REGULAR_REG_COOKIE);
-
-                    } else {
-                        traceEvent(TRACE_INFO, "Rx PEER_INFO unknown peer %s",
-                                   macaddr_str(mac_buf1, pi.mac));
+                                   sock_to_cstr(sockbuf1, &pi.preferred_sock));
                     }
+
+                    send_register(eee, &scan->sock, scan->mac_addr, N2N_REGULAR_REG_COOKIE);
+
+                } else {
+                    traceEvent(TRACE_INFO, "Rx PEER_INFO unknown peer %s",
+                               macaddr_str(mac_buf1, pi.mac));
                 }
-                break;
             }
+            break;
+        }
 
-            case MSG_TYPE_RE_REGISTER_SUPER: {
+        case MSG_TYPE_RE_REGISTER_SUPER: {
 
-                if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
-                    if(!find_peer_time_stamp_and_verify(
-                           eee->pending_peers,
-                           eee->known_peers,
-                           sn,
-                           null_mac,
-                           stamp,
-                           TIME_STAMP_NO_JITTER)) {
-                        traceEvent(TRACE_DEBUG, "dropped RE_REGISTER due to time stamp error");
-                        return;
-                    }
-                }
-
-                // only accept in user/pw mode for immediate re-registration because the new
-                // key is required for continous traffic flow, in other modes edge will realize
-                // changes with regular recurring REGISTER_SUPER
-                if(!eee->conf.shared_secret) {
-                    traceEvent(TRACE_DEBUG, "dropped RE_REGISTER_SUPER as not in user/pw auth mode");
+            if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
+                if(!find_peer_time_stamp_and_verify(
+                       eee->pending_peers,
+                       eee->known_peers,
+                       sn,
+                       null_mac,
+                       stamp,
+                       TIME_STAMP_NO_JITTER)) {
+                    traceEvent(TRACE_DEBUG, "dropped RE_REGISTER due to time stamp error");
                     return;
                 }
-
-                traceEvent(TRACE_INFO, "Rx RE_REGISTER_SUPER");
-
-                eee->sn_wait = 2; /* immediately */
-
-                break;
             }
 
-            default:
-                /* Not a known message type */
-                traceEvent(TRACE_INFO, "unable to handle packet type %d: ignored", (signed int)msg_type);
+            // only accept in user/pw mode for immediate re-registration because the new
+            // key is required for continous traffic flow, in other modes edge will realize
+            // changes with regular recurring REGISTER_SUPER
+            if(!eee->conf.shared_secret) {
+                traceEvent(TRACE_DEBUG, "dropped RE_REGISTER_SUPER as not in user/pw auth mode");
                 return;
-        } /* switch(msg_type) */
-    } else if(from_supernode) /* if(community match) */
-        traceEvent(TRACE_INFO, "received packet with unknown community");
-    else
-        traceEvent(TRACE_INFO, "ignoring packet with unknown community");
+            }
+
+            traceEvent(TRACE_INFO, "Rx RE_REGISTER_SUPER");
+
+            eee->sn_wait = 2; /* immediately */
+
+            break;
+        }
+
+        default:
+            /* Not a known message type */
+            traceEvent(TRACE_INFO, "unable to handle packet type %d: ignored", (signed int)msg_type);
+            return;
+    } /* switch(msg_type) */
 }
 
 
