@@ -94,6 +94,23 @@ struct ether_hdr {
 typedef struct ether_hdr ether_hdr_t;
 
 
+enum PACK_STRUCT n3n_pc {
+    n2n_ping =               0,     /* Not used */
+    n2n_register =           1,     /* Register edge to edge */
+    n2n_deregister =         2,     /* Deregister this edge */
+    n2n_packet =             3,     /* PACKET data content */
+    n2n_register_ack =       4,     /* ACK of a registration from edge to edge */
+    n2n_register_super =     5,     /* Register edge to supernode */
+    n2n_unregister_super =   6,     /* Deregister edge from supernode */
+    n2n_register_super_ack = 7,     /* ACK from supernode to edge */
+    n2n_register_super_nak = 8,     /* NAK from supernode to edge - registration refused */
+    n2n_federation =         9,     /* Not used by edge */
+    n2n_peer_info =          10,    /* Send info on a peer from sn to edge */
+    n2n_query_peer =         11,    /* ask supernode for info on a peer */
+    n2n_re_register_super =  12     /* ask edge to re-register with supernode */
+};
+
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #pragma pack(pop)
 #endif
@@ -138,22 +155,6 @@ typedef u_short sa_family_t;
 
 
 typedef char n2n_sn_name_t[N2N_EDGE_SN_HOST_SIZE];
-
-typedef enum n2n_pc {
-    n2n_ping =               0,     /* Not used */
-    n2n_register =           1,     /* Register edge to edge */
-    n2n_deregister =         2,     /* Deregister this edge */
-    n2n_packet =             3,     /* PACKET data content */
-    n2n_register_ack =       4,     /* ACK of a registration from edge to edge */
-    n2n_register_super =     5,     /* Register edge to supernode */
-    n2n_unregister_super =   6,     /* Deregister edge from supernode */
-    n2n_register_super_ack = 7,     /* ACK from supernode to edge */
-    n2n_register_super_nak = 8,     /* NAK from supernode to edge - registration refused */
-    n2n_federation =         9,     /* Not used by edge */
-    n2n_peer_info =          10,    /* Send info on a peer from sn to edge */
-    n2n_query_peer =         11,    /* ask supernode for info on a peer */
-    n2n_re_register_super =  12     /* ask edge to re-register with supernode */
-} n2n_pc_t;
 
 // This one bit higher than the largest used flag value.  It is used in the
 // header encryption detection heuristic and is not a flag itself
@@ -230,7 +231,7 @@ typedef struct n2n_common {
     /* int             version; */
 
     uint8_t ttl;
-    uint8_t pc;
+    enum n3n_pc pc;
     uint16_t flags;
     n2n_community_t community;
 } n2n_common_t;
@@ -259,7 +260,7 @@ typedef struct n2n_PACKET {
     uint8_t compression;
 } n2n_PACKET_t;
 
-/* Linked with n2n_register_super in n2n_pc_t. Only from edge to supernode. */
+/* Linked with n2n_register_super via enum n3n_pc. Only from edge to supernode. */
 typedef struct n2n_REGISTER_SUPER {
     n2n_cookie_t cookie;            /**< Link REGISTER_SUPER and REGISTER_SUPER_ACK */
     n2n_mac_t edgeMac;              /**< MAC to register with edge sending socket */
@@ -271,7 +272,7 @@ typedef struct n2n_REGISTER_SUPER {
 } n2n_REGISTER_SUPER_t;
 
 
-/* Linked with n2n_register_super_ack in n2n_pc_t. Only from supernode to edge. */
+/* Linked with n2n_register_super_ack via enum n3n_pc. Only from supernode to edge. */
 typedef struct n2n_REGISTER_SUPER_ACK {
     n2n_cookie_t cookie;            /**< Return cookie from REGISTER_SUPER */
     n2n_mac_t srcMac;               /**< MAC of answering supernode */
@@ -291,7 +292,7 @@ typedef struct n2n_REGISTER_SUPER_ACK {
 } n2n_REGISTER_SUPER_ACK_t;
 
 
-/* Linked with n2n_register_super_ack in n2n_pc_t. Only from supernode to edge. */
+/* Linked with n2n_register_super_ack via enum n3n_pc. Only from supernode to edge. */
 typedef struct n2n_REGISTER_SUPER_NAK {
     n2n_cookie_t cookie;       /* Return cookie from REGISTER_SUPER */
     n2n_mac_t srcMac;
@@ -309,7 +310,7 @@ typedef struct n2n_REGISTER_SUPER_ACK_payload {
 } n2n_REGISTER_SUPER_ACK_payload_t;
 
 
-/* Linked with n2n_unregister_super in n2n_pc_t. */
+/* Linked with n2n_unregister_super via enum n3n_pc. */
 typedef struct n2n_UNREGISTER_SUPER {
     n2n_auth_t auth;
     n2n_mac_t srcMac;
