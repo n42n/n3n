@@ -1875,7 +1875,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             } else {
                 try_broadcast(sss, comm, &cmn, pkt.srcMac, from_supernode, rec_buf, encx, now);
             }
-            break;
+            return 0;
         }
 
         case MSG_TYPE_REGISTER: {
@@ -1947,12 +1947,12 @@ static int process_udp (struct n3n_runtime_data * sss,
             } else {
                 traceEvent(TRACE_ERROR, "Rx REGISTER with multicast destination");
             }
-            break;
+            return 0;
         }
 
         case MSG_TYPE_REGISTER_ACK: {
             traceEvent(TRACE_DEBUG, "Rx REGISTER_ACK (not implemented) should not be via supernode");
-            break;
+            return 0;
         }
 
         case MSG_TYPE_REGISTER_SUPER: {
@@ -2170,7 +2170,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 traceEvent(TRACE_DEBUG, "Tx REGISTER_SUPER_NAK for %s",
                            macaddr_str(mac_buf, reg.edgeMac));
 
-                break;
+                return 0;
             }
 
             // if this is not already from a supernode ...
@@ -2262,7 +2262,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 }
             }
 
-            break;
+            return 0;
         }
 
         case MSG_TYPE_UNREGISTER_SUPER: {
@@ -2314,7 +2314,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                     }
                 }
             }
-            break;
+            return 0;
         }
 
         case MSG_TYPE_REGISTER_SUPER_ACK: {
@@ -2367,7 +2367,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                 scan->last_seen = now;
             } else {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK due to an unknown supernode");
-                break;
+                return 0;
             }
 
             if(ack.cookie == scan->last_cookie) {
@@ -2409,7 +2409,7 @@ static int process_udp (struct n3n_runtime_data * sss,
             } else {
                 traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong or old cookie");
             }
-            break;
+            return 0;
         }
 
         case MSG_TYPE_REGISTER_SUPER_NAK: {
@@ -2479,7 +2479,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                     }
                 }
             }
-            break;
+            return 0;
         }
 
         case MSG_TYPE_QUERY_PEER: {
@@ -2636,7 +2636,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                     }
                 }
             }
-            break;
+            return 0;
         }
 
         case MSG_TYPE_PEER_INFO: {
@@ -2692,7 +2692,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                     sendto_peer(sss, peer, encbuf, encx);
                 }
             }
-            break;
+            return 0;
         }
 
         default:
