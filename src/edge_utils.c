@@ -2726,12 +2726,10 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
             if((memcmp(nak.srcMac, eee->device.mac_addr, sizeof(n2n_mac_t))) == 0) {
                 macstr_t buf_src;
-                macstr_t buf_dev;
                 traceEvent(
                     TRACE_ERROR,
-                    "auth error: %s != %s",
-                    macaddr_str(buf_src, nak.srcMac),
-                    macaddr_str(buf_dev, eee->device.mac_addr)
+                    "auth error: mac %s",
+                    macaddr_str(buf_src, nak.srcMac)
                 );
                 if(eee->conf.shared_secret) {
                     traceEvent(TRACE_ERROR, "authentication error, username or password not recognized by supernode");

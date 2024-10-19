@@ -1195,7 +1195,11 @@ static int update_edge (struct n3n_runtime_data *sss,
     // if unknown, make sure it is also not known by IP address
     if(NULL == scan) {
         HASH_ITER(hh,comm->edges,iter,tmp) {
-            // TODO: needs ipv6 support
+            // TODO:
+            // - needs ipv6 support
+            // - I suspect that this can leak TCP connections
+            // - convert to using a peer_info_*() call for manipulating the
+            //   peer info lists
             if(iter->dev_addr.net_addr == reg->dev_addr.net_addr) {
                 scan = iter;
                 HASH_DEL(comm->edges, scan);
@@ -1205,6 +1209,8 @@ static int update_edge (struct n3n_runtime_data *sss,
             }
         }
     }
+
+    scan = peer_info_validate(&comm->edges, scan);
 
     if(NULL == scan) {
         /* Not known */
