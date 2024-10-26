@@ -57,7 +57,7 @@ docmd "${TOPDIR}"/scripts/n3nctl -s ci_edge1 get_edges --raw |grep -v "last_seen
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn get_edges --raw |grep -v -E "last_seen|time_alloc"
 
 
-docmd ${TOPDIR}/scripts/n3nctl -s ci_edge1 get_supernodes --raw
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_edge1 get_supernodes --raw
 
 # stop them both
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_edge1 -k $AUTH stop
