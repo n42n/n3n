@@ -22,7 +22,6 @@
 #include <n3n/logging.h> // for traceEvent
 #include <stdlib.h>     // for calloc, free, size_t
 #include <string.h>     // for memcpy
-#include <emmintrin.h>
 #include <stdint.h>
 
 #include "cc20.h"
