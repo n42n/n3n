@@ -22,9 +22,9 @@
 #include <n3n/logging.h> // for traceEvent
 #include <stdlib.h>     // for calloc, free, size_t
 #include <string.h>     // for memcpy
-#include <stdint.h>
 
 #include "cc20.h"
+#include "config.h"  // HAVE_LIBCRYPTO
 #include "portable_endian.h"  // for htole32
 
 
@@ -92,6 +92,7 @@ int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
 // https://github.com/Ginurx/chacha20-c (public domain)
 
 
+#include <immintrin.h>  // for _mm_xor_si128, _mm_add_epi32, _mm_slli_epi32
 #include <xmmintrin.h>  // for _MM_SHUFFLE
 
 
