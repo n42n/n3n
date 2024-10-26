@@ -37,6 +37,7 @@ docmd sudo "${BINDIR}"/apps/n3n-edge start ci_edge1 \
     -c test \
     -Oconnection.bind=:7700 \
     -Oconnection.connect_tcp=true \
+    -Oconnection.description=ci_edge1 \
     -Odaemon.userid="$USER" \
     -Otuntap.macaddr=02:00:00:77:00:00 \
     1>&2

@@ -42,8 +42,8 @@
 [
     {
         "community": "test",
-        "desc": "archer",
-        "ip4addr": "10.200.175.63/24",
+        "desc": "ci_edge1",
+        "ip4addr": "10.200.175.139/24",
         "last_p2p": 0,
         "last_sent_query": 0,
         "local": 0,
