@@ -18,7 +18,10 @@
 #include <stddef.h>        // for size_t
 #include <stdint.h>        // for uint64_t
 #include <sys/types.h>     // for ssize_t
+
 #include "n2n_define.h"    // for n2n_event_topic
+
+struct n3n_runtime_data;
 
 #ifdef _WIN32
 #include <winsock2.h>

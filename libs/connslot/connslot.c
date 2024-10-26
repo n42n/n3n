@@ -6,26 +6,22 @@
  */
 
 #define _GNU_SOURCE
+#include <errno.h>      // for errno, EAGAIN, ENOENT, EWOULDBLOCK
+#include <fcntl.h>      // for fcntl, F_SETFL, O_NONBLOCK
 #ifndef _WIN32
-#include <arpa/inet.h>
+#include <netinet/in.h> // for htons, htonl, sockaddr_in, sock...
 #endif
-#include <errno.h>
-#include <fcntl.h>
+#include <stdio.h>      // for remove
+#include <stdlib.h>     // for free, abort, malloc, strtoul
+#include <string.h>     // for memmem, memcpy, strlen, strncpy
 #ifndef _WIN32
-#include <netinet/in.h>
+#include <sys/socket.h> // for socket, bind, listen, setsockopt
+#include <sys/stat.h>   // for chmod
+#include <sys/uio.h>    // for writev
+#include <sys/un.h>     // for sockaddr_un
 #endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#ifndef _WIN32
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/un.h>
-#endif
-#include <time.h>
-#include <unistd.h>
+#include <time.h>       // for NULL, time, size_t
+#include <unistd.h>     // for close, chown
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -33,6 +29,7 @@
 #endif
 
 #include "connslot.h"
+#include "strbuf.h"     // for sb_reprintf, sb_len, strbuf_t
 
 #ifdef _WIN32
 // Windows is a strange place to live, if you are a POSIX programmer

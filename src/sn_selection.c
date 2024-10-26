@@ -24,6 +24,9 @@
 #include <stdio.h>            // for snprintf, NULL
 #include <string.h>           // for memcpy, memset
 #include "n2n.h"              // for n3n_runtime_data, SN_SELECTION_CRIT...
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
+#include "n3n/ethernet.h"
 #include "peer_info.h"        // for peer_info_t
 #include "portable_endian.h"  // for be32toh, be64toh, htobe64
 #include "sn_selection.h"     // for selection_criterion_str_t, sn_selection_cr...

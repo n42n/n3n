@@ -14,14 +14,23 @@
 #include <n3n/metrics.h> // for n3n_metrics_render
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community
+#include <netinet/in.h>
 #include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
-#include <stdio.h>       // for snprintf, NULL, size_t
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
+#include <time.h>
+#include <unistd.h>
+
 #include "base64.h"      // for base64decode
+#include "connslot/strbuf.h"
 #include "management.h"
+#include "n2n.h"
+#include "n2n_typedefs.h"
 #include "peer_info.h"   // for peer_info
+#include "uthash.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"

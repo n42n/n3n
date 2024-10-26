@@ -8,16 +8,18 @@
 #ifndef CONNSLOT_H
 #define CONNSLOT_H
 
-#include <time.h>
+#include <stdbool.h>     // for bool
+#include <sys/types.h>   // for ssize_t
+
 #ifndef _WIN32
-#include <sys/select.h>
+#include <sys/select.h>  // for fd_set
 #endif
 
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
 
-#include "strbuf.h"
+#include "strbuf.h"      // for strbuf_t
 
 #ifdef _WIN32
 void *memmem(void *haystack, size_t haystack_len, void * needle, size_t needle_len);

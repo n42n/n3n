@@ -24,16 +24,20 @@
 #include <n3n/logging.h>     // for traceEvent
 #include <n3n/random.h>      // for n3n_rand
 #include <n3n/strings.h>     // for ip_subnet_to_str, sock_to_cstr
-#include <stdbool.h>
+#include <netinet/in.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
 #include <string.h>          // for memcmp, memcpy, memset, strlen, strerror
 #include <sys/time.h>        // for gettimeofday, timeval
-#include <time.h>            // for time, localtime, strftime
+
 #include "n2n.h"
-#include "uthash.h"          // for UT_hash_handle, HASH_DEL, HASH_ITER, HAS...
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"
+
 #include <ws2def.h>
 #else
 #include <arpa/inet.h>       // for inet_ntop

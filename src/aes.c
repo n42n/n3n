@@ -18,7 +18,7 @@
  *
  */
 
-#include "config.h"
+#include "config.h"     // for HAVE_LIBCRYPTO
 
 #include <n3n/logging.h> // for traceEvent
 #include <stdint.h>  // for uint32_t, uint8_t

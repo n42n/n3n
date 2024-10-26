@@ -11,6 +11,11 @@
 #include <n3n/metrics.h> // for traceEvent
 #include <sn_selection.h>   // for sn_selection_criterion_default
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
 #include "resolve.h"    // for supernode2sock

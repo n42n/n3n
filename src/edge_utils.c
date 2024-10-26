@@ -39,11 +39,13 @@
 #include <stdio.h>                   // for snprintf, sprintf
 #include <stdlib.h>                  // for free, calloc, getenv
 #include <string.h>                  // for memcpy, memset, NULL, memcmp
-#include <sys/time.h>                // for timeval
 #include <sys/types.h>               // for time_t, ssize_t, u_int
 #include <time.h>                    // for time
 #include <unistd.h>                  // for gethostname, sleep
-#include "auth.h"                    // for generate_private_key
+#include <endian.h>
+#include <pwd.h>
+#include <stddef.h>
+
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "mainloop.h"                // for mainloop_runonce
 #include "management.h"              // for readFromMgmtSocket
@@ -51,14 +53,16 @@
 #include "n2n_wire.h"                // for fill_sockaddr, decod...
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
-#include "portable_endian.h"         // for be16toh, htobe16
 #include "resolve.h"                 // for resolve_create_thread, resolve_c...
 #include "sn_selection.h"            // for sn_selection_criterion_common_da...
 #include "speck.h"                   // for speck_128_decrypt, speck_128_enc...
 #include "uthash.h"                  // for UT_hash_handle, HASH_COUNT, HASH...
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
 
 #ifdef _WIN32
 #include <direct.h>                  // for _mkdir
+
 #include "win32/edge_utils_win32.h"
 #else
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop

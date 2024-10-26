@@ -5,8 +5,12 @@
  */
 
 #include <connslot/connslot.h>  // for slots_fdset
-#include <sys/select.h>         // for select, FD_ZERO,
 #include <n2n_typedefs.h>       // for n3n_runtime_data
+#include <stddef.h>
+#include <stdint.h>
+#include <sys/select.h>         // for select, FD_ZERO,
+
+#include "n2n_define.h"
 
 #ifndef max
 #define max(a, b) (((a) < (b)) ? (b) : (a))

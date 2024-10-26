@@ -23,8 +23,9 @@
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>     // for uint8_t
 #include <string.h>     // for memcpy, size_t, memset
-#include <sys/types.h>  // for time_t
+
 #include "n2n.h"        // for n2n_trans_op_t, N2N_...
+#include "n2n_typedefs.h"
 
 
 static int transop_deinit_null (n2n_trans_op_t *arg ) {

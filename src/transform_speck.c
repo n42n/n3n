@@ -26,7 +26,10 @@
 #include <stdlib.h>          // for size_t, calloc, free
 #include <string.h>          // for memset, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
+
 #include "n2n.h"             // for n2n_trans_op_t
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
 #include "pearson.h"         // for pearson_hash_256
 #include "speck.h"           // for N2N_SPECK_IVEC_SIZE, speck_ctr, speck_de...
 

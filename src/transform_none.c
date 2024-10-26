@@ -5,6 +5,8 @@
  */
 
 #include <n3n/transform.h>   // for n3n_transform_register
+#include <stdbool.h>
+
 #include "n2n_define.h"      // for N2N_COMPRESSION_ID_NONE
 
 // A dummy transform struct for the no-op compression

@@ -25,6 +25,7 @@
 #include <stddef.h>  // for NULL, size_t
 #include <time.h>    // for clock, time
 #include <unistd.h>  // for syscall
+#include <stdint.h>
 
 // syscall and inquiring random number from hardware generators might fail, so
 // we will retry

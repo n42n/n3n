@@ -7,6 +7,7 @@
 
 #include <connslot/strbuf.h>
 #include <n3n/metrics.h>
+#include <stddef.h>
 #include <stdint.h>
 
 static struct n3n_metrics_module *registered_metrics;

@@ -26,7 +26,10 @@
 #include <stdlib.h>          // for calloc, free
 #include <string.h>          // for memcpy, size_t, memset, memcmp, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
+
 #include "n2n.h"             // for n2n_trans_op_t
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
 #include "pearson.h"         // for pearson_hash_256
 #include "tf.h"              // for TF_BLOCK_SIZE, tf_cbc_decrypt, tf_cbc_en...
 

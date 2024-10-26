@@ -9,6 +9,8 @@
 #include <n2n_typedefs.h>       // for n2n_edge_conf_t
 #include <n3n/conffile.h>
 
+#include "n2n_define.h"
+
 
 static struct n3n_conf_option section_auth[] = {
     {

@@ -6,18 +6,17 @@
  * SPDX-License-Identifier: LGPL-2.1-only
  */
 
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <stdarg.h>      // for va_list, va_end, va_start
+#include <stdbool.h>     // for bool, true, false
+#include <stddef.h>      // for size_t, NULL
+#include <stdio.h>       // for printf, vsnprintf
+#include <stdlib.h>      // for malloc, realloc
+#include <string.h>      // for memcpy
 
 #ifdef _WIN32
 #include <winsock2.h>
 #else
-#include <sys/socket.h>
+#include <sys/socket.h>  // for recv, send
 #endif
 
 #include "strbuf.h"

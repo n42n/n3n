@@ -25,8 +25,9 @@
 #include <stdio.h>                   // for sprintf
 #include <stdlib.h>                  // for free, malloc, atoi
 #include <string.h>                  // for memcpy, strcpy, NULL, memset
-#include "n2n.h"                     // for filter_rule_t, filter_rule_pair_...
+
 #include "uthash.h"                  // for UT_hash_handle, HASH_ITER, HASH_DEL
+#include "n2n_typedefs.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"

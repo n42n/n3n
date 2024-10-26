@@ -27,6 +27,7 @@
 
 
 #include <stdint.h>     // for uint64_t, uint32_t
+#include <emmintrin.h>
 
 
 #define u32 uint32_t

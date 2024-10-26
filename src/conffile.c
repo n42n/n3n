@@ -19,10 +19,20 @@
 #include <string.h>             // for strcmp
 #include <sys/stat.h>           // for mkdir
 #include <unistd.h>             // for access
+#include <arpa/inet.h>
+#include <bits/getopt_core.h>
+#include <getopt.h>
+#include <pwd.h>
+#include <sys/socket.h>
+
 #include "peer_info.h"          // for struct peer_info
+#include "n2n_typedefs.h"
+#include "n3n/ethernet.h"
+#include "uthash.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"
+
 #include <direct.h>             // for _mkdir
 #else
 #include <grp.h>                // for getgrnam
