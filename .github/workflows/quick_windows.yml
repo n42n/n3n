@@ -24,7 +24,7 @@ jobs:
           export CFLAGS="-fprofile-arcs -ftest-coverage"
           export LDFLAGS="--coverage"
           ./scripts/hack_fakeautoconf.sh
-          make -j4
+          make -k -j4
           make test.builtin test.units
         shell: bash
 
