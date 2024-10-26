@@ -181,6 +181,34 @@ test:
 ### test: ./scripts/n3nctl -s ci_sn1 get_edges --raw
 []
 
+### test: ./scripts/test_packets --tcp --bind 7000 -s localhost:7001 test_QUERY_PEER_ping
+test:
+000: 03 02 00 0b 74 65 73 74  00 00 00 00 00 00 00 00   |    test        |
+010: 00 00 00 00 00 00 00 00  00 00 00 00 00 01 00 00   |                |
+020: 00 00 00 00 00 00                                  |      |
+recv:
+000: 03 02 00 2a 74 65 73 74  00 00 00 00 00 00 00 00   |   *test        |
+010: 00 00 00 00 00 00 00 00  00 00 02 00 00 00 00 01   |                |
+020: 00 00 00 00 00 00 00 00  1b 58 7f 00 00 01 ff ff   |         X      |
+030: ff ff ff ff ff ff 5f 73  74 61 62 69 6c 69 73 65   |      _stabilise|
+040: 64 5f 00 00 00 00 00 00  00 00                     |d_        |
+{'_name': 'PEER_INFO',
+ 'proto_version': 3,
+ 'ttl': 2,
+ 'type': 10,
+ 'flags': 32,
+ 'community': b'test\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+              b'\x00\x00\x00\x00',
+ 'aflags': 0,
+ 'srcMac': b'\x02\x00\x00\x00\x00\x01',
+ 'mac': b'\x00\x00\x00\x00\x00\x00',
+ 'sock_family': <AddressFamily.AF_INET: 2>,
+ 'sock_port': 7000,
+ 'sock_addr': b'\x7f\x00\x00\x01',
+ 'load': 4294967295,
+ 'uptime': 4294967295,
+ 'version': b'_stabilised_'}
+
 ### test: ./scripts/n3nctl -s ci_sn1 -k n3n stop
 0
 

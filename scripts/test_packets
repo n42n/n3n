@@ -716,7 +716,6 @@ def main():
 
     if args.tcp:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((host, port))
     else:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -724,6 +723,9 @@ def main():
 
     if args.bind:
         sock.bind(('', args.bind))
+
+    if args.tcp:
+        sock.connect((host, port))
 
     if args.scenario != "listen":
         send_pkt = PacketGeneric.from_scenario(args.scenario)
