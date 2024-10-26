@@ -44,9 +44,10 @@
 #include <unistd.h>                  // for gethostname, sleep
 #include <stddef.h>
 
+#include "edge_utils.h"
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "mainloop.h"                // for mainloop_runonce
-#include "management.h"              // for readFromMgmtSocket
+#include "management.h"              // for mgmt_event_post
 #include "n2n.h"                     // for n3n_runtime_data, n2n_edge_...
 #include "n2n_wire.h"                // for fill_sockaddr, decod...
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
@@ -3020,10 +3021,9 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         int rc;
         fd_set readers;
         fd_set writers;
-        time_t now;
 
         rc = mainloop_runonce(&readers, &writers, eee);
-        now = time(NULL);
+        time_t now = time(NULL);
 
         if(rc > 0) {
             // any or all of the FDs could have input; check them all
@@ -3068,42 +3068,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             }
 #endif
 
-#ifndef _WIN32
-            if((eee->device.fd != -1) && FD_ISSET(eee->device.fd, &readers)) {
-                // read an ethernet frame from the TAP socket; write on the IP socket
-                edge_read_from_tap(eee);
-            }
-#endif
-
-            int slots_ready = slots_fdset_loop(
-                eee->mgmt_slots,
-                &readers,
-                &writers
-            );
-
-            if(slots_ready < 0) {
-                traceEvent(
-                    TRACE_ERROR,
-                    "slots_fdset_loop returns %i (Is daemon exiting?)", slots_ready
-                );
-            } else if(slots_ready > 0) {
-                // A linear scan is not ideal, but this is a select() loop
-                // not one built for performance.
-                // - update connslot to have callbacks instead of scan
-                // - switch to a modern poll loop (and reimplement differently
-                //   for each OS supported)
-                // This should only be a concern if we are doing a large
-                // number of slot connections
-                for(int i=0; i<eee->mgmt_slots->nr_slots; i++) {
-                    if(eee->mgmt_slots->conn[i].fd == -1) {
-                        continue;
-                    }
-
-                    if(eee->mgmt_slots->conn[i].state == CONN_READY) {
-                        mgmt_api_handler(eee, &eee->mgmt_slots->conn[i]);
-                    }
-                }
-            }
         }
 
         // check for timed out slots
