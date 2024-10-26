@@ -9,6 +9,6 @@
 
 #include <n2n_typedefs.h>   // for n3n_runtime_data
 
-int mainloop_runonce(fd_set *, fd_set *, struct n3n_runtime_data *);
+int mainloop_runonce (fd_set *, fd_set *, struct n3n_runtime_data *);
 
 #endif

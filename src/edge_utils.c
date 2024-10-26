@@ -3076,9 +3076,9 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 #endif
 
             int slots_ready = slots_fdset_loop(
-                    eee->mgmt_slots,
-                    &readers,
-                    &writers
+                eee->mgmt_slots,
+                &readers,
+                &writers
             );
 
             if(slots_ready < 0) {

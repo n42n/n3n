@@ -20,7 +20,7 @@
 #define min(a, b) (((a) >(b)) ? (b) : (a))
 #endif
 
-static int setup_select(fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
+static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     FD_ZERO(rd);
     FD_ZERO(wr);
     int max_sock = 0;
@@ -54,7 +54,7 @@ static int setup_select(fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     return max_sock;
 }
 
-int mainloop_runonce(fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
+int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
 
     int maxfd = setup_select(rd, wr, eee);
 
@@ -71,7 +71,7 @@ int mainloop_runonce(fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
         wait_time.tv_sec = (SOCKET_TIMEOUT_INTERVAL_SECS);
     }
     wait_time.tv_usec = 0;
-    
+
     int rc = select(maxfd + 1, rd, wr, NULL, &wait_time);
 
     return rc;
