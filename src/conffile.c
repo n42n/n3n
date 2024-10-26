@@ -19,7 +19,6 @@
 #include <string.h>             // for strcmp
 #include <sys/stat.h>           // for mkdir
 #include <unistd.h>             // for access
-#include <arpa/inet.h>
 #include <bits/getopt_core.h>
 #include <getopt.h>
 #include <pwd.h>
@@ -35,6 +34,7 @@
 
 #include <direct.h>             // for _mkdir
 #else
+#include <arpa/inet.h>
 #include <grp.h>                // for getgrnam
 #include <netinet/in.h>  // for sockaddr_in
 #endif
