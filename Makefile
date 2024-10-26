@@ -103,6 +103,7 @@ OBJS=\
 	src/initfuncs.o \
 	src/json.o \
 	src/logging.o \
+	src/mainloop.o \
 	src/management.o \
 	src/metrics.o \
 	src/minilzo.o \

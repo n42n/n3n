@@ -45,6 +45,7 @@
 #include <unistd.h>                  // for gethostname, sleep
 #include "auth.h"                    // for generate_private_key
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
+#include "mainloop.h"                // for mainloop_runonce
 #include "management.h"              // for readFromMgmtSocket
 #include "n2n.h"                     // for n3n_runtime_data, n2n_edge_...
 #include "n2n_wire.h"                // for fill_sockaddr, decod...
@@ -3012,51 +3013,12 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 
     while(*eee->keep_running) {
 
-        int rc, max_sock = 0;
+        int rc;
         fd_set readers;
         fd_set writers;
         time_t now;
 
-        FD_ZERO(&readers);
-        FD_ZERO(&writers);
-
-        if(eee->sock >= 0) {
-            FD_SET(eee->sock, &readers);
-            max_sock = max(max_sock, eee->sock);
-        }
-#ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-        if((eee->conf.allow_p2p)
-           && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
-            FD_SET(eee->udp_multicast_sock, &readers);
-            max_sock = max(max_sock, eee->udp_multicast_sock);
-        }
-#endif
-
-#ifndef _WIN32
-        FD_SET(eee->device.fd, &readers);
-        max_sock = max(max_sock, eee->device.fd);
-#endif
-
-        slots_t *slots = eee->mgmt_slots;
-        max_sock = max(
-            max_sock,
-            slots_fdset(
-                slots,
-                &readers,
-                &writers
-            )
-        );
-
-        // FIXME:
-        // unlock the windows tun reader thread before select() and lock it
-        // again after select().  It currently works by accident, but the
-        // structures it manipulates are not thread-safe, so try to make it
-        // work by /design/
-
-        struct timeval wait_time;
-        wait_time.tv_sec = (eee->sn_wait) ? (SOCKET_TIMEOUT_INTERVAL_SECS / 10 + 1) : (SOCKET_TIMEOUT_INTERVAL_SECS);
-        wait_time.tv_usec = 0;
-        rc = select(max_sock + 1, &readers, &writers, NULL, &wait_time);
+        rc = mainloop_runonce(&readers, &writers, eee);
         now = time(NULL);
 
         if(rc > 0) {
@@ -3109,7 +3071,11 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             }
 #endif
 
-            int slots_ready = slots_fdset_loop(slots, &readers, &writers);
+            int slots_ready = slots_fdset_loop(
+                    eee->mgmt_slots,
+                    &readers,
+                    &writers
+            );
 
             if(slots_ready < 0) {
                 traceEvent(
@@ -3124,20 +3090,20 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                 //   for each OS supported)
                 // This should only be a concern if we are doing a large
                 // number of slot connections
-                for(int i=0; i<slots->nr_slots; i++) {
-                    if(slots->conn[i].fd == -1) {
+                for(int i=0; i<eee->mgmt_slots->nr_slots; i++) {
+                    if(eee->mgmt_slots->conn[i].fd == -1) {
                         continue;
                     }
 
-                    if(slots->conn[i].state == CONN_READY) {
-                        mgmt_api_handler(eee, &slots->conn[i]);
+                    if(eee->mgmt_slots->conn[i].state == CONN_READY) {
+                        mgmt_api_handler(eee, &eee->mgmt_slots->conn[i]);
                     }
                 }
             }
         }
 
         // check for timed out slots
-        slots_closeidle(slots);
+        slots_closeidle(eee->mgmt_slots);
 
         // If anything we recieved caused us to stop..
         if(!(*eee->keep_running))
