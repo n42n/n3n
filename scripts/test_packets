@@ -694,8 +694,15 @@ def main():
     )
     ap.add_argument(
         "--raw",
+        action="store_true",
         help="Dont stablise the results - show the real data",
         default=False
+    )
+    ap.add_argument(
+        "--tcp",
+        action="store_true",
+        help="Switch to TCP connection",
+        default=False,
     )
     ap.add_argument("scenario", help="What packet to send")
 
@@ -707,8 +714,14 @@ def main():
     community = args.community.encode("utf8")
     PacketBase.set_default("community", community)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    if args.tcp:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((host, port))
+    else:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
     sock.settimeout(args.timeout)
+
     if args.bind:
         sock.bind(('', args.bind))
 
@@ -718,12 +731,23 @@ def main():
         print("test:")
         hexdump(0, buf)
 
+        if args.tcp:
+            # add framing
+            header = struct.pack('>H', len(buf))
+            sock.sendto(header, (host, port))
+
         sock.sendto(buf, (host, port))
 
     if args.timeout == 0:
         return
 
-    data = sock.recv(1600)
+    if args.tcp:
+        # fetch framing
+        header = sock.recv(2, socket.MSG_WAITALL)
+        size = struct.unpack('>H', header)[0]
+        data = sock.recv(size, socket.MSG_WAITALL)
+    else:
+        data = sock.recv(1600)
 
     recv_pkt = PacketGeneric.from_buffer(data)
     recv_pkt.decode(data)
