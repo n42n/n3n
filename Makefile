@@ -339,6 +339,11 @@ clean.cov:
 		apps/*.gcno apps/*.gcda \
 		tools/*.gcno tools/*.gcda
 
+.PHONY: iwyu
+iwyu: iwyu.out
+iwyu.out:
+	CFLAGS="-Xiwyu --error_always" $(MAKE) -k CC=include-what-you-use 2> iwyu.out
+
 .PHONY: clean
 clean: clean.cov
 	rm -rf $(OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
