@@ -693,7 +693,8 @@ int fill_sockaddr (struct sockaddr * addr,
 int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa, int type) {
 
     sock->family = sa->sa_family;
-    sock->type = type;  // SOCK_DGRAM or SOCK_STREAM
+    // TODO: re enable this when it doesnt break things
+    // sock->type = type;  // SOCK_DGRAM or SOCK_STREAM
 
     switch(sock->family) {
         case AF_INET: {
