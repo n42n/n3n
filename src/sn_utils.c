@@ -98,14 +98,6 @@ static int sort_communities (struct n3n_runtime_data *sss,
                              time_t* p_last_sort,
                              time_t now);
 
-static int process_udp (struct n3n_runtime_data *sss,
-                        const struct sockaddr *sender_sock, socklen_t sock_size,
-                        const SOCKET socket_fd,
-                        uint8_t *udp_buf,
-                        size_t udp_size,
-                        time_t now);
-
-
 /* ************************************** */
 
 
@@ -1642,7 +1634,8 @@ static int process_udp (struct n3n_runtime_data * sss,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
                         size_t udp_size,
-                        time_t now) {
+                        time_t now,
+                        int type) {
 
     n2n_common_t cmn;        /* common fields in the packet header */
     size_t rem;
@@ -1664,7 +1657,7 @@ static int process_udp (struct n3n_runtime_data * sss,
     time_t any_time = 0;
 
     memset(&sender, 0, sizeof(n2n_sock_t));
-    fill_n2nsock(&sender, sender_sock);
+    fill_n2nsock(&sender, sender_sock, SOCK_DGRAM);
     orig_sender = &sender;
 
     traceEvent(TRACE_DEBUG, "processing incoming UDP packet [len: %lu][sender: %s]",
@@ -2619,6 +2612,10 @@ static int process_udp (struct n3n_runtime_data * sss,
                         pi.preferred_sock = scan->preferred_sock;
                     }
 
+                    // FIXME:
+                    // If we get the request on TCP, the reply should indicate
+                    // our prefered sock is TCP ??
+
                     encode_PEER_INFO(encbuf, &encx, &cmn2, &pi);
 
                     if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2844,7 +2841,8 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                         sss->sock,
                         pktbuf,
                         bread,
-                        now
+                        now,
+                        SOCK_DGRAM
                     );
                 }
             }
@@ -2908,7 +2906,8 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                                 conn->socket_fd,
                                 conn->buffer + sizeof(uint16_t),
                                 conn->position - sizeof(uint16_t),
-                                now
+                                now,
+                                SOCK_STREAM
                             );
 
                             // reset, await new prepended length

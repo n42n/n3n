@@ -1095,6 +1095,10 @@ static ssize_t sendto_fd (struct n3n_runtime_data *eee, const void *buf,
         level = TRACE_DEBUG;
     }
 
+    // TODO:
+    // - remove n2ndest param, as the only reason it is here is to
+    //   stringify for errors.
+    //   Better would be to stringify the dest sockaddr_t
     traceEvent(level, "sendto(%s) failed (%d) %s",
                sock_to_cstr(sockbuf, n2ndest),
                errno, errstr);
@@ -1148,6 +1152,9 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         return;
 
     peer_addr.sin_port = 0;
+
+    // TODO:
+    // - also check n2n_sock_t type == SOCK_STREAM as a TCP indicator
 
     // network order socket
     fill_sockaddr((struct sockaddr *) &peer_addr, sizeof(peer_addr), dest);
@@ -2277,8 +2284,13 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
 
 
 /** handle a datagram from the main UDP socket to the internet. */
-void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_sock, const SOCKET in_sock,
-                  uint8_t *udp_buf, size_t udp_size, time_t now) {
+void process_udp (struct n3n_runtime_data *eee,
+                  const struct sockaddr *sender_sock,
+                  const SOCKET in_sock,
+                  uint8_t *udp_buf,
+                  size_t udp_size,
+                  time_t now,
+                  int type) {
 
     n2n_common_t cmn;          /* common fields in the packet header */
     n2n_sock_str_t sockbuf1;
@@ -2309,7 +2321,7 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
         memset(&sender, 0, sizeof(sender));
         // REVISIT: type conversion back and forth, choose a consistent approach throughout whole code,
         //          i.e. stick with more general sockaddr as long as possible and narrow only if required
-        fill_n2nsock(&sender, sender_sock);
+        fill_n2nsock(&sender, sender_sock, type);
     }
     /* The packet may not have an orig_sender socket spec. So default to last
      * hop as sender. */
@@ -2922,7 +2934,7 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
     // we have a datagram to process...
     // ...and the datagram has data (not just a header)
     //
-    process_udp(eee, sender_sock, sock, pktbuf, bread, now);
+    process_udp(eee, sender_sock, sock, pktbuf, bread, now, SOCK_DGRAM);
     return;
 }
 
@@ -2981,8 +2993,15 @@ void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
     }
 
     // full packet read, handle it
-    process_udp(eee, sender_sock, sock,
-                pktbuf + sizeof(uint16_t), *position - sizeof(uint16_t), now);
+    process_udp(
+        eee,
+        sender_sock,
+        sock,
+        pktbuf + sizeof(uint16_t),
+        *position - sizeof(uint16_t),
+        now,
+        SOCK_STREAM
+    );
     // reset, await new prepended length
     *expected = sizeof(uint16_t);
     *position = 0;

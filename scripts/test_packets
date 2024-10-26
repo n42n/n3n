@@ -187,6 +187,7 @@ class PacketBase():
 
     def decode_sock(self, buffer, prefix="sock"):
         name_family = f"{prefix}_family"
+        name_type = f"{prefix}_type"
         name_port = f"{prefix}_port"
         name_addr = f"{prefix}_addr"
 
@@ -202,6 +203,11 @@ class PacketBase():
             format = "!HH16s"
         else:
             raise ValueError(f"Unknown sock_family {data[0]}")
+        sock_type = data[0] &0x4000
+        if sock_type == 0:
+            self.data[name_type] = socket.SOCK_DGRAM
+        else:
+            self.data[name_type] = socket.SOCK_STREAM
 
         calcsize = struct.calcsize(format)
         buffer = buffer[:calcsize]

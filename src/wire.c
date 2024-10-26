@@ -690,9 +690,10 @@ int fill_sockaddr (struct sockaddr * addr,
 
 
 // fills struct sockaddr's data into n2n_sock
-int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa) {
+int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa, int type) {
 
     sock->family = sa->sa_family;
+    sock->type = type;  // SOCK_DGRAM or SOCK_STREAM
 
     switch(sock->family) {
         case AF_INET: {
