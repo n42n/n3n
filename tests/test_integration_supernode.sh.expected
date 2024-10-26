@@ -1,6 +1,6 @@
-### test: ./apps/n3n-supernode start ci_sn1 --daemon -Oconnection.bind=7001 -Osupernode.peer=localhost:7002
+### test: ./apps/n3n-supernode start ci_sn1 --daemon -Oconnection.bind=7001 -Osupernode.macaddr=02:00:00:00:70:01 -Osupernode.peer=localhost:7002
 
-### test: ./apps/n3n-supernode start ci_sn2 --daemon -Oconnection.bind=7002 -Osupernode.peer=localhost:7001
+### test: ./apps/n3n-supernode start ci_sn2 --daemon -Oconnection.bind=7002 -Osupernode.macaddr=02:00:00:00:70:02 -Osupernode.peer=localhost:7001
 
 ### test: ./scripts/n3nctl -s ci_sn1 get_communities
 [
@@ -131,6 +131,7 @@
         "last_p2p": 0,
         "last_sent_query": 0,
         "local": 0,
+        "macaddr": "02:00:00:00:70:02",
         "mode": "sn",
         "prefered_sockaddr": "0.0.0.0:0",
         "purgeable": 0,
@@ -150,6 +151,7 @@
         "last_p2p": 0,
         "last_sent_query": 0,
         "local": 0,
+        "macaddr": "02:00:00:00:70:01",
         "mode": "sn",
         "prefered_sockaddr": "0.0.0.0:0",
         "purgeable": 0,

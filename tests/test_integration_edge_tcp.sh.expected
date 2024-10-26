@@ -1,0 +1,80 @@
+### test: ./apps/n3n-supernode start ci_sn -v --daemon -Osupernode.macaddr=02:00:00:55:00:00
+
+### test: ./scripts/n3nctl -s ci_edge1 get_communities
+[
+    {
+        "community": "test"
+    }
+]
+
+### test: ./scripts/n3nctl -s ci_edge1 get_packetstats
+[
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 2,
+    "type": "transop"
+  },
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 0,
+    "type": "p2p"
+  },
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 2,
+    "type": "super"
+  },
+  {
+    "rx_pkt": 0,
+    "tx_pkt": 2,
+    "type": "super_broadcast"
+  },
+  {
+    "tx_pkt": 0,
+    "type": "tuntap_error"
+  }
+]
+
+### test: ./scripts/n3nctl -s ci_edge1 get_edges --raw
+[]
+
+### test: ./scripts/n3nctl -s ci_sn get_edges --raw
+[
+    {
+        "community": "test",
+        "desc": "archer",
+        "ip4addr": "10.200.175.63/24",
+        "last_p2p": 0,
+        "last_sent_query": 0,
+        "local": 0,
+        "macaddr": "02:00:00:77:00:00",
+        "mode": "sn",
+        "prefered_sockaddr": "0.0.0.0:0",
+        "purgeable": 1,
+        "sockaddr": "127.0.0.1:7700",
+        "timeout": 0,
+        "uptime": 0,
+        "version": ""
+    }
+]
+
+### test: ./scripts/n3nctl -s ci_edge1 get_supernodes --raw
+[
+    {
+        "current": 1,
+        "last_seen": 0,
+        "macaddr": "02:00:00:55:00:00",
+        "purgeable": 0,
+        "selection": "",
+        "sockaddr": "127.0.0.1:7654",
+        "uptime": 0,
+        "version": ""
+    }
+]
+
+### test: ./scripts/n3nctl -s ci_edge1 -k n3n stop
+0
+
+### test: ./scripts/n3nctl -s ci_sn -k n3n stop
+0
+
