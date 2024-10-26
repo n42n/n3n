@@ -13,13 +13,11 @@
 #include <n3n/network_traffic_filter.h>
 #include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/transform.h>      // for n3n_transform_lookup_
-#include <pwd.h>
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
-#include <sys/socket.h>
 #include <sys/stat.h>           // for mkdir
 #include <unistd.h>             // for access
 
@@ -36,6 +34,8 @@
 #include <arpa/inet.h>
 #include <grp.h>                // for getgrnam
 #include <netinet/in.h>  // for sockaddr_in
+#include <pwd.h>
+#include <sys/socket.h>
 #endif
 
 #include <auth.h>               // for generate_private_key

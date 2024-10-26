@@ -42,7 +42,6 @@
 #include <sys/types.h>               // for time_t, ssize_t, u_int
 #include <time.h>                    // for time
 #include <unistd.h>                  // for gethostname, sleep
-#include <pwd.h>
 #include <stddef.h>
 
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
@@ -68,6 +67,7 @@
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop
 #include <netinet/in.h>              // for sockaddr_in, ntohl, IPPROTO_IP
 #include <netinet/tcp.h>             // for TCP_NODELAY
+#include <pwd.h>
 #include <sys/select.h>              // for select, FD_SET, FD_ISSET, FD_ZERO
 #include <sys/socket.h>              // for setsockopt, AF_INET, connect
 #endif
