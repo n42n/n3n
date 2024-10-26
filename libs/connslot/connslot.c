@@ -6,11 +6,15 @@
  */
 
 #define _GNU_SOURCE
+#ifndef _WIN32
+#include <arpa/inet.h>  // for ntohs
+#endif
 #include <errno.h>      // for errno, EAGAIN, ENOENT, EWOULDBLOCK
 #include <fcntl.h>      // for fcntl, F_SETFL, O_NONBLOCK
 #ifndef _WIN32
 #include <netinet/in.h> // for htons, htonl, sockaddr_in, sock...
 #endif
+#include <stdint.h>     // for uint16_t
 #include <stdio.h>      // for remove
 #include <stdlib.h>     // for free, abort, malloc, strtoul
 #include <string.h>     // for memmem, memcpy, strlen, strncpy
@@ -60,6 +64,7 @@ void *memmem(void *haystack, size_t haystack_len, void * needle, size_t needle_l
 void conn_zero(conn_t *conn) {
     conn->fd = -1;
     conn->state = CONN_EMPTY;
+    conn->proto = CONN_PROTO_UNK;
     conn->reply = NULL;
     conn->reply_sendpos = 0;
     conn->activity = 0;
@@ -116,46 +121,61 @@ void conn_read(conn_t *conn) {
 
     // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
+    unsigned int expected_length;
 
-    // case protocol==HTTP
+    switch (conn->proto) {
+        case CONN_PROTO_HTTP:
+            if (sb_len(conn->request)<4) {
+                // Not enough bytes to match the end of header check
+                return;
+            }
 
-    if (sb_len(conn->request)<4) {
-        // Not enough bytes to match the end of header check
-        return;
+            // retrieve the cached expected length, if any
+            expected_length = conn->request->rd_pos;
+
+            if (expected_length == 0) {
+                char *p = memmem(conn->request->str, sb_len(conn->request), "\r\n\r\n", 4);
+                if (!p) {
+                    // As yet, we dont have an entire header
+                    return;
+                }
+
+                int body_pos = p - conn->request->str + 4;
+
+                // Determine if we need to read a body
+                p = memmem(
+                        conn->request->str,
+                        body_pos,
+                        "Content-Length:",
+                        15
+                );
+
+                if (!p) {
+                    // We have an end of header, and the header has no content length field
+                    // so assume there is no body to read
+                    conn->state = CONN_READY;
+                    return;
+                }
+
+                p+=15; // Skip the field name
+                unsigned int content_length = strtoul(p, NULL, 10);
+                expected_length = body_pos + content_length;
+                // FIXME: what if Content-Length: is larger than unsigned int?
+            }
+            break;
+        case CONN_PROTO_BE16LEN:
+            if (sb_len(conn->request)<2) {
+                // Not enough bytes to have the header
+                return;
+            }
+
+            expected_length = ntohs(*(uint16_t *)&conn->request->str);
+            break;
+
+        default:
+            return;
     }
 
-    // retrieve the cached expected length, if any
-    unsigned int expected_length = conn->request->rd_pos;
-
-    if (expected_length == 0) {
-        char *p = memmem(conn->request->str, sb_len(conn->request), "\r\n\r\n", 4);
-        if (!p) {
-            // As yet, we dont have an entire header
-            return;
-        }
-
-        int body_pos = p - conn->request->str + 4;
-
-        // Determine if we need to read a body
-        p = memmem(
-                conn->request->str,
-                body_pos,
-                "Content-Length:",
-                15
-        );
-
-        if (!p) {
-            // We have an end of header, and the header has no content length field
-            // so assume there is no body to read
-            conn->state = CONN_READY;
-            return;
-        }
-
-        p+=15; // Skip the field name
-        unsigned int content_length = strtoul(p, NULL, 10);
-        expected_length = body_pos + content_length;
-        // FIXME: what if Content-Length: is larger than unsigned int?
-    }
 
     // By this point we must have an expected_length
 
@@ -542,7 +562,7 @@ int slots_fdset(slots_t *slots, fd_set *readers, fd_set *writers) {
     return fdmax;
 }
 
-int slots_accept(slots_t *slots, int listen_nr) {
+int slots_accept(slots_t *slots, int listen_nr, enum conn_proto proto) {
     int i;
 
     // TODO: remember previous checked slot and dont start at zero
@@ -573,6 +593,7 @@ int slots_accept(slots_t *slots, int listen_nr) {
     // This will truncate the time to a int - usually 32bits
     slots->conn[i].activity = time(NULL);
     slots->conn[i].fd = client;
+    slots->conn[i].proto = proto;
     return i;
 }
 
@@ -608,7 +629,9 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
         }
         if (FD_ISSET(slots->listen[i], readers)) {
             // A new connection
-            int slotnr = slots_accept(slots, i);
+            // TODO:
+            // - allow each listen socket to have a protocol
+            int slotnr = slots_accept(slots, i, CONN_PROTO_HTTP);
 
             switch (slotnr) {
                 case -1:

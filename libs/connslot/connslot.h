@@ -26,12 +26,18 @@ void *memmem(void *haystack, size_t haystack_len, void * needle, size_t needle_l
 #endif
 
 enum __attribute__((__packed__)) conn_state {
-    CONN_EMPTY,
-    CONN_READING,
-    CONN_READY,
-    CONN_SENDING,
-    CONN_CLOSED,
-    CONN_ERROR,
+    CONN_EMPTY = 0,
+    CONN_READING = 1,
+    CONN_READY = 2,
+    CONN_SENDING = 3,
+    CONN_CLOSED = 4,
+    CONN_ERROR = 5,
+};
+
+enum __attribute__((__packed__)) conn_proto {
+    CONN_PROTO_UNK = 0,
+    CONN_PROTO_HTTP = 1,
+    CONN_PROTO_BE16LEN = 2,
 };
 
 typedef struct conn {
@@ -42,6 +48,7 @@ typedef struct conn {
     int fd;
     unsigned int reply_sendpos;
     enum conn_state state;
+    enum conn_proto proto;
 } conn_t;
 
 #define SLOTS_LISTEN 2
@@ -66,7 +73,7 @@ int slots_listen_tcp(slots_t *, int, bool);
 int slots_listen_unix(slots_t *, char *, int, int, int);
 void slots_listen_close(slots_t *);
 int slots_fdset(slots_t *, fd_set *, fd_set *);
-int slots_accept(slots_t *, int);
+int slots_accept(slots_t *, int, enum conn_proto);
 int slots_closeidle(slots_t *);
 int slots_fdset_loop(slots_t *, fd_set *, fd_set *);
 void slots_dump(strbuf_t **, slots_t *);
