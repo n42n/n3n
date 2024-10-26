@@ -14,7 +14,6 @@
 #include <n3n/metrics.h> // for n3n_metrics_render
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community
-#include <netinet/in.h>
 #include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
 #include <stddef.h>
@@ -36,6 +35,7 @@
 #include "win32/defs.h"
 #else
 #include <netdb.h>       // for getnameinfo, NI_NUMERICHOST, NI_NUMERICSERV
+#include <netinet/in.h>
 #include <sys/socket.h>  // for sendto, sockaddr
 #endif
 

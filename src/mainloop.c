@@ -8,7 +8,10 @@
 #include <n2n_typedefs.h>       // for n3n_runtime_data
 #include <stddef.h>
 #include <stdint.h>
+
+#ifndef _WIN32
 #include <sys/select.h>         // for select, FD_ZERO,
+#endif
 
 #include "n2n_define.h"
 

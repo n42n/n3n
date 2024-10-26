@@ -26,7 +26,6 @@
 #include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community, calculate_...
-#include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>             // for uint8_t, uint32_t, uint16_t, uint64_t
 #include <stdio.h>              // for sscanf, snprintf, fclose, fgets, fopen
@@ -60,6 +59,7 @@
 #include <arpa/inet.h>          // for inet_addr, inet_ntoa
 #include <netinet/in.h>         // for ntohl, in_addr_t, sockaddr_in, INADDR...
 #include <netinet/tcp.h>        // for TCP_NODELAY
+#include <pwd.h>
 #include <sys/select.h>         // for FD_ISSET, FD_SET, select, FD_SETSIZE
 #include <sys/socket.h>         // for recvfrom, shutdown, sockaddr_storage
 #endif

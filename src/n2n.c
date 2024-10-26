@@ -24,7 +24,6 @@
 #include <n3n/logging.h>     // for traceEvent
 #include <n3n/random.h>      // for n3n_rand
 #include <n3n/strings.h>     // for ip_subnet_to_str, sock_to_cstr
-#include <netinet/in.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
@@ -41,6 +40,7 @@
 #include <ws2def.h>
 #else
 #include <arpa/inet.h>       // for inet_ntop
+#include <netinet/in.h>
 #include <sys/socket.h>      // for AF_INET, PF_INET, bind, setsockopt, shut...
 #endif
 

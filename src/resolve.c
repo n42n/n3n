@@ -9,7 +9,6 @@
 #include <n3n/logging.h>
 #include <n3n/metrics.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
-#include <netinet/in.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -31,6 +30,7 @@ struct peer_info;
 #include <ws2def.h>
 #else
 #include <netdb.h>           // for addrinfo, freeaddrinfo, gai_strerror
+#include <netinet/in.h>
 #include <sys/socket.h>      // for AF_INET, PF_INET
 #include <sys/time.h>        // for gettimeofday, timersub
 #endif

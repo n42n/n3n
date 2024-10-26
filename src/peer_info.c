@@ -14,7 +14,10 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef _WIN32
 #include <sys/socket.h>
+#endif
 
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
