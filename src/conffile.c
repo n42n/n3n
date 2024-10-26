@@ -7,22 +7,21 @@
 
 #include <ctype.h>              // for isprint and friends
 #include <errno.h>              // for errno
+#include <getopt.h>
 #include <n3n/conffile.h>
-#include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/logging.h>        // for setTraceLevel
-#include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <n3n/network_traffic_filter.h>
+#include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
+#include <n3n/transform.h>      // for n3n_transform_lookup_
+#include <pwd.h>
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
 #include <stdlib.h>             // for malloc
 #include <string.h>             // for strcmp
+#include <sys/socket.h>
 #include <sys/stat.h>           // for mkdir
 #include <unistd.h>             // for access
-#include <bits/getopt_core.h>
-#include <getopt.h>
-#include <pwd.h>
-#include <sys/socket.h>
 
 #include "peer_info.h"          // for struct peer_info
 #include "n2n_typedefs.h"
