@@ -977,10 +977,24 @@ int main (int argc, char* argv[]) {
 
             if(select(eee->sock + 1, &socket_mask, NULL, NULL, &wait_time) > 0) {
                 if(FD_ISSET(eee->sock, &socket_mask)) {
-
-                    fetch_and_eventually_process_data(eee, eee->sock,
-                                                      pktbuf, &expected, &position,
-                                                      now);
+                    if(!eee->conf.connect_tcp) {
+                        edge_read_proto3_udp(
+                            eee,
+                            eee->sock,
+                            pktbuf,
+                            sizeof(pktbuf),
+                            now
+                        );
+                    } else {
+                        edge_read_proto3_tcp(
+                            eee,
+                            eee->sock,
+                            pktbuf,
+                            &expected,
+                            &position,
+                            now
+                        );
+                    }
                 }
             }
         }

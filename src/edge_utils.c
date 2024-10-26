@@ -2878,91 +2878,116 @@ void process_udp (struct n3n_runtime_data *eee, const struct sockaddr *sender_so
 
 /* ************************************** */
 
-
-int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock,
-                                       uint8_t *pktbuf, uint16_t *expected, uint16_t *position,
-                                       time_t now) {
-
-    ssize_t bread = 0;
-
+void edge_read_proto3_udp (struct n3n_runtime_data *eee,
+                           SOCKET sock,
+                           uint8_t *pktbuf,
+                           ssize_t pktbuf_len,
+                           time_t now) {
     struct sockaddr_storage sas;
     struct sockaddr *sender_sock = (struct sockaddr*)&sas;
     socklen_t ss_size = sizeof(sas);
 
-    if((!eee->conf.connect_tcp)
-#ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-       || (sock == eee->udp_multicast_sock)
-#endif
-    ) {
-        // udp
-        bread = recvfrom(sock, (void *)pktbuf, N2N_PKT_BUF_SIZE, 0 /*flags*/,
-                         sender_sock, &ss_size);
+    ssize_t bread = recvfrom(
+        sock,
+        pktbuf,
+        pktbuf_len,
+        0 /*flags*/,
+        sender_sock,
+        &ss_size
+    );
 
-        if((bread < 0)
+    if(bread < 0) {
 #ifdef _WIN32
-           && (WSAGetLastError() != WSAECONNRESET)
+        unsigned int wsaerr = WSAGetLastError();
+        if(wsaerr == WSAECONNRESET) {
+            return;
+        }
+        traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", wsaerr);
 #endif
-        ) {
-            /* For UDP bread of zero just means no data (unlike TCP). */
-            /* The fd is no good now. Maybe we lost our interface. */
-            traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
-#ifdef _WIN32
-            traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
-#endif
-            return -1;
-        }
 
-        // TODO: if bread > 64K, something is wrong
-        // but this case should not happen
-
-        // we have a datagram to process...
-        if(bread > 0) {
-            // ...and the datagram has data (not just a header)
-            process_udp(eee, sender_sock, sock, pktbuf, bread, now);
-        }
-
-    } else {
-        // tcp
-        bread = recvfrom(sock,
-                         (void *)(pktbuf + *position), *expected - *position, 0 /*flags*/,
-                         sender_sock, &ss_size);
-        if((bread <= 0) && (errno)) {
-            traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
-#ifdef _WIN32
-            traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
-#endif
-            supernode_disconnect(eee);
-            eee->sn_wait = 1;
-            goto tcp_done;
-        }
-        *position = *position + bread;
-
-        if(*position == *expected) {
-            if(*position == sizeof(uint16_t)) {
-                // the prepended length has been read, preparing for the packet
-                *expected = *expected + be16toh(*(uint16_t*)(pktbuf));
-                if(*expected > N2N_PKT_BUF_SIZE) {
-                    supernode_disconnect(eee);
-                    eee->sn_wait = 1;
-                    traceEvent(TRACE_DEBUG, "too many bytes expected");
-                    goto tcp_done;
-                }
-            } else {
-                // full packet read, handle it
-                process_udp(eee, sender_sock, sock,
-                            pktbuf + sizeof(uint16_t), *position - sizeof(uint16_t), now);
-                // reset, await new prepended length
-                *expected = sizeof(uint16_t);
-                *position = 0;
-            }
-        }
+        /* For UDP bread of zero just means no data (unlike TCP). */
+        /* The fd is no good now. Maybe we lost our interface. */
+        traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
+        *eee->keep_running = false;
+        return;
     }
-tcp_done:
-    ;
+    if(bread == 0) {
+        return;
+    }
 
-    return 0;
+    // TODO:
+    // - detect when pktbuf is too small for the packet and add that to stats
+    //   (could switch to using recvmsg() for that)
+
+    // we have a datagram to process...
+    // ...and the datagram has data (not just a header)
+    //
+    process_udp(eee, sender_sock, sock, pktbuf, bread, now);
+    return;
 }
 
+void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
+                           SOCKET sock,
+                           uint8_t *pktbuf,
+                           uint16_t *expected,
+                           uint16_t *position,
+                           time_t now) {
+    struct sockaddr_storage sas;
+    struct sockaddr *sender_sock = (struct sockaddr*)&sas;
+    socklen_t ss_size = sizeof(sas);
+
+    // tcp
+    ssize_t bread = recvfrom(
+        sock,
+        (void *)(pktbuf + *position),
+        *expected - *position,
+        0 /*flags*/,
+        sender_sock,
+        &ss_size
+    );
+
+    if((bread <= 0) && (errno)) {
+        traceEvent(
+            TRACE_ERROR,
+            "recvfrom() failed %d errno %d (%s)",
+            bread,
+            errno,
+            strerror(errno)
+        );
+#ifdef _WIN32
+        traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
+#endif
+        supernode_disconnect(eee);
+        eee->sn_wait = 1;
+        return;
+    }
+
+    *position = *position + bread;
+
+    if(*position != *expected) {
+        // not enough bytes yet to process buffer
+        return;
+    }
+
+    if(*position == sizeof(uint16_t)) {
+        // the prepended length has been read, preparing for the packet
+        *expected = *expected + be16toh(*(uint16_t*)(pktbuf));
+        if(*expected > N2N_PKT_BUF_SIZE) {
+            supernode_disconnect(eee);
+            eee->sn_wait = 1;
+            traceEvent(TRACE_DEBUG, "too many bytes expected");
+        }
+        return;
+    }
+
+    // full packet read, handle it
+    process_udp(eee, sender_sock, sock,
+                pktbuf + sizeof(uint16_t), *position - sizeof(uint16_t), now);
+    // reset, await new prepended length
+    *expected = sizeof(uint16_t);
+    *position = 0;
+    return;
+}
 
 void print_edge_stats (const struct n3n_runtime_data *eee) {
 
@@ -3030,17 +3055,24 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 
             // external packets
             if((eee->sock != -1) && FD_ISSET(eee->sock, &readers)) {
-                if(0 != fetch_and_eventually_process_data(
-                       eee,
-                       eee->sock,
-                       pktbuf,
-                       &expected,
-                       &position,
-                       now
-                   )) {
-                    *eee->keep_running = false;
-                }
-                if(eee->conf.connect_tcp) {
+                if(!eee->conf.connect_tcp) {
+                    edge_read_proto3_udp(
+                        eee,
+                        eee->sock,
+                        pktbuf,
+                        sizeof(pktbuf),
+                        now
+                    );
+                } else {
+                    edge_read_proto3_tcp(
+                        eee,
+                        eee->sock,
+                        pktbuf,
+                        &expected,
+                        &position,
+                        now
+                    );
+
                     if((expected >= N2N_PKT_BUF_SIZE) || (position >= N2N_PKT_BUF_SIZE)) {
                         // something went wrong, possibly even before
                         // e.g. connection failure/closure in the middle of transmission (between len & data)
@@ -3055,16 +3087,13 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
             if((eee->udp_multicast_sock != -1) && FD_ISSET(eee->udp_multicast_sock, &readers)) {
-                if(0 != fetch_and_eventually_process_data(
-                       eee,
-                       eee->udp_multicast_sock,
-                       pktbuf,
-                       &expected,
-                       &position,
-                       now
-                   )) {
-                    *eee->keep_running = false;
-                }
+                edge_read_proto3_udp(
+                    eee,
+                    eee->udp_multicast_sock,
+                    pktbuf,
+                    sizeof(pktbuf),
+                    now
+                );
             }
 #endif
 
