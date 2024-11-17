@@ -136,6 +136,12 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
     switch(eee->conf.sn_selection_strategy) {
 
         case SN_SELECTION_STRATEGY_LOAD: {
+            // something something Windows, something something Complete
+            if(!eee->pending_peers) {
+                eee->sn_selection_criterion_common_data = 0;
+                return 0;
+            }
+
             SN_SELECTION_CRITERION_DATA_TYPE tmp = 0;
 
             tmp = HASH_COUNT(eee->pending_peers);
