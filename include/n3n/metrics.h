@@ -63,6 +63,6 @@ void n3n_metrics_register (struct n3n_metrics_module *);
 void n3n_metrics_render (strbuf_t **reply);
 
 // Set the session name for all metrics
-void n3n_metrics_set_session (const char *);
+void n3n_metrics_set_session (char *);
 
 #endif

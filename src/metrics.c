@@ -168,6 +168,6 @@ void n3n_initfuncs_metrics () {
     n3n_metrics_register(&strbuf_metrics_module);
 }
 
-void n3n_metrics_set_session (const char *name) {
+void n3n_metrics_set_session (char *name) {
     sessionname = name;
 }
