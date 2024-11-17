@@ -718,7 +718,7 @@ BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
     // mainloop to notice that we are no longer wanting to run.
     //
     // something something, darkside
-    closehandle(windows_stop_fd);
+    closesocket(windows_stop_fd);
 
     switch(sig) {
         case CTRL_CLOSE_EVENT:
