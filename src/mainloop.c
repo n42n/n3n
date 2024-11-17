@@ -34,7 +34,7 @@ static void handle_fd (int fd, enum fd_info_proto proto, struct n3n_runtime_data
             edge_read_from_tap(eee);
             return;
 
-        case fd_info_proto_listen_http:
+        case fd_info_proto_listen_http: {
             int slotnr = slots_accept(eee->mgmt_slots, fd, CONN_PROTO_HTTP);
             if(slotnr < 0) {
                 // TODO: increment error stats
@@ -43,6 +43,7 @@ static void handle_fd (int fd, enum fd_info_proto proto, struct n3n_runtime_data
             // TODO: Schedule slot for immediately reading
             // FD_SET(eee->mgmt_slots->conn[slotnr].fd, rd);
             return;
+        }
     }
 }
 
