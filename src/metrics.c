@@ -10,6 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+static char *sessionname;
+
 static struct n3n_metrics_module *registered_metrics;
 
 void n3n_metrics_register (struct n3n_metrics_module *module) {
@@ -48,7 +50,7 @@ static void metrics_render_uint32 (strbuf_t **reply, struct n3n_metrics_module *
         // - " UNIT name type\n"
         // - " HELP name type\n"
         metrics_name(reply, module->name, module->items_uint32[i].name);
-        sb_reprintf(reply, " ");
+        sb_reprintf(reply, "{session=\"%s\"} ", sessionname);
         metric_stringify_uint32(
             reply,
             module->items_uint32[i].offset,
@@ -74,7 +76,8 @@ static void metrics_render_llu32 (strbuf_t **reply, struct n3n_metrics_module *m
         metrics_name(reply, module->name, info->name);
         sb_reprintf(
             reply,
-            "{%s=\"%s\",%s=\"%s\"} ",
+            "{session=\"%s\",%s=\"%s\",%s=\"%s\"} ",
+            sessionname,
             info->name1,
             info->items[i].val1,
             info->name2,
@@ -161,7 +164,10 @@ static struct n3n_metrics_module strbuf_metrics_module = {
 };
 
 /**********************************************************/
-
 void n3n_initfuncs_metrics () {
     n3n_metrics_register(&strbuf_metrics_module);
+}
+
+void n3n_metrics_set_session (const char *name) {
+    sessionname = name;
 }

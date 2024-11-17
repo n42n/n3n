@@ -62,4 +62,7 @@ void n3n_metrics_register (struct n3n_metrics_module *);
 // Render all the metrics into a strbuf
 void n3n_metrics_render (strbuf_t **reply);
 
+// Set the session name for all metrics
+void n3n_metrics_set_session (const char *);
+
 #endif
