@@ -3296,10 +3296,17 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     }
 
     if(eee->conf.mgmt_port) {
-        if(slots_listen_tcp(eee->mgmt_slots, eee->conf.mgmt_port, false)!=0) {
+        int fd = slots_create_listen_tcp(eee->conf.mgmt_port, false);
+        if(fd < 0) {
             perror("slots_listen_tcp");
             exit(1);
         }
+        mainloop_register_fd(fd, fd_info_proto_listen_http);
+#ifdef _WIN32
+        // HACK!
+        extern int windows_stop_fd;
+        windows_stop_fd = fd;
+#endif
     }
 
     n3n_config_setup_sessiondir(&eee->conf);
@@ -3308,8 +3315,7 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     char unixsock[1024];
     snprintf(unixsock, sizeof(unixsock), "%s/mgmt", eee->conf.sessiondir);
 
-    int e = slots_listen_unix(
-        eee->mgmt_slots,
+    int fd = slots_create_listen_unix(
         unixsock,
         eee->conf.mgmt_sock_perms,
         eee->conf.userid,
@@ -3318,10 +3324,11 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     // TODO:
     // - do we actually want to tie the user/group to the running pid?
 
-    if(e!=0) {
+    if(fd < 0) {
         perror("slots_listen_tcp");
         exit(1);
     }
+    mainloop_register_fd(fd, fd_info_proto_listen_http);
 #endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY

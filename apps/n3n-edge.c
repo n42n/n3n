@@ -20,7 +20,6 @@
 
 
 #include <ctype.h>                   // for isspace
-#include <connslot/connslot.h>       // for slots_listen_close
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
 #include <inttypes.h>                // for PRIu64
@@ -698,7 +697,7 @@ static void term_handler (int sig) {
 #endif
 
 #ifdef _WIN32
-struct n3n_runtime_data *windows_stop_eee;
+int windows_stop_fd;
 
 // Note well, this gets called from a brand new thread, thus is completely
 // different to how signals work in POSIX
@@ -719,7 +718,7 @@ BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
     // mainloop to notice that we are no longer wanting to run.
     //
     // something something, darkside
-    slots_listen_close(windows_stop_eee->mgmt_slots);
+    closehandle(windows_stop_fd);
 
     switch(sig) {
         case CTRL_CLOSE_EVENT:
@@ -1080,7 +1079,6 @@ int main (int argc, char* argv[]) {
     signal(SIGINT,  term_handler);
 #endif
 #ifdef _WIN32
-    windows_stop_eee = eee;
     SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
 #endif
 

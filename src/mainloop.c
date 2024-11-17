@@ -26,12 +26,23 @@ static void handle_fd (int fd, enum fd_info_proto proto, struct n3n_runtime_data
         case fd_info_proto_unknown:
             // should not happen!
             assert(false);
-            break;
+            return;
+
         case fd_info_proto_tuntap:
             // read an ethernet frame from the TAP socket; write on the IP
             // socket
             edge_read_from_tap(eee);
-            break;
+            return;
+
+        case fd_info_proto_listen_http:
+            int slotnr = slots_accept(eee->mgmt_slots, fd, CONN_PROTO_HTTP);
+            if(slotnr < 0) {
+                // TODO: increment error stats
+                return;
+            }
+            // TODO: Schedule slot for immediately reading
+            // FD_SET(eee->mgmt_slots->conn[slotnr].fd, rd);
+            return;
     }
 }
 

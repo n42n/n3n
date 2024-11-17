@@ -17,6 +17,7 @@
 enum __attribute__((__packed__)) fd_info_proto {
     fd_info_proto_unknown = 0,
     fd_info_proto_tuntap,
+    fd_info_proto_listen_http,
 };
 
 int mainloop_runonce (fd_set *, fd_set *, struct n3n_runtime_data *);
