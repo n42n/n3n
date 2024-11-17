@@ -400,12 +400,7 @@ static int _slots_listen_find_empty(slots_t *slots) {
     return listen_nr;
 }
 
-int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
-    int listen_nr = _slots_listen_find_empty(slots);
-    if (listen_nr <0) {
-        return -2;
-    }
-
+int slots_create_listen_tcp(int port, bool allow_remote) {
     int server;
 #ifndef _WIN32
     int on = 1;
@@ -450,17 +445,26 @@ int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
         return -1;
     }
 
-    slots->listen[listen_nr] = server;
-    return 0;
+    return server;
 }
 
-#ifndef _WIN32
-int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
+int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
     int listen_nr = _slots_listen_find_empty(slots);
     if (listen_nr <0) {
         return -2;
     }
 
+    int fd = slots_create_listen_tcp(port, allow_remote);
+    if(fd == -1) {
+        return fd;
+    }
+
+    slots->listen[listen_nr] = fd;
+    return 0;
+}
+
+#ifndef _WIN32
+int slots_create_listen_unix(char *path, int mode, int uid, int gid) {
     struct sockaddr_un addr;
 
     if (strlen(path) > sizeof(addr.sun_path) -1) {
@@ -505,9 +509,24 @@ int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
         return -1;
     }
 
-    slots->listen[listen_nr] = server;
-    return result;
+    return server;
 }
+
+int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
+    int listen_nr = _slots_listen_find_empty(slots);
+    if (listen_nr <0) {
+        return -2;
+    }
+
+    int fd = slots_create_listen_unix(path, mode, uid, gid);
+    if(fd == -1) {
+        return fd;
+    }
+
+    slots->listen[listen_nr] = fd;
+    return 0;
+}
+
 #endif
 
 /*
