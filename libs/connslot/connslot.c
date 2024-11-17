@@ -504,6 +504,10 @@ int slots_create_listen_unix(char *path, int mode, int uid, int gid) {
         result += chown(path, uid, gid);
     }
 
+    if(result != 0) {
+        return -1;
+    }
+
     // backlog of 1 - low, but sheds load quickly when we run out of slots
     if (listen(server, 1) < 0) {
         return -1;

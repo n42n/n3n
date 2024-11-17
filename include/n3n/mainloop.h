@@ -13,7 +13,9 @@
 #define _MAINLOOP_H_
 
 #include <n2n_typedefs.h>   // for n3n_runtime_data
+#ifndef _WIN32
 #include <sys/select.h>     // for fd_set
+#endif
 
 enum __attribute__((__packed__)) fd_info_proto {
     fd_info_proto_unknown = 0,
