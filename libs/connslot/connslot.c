@@ -562,7 +562,7 @@ int slots_fdset(slots_t *slots, fd_set *readers, fd_set *writers) {
     return fdmax;
 }
 
-int slots_accept(slots_t *slots, int listen_nr, enum conn_proto proto) {
+int slots_accept(slots_t *slots, int fd, enum conn_proto proto) {
     int i;
 
     // TODO: remember previous checked slot and dont start at zero
@@ -577,7 +577,7 @@ int slots_accept(slots_t *slots, int listen_nr, enum conn_proto proto) {
         return -2;
     }
 
-    int client = accept(slots->listen[listen_nr], NULL, 0);
+    int client = accept(fd, NULL, 0);
     if (client == -1) {
         return -1;
     }
@@ -631,7 +631,7 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
             // A new connection
             // TODO:
             // - allow each listen socket to have a protocol
-            int slotnr = slots_accept(slots, i, CONN_PROTO_HTTP);
+            int slotnr = slots_accept(slots, slots->listen[i], CONN_PROTO_HTTP);
 
             switch (slotnr) {
                 case -1:
