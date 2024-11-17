@@ -4,8 +4,10 @@
  *
  */
 
+#include <assert.h>
 #include <connslot/connslot.h>  // for slots_fdset
 #include <n2n_typedefs.h>       // for n3n_runtime_data
+#include <n3n/mainloop.h>       // for fd_info_proto
 #include <n3n/logging.h>        // for traceEvent
 #include <stddef.h>
 #include <stdint.h>
@@ -19,10 +21,110 @@
 #include "minmax.h"             // for min, max
 #include "n2n_define.h"
 
+static void handle_fd (int fd, enum fd_info_proto proto, struct n3n_runtime_data *eee) {
+    switch(proto) {
+        case fd_info_proto_unknown:
+            // should not happen!
+            assert(false);
+            break;
+        case fd_info_proto_tuntap:
+            // read an ethernet frame from the TAP socket; write on the IP
+            // socket
+            edge_read_from_tap(eee);
+            break;
+    }
+}
+
+struct fd_info {
+    int fd;
+    enum fd_info_proto proto;
+};
+
+// A static array of known file descriptors will not scale once full TCP
+// connection support is added, but will work for now
+#define MAX_HANDLES 16
+static struct fd_info fdlist[MAX_HANDLES];
+static int fdlist_next_search;
+
+// Used only to initialise the array at startup
+static void fdlist_zero () {
+    int slot = 0;
+    while(slot < MAX_HANDLES) {
+        fdlist[slot].fd = -1;
+        fdlist[slot].proto = fd_info_proto_unknown;
+        slot++;
+    }
+    fdlist_next_search = 0;
+}
+
+static int fdlist_allocslot (int fd, enum fd_info_proto proto) {
+    int slot = fdlist_next_search % MAX_HANDLES;
+    int count = MAX_HANDLES;
+    while(count) {
+        if(fdlist[slot].fd == -1) {
+            fdlist[slot].fd = fd;
+            fdlist[slot].proto = proto;
+            fdlist_next_search = slot + 1;
+            return slot;
+        }
+        slot = (slot + 1) % MAX_HANDLES;
+        count--;
+    }
+    return -1;
+}
+
+static void fdlist_freefd (int fd) {
+    int slot = 0;
+    while(slot < MAX_HANDLES) {
+        if(fdlist[slot].fd != fd) {
+            continue;
+        }
+        fdlist[slot].fd = -1;
+        fdlist[slot].proto = fd_info_proto_unknown;
+        fdlist_next_search = slot;
+        return;
+    }
+
+    // TODO:
+    // - could assert or similar
+}
+
+static int fdlist_read_fd_set (fd_set *rd) {
+    int max_sock = 0;
+    int slot = 0;
+    while(slot < MAX_HANDLES) {
+        if(fdlist[slot].fd != -1) {
+            FD_SET(fdlist[slot].fd, rd);
+            max_sock = MAX(max_sock, fdlist[slot].fd);
+        }
+        slot++;
+    }
+    return max_sock;
+}
+
+static void fdlist_check_ready (fd_set *rd, struct n3n_runtime_data *eee) {
+    int slot = 0;
+    // A linear scan is not ideal, but until we support things other than
+    // select() it will need to suffice
+    while(slot < MAX_HANDLES) {
+        if(fdlist[slot].fd == -1) {
+            slot++;
+            continue;
+        }
+        if(!FD_ISSET(fdlist[slot].fd, rd)) {
+            slot++;
+            continue;
+        }
+
+        handle_fd(fdlist[slot].fd, fdlist[slot].proto, eee);
+        slot++;
+    }
+}
+
 static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     FD_ZERO(rd);
     FD_ZERO(wr);
-    int max_sock = 0;
+    int max_sock = fdlist_read_fd_set(rd);
 
     if(eee->sock >= 0) {
         FD_SET(eee->sock, rd);
@@ -34,11 +136,6 @@ static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
         FD_SET(eee->udp_multicast_sock, rd);
         max_sock = MAX(max_sock, eee->udp_multicast_sock);
     }
-#endif
-
-#ifndef _WIN32
-    FD_SET(eee->device.fd, rd);
-    max_sock = MAX(max_sock, eee->device.fd);
 #endif
 
     max_sock = MAX(
@@ -81,12 +178,7 @@ int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     // One timestamp to use for this entire loop iteration
     // time_t now = time(NULL);
 
-#ifndef _WIN32
-    if((eee->device.fd != -1) && FD_ISSET(eee->device.fd, rd)) {
-        // read an ethernet frame from the TAP socket; write on the IP socket
-        edge_read_from_tap(eee);
-    }
-#endif
+    fdlist_check_ready(rd, eee);
 
     int slots_ready = slots_fdset_loop(
         eee->mgmt_slots,
@@ -119,4 +211,20 @@ int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     }
 
     return ready;
+}
+
+void mainloop_register_fd (int fd, enum fd_info_proto proto) {
+    int slot = fdlist_allocslot(fd, proto);
+
+    // TODO: the moment this starts to fire, we need to revamp the
+    // implementation of the fdlist table
+    assert(slot != -1);
+}
+
+void mainloop_unregister_fd (int fd) {
+    fdlist_freefd(fd);
+}
+
+void n3n_initfuncs_mainloop () {
+    fdlist_zero();
 }

@@ -29,6 +29,7 @@
 #include <n3n/peer_info.h>           // for n3n_peer_add_by_hostname
 #include <n3n/ethernet.h>            // for is_null_mac
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/mainloop.h>            // for mainloop_runonce, mainloop_regis...
 #include <n3n/metrics.h>
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
 #include <n3n/random.h>              // for n3n_rand, n3n_rand_sqr
@@ -46,7 +47,6 @@
 
 #include "edge_utils.h"
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
-#include "mainloop.h"                // for mainloop_runonce
 #include "management.h"              // for mgmt_event_post
 #include "minmax.h"                  // for MIN, MAX
 #include "n2n.h"                     // for n3n_runtime_data, n2n_edge_...
@@ -2218,6 +2218,10 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
 
     len = tuntap_read( &(eee->device), eth_pkt, N2N_PKT_BUF_SIZE );
     if((len <= 0) || (len > N2N_PKT_BUF_SIZE)) {
+        // TODO:
+        // - how often does this actually happen
+        // - why does it happen
+        // - can we just remove this special case?
         traceEvent(
             TRACE_WARNING,
             "read()=%d [%d/%s]",
@@ -2229,6 +2233,9 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
         eee->stats.tx_tuntap_error++;
 
         sleep(3);
+#ifndef _WIN32
+        mainloop_unregister_fd(eee->device.fd);
+#endif
         tuntap_close(&(eee->device));
         tuntap_open(&(eee->device),
                     eee->conf.tuntap_dev_name,
@@ -2238,6 +2245,9 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
                     eee->conf.mtu,
                     eee->conf.metric
         );
+#ifndef _WIN32
+        mainloop_register_fd(eee->device.fd, fd_info_proto_tuntap);
+#endif
         return;
 
     }

@@ -29,6 +29,7 @@
 #include <n3n/ethernet.h>            // for macaddr_str, macstr_t
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/mainloop.h>            // for mainloop_register_fd
 #include <n3n/tests.h>               // for test_hashing
 #include <n3n/random.h>              // for n3n_rand_seeds, n3n_rand_seeds_s...
 #include <n3n/transform.h>           // for n3n_transform_lookup_id
@@ -957,6 +958,10 @@ int main (int argc, char* argv[]) {
                            eee->conf.mtu,
                            eee->conf.metric) < 0)
                 exit(1);
+#ifndef _WIN32
+            // TODO: this internal fn should not be called publicly
+            mainloop_register_fd(eee->device.fd, fd_info_proto_tuntap);
+#endif
             in_addr_t addr = eee->conf.tuntap_v4.net_addr;
             struct in_addr *tmp = (struct in_addr *)&addr;
             traceEvent(TRACE_NORMAL, "created local tap device IPv4: %s/%u, MAC: %s",
