@@ -13,6 +13,7 @@
 #define _MAINLOOP_H_
 
 #include <n2n_typedefs.h>   // for n3n_runtime_data
+#include <sys/select.h>     // for fd_set
 
 enum __attribute__((__packed__)) fd_info_proto {
     fd_info_proto_unknown = 0,
