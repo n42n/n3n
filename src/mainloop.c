@@ -16,15 +16,8 @@
 
 #include "edge_utils.h"         // for edge_read_from_tap
 #include "management.h"         // for readFromMgmtSocket
+#include "minmax.h"             // for min, max
 #include "n2n_define.h"
-
-#ifndef max
-#define max(a, b) (((a) < (b)) ? (b) : (a))
-#endif
-
-#ifndef min
-#define min(a, b) (((a) >(b)) ? (b) : (a))
-#endif
 
 static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     FD_ZERO(rd);
@@ -33,22 +26,22 @@ static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
 
     if(eee->sock >= 0) {
         FD_SET(eee->sock, rd);
-        max_sock = max(max_sock, eee->sock);
+        max_sock = MAX(max_sock, eee->sock);
     }
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     if((eee->conf.allow_p2p)
        && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
         FD_SET(eee->udp_multicast_sock, rd);
-        max_sock = max(max_sock, eee->udp_multicast_sock);
+        max_sock = MAX(max_sock, eee->udp_multicast_sock);
     }
 #endif
 
 #ifndef _WIN32
     FD_SET(eee->device.fd, rd);
-    max_sock = max(max_sock, eee->device.fd);
+    max_sock = MAX(max_sock, eee->device.fd);
 #endif
 
-    max_sock = max(
+    max_sock = MAX(
         max_sock,
         slots_fdset(
             eee->mgmt_slots,

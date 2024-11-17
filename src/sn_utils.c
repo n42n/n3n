@@ -38,6 +38,7 @@
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
 #include "management.h"         // for process_mgmt
+#include "minmax.h"                  // for MIN, MAX
 #include "n2n.h"                // for sn_community, n3n_runtime_data
 #include "n2n_define.h"
 #include "n2n_regex.h"          // for re_matchp, re_compile
@@ -1717,8 +1718,8 @@ static int process_udp (struct n3n_runtime_data * sss,
                 header_enc = 2;
             }
             if(!header_enc) {
-                pearson_hash_128(hash_buf, udp_buf, max(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN));
-                header_enc = packet_header_decrypt(udp_buf, max(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN), comm->community,
+                pearson_hash_128(hash_buf, udp_buf, MAX(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN));
+                header_enc = packet_header_decrypt(udp_buf, MAX(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN), comm->community,
                                                    comm->header_encryption_ctx_static, comm->header_iv_ctx_static, &stamp);
             }
 
@@ -1861,7 +1862,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     // in case of user-password auth, also encrypt the iv of payload assuming ChaCha20 and SPECK having the same iv size
-                    packet_header_encrypt(rec_buf, oldEncx + (NULL != comm->allowed_users) * min(encx - oldEncx, N2N_SPECK_IVEC_SIZE), encx,
+                    packet_header_encrypt(rec_buf, oldEncx + (NULL != comm->allowed_users) * MIN(encx - oldEncx, N2N_SPECK_IVEC_SIZE), encx,
                                           comm->header_encryption_ctx_dynamic, comm->header_iv_ctx_dynamic,
                                           time_stamp());
                 }
@@ -1876,7 +1877,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     // in case of user-password auth, also encrypt the iv of payload assuming ChaCha20 and SPECK having the same iv size
-                    packet_header_encrypt(rec_buf, idx + (NULL != comm->allowed_users) * min(encx - idx, N2N_SPECK_IVEC_SIZE), encx,
+                    packet_header_encrypt(rec_buf, idx + (NULL != comm->allowed_users) * MIN(encx - idx, N2N_SPECK_IVEC_SIZE), encx,
                                           comm->header_encryption_ctx_dynamic, comm->header_iv_ctx_dynamic,
                                           time_stamp());
                 }
@@ -2765,7 +2766,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
 #endif
 
         slots_t *slots = sss->mgmt_slots;
-        max_sock = max(
+        max_sock = MAX(
             max_sock,
             slots_fdset(
                 slots,

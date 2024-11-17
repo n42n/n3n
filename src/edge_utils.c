@@ -48,6 +48,7 @@
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "mainloop.h"                // for mainloop_runonce
 #include "management.h"              // for mgmt_event_post
+#include "minmax.h"                  // for MIN, MAX
 #include "n2n.h"                     // for n3n_runtime_data, n2n_edge_...
 #include "n2n_wire.h"                // for fill_sockaddr, decod...
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
@@ -2185,7 +2186,7 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
 
     if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED)
         // in case of user-password auth, also encrypt the iv of payload assuming ChaCha20 and SPECK having the same iv size
-        packet_header_encrypt(pktbuf, headerIdx + (NULL != eee->conf.shared_secret) * min(idx - headerIdx, N2N_SPECK_IVEC_SIZE), idx,
+        packet_header_encrypt(pktbuf, headerIdx + (NULL != eee->conf.shared_secret) * MIN(idx - headerIdx, N2N_SPECK_IVEC_SIZE), idx,
                               eee->conf.header_encryption_ctx_dynamic, eee->conf.header_iv_ctx_dynamic,
                               time_stamp());
 
@@ -2349,9 +2350,9 @@ void process_udp (struct n3n_runtime_data *eee,
             // check static now (very likely to be REGISTER_SUPER_ACK, REGISTER_SUPER_NAK or invalid)
             if(eee->conf.shared_secret) {
                 // hash the still encrypted packet to eventually be able to check it later (required for REGISTER_SUPER_ACK with user/pw auth)
-                pearson_hash_128(hash_buf, udp_buf, max(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN));
+                pearson_hash_128(hash_buf, udp_buf, MAX(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN));
             }
-            header_enc = packet_header_decrypt(udp_buf, max(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN),
+            header_enc = packet_header_decrypt(udp_buf, MAX(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN),
                                                (char *)eee->conf.community_name,
                                                eee->conf.header_encryption_ctx_static, eee->conf.header_iv_ctx_static,
                                                &stamp);

@@ -173,12 +173,5 @@ enum n3n_event_topic {
 #define N2N_TRANSFORM_ID_USER_START         64
 #define N2N_TRANSFORM_ID_MAX                65535
 
-#ifndef max
-#define max(a, b) (((a) < (b)) ? (b) : (a))
-#endif
-
-#ifndef min
-#define min(a, b) (((a) >(b)) ? (b) : (a))
-#endif
 
 #endif
