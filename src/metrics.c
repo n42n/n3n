@@ -66,7 +66,7 @@ static void metrics_render_llu32 (strbuf_t **reply, struct n3n_metrics_module *m
     if(info->desc) {
         sb_reprintf(reply, "# HELP ");
         metrics_name(reply, module->name, info->name);
-        sb_reprintf(reply, "%s\n", info->desc);
+        sb_reprintf(reply, " %s\n", info->desc);
     }
 
     for(int i = 0; info->items[i].val1; i++) {
