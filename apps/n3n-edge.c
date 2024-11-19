@@ -697,7 +697,7 @@ static void term_handler (int sig) {
 #endif
 
 #ifdef _WIN32
-extern int windows_stop_fd;
+int windows_stop_fd;
 
 // Note well, this gets called from a brand new thread, thus is completely
 // different to how signals work in POSIX
