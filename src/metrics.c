@@ -7,6 +7,7 @@
 
 #include <connslot/strbuf.h>
 #include <n3n/metrics.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -60,6 +61,42 @@ static void metrics_render_uint32 (strbuf_t **reply, struct n3n_metrics_module *
     }
 }
 
+void n3n_metrics_render_u32tags (
+        strbuf_t **reply,
+        const struct n3n_metrics_module *module,
+        const char *name,
+        const int offset,
+        const int tags,
+        ...) {
+    va_list ap;
+
+    metrics_name(reply, module->name, name);
+    sb_reprintf(reply, "{session=\"%s\"", sessionname);
+
+    int count = tags;
+    va_start(ap, tags);
+    while(count) {
+        if(count) {
+            sb_reprintf(reply,",");
+        }
+        char *tag = va_arg(ap, char *);
+        char *val = va_arg(ap, char *);
+        sb_reprintf(reply,"%s=\"%s\"", tag, val);
+        count--;
+    }
+    va_end(ap);
+
+    sb_reprintf(reply,"} ");
+
+    metric_stringify_uint32(
+        reply,
+        offset,
+        module->data
+    );
+    sb_reprintf(reply, "\n");
+}
+
+
 static void metrics_render_llu32 (strbuf_t **reply, struct n3n_metrics_module *module) {
     const struct n3n_metrics_items_llu32 *info = module->items_llu32;
 
@@ -73,22 +110,17 @@ static void metrics_render_llu32 (strbuf_t **reply, struct n3n_metrics_module *m
         // TODO:
         // - " TYPE name type\n"
         // - " UNIT name type\n"
-        metrics_name(reply, module->name, info->name);
-        sb_reprintf(
+        n3n_metrics_render_u32tags(
             reply,
-            "{session=\"%s\",%s=\"%s\",%s=\"%s\"} ",
-            sessionname,
+            module,
+            info->name,
+            info->items[i].offset,
+            2, // number of tag+val pairs
             info->name1,
             info->items[i].val1,
             info->name2,
             info->items[i].val2
         );
-        metric_stringify_uint32(
-            reply,
-            info->items[i].offset,
-            module->data
-        );
-        sb_reprintf(reply, "\n");
     }
 }
 
@@ -108,6 +140,9 @@ void n3n_metrics_render (strbuf_t **reply) {
                 break;
             case n3n_metrics_type_llu32:
                 metrics_render_llu32(reply, module);
+                break;
+            case n3n_metrics_type_cb:
+                module->cb(reply, module);
                 break;
         }
     }
