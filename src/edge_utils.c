@@ -3326,6 +3326,12 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
 #endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
+    // TODO:
+    // We used to gate multicast listening on:
+    // if((eee->conf.allow_p2p)
+    //    && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID))
+    // So, perhaps we should do that here?
+
     if(eee->udp_multicast_sock >= 0) {
         closesocket(eee->udp_multicast_sock);
         mainloop_unregister_fd(eee->udp_multicast_sock);

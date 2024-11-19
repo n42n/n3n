@@ -202,13 +202,6 @@ static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
         FD_SET(eee->sock, rd);
         max_sock = MAX(max_sock, eee->sock);
     }
-#ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if((eee->conf.allow_p2p)
-       && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
-        FD_SET(eee->udp_multicast_sock, rd);
-        max_sock = MAX(max_sock, eee->udp_multicast_sock);
-    }
-#endif
 
     max_sock = MAX(
         max_sock,
