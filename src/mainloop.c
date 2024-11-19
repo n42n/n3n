@@ -148,6 +148,7 @@ static void fdlist_freefd (int fd) {
     int slot = 0;
     while(slot < MAX_HANDLES) {
         if(fdlist[slot].fd != fd) {
+            slot++;
             continue;
         }
         fdlist[slot].fd = -1;
