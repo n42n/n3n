@@ -8,6 +8,7 @@
 #include <connslot/connslot.h>  // for slots_fdset
 #include <n2n_typedefs.h>       // for n3n_runtime_data
 #include <n3n/mainloop.h>       // for fd_info_proto
+#include <n3n/metrics.h>
 #include <n3n/logging.h>        // for traceEvent
 #include <stddef.h>
 #include <stdint.h>
@@ -47,9 +48,16 @@ static void handle_fd (int fd, enum fd_info_proto proto, struct n3n_runtime_data
     }
 }
 
+static char *proto_str[] = {
+    "?",
+    "tuntap",
+    "listen_http",
+};
+
 struct fd_info {
-    int fd;
-    enum fd_info_proto proto;
+    int fd;                     // The file descriptor for this connection
+    int stats_reads;            // The number of read to read events
+    enum fd_info_proto proto;   // What protocol to use on a read event
 };
 
 // A static array of known file descriptors will not scale once full TCP
@@ -57,6 +65,42 @@ struct fd_info {
 #define MAX_HANDLES 16
 static struct fd_info fdlist[MAX_HANDLES];
 static int fdlist_next_search;
+
+static void metrics_callback (strbuf_t **reply, const struct n3n_metrics_module *module) {
+    int slot = 0;
+    char buf[16];
+    while(slot < MAX_HANDLES) {
+        if(fdlist[slot].fd == -1) {
+            slot++;
+            continue;
+        }
+
+        snprintf(buf, sizeof(buf), "%i", fdlist[slot].fd);
+
+        n3n_metrics_render_u32tags(
+            reply,
+            module,
+            "fd_reads",
+            (char *)&fdlist[slot].stats_reads - (char *)&fdlist,
+            2,  // number of tag+val pairs
+            "fd",
+            buf,
+            "proto",
+            proto_str[fdlist[slot].proto]
+        );
+        // TODO:
+        // - do we need to keep each fd lifecycle clear by tracking and
+        // outputting the open timestamp?
+        slot++;
+    }
+}
+
+static struct n3n_metrics_module metrics_module = {
+    .name = "mainloop",
+    .data = &fdlist,
+    .cb = &metrics_callback,
+    .type = n3n_metrics_type_cb,
+};
 
 // Used only to initialise the array at startup
 static void fdlist_zero () {
@@ -76,6 +120,7 @@ static int fdlist_allocslot (int fd, enum fd_info_proto proto) {
         if(fdlist[slot].fd == -1) {
             fdlist[slot].fd = fd;
             fdlist[slot].proto = proto;
+            fdlist[slot].stats_reads = 0;
             fdlist_next_search = slot + 1;
             return slot;
         }
@@ -128,6 +173,7 @@ static void fdlist_check_ready (fd_set *rd, struct n3n_runtime_data *eee) {
             continue;
         }
 
+        fdlist[slot].stats_reads++;
         handle_fd(fdlist[slot].fd, fdlist[slot].proto, eee);
         slot++;
     }
@@ -239,4 +285,5 @@ void mainloop_unregister_fd (int fd) {
 
 void n3n_initfuncs_mainloop () {
     fdlist_zero();
+    n3n_metrics_register(&metrics_module);
 }
