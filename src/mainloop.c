@@ -199,11 +199,6 @@ static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     FD_ZERO(wr);
     int max_sock = fdlist_read_fd_set(rd);
 
-    if(eee->sock >= 0) {
-        FD_SET(eee->sock, rd);
-        max_sock = MAX(max_sock, eee->sock);
-    }
-
     max_sock = MAX(
         max_sock,
         slots_fdset(

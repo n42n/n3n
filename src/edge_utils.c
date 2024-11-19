@@ -426,6 +426,10 @@ void supernode_connect (struct n3n_runtime_data *eee) {
                            sock_to_cstr(sockbuf, &local_sock));
             }
         }
+
+        if(!eee->conf.connect_tcp) {
+            mainloop_register_fd(eee->sock, fd_info_proto_v3udp);
+        }
     }
 
     // REVISIT: add mgmt port notification to listener for better mgmt port
@@ -442,6 +446,7 @@ void supernode_disconnect (struct n3n_runtime_data *eee) {
     }
     if(eee->sock >= 0) {
         closesocket(eee->sock);
+        mainloop_unregister_fd(eee->sock);
         eee->sock = -1;
         traceEvent(TRACE_DEBUG, "closed");
     }
@@ -3080,35 +3085,25 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         if(rc > 0) {
             // any or all of the FDs could have input; check them all
 
-            // external packets
-            if((eee->sock != -1) && FD_ISSET(eee->sock, &readers)) {
-                if(!eee->conf.connect_tcp) {
-                    edge_read_proto3_udp(
-                        eee,
-                        eee->sock,
-                        pktbuf,
-                        sizeof(pktbuf),
-                        now
-                    );
-                } else {
-                    edge_read_proto3_tcp(
-                        eee,
-                        eee->sock,
-                        pktbuf,
-                        &expected,
-                        &position,
-                        now
-                    );
+            // external TCP packets
+            if((eee->conf.connect_tcp) && (eee->sock != -1) && FD_ISSET(eee->sock, &readers)) {
+                edge_read_proto3_tcp(
+                    eee,
+                    eee->sock,
+                    pktbuf,
+                    &expected,
+                    &position,
+                    now
+                );
 
-                    if((expected >= N2N_PKT_BUF_SIZE) || (position >= N2N_PKT_BUF_SIZE)) {
-                        // something went wrong, possibly even before
-                        // e.g. connection failure/closure in the middle of transmission (between len & data)
-                        supernode_disconnect(eee);
-                        eee->sn_wait = 1;
+                if((expected >= N2N_PKT_BUF_SIZE) || (position >= N2N_PKT_BUF_SIZE)) {
+                    // something went wrong, possibly even before
+                    // e.g. connection failure/closure in the middle of transmission (between len & data)
+                    supernode_disconnect(eee);
+                    eee->sn_wait = 1;
 
-                        expected = sizeof(uint16_t);
-                        position = 0;
-                    }
+                    expected = sizeof(uint16_t);
+                    position = 0;
                 }
             }
         }
@@ -3212,8 +3207,10 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     resolve_cancel_thread(eee->resolve_parameter);
 
-    if(eee->sock >= 0)
+    if(eee->sock >= 0) {
         closesocket(eee->sock);
+        mainloop_unregister_fd(eee->sock);
+    }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     if(eee->udp_multicast_sock >= 0) {
