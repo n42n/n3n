@@ -573,6 +573,12 @@ int main (int argc, char * argv[]) {
         }
         traceEvent(TRACE_NORMAL, "supernode is listening on TCP %u (management)", sss_node.conf.mgmt_port);
     }
+#ifdef _WIN32
+    // HACK!
+    // Remove this once the supernode users mainloop and it also supports
+    // stopping on windows
+    windows_stop_fd = sss_node.mgmt_slots->listen[0];
+#endif
 
     n3n_config_setup_sessiondir(&sss_node.conf);
 

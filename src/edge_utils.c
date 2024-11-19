@@ -3288,6 +3288,12 @@ void edge_term (struct n3n_runtime_data * eee) {
 
 /* ************************************** */
 
+#ifdef _WIN32
+// HACK!
+// Remove this once the mainloop supports stopping on windows
+int windows_stop_fd;
+#endif
+
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
 
     eee->mgmt_slots = slots_malloc(5, 5000, 500);
@@ -3304,7 +3310,6 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
         mainloop_register_fd(fd, fd_info_proto_listen_http);
 #ifdef _WIN32
         // HACK!
-        extern int windows_stop_fd;
         windows_stop_fd = fd;
 #endif
     }
