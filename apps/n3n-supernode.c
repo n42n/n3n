@@ -351,15 +351,10 @@ static void n3n_sn_config (int argc, char **argv, char *defname, struct n3n_runt
 
 /* *************************************************** */
 
-static bool keep_running = true;
+static bool keep_on_running = true;
 
-#if defined(__linux__) || defined(_WIN32)
-#ifdef _WIN32
-BOOL WINAPI term_handler (DWORD sig)
-#else
-static void term_handler (int sig)
-#endif
-{
+#ifndef _WIN32
+static void term_handler (int sig) {
     static int called = 0;
 
     if(called) {
@@ -370,12 +365,44 @@ static void term_handler (int sig)
         called = 1;
     }
 
-    keep_running = false;
-#ifdef _WIN32
-    return(TRUE);
-#endif
+    keep_on_running = false;
 }
-#endif /* defined(__linux__) || defined(_WIN32) */
+#endif
+
+#ifdef _WIN32
+extern int windows_stop_fd;
+
+// Note well, this gets called from a brand new thread, thus is completely
+// different to how signals work in POSIX
+BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
+    // Tell the mainloop to exit next time it wakes
+    keep_on_running = false;
+
+    traceEvent(TRACE_INFO, "starting stopping");
+    // The windows environment claims to support signals, but they dont
+    // interrupt a running select() statement.  Also, this console handler
+    // is run in its own thread, so it is also not interrupting the select()
+    // This is clearly contrary to how select was designed to be used and it
+    // makes process termination annoying, so we need a workaround.
+    //
+    // Since windows usually has a managment TCP port listening in the
+    // select fdset, we can close that - this immediately causes the select
+    // to return with activity on that file descriptor and allows the
+    // mainloop to notice that we are no longer wanting to run.
+    //
+    // something something, darkside
+    closesocket(windows_stop_fd);
+
+    switch(sig) {
+        case CTRL_CLOSE_EVENT:
+        case CTRL_LOGOFF_EVENT:
+        case CTRL_SHUTDOWN_EVENT:
+            // Will terminate us after we return, blocking it to cleanup
+            Sleep(INFINITE);
+    }
+    return(TRUE);
+}
+#endif
 
 /* *************************************************** */
 
@@ -606,15 +633,15 @@ int main (int argc, char * argv[]) {
 
     traceEvent(TRACE_NORMAL, "supernode started");
 
-#ifdef __linux__
+#ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
     signal(SIGTERM, term_handler);
     signal(SIGINT,  term_handler);
 #endif
 #ifdef _WIN32
-    SetConsoleCtrlHandler(term_handler, TRUE);
+    SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
 #endif
 
-    sss_node.keep_running = &keep_running;
+    sss_node.keep_running = &keep_on_running;
     return run_sn_loop(&sss_node);
 }
