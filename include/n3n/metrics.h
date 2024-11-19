@@ -53,7 +53,7 @@ struct n3n_metrics_module {
     union {
         const struct n3n_metrics_items_uint32 *items_uint32;
         const struct n3n_metrics_items_llu32 *items_llu32;
-        const void (*cb)(strbuf_t **, const struct n3n_metrics_module *);
+        void (*cb)(strbuf_t **, const struct n3n_metrics_module *);
     };
     const enum n3n_metrics_items_type type;
 };
