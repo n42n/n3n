@@ -63,13 +63,13 @@ void n3n_metrics_register (struct n3n_metrics_module *);
 
 // Helper to assist with rendering during n3n_metrics_type_cb
 void n3n_metrics_render_u32tags (
-        strbuf_t **reply,
-        const struct n3n_metrics_module *module,
-        const char *name,
-        const int offset,
-        const int tags,         // The number of following tag+val pairs
-        ...
-        );
+    strbuf_t **reply,
+    const struct n3n_metrics_module *module,
+    const char *name,
+    const int offset,
+    const int tags,         // The number of following tag+val pairs
+    ...
+);
 
 // Render all the metrics into a strbuf
 void n3n_metrics_render (strbuf_t **reply);

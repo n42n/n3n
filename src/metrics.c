@@ -62,12 +62,13 @@ static void metrics_render_uint32 (strbuf_t **reply, struct n3n_metrics_module *
 }
 
 void n3n_metrics_render_u32tags (
-        strbuf_t **reply,
-        const struct n3n_metrics_module *module,
-        const char *name,
-        const int offset,
-        const int tags,
-        ...) {
+    strbuf_t **reply,
+    const struct n3n_metrics_module *module,
+    const char *name,
+    const int offset,
+    const int tags,
+    ...) {
+
     va_list ap;
 
     metrics_name(reply, module->name, name);
