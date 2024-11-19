@@ -3114,19 +3114,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
                     }
                 }
             }
-
-#ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-            if((eee->udp_multicast_sock != -1) && FD_ISSET(eee->udp_multicast_sock, &readers)) {
-                edge_read_proto3_udp(
-                    eee,
-                    eee->udp_multicast_sock,
-                    pktbuf,
-                    sizeof(pktbuf),
-                    now
-                );
-            }
-#endif
-
         }
 
         // check for timed out slots
@@ -3232,8 +3219,10 @@ void edge_term (struct n3n_runtime_data * eee) {
         closesocket(eee->sock);
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if(eee->udp_multicast_sock >= 0)
+    if(eee->udp_multicast_sock >= 0) {
         closesocket(eee->udp_multicast_sock);
+        mainloop_unregister_fd(eee->udp_multicast_sock);
+    }
 #endif
 
     clear_peer_list(&eee->pending_peers);
@@ -3337,8 +3326,10 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
 #endif
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if(eee->udp_multicast_sock >= 0)
+    if(eee->udp_multicast_sock >= 0) {
         closesocket(eee->udp_multicast_sock);
+        mainloop_unregister_fd(eee->udp_multicast_sock);
+    }
 
     /* Populate the multicast group for local edge */
     eee->multicast_peer.family     = AF_INET;
@@ -3371,6 +3362,7 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
 #endif
 
+    mainloop_register_fd(eee->udp_multicast_sock, fd_info_proto_v3udp);
 #endif
 
     return(0);

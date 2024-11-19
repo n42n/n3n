@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <connslot/connslot.h>  // for slots_fdset
 #include <n2n_typedefs.h>       // for n3n_runtime_data
+#include <n3n/edge.h>           // for edge_read_proto3_udp
 #include <n3n/mainloop.h>       // for fd_info_proto
 #include <n3n/metrics.h>
 #include <n3n/logging.h>        // for traceEvent
@@ -22,7 +23,7 @@
 #include "minmax.h"             // for min, max
 #include "n2n_define.h"
 
-static void handle_fd (int fd, enum fd_info_proto proto, struct n3n_runtime_data *eee) {
+static void handle_fd (const time_t now, int fd, enum fd_info_proto proto, struct n3n_runtime_data *eee) {
     switch(proto) {
         case fd_info_proto_unknown:
             // should not happen!
@@ -45,13 +46,26 @@ static void handle_fd (int fd, enum fd_info_proto proto, struct n3n_runtime_data
             // FD_SET(eee->mgmt_slots->conn[slotnr].fd, rd);
             return;
         }
+
+        case fd_info_proto_v3udp: {
+            uint8_t pktbuf[N2N_PKT_BUF_SIZE];
+            edge_read_proto3_udp(
+                eee,
+                fd,
+                pktbuf,
+                sizeof(pktbuf),
+                now
+            );
+            return;
+        }
     }
 }
 
 static char *proto_str[] = {
-    "?",
-    "tuntap",
-    "listen_http",
+    [fd_info_proto_unknown] = "?",
+    [fd_info_proto_tuntap] = "tuntap",
+    [fd_info_proto_listen_http] = "listen_http",
+    [fd_info_proto_v3udp] = "v3udp",
 };
 
 struct fd_info {
@@ -159,7 +173,7 @@ static int fdlist_read_fd_set (fd_set *rd) {
     return max_sock;
 }
 
-static void fdlist_check_ready (fd_set *rd, struct n3n_runtime_data *eee) {
+static void fdlist_check_ready (fd_set *rd, const time_t now, struct n3n_runtime_data *eee) {
     int slot = 0;
     // A linear scan is not ideal, but until we support things other than
     // select() it will need to suffice
@@ -174,7 +188,7 @@ static void fdlist_check_ready (fd_set *rd, struct n3n_runtime_data *eee) {
         }
 
         fdlist[slot].stats_reads++;
-        handle_fd(fdlist[slot].fd, fdlist[slot].proto, eee);
+        handle_fd(now, fdlist[slot].fd, fdlist[slot].proto, eee);
         slot++;
     }
 }
@@ -234,9 +248,9 @@ int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     }
 
     // One timestamp to use for this entire loop iteration
-    // time_t now = time(NULL);
+    time_t now = time(NULL);
 
-    fdlist_check_ready(rd, eee);
+    fdlist_check_ready(rd, now, eee);
 
     int slots_ready = slots_fdset_loop(
         eee->mgmt_slots,
