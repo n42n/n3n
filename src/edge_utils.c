@@ -426,9 +426,6 @@ void supernode_connect (struct n3n_runtime_data *eee) {
                            sock_to_cstr(sockbuf, &local_sock));
             }
         }
-
-        if(eee->cb.sock_opened)
-            eee->cb.sock_opened(eee);
     }
 
     // REVISIT: add mgmt port notification to listener for better mgmt port
