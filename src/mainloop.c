@@ -23,43 +23,32 @@
 #include "minmax.h"             // for min, max
 #include "n2n_define.h"
 
-static void handle_fd (const time_t now, int fd, enum fd_info_proto proto, struct n3n_runtime_data *eee) {
-    switch(proto) {
-        case fd_info_proto_unknown:
-            // should not happen!
-            assert(false);
-            return;
+static struct metrics {
+    uint32_t mainloop;      // mainloop_runonce() is called
+    uint32_t register_fd;   // mainloop_register_fd() is called
+    uint32_t unregister_fd; // mainloop_unregister_fd() is called
+} metrics;
 
-        case fd_info_proto_tuntap:
-            // read an ethernet frame from the TAP socket; write on the IP
-            // socket
-            edge_read_from_tap(eee);
-            return;
-
-        case fd_info_proto_listen_http: {
-            int slotnr = slots_accept(eee->mgmt_slots, fd, CONN_PROTO_HTTP);
-            if(slotnr < 0) {
-                // TODO: increment error stats
-                return;
-            }
-            // TODO: Schedule slot for immediately reading
-            // FD_SET(eee->mgmt_slots->conn[slotnr].fd, rd);
-            return;
-        }
-
-        case fd_info_proto_v3udp: {
-            uint8_t pktbuf[N2N_PKT_BUF_SIZE];
-            edge_read_proto3_udp(
-                eee,
-                fd,
-                pktbuf,
-                sizeof(pktbuf),
-                now
-            );
-            return;
-        }
-    }
-}
+static struct n3n_metrics_items_llu32 metrics_items = {
+    .name = "count",
+    .desc = "Track the events in the lifecycle of mainloop objects",
+    .name1 = "event",
+    .items = {
+        {
+            .val1 = "mainloop",
+            .offset = offsetof(struct metrics, mainloop),
+        },
+        {
+            .val1 = "register_fd",
+            .offset = offsetof(struct metrics, register_fd),
+        },
+        {
+            .val1 = "unregister_fd",
+            .offset = offsetof(struct metrics, unregister_fd),
+        },
+        { },
+    },
+};
 
 static char *proto_str[] = {
     [fd_info_proto_unknown] = "?",
@@ -109,11 +98,18 @@ static void metrics_callback (strbuf_t **reply, const struct n3n_metrics_module 
     }
 }
 
-static struct n3n_metrics_module metrics_module = {
+static struct n3n_metrics_module metrics_module_dynamic = {
     .name = "mainloop",
     .data = &fdlist,
     .cb = &metrics_callback,
     .type = n3n_metrics_type_cb,
+};
+
+static struct n3n_metrics_module metrics_module_static = {
+    .name = "mainloop",
+    .data = &metrics,
+    .items_llu32 = &metrics_items,
+    .type = n3n_metrics_type_llu32,
 };
 
 // Used only to initialise the array at startup
@@ -174,6 +170,44 @@ static int fdlist_read_fd_set (fd_set *rd) {
     return max_sock;
 }
 
+static void handle_fd (const time_t now, int fd, enum fd_info_proto proto, struct n3n_runtime_data *eee) {
+    switch(proto) {
+        case fd_info_proto_unknown:
+            // should not happen!
+            assert(false);
+            return;
+
+        case fd_info_proto_tuntap:
+            // read an ethernet frame from the TAP socket; write on the IP
+            // socket
+            edge_read_from_tap(eee);
+            return;
+
+        case fd_info_proto_listen_http: {
+            int slotnr = slots_accept(eee->mgmt_slots, fd, CONN_PROTO_HTTP);
+            if(slotnr < 0) {
+                // TODO: increment error stats
+                return;
+            }
+            // TODO: Schedule slot for immediately reading
+            // FD_SET(eee->mgmt_slots->conn[slotnr].fd, rd);
+            return;
+        }
+
+        case fd_info_proto_v3udp: {
+            uint8_t pktbuf[N2N_PKT_BUF_SIZE];
+            edge_read_proto3_udp(
+                eee,
+                fd,
+                pktbuf,
+                sizeof(pktbuf),
+                now
+            );
+            return;
+        }
+    }
+}
+
 static void fdlist_check_ready (fd_set *rd, const time_t now, struct n3n_runtime_data *eee) {
     int slot = 0;
     // A linear scan is not ideal, but until we support things other than
@@ -218,6 +252,7 @@ static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
 }
 
 int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
+    metrics.mainloop ++;
 
     int maxfd = setup_select(rd, wr, eee);
 
@@ -281,6 +316,7 @@ int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
 }
 
 void mainloop_register_fd (int fd, enum fd_info_proto proto) {
+    metrics.register_fd++;
     int slot = fdlist_allocslot(fd, proto);
 
     // TODO: the moment this starts to fire, we need to revamp the
@@ -289,10 +325,12 @@ void mainloop_register_fd (int fd, enum fd_info_proto proto) {
 }
 
 void mainloop_unregister_fd (int fd) {
+    metrics.unregister_fd++;
     fdlist_freefd(fd);
 }
 
 void n3n_initfuncs_mainloop () {
     fdlist_zero();
-    n3n_metrics_register(&metrics_module);
+    n3n_metrics_register(&metrics_module_dynamic);
+    n3n_metrics_register(&metrics_module_static);
 }

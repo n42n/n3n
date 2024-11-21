@@ -77,11 +77,18 @@ void n3n_metrics_render_u32tags (
     int count = tags;
     va_start(ap, tags);
     while(count) {
+        char *tag = va_arg(ap, char *);
+        char *val = va_arg(ap, char *);
+
+        // Skip empty tags
+        if(!tag || !val) {
+            count--;
+            continue;
+        }
+
         if(count) {
             sb_reprintf(reply,",");
         }
-        char *tag = va_arg(ap, char *);
-        char *val = va_arg(ap, char *);
         sb_reprintf(reply,"%s=\"%s\"", tag, val);
         count--;
     }
