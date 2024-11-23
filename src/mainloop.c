@@ -170,8 +170,8 @@ static int fdlist_read_fd_set (fd_set *rd) {
     return max_sock;
 }
 
-static void handle_fd (const time_t now, int fd, enum fd_info_proto proto, struct n3n_runtime_data *eee) {
-    switch(proto) {
+static void handle_fd (const time_t now, const struct fd_info info, struct n3n_runtime_data *eee) {
+    switch(info.proto) {
         case fd_info_proto_unknown:
             // should not happen!
             assert(false);
@@ -180,11 +180,12 @@ static void handle_fd (const time_t now, int fd, enum fd_info_proto proto, struc
         case fd_info_proto_tuntap:
             // read an ethernet frame from the TAP socket; write on the IP
             // socket
+            // TODO: change API to tell it which fd
             edge_read_from_tap(eee);
             return;
 
         case fd_info_proto_listen_http: {
-            int slotnr = slots_accept(eee->mgmt_slots, fd, CONN_PROTO_HTTP);
+            int slotnr = slots_accept(eee->mgmt_slots, info.fd, CONN_PROTO_HTTP);
             if(slotnr < 0) {
                 // TODO: increment error stats
                 return;
@@ -198,7 +199,7 @@ static void handle_fd (const time_t now, int fd, enum fd_info_proto proto, struc
             uint8_t pktbuf[N2N_PKT_BUF_SIZE];
             edge_read_proto3_udp(
                 eee,
-                fd,
+                info.fd,
                 pktbuf,
                 sizeof(pktbuf),
                 now
@@ -223,7 +224,7 @@ static void fdlist_check_ready (fd_set *rd, const time_t now, struct n3n_runtime
         }
 
         fdlist[slot].stats_reads++;
-        handle_fd(now, fdlist[slot].fd, fdlist[slot].proto, eee);
+        handle_fd(now, fdlist[slot], eee);
         slot++;
     }
 }
