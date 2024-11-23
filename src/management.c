@@ -1181,5 +1181,5 @@ void mgmt_api_handler (struct n3n_runtime_data *eee, conn_t *conn) {
     }
 
     // Try to immediately start sending the reply
-    conn_write(conn);
+    conn_write(conn, conn->fd);
 }

@@ -89,7 +89,7 @@ int conn_init(conn_t *conn, size_t request_max, size_t reply_header_max) {
     return 0;
 }
 
-void conn_read(conn_t *conn) {
+void conn_read(conn_t *conn, int fd) {
     conn->state = CONN_READING;
 
     // If no space available, try increasing our capacity
@@ -100,7 +100,7 @@ void conn_read(conn_t *conn) {
         }
     }
 
-    ssize_t size = sb_read(conn->fd, conn->request);
+    ssize_t size = sb_read(fd, conn->request);
 
     if (size == 0) {
         // As we are dealing with non blocking sockets, and have made a non
@@ -193,12 +193,12 @@ void conn_read(conn_t *conn) {
     return;
 }
 
-ssize_t conn_write(conn_t *conn) {
+ssize_t conn_write(conn_t *conn, int fd) {
     ssize_t sent;
 
     conn->state = CONN_SENDING;
 
-    if (conn->fd == -1) {
+    if (fd == -1) {
         return 0;
     }
 #ifndef _WIN32
@@ -226,20 +226,20 @@ ssize_t conn_write(conn_t *conn) {
         nr++;
     }
 
-    sent = writev(conn->fd, &vecs[0], nr);
+    sent = writev(fd, &vecs[0], nr);
 #else
 // no iovec
 //
     if (conn->reply_sendpos < sb_len(conn->reply_header)) {
         sent = sb_write(
-                conn->fd,
+                fd,
                 conn->reply_header,
                 conn->reply_sendpos,
                 -1
         );
     } else {
         sent = sb_write(
-                conn->fd,
+                fd,
                 conn->reply,
                 conn->reply_sendpos - sb_len(conn->reply_header),
                 -1
@@ -272,8 +272,8 @@ int conn_iswriter(conn_t *conn) {
     }
 }
 
-void conn_close(conn_t *conn) {
-    closesocket(conn->fd);
+void conn_close(conn_t *conn, int fd) {
+    closesocket(fd);
     conn_zero(conn);
     // TODO: could shrink the size here, maybe in certain circumstances?
 }
@@ -632,7 +632,7 @@ int slots_closeidle(slots_t *slots) {
         int delta_t = now - slots->conn[i].activity;
         if (delta_t > slots->timeout) {
             // TODO: metrics timeouts ++
-            conn_close(&slots->conn[i]);
+            conn_close(&slots->conn[i], slots->conn[i].fd);
             nr_closed++;
         }
     }
@@ -679,7 +679,7 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
         nr_open++;
 
         if (FD_ISSET(slots->conn[i].fd, readers)) {
-            conn_read(&slots->conn[i]);
+            conn_read(&slots->conn[i], slots->conn[i].fd);
             // possibly sets state to CONN_READY
         }
 
@@ -697,14 +697,14 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
                 /* fallsthrough */
             case CONN_CLOSED:
                 slots->nr_open--;
-                conn_close(&slots->conn[i]);
+                conn_close(&slots->conn[i], slots->conn[i].fd);
                 continue;
             default:
                 break;
         }
 
         if (FD_ISSET(slots->conn[i].fd, writers)) {
-            conn_write(&slots->conn[i]);
+            conn_write(&slots->conn[i], slots->conn[i].fd);
         }
     }
 

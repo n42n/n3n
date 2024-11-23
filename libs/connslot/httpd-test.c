@@ -166,7 +166,7 @@ void httpd_test(int port) {
                 //   continue;
 
                 // Try to immediately start sending the reply
-                conn_write(&slots->conn[i]);
+                conn_write(&slots->conn[i], slots->conn[i].fd);
             }
         }
     }

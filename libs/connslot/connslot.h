@@ -62,10 +62,10 @@ typedef struct slots {
 
 void conn_zero(conn_t *);
 int conn_init(conn_t *, size_t, size_t);
-void conn_read(conn_t *);
-ssize_t conn_write(conn_t *);
+void conn_read(conn_t *, int);
+ssize_t conn_write(conn_t *, int);
 int conn_iswriter(conn_t *);
-void conn_close(conn_t *);
+void conn_close(conn_t *, int);
 
 void slots_free(slots_t *slots);
 slots_t *slots_malloc(int nr_slots, size_t, size_t);
