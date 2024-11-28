@@ -45,6 +45,11 @@
 #include <sys/socket.h>        // for connect, recv, send, socket, AF_INET
 #endif
 
+#ifndef _WIN32
+// Another wonderful gift from the world of POSIX compliance is not worth much
+#define closesocket(a) close(a)
+#endif
+
 #define WITH_PORT               1
 #define CORRECT_TAG             2
 

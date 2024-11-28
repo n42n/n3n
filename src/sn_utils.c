@@ -65,6 +65,11 @@
 #include <sys/socket.h>         // for recvfrom, shutdown, sockaddr_storage
 #endif
 
+#ifndef _WIN32
+// Another wonderful gift from the world of POSIX compliance is not worth much
+#define closesocket(a) close(a)
+#endif
+
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 

@@ -66,7 +66,6 @@
 #include <stdint.h>        // for uint8_t, uint64_t, uint32_t, uint16_t
 #include <sys/types.h>     // for time_t
 #include <unistd.h>        // for close
-#define closesocket(a) close(a)
 
 #ifdef __linux__
 #define N2N_CAN_NAME_IFACE 1

@@ -23,6 +23,11 @@
 #include "peer_info.h"
 #include "resolve.h"    // for supernode2sock
 
+#ifndef _WIN32
+// Another wonderful gift from the world of POSIX compliance is not worth much
+#define closesocket(a) close(a)
+#endif
+
 static struct metrics {
     uint32_t init;      // peer_info_init() is called
     uint32_t alloc;     // peer_info_malloc() is called

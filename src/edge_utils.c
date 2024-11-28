@@ -74,6 +74,10 @@
 #include <sys/socket.h>              // for setsockopt, AF_INET, connect
 #endif
 
+#ifndef _WIN32
+// Another wonderful gift from the world of POSIX compliance is not worth much
+#define closesocket(a) close(a)
+#endif
 
 /* ************************************** */
 
