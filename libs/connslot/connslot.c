@@ -89,6 +89,21 @@ int conn_init(conn_t *conn, size_t request_max, size_t reply_header_max) {
     return 0;
 }
 
+void conn_accept(conn_t *conn, int fd, enum conn_proto proto) {
+
+#ifndef _WIN32
+    fcntl(fd, F_SETFL, O_NONBLOCK);
+#else
+    u_long arg = 1;
+    ioctlsocket(fd, FIONBIO, &arg);
+#endif
+
+    // This will truncate the time to a int - usually 32bits
+    conn->activity = time(NULL);
+    conn->fd = fd;
+    conn->proto = proto;
+}
+
 void conn_read(conn_t *conn, int fd) {
     conn->state = CONN_READING;
 
@@ -276,6 +291,16 @@ void conn_close(conn_t *conn, int fd) {
     closesocket(fd);
     conn_zero(conn);
     // TODO: could shrink the size here, maybe in certain circumstances?
+}
+
+bool conn_closeidle(conn_t *conn, int now, int timeout) {
+    int delta_t = now - conn->activity;
+    if (delta_t > timeout) {
+        // TODO: metrics timeouts ++
+        conn_close(conn, conn->fd);
+        return true;
+    }
+    return false;
 }
 
 void conn_dump(strbuf_t **buf, conn_t *conn) {
@@ -605,18 +630,8 @@ int slots_accept(slots_t *slots, int fd, enum conn_proto proto) {
         return -1;
     }
 
-#ifndef _WIN32
-    fcntl(client, F_SETFL, O_NONBLOCK);
-#else
-    u_long arg = 1;
-    ioctlsocket(client, FIONBIO, &arg);
-#endif
-
+    conn_accept(&slots->conn[i], client, proto);
     slots->nr_open++;
-    // This will truncate the time to a int - usually 32bits
-    slots->conn[i].activity = time(NULL);
-    slots->conn[i].fd = client;
-    slots->conn[i].proto = proto;
     return i;
 }
 
@@ -629,10 +644,7 @@ int slots_closeidle(slots_t *slots) {
         if (slots->conn[i].fd == -1) {
             continue;
         }
-        int delta_t = now - slots->conn[i].activity;
-        if (delta_t > slots->timeout) {
-            // TODO: metrics timeouts ++
-            conn_close(&slots->conn[i], slots->conn[i].fd);
+        if (conn_closeidle(&slots->conn[i], now, slots->timeout)) {
             nr_closed++;
         }
     }
