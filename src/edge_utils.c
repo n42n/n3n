@@ -359,7 +359,13 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         return;
     }
 
-    fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
+    if(!eee->conf.connect_tcp) {
+        mainloop_register_fd(eee->sock, fd_info_proto_v3udp);
+    }
+
+    // REVISIT: TODO:
+    // - add a management event for "new supernode socket" to make it simpler
+    //   to track subscriptions externally
 
     // set tcp socket to O_NONBLOCK so connect does not hang
     // requires checking the socket for readiness before sending and receving
@@ -370,6 +376,9 @@ void supernode_connect (struct n3n_runtime_data *eee) {
 #else
         fcntl(eee->sock, F_SETFL, O_NONBLOCK);
 #endif
+
+        fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
+
         if((connect(eee->sock, (struct sockaddr*)&(sn_sock), sizeof(struct sockaddr)) < 0)
            && (errno != EINPROGRESS)) {
             traceEvent(TRACE_INFO, "Error connecting TCP: %i", errno);
@@ -394,6 +403,7 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         else
             traceEvent(TRACE_WARNING, "could not set TOS 0x%x[%d]: %s", eee->conf.tos, errno, strerror(errno));
     }
+
 #ifdef IP_PMTUDISC_DO
     if(eee->conf.pmtu_discovery) {
         sockopt = IP_PMTUDISC_DO;
@@ -426,27 +436,22 @@ void supernode_connect (struct n3n_runtime_data *eee) {
     traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
 #endif
 
-    if(detect_local_ip_address(&local_sock, eee) == 0) {
-        // always overwrite local port even/especially if chosen by OS...
-        eee->conf.preferred_sock.port = local_sock.port;
-        // only if auto-detection mode, ...
-        if(eee->conf.preferred_sock.family != AF_INVALID) {
-            // ... overwrite IP address, too (whole socket struct here)
-            memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
-            traceEvent(TRACE_INFO, "determined local socket [%s]",
-                       sock_to_cstr(sockbuf, &local_sock));
-        }
+    if(detect_local_ip_address(&local_sock, eee) != 0) {
+        return;
     }
 
-    if(!eee->conf.connect_tcp) {
-        mainloop_register_fd(eee->sock, fd_info_proto_v3udp);
+    // always overwrite local port even/especially if chosen by OS...
+    eee->conf.preferred_sock.port = local_sock.port;
+
+    // only if auto-detection mode, ...
+    if(eee->conf.preferred_sock.family == AF_INVALID) {
+        return;
     }
 
-    // REVISIT: TODO:
-    // - add a management event for "new supernode socket" to make it simpler
-    //   to track subscriptions externally
-
-    return;
+    // ... overwrite IP address, too (whole socket struct here)
+    memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
+    traceEvent(TRACE_INFO, "determined local socket [%s]",
+               sock_to_cstr(sockbuf, &local_sock));
 }
 
 
