@@ -381,7 +381,7 @@ static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
 }
 
 int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
-    metrics.mainloop ++;
+    metrics.mainloop++;
 
     int maxfd = setup_select(rd, wr, eee);
 
