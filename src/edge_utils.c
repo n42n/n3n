@@ -1423,56 +1423,56 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
 }
 
 
-static int sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
+static void sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
 
     struct peer_info *scan, *tmp;
 
-    if(now - eee->last_sweep > SWEEP_TIME) {
-        // this routine gets periodically called
-
-        if(!eee->sn_wait) {
-            // sort supernodes in ascending order of their selection_criterion fields
-            sn_selection_sort(&(eee->conf.supernodes));
-        }
-
-        if(eee->curr_sn != eee->conf.supernodes) {
-            // we have not been connected to the best/top one
-            send_unregister_super(eee);
-            eee->curr_sn = eee->conf.supernodes;
-            reset_sup_attempts(eee);
-            supernode_connect(eee);
-
-            traceEvent(
-                TRACE_INFO,
-                "registering with supernode [%s][number of supernodes %d][attempts left %u]",
-                peer_info_get_hostname(eee->curr_sn),
-                HASH_COUNT(eee->conf.supernodes),
-                (unsigned int)eee->sup_attempts
-            );
-
-            send_register_super(eee);
-            eee->last_register_req = now;
-            eee->sn_wait = 1;
-        }
-
-        HASH_ITER(hh, eee->conf.supernodes, scan, tmp) {
-            if(scan == eee->curr_sn)
-                sn_selection_criterion_good(&(scan->selection_criterion));
-            else
-                sn_selection_criterion_default(&(scan->selection_criterion));
-        }
-        sn_selection_criterion_common_data_default(eee);
-
-        // send PING to all the supernodes
-        if(!eee->conf.connect_tcp)
-            send_query_peer(eee, null_mac);
-        eee->last_sweep = now;
-
-        // no answer yet (so far, unused in regular edge code; mainly used during bootstrap loading)
-        eee->sn_pong = 0;
+    if(now - eee->last_sweep <= SWEEP_TIME) {
+        return;
     }
 
-    return 0; /* OK */
+    // this routine gets periodically called
+
+    if(!eee->sn_wait) {
+        // sort supernodes in ascending order of their selection_criterion fields
+        sn_selection_sort(&(eee->conf.supernodes));
+    }
+
+    if(eee->curr_sn != eee->conf.supernodes) {
+        // we have not been connected to the best/top one
+        send_unregister_super(eee);
+        eee->curr_sn = eee->conf.supernodes;
+        reset_sup_attempts(eee);
+        supernode_connect(eee);
+
+        traceEvent(
+            TRACE_INFO,
+            "registering with supernode [%s][number of supernodes %d][attempts left %u]",
+            peer_info_get_hostname(eee->curr_sn),
+            HASH_COUNT(eee->conf.supernodes),
+            (unsigned int)eee->sup_attempts
+        );
+
+        send_register_super(eee);
+        eee->last_register_req = now;
+        eee->sn_wait = 1;
+    }
+
+    HASH_ITER(hh, eee->conf.supernodes, scan, tmp) {
+        if(scan == eee->curr_sn)
+            sn_selection_criterion_good(&(scan->selection_criterion));
+        else
+            sn_selection_criterion_default(&(scan->selection_criterion));
+    }
+    sn_selection_criterion_common_data_default(eee);
+
+    // send PING to all the supernodes
+    if(!eee->conf.connect_tcp)
+        send_query_peer(eee, null_mac);
+    eee->last_sweep = now;
+
+    // no answer yet (so far, unused in regular edge code; mainly used during bootstrap loading)
+    eee->sn_pong = 0;
 }
 
 /** Send a REGISTER packet to another edge. */
