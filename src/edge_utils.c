@@ -3112,9 +3112,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             }
         }
 
-        // check for timed out slots
-        slots_closeidle(eee->mgmt_slots);
-
         // If anything we recieved caused us to stop..
         if(!(*eee->keep_running))
             break;
@@ -3263,7 +3260,6 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     closeTraceFile();
 
-    slots_free(eee->mgmt_slots);
     free(eee);
 
 #ifdef _WIN32
@@ -3282,11 +3278,6 @@ int windows_stop_fd;
 #endif
 
 static int edge_init_sockets (struct n3n_runtime_data *eee) {
-
-    eee->mgmt_slots = slots_malloc(5, 5000, 500);
-    if(!eee->mgmt_slots) {
-        abort();
-    }
 
     if(eee->conf.mgmt_port) {
         int fd = slots_create_listen_tcp(eee->conf.mgmt_port, false);
