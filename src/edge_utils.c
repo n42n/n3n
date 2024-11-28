@@ -1066,7 +1066,7 @@ static bool check_sock_ready (struct n3n_runtime_data *eee) {
         return false;
     }
 
-    // if required (tcp), wait until writeable as soket is set to
+    // if required (tcp), wait until writeable as socket is set to
     // O_NONBLOCK, could require some wait time directly after re-opening
     fd_set socket_mask;
     struct timeval wait_time;
