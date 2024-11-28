@@ -337,110 +337,114 @@ void supernode_connect (struct n3n_runtime_data *eee) {
     n2n_sock_t local_sock;
     n2n_sock_str_t sockbuf;
 
-    if((eee->conf.connect_tcp) && (eee->sock >= 0)) {
+    if(eee->conf.connect_tcp) {
+        // It might be already closed, but we can simply ignore errors and
+        // carry on
         closesocket(eee->sock);
         eee->sock = -1;
     }
 
+    if(eee->sock >= 0) {
+        return;
+    }
+
+    eee->sock = open_socket(
+        eee->conf.bind_address,
+        sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
+        eee->conf.connect_tcp
+    );
+
     if(eee->sock < 0) {
+        traceEvent(TRACE_ERROR, "failed to bind main UDP port");
+        return;
+    }
 
-        eee->sock = open_socket(
-            eee->conf.bind_address,
-            sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
-            eee->conf.connect_tcp
-        );
+    fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
 
-        if(eee->sock < 0) {
-            traceEvent(TRACE_ERROR, "failed to bind main UDP port");
-            return;
-        }
-
-        fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
-
-        // set tcp socket to O_NONBLOCK so connect does not hang
-        // requires checking the socket for readiness before sending and receving
-        if(eee->conf.connect_tcp) {
+    // set tcp socket to O_NONBLOCK so connect does not hang
+    // requires checking the socket for readiness before sending and receving
+    if(eee->conf.connect_tcp) {
 #ifdef _WIN32
-            u_long value = 1;
-            ioctlsocket(eee->sock, FIONBIO, &value);
+        u_long value = 1;
+        ioctlsocket(eee->sock, FIONBIO, &value);
 #else
-            fcntl(eee->sock, F_SETFL, O_NONBLOCK);
+        fcntl(eee->sock, F_SETFL, O_NONBLOCK);
 #endif
-            if((connect(eee->sock, (struct sockaddr*)&(sn_sock), sizeof(struct sockaddr)) < 0)
-               && (errno != EINPROGRESS)) {
-                traceEvent(TRACE_INFO, "Error connecting TCP: %i", errno);
-                eee->sock = -1;
-                return;
-            }
-        }
-
-        if(eee->conf.tos) {
-            /*
-             * See https://www.tucny.com/Home/dscp-tos for a quick table of
-             * the intended functions of each TOS value
-             *
-             * Note that the tos value is a byte and the manpage for IP_TOS
-             * defines it as a byte, but we hand setsockopt() an int value.
-             * This does work on linux, but - TODO, check this on other OS
-             */
-            sockopt = eee->conf.tos;
-
-            if(setsockopt(eee->sock, IPPROTO_IP, IP_TOS, (char *)&sockopt, sizeof(sockopt)) == 0)
-                traceEvent(TRACE_INFO, "TOS set to 0x%x", eee->conf.tos);
-            else
-                traceEvent(TRACE_WARNING, "could not set TOS 0x%x[%d]: %s", eee->conf.tos, errno, strerror(errno));
-        }
-#ifdef IP_PMTUDISC_DO
-        if(eee->conf.pmtu_discovery) {
-            sockopt = IP_PMTUDISC_DO;
-        } else {
-            sockopt = IP_PMTUDISC_DONT;
-        }
-        traceEvent(
-            TRACE_INFO,
-            "Setting pmtu_discovery %s",
-            (eee->conf.pmtu_discovery) ? "true" : "false"
-        );
-
-        int i = setsockopt(
-            eee->sock,
-            IPPROTO_IP,
-            IP_MTU_DISCOVER,
-            &sockopt,
-            sizeof(sockopt)
-        );
-
-        if(i < 0) {
-            traceEvent(
-                TRACE_WARNING,
-                "Setting pmtu_discovery failed: %s(%d)",
-                strerror(errno),
-                errno
-            );
-        }
-#else
-        traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
-#endif
-
-        if(detect_local_ip_address(&local_sock, eee) == 0) {
-            // always overwrite local port even/especially if chosen by OS...
-            eee->conf.preferred_sock.port = local_sock.port;
-            // only if auto-detection mode, ...
-            if(eee->conf.preferred_sock.family != AF_INVALID) {
-                // ... overwrite IP address, too (whole socket struct here)
-                memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
-                traceEvent(TRACE_INFO, "determined local socket [%s]",
-                           sock_to_cstr(sockbuf, &local_sock));
-            }
-        }
-
-        if(!eee->conf.connect_tcp) {
-            mainloop_register_fd(eee->sock, fd_info_proto_v3udp);
+        if((connect(eee->sock, (struct sockaddr*)&(sn_sock), sizeof(struct sockaddr)) < 0)
+           && (errno != EINPROGRESS)) {
+            traceEvent(TRACE_INFO, "Error connecting TCP: %i", errno);
+            eee->sock = -1;
+            return;
         }
     }
 
-    // REVISIT: add mgmt port notification to listener for better mgmt port
-    //          subscription support
+    if(eee->conf.tos) {
+        /*
+         * See https://www.tucny.com/Home/dscp-tos for a quick table of
+         * the intended functions of each TOS value
+         *
+         * Note that the tos value is a byte and the manpage for IP_TOS
+         * defines it as a byte, but we hand setsockopt() an int value.
+         * This does work on linux, but - TODO, check this on other OS
+         */
+        sockopt = eee->conf.tos;
+
+        if(setsockopt(eee->sock, IPPROTO_IP, IP_TOS, (char *)&sockopt, sizeof(sockopt)) == 0)
+            traceEvent(TRACE_INFO, "TOS set to 0x%x", eee->conf.tos);
+        else
+            traceEvent(TRACE_WARNING, "could not set TOS 0x%x[%d]: %s", eee->conf.tos, errno, strerror(errno));
+    }
+#ifdef IP_PMTUDISC_DO
+    if(eee->conf.pmtu_discovery) {
+        sockopt = IP_PMTUDISC_DO;
+    } else {
+        sockopt = IP_PMTUDISC_DONT;
+    }
+    traceEvent(
+        TRACE_INFO,
+        "Setting pmtu_discovery %s",
+        (eee->conf.pmtu_discovery) ? "true" : "false"
+    );
+
+    int i = setsockopt(
+        eee->sock,
+        IPPROTO_IP,
+        IP_MTU_DISCOVER,
+        &sockopt,
+        sizeof(sockopt)
+    );
+
+    if(i < 0) {
+        traceEvent(
+            TRACE_WARNING,
+            "Setting pmtu_discovery failed: %s(%d)",
+            strerror(errno),
+            errno
+        );
+    }
+#else
+    traceEvent(TRACE_INFO, "No platform support for setting pmtu_discovery");
+#endif
+
+    if(detect_local_ip_address(&local_sock, eee) == 0) {
+        // always overwrite local port even/especially if chosen by OS...
+        eee->conf.preferred_sock.port = local_sock.port;
+        // only if auto-detection mode, ...
+        if(eee->conf.preferred_sock.family != AF_INVALID) {
+            // ... overwrite IP address, too (whole socket struct here)
+            memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
+            traceEvent(TRACE_INFO, "determined local socket [%s]",
+                       sock_to_cstr(sockbuf, &local_sock));
+        }
+    }
+
+    if(!eee->conf.connect_tcp) {
+        mainloop_register_fd(eee->sock, fd_info_proto_v3udp);
+    }
+
+    // REVISIT: TODO:
+    // - add a management event for "new supernode socket" to make it simpler
+    //   to track subscriptions externally
 
     return;
 }
