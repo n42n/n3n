@@ -377,32 +377,6 @@ struct network_traffic_filter {
 
 /* *************************************************** */
 
-/* Callbacks allow external programs to attach functions in response to
- * N2N events. */
-typedef struct n2n_edge_callbacks {
-    /* The supernode registration has been updated */
-    void (*sn_registration_updated)(struct n3n_runtime_data *eee, time_t now, const n2n_sock_t *sn);
-
-    /* A packet has been received from a peer. N2N_DROP can be returned to
-     * drop the packet. The packet payload can be modified. This only allows
-     * the packet size to be reduced */
-    n2n_verdict (*packet_from_peer)(struct n3n_runtime_data *eee, const n2n_sock_t *peer, uint8_t *payload, uint16_t *payload_size);
-
-    /* A packet has been received from the TAP interface. N2N_DROP can be
-     * returned to drop the packet. The packet payload can be modified.
-     * This only allows the packet size to be reduced */
-    n2n_verdict (*packet_from_tap)(struct n3n_runtime_data *eee, uint8_t *payload, uint16_t *payload_size);
-
-    /* Called whenever the IP address of the TAP interface changes. */
-    void (*ip_address_changed)(struct n3n_runtime_data *eee, uint32_t old_ip, uint32_t new_ip);
-
-    /* Called periodically in the main loop. */
-    void (*main_loop_period)(struct n3n_runtime_data *eee, time_t now);
-
-} n2n_edge_callbacks_t;
-
-/* *************************************************** */
-
 typedef enum n2n_transform {
     N2N_TRANSFORM_ID_INVAL =    0,
     N2N_TRANSFORM_ID_NULL =     1,
@@ -554,7 +528,6 @@ struct n3n_runtime_data {
     n2n_trans_op_t transop;                                              /**< The transop to use when encoding */
     n2n_trans_op_t transop_lzo;                                          /**< The transop for LZO  compression */
     n2n_trans_op_t transop_zstd;                                         /**< The transop for ZSTD compression */
-    n2n_edge_callbacks_t cb;                                             /**< API callbacks */
     SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_data;
 
     /* Sockets */

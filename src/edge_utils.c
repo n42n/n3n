@@ -1876,15 +1876,6 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
         return(0);
     }
 
-    if(eee->cb.packet_from_peer) {
-        uint16_t tmp_eth_size = eth_size;
-        if(eee->cb.packet_from_peer(eee, orig_sender, eth_payload, &tmp_eth_size) == N2N_DROP) {
-            traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)eth_size);
-            return(0);
-        }
-        eth_size = tmp_eth_size;
-    }
-
     /* Write ethernet packet to tap device. */
     traceEvent(TRACE_DEBUG, "sending data of size %u to TAP", (unsigned int)eth_size);
     data_sent_len = tuntap_write(&(eee->device), eth_payload, eth_size);
@@ -2282,15 +2273,6 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
             traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)len);
             return;
         }
-    }
-
-    if(eee->cb.packet_from_tap) {
-        uint16_t tmp_len = len;
-        if(eee->cb.packet_from_tap(eee, eth_pkt, &tmp_len) == N2N_DROP) {
-            traceEvent(TRACE_DEBUG, "DROP packet of size %u", (unsigned int)len);
-            return;
-        }
-        len = tmp_len;
     }
 
     edge_send_packet2net(eee, eth_pkt, len);
@@ -2715,9 +2697,6 @@ void process_udp (struct n3n_runtime_data *eee,
 
             // NOTE: the register_interval should be chosen by the edge node based on its NAT configuration.
             // eee->conf.register_interval = ra.lifetime;
-
-            if(eee->cb.sn_registration_updated && !is_null_mac(eee->device.mac_addr))
-                eee->cb.sn_registration_updated(eee, now, &sender);
 
             break;
         }
@@ -3161,14 +3140,9 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
         // - multi-homing support
         if((eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_DHCP) &&
            ((now - lastIfaceCheck) > IFACE_UPDATE_INTERVAL)) {
-            uint32_t old_ip = eee->device.ip_addr;
-
             traceEvent(TRACE_INFO, "re-checking dynamic IP address");
             tuntap_get_address(&(eee->device));
             lastIfaceCheck = now;
-
-            if((old_ip != eee->device.ip_addr) && eee->cb.ip_address_changed)
-                eee->cb.ip_address_changed(eee, old_ip, eee->device.ip_addr);
         }
 
         sort_supernodes(eee, now);
@@ -3178,9 +3152,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             eee->resolution_request,
             now
         );
-
-        if(eee->cb.main_loop_period)
-            eee->cb.main_loop_period(eee, now);
 
     } /* while */
 
