@@ -249,8 +249,11 @@ static int is_ip6_discovery (const void * buf, size_t bufsize) {
 
 // reset number of supernode connection attempts: try only once for already more realiable tcp connections
 void reset_sup_attempts (struct n3n_runtime_data *eee) {
-
-    eee->sup_attempts = (eee->conf.connect_tcp) ? 1 : N2N_EDGE_SUP_ATTEMPTS;
+    if(eee->conf.connect_tcp) {
+        eee->sup_attempts = 1;
+    } else {
+        eee->sup_attempts = N2N_EDGE_SUP_ATTEMPTS;
+    }
 }
 
 
