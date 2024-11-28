@@ -356,7 +356,11 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
 
         if(fdlist[slot].connnr != -1) {
             int timeout = 60;
-            conn_closeidle(&connlist[fdlist[slot].connnr], now, timeout);
+            struct conn *conn = &connlist[fdlist[slot].connnr];
+            bool closed = conn_closeidle(conn, fd, now, timeout);
+            if(closed) {
+                fdlist_freefd(fd);
+            }
         }
         slot++;
     }

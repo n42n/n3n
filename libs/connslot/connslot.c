@@ -293,11 +293,11 @@ void conn_close(conn_t *conn, int fd) {
     // TODO: could shrink the size here, maybe in certain circumstances?
 }
 
-bool conn_closeidle(conn_t *conn, int now, int timeout) {
+bool conn_closeidle(conn_t *conn, int fd, int now, int timeout) {
     int delta_t = now - conn->activity;
     if (delta_t > timeout) {
         // TODO: metrics timeouts ++
-        conn_close(conn, conn->fd);
+        conn_close(conn, fd);
         return true;
     }
     return false;
@@ -644,7 +644,8 @@ int slots_closeidle(slots_t *slots) {
         if (slots->conn[i].fd == -1) {
             continue;
         }
-        if (conn_closeidle(&slots->conn[i], now, slots->timeout)) {
+        int fd = slots->conn[i].fd;
+        if (conn_closeidle(&slots->conn[i], fd, now, slots->timeout)) {
             nr_closed++;
         }
     }
