@@ -11,6 +11,7 @@
 #include <connslot/jsonrpc.h>   // for jsonrpc_t, jsonrpc_parse
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/mainloop.h>       // for mainloop_unregister_fd
 #include <n3n/metrics.h> // for n3n_metrics_render
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community
@@ -254,7 +255,10 @@ static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
 
     // Take the filehandle away from the connslots.
     mgmt_event_subscribers[topicid] = conn->fd;
-    conn_zero(conn);
+    // TODO:
+    // - Keep these filehandles in the mainloop
+    // - change the mainloop proto mark it as "event"
+    mainloop_unregister_fd(conn->fd);
 
     // TODO: shutdown(fd, SHUT_RD) - but that does nothing for unix domain
 
