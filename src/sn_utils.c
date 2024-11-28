@@ -1662,7 +1662,6 @@ static int process_udp (struct n3n_runtime_data * sss,
     int skip_add;
     time_t any_time = 0;
 
-    memset(&sender, 0, sizeof(n2n_sock_t));
     fill_n2nsock(&sender, sender_sock, SOCK_DGRAM);
     orig_sender = &sender;
 

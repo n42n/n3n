@@ -2328,8 +2328,6 @@ void process_udp (struct n3n_runtime_data *eee,
         // TCP expects that we know our comm partner and does not deliver the sender
         memcpy(&sender, &(eee->curr_sn->sock), sizeof(sender));
     else {
-        // FIXME: do not do random memset on the packet processing path
-        memset(&sender, 0, sizeof(sender));
         // REVISIT: type conversion back and forth, choose a consistent approach throughout whole code,
         //          i.e. stick with more general sockaddr as long as possible and narrow only if required
         fill_n2nsock(&sender, sender_sock, type);
