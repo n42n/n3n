@@ -743,13 +743,7 @@ int main (int argc, char* argv[]) {
     uint8_t seek_answer = 1;      /*            expecting answer from supernode */
     time_t now, last_action = 0;  /*            timeout */
     macstr_t mac_buf;             /*            output mac address */
-    fd_set socket_mask;           /*            for supernode answer */
-    struct timeval wait_time;     /*            timeout for sn answer */
     peer_info_t *scan, *scan_tmp; /*            supernode iteration */
-
-    uint16_t expected = sizeof(uint16_t);
-    uint16_t position = 0;
-    uint8_t pktbuf[N2N_SN_PKTBUF_SIZE + sizeof(uint16_t)]; /* buffer + prepended buffer length in case of tcp */
 
 #ifdef HAVE_LIBCAP
     cap_t caps;
@@ -830,6 +824,7 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_ERROR, "failed in edge_init");
         exit(1);
     }
+    eee->keep_running = &keep_on_running;
 
     switch(eee->conf.tuntap_ip_mode) {
         case TUNTAP_IP_MODE_SN_ASSIGN:
@@ -974,33 +969,12 @@ int main (int argc, char* argv[]) {
 
         // we usually wait for some answer, there however are exceptions when going back to a previous runlevel
         if(seek_answer) {
-            FD_ZERO(&socket_mask);
-            FD_SET(eee->sock, &socket_mask);
-            wait_time.tv_sec = BOOTSTRAP_TIMEOUT;
-            wait_time.tv_usec = 0;
+            fd_set readers;
+            fd_set writers;
+            mainloop_runonce(&readers, &writers, eee);
 
-            if(select(eee->sock + 1, &socket_mask, NULL, NULL, &wait_time) > 0) {
-                if(FD_ISSET(eee->sock, &socket_mask)) {
-                    if(!eee->conf.connect_tcp) {
-                        edge_read_proto3_udp(
-                            eee,
-                            eee->sock,
-                            pktbuf,
-                            sizeof(pktbuf),
-                            now
-                        );
-                    } else {
-                        edge_read_proto3_tcp(
-                            eee,
-                            eee->sock,
-                            pktbuf,
-                            &expected,
-                            &position,
-                            now
-                        );
-                    }
-                }
-            }
+            // FIXME: the mainloop could wait for BOOTSTRAP_TIMEOUT, not its
+            // usual timeout ?!?
         }
         seek_answer = 1;
 
@@ -1082,7 +1056,6 @@ int main (int argc, char* argv[]) {
     SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
 #endif
 
-    eee->keep_running = &keep_on_running;
     traceEvent(TRACE_NORMAL, "edge started");
     rc = run_edge_loop(eee);
     print_edge_stats(eee);

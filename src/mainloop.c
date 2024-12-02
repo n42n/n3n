@@ -71,6 +71,7 @@ static char *proto_str[] = {
     [fd_info_proto_tuntap] = "tuntap",
     [fd_info_proto_listen_http] = "listen_http",
     [fd_info_proto_v3udp] = "v3udp",
+    [fd_info_proto_v3tcp] = "v3tcp",
     [fd_info_proto_http] = "http",
 };
 
@@ -165,8 +166,10 @@ static void connlist_free (int connnr) {
         // TODO: error!
         return;
     }
+    connlist[connnr].fd = -1;
     connlist[connnr].proto = CONN_PROTO_UNK;
-    fdlist_next_search = connnr;
+    connlist[connnr].state = CONN_EMPTY;
+    connlist_next_search = connnr;
     metrics.connlist_free++;
 }
 
@@ -191,12 +194,27 @@ static int fdlist_allocslot (int fd, enum fd_info_proto proto) {
             fdlist[slot].fd = fd;
             fdlist[slot].proto = proto;
             fdlist[slot].stats_reads = 0;
+
+            if(proto == fd_info_proto_v3tcp) {
+                int connnr = connlist_alloc(CONN_PROTO_BE16LEN);
+                assert(connnr != -1);
+
+                fdlist[slot].connnr = connnr;
+                conn_accept(&connlist[connnr], fd, CONN_PROTO_BE16LEN);
+            } else {
+                fdlist[slot].connnr = -1;
+            }
+
             fdlist_next_search = slot + 1;
             return slot;
         }
         slot = (slot + 1) % MAX_HANDLES;
         count--;
     }
+
+    // TODO: the moment this starts to fire, we need to revamp the
+    // implementation of the fdlist table
+    assert(slot != -1);
     return -1;
 }
 
@@ -208,12 +226,13 @@ static void fdlist_freefd (int fd) {
             continue;
         }
         metrics.unregister_fd++;
+        if(fdlist[slot].connnr != -1) {
+            connlist_free(fdlist[slot].connnr);
+            fdlist[slot].connnr = -1;
+        }
         fdlist[slot].fd = -1;
         fdlist[slot].proto = fd_info_proto_unknown;
         fdlist_next_search = slot;
-        if(fdlist[slot].connnr != -1) {
-            connlist_free(fdlist[slot].connnr);
-        }
         return;
     }
 
@@ -296,6 +315,74 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
                 sizeof(pktbuf),
                 now
             );
+            return;
+        }
+
+        case fd_info_proto_v3tcp: {
+            struct conn *conn = &connlist[info.connnr];
+            conn_read(conn, info.fd);
+
+            switch(conn->state) {
+                case CONN_EMPTY:
+                case CONN_READING:
+                case CONN_SENDING:
+                    // These states dont require us to do anything
+                    // TODO:
+                    // - handle reading/sending simultaneous?
+                    return;
+
+                case CONN_ERROR:
+                case CONN_CLOSED:
+                    conn_close(conn, info.fd);
+                    sb_zero(conn->request);
+                    // Let the upper layer realise its connection is gone by
+                    // showing it a zero sized request
+
+                    // TODO: if the upper layer doesnt react properly, we leak
+                    // slots and conns here
+
+                    /* fall through */
+
+                case CONN_READY:
+                    int size = ntohs(*(uint16_t *)&conn->request->str);
+
+                    edge_read_proto3_tcp(
+                        eee,
+                        info.fd,
+                        (uint8_t *)&conn->request->str[2],
+                        size,
+                        now
+                    );
+
+                    if(sb_len(conn->request) == (size + 2)) {
+                        // We read exactly one packet
+                        // TODO: this crosses layers by reaching inside the
+                        // conn object
+                        sb_zero(conn->request);
+                        conn->state = CONN_EMPTY;
+                        return;
+                    }
+
+                    // Our buffer contains data beyond the single packet
+
+                    // TODO: this crosses layers by reaching inside the
+                    // conn object
+                    int more = sb_len(conn->request) - (size + 2);
+                    traceEvent(TRACE_DEBUG, "packet has %i more bytes", more);
+                    memmove(
+                        conn->request->str,
+                        &conn->request->str[size + 2],
+                        more
+                    );
+                    conn->request->rd_pos = 0;
+                    conn->request->wr_pos = more;
+                    conn->state = CONN_READING;
+
+                    // FIXME: sometimes we will have an entire next packet in
+                    // the buffer, which means we should not wait for the FD
+                    // to be read ready again
+                    return;
+            }
             return;
         }
 
@@ -414,12 +501,29 @@ int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     return ready;
 }
 
-void mainloop_register_fd (int fd, enum fd_info_proto proto) {
-    int slot = fdlist_allocslot(fd, proto);
+void mainloop_dump (strbuf_t **buf) {
+    int i;
+    sb_reprintf(buf, "i : fd(read) pr connnr\n");
+    for(i=0; i<MAX_HANDLES; i++) {
+        sb_reprintf(
+            buf,
+            "%02i: %2i(%4i) %i %i\n",
+            i,
+            fdlist[i].fd,
+            fdlist[i].stats_reads,
+            fdlist[i].proto,
+            fdlist[i].connnr
+        );
+    }
+    sb_reprintf(buf, "\n");
+    for(i=0; i<MAX_CONN; i++) {
+        sb_reprintf(buf,"%i: ",i);
+        conn_dump(buf, &connlist[i]);
+    }
+}
 
-    // TODO: the moment this starts to fire, we need to revamp the
-    // implementation of the fdlist table
-    assert(slot != -1);
+void mainloop_register_fd (int fd, enum fd_info_proto proto) {
+    fdlist_allocslot(fd, proto);
 }
 
 void mainloop_unregister_fd (int fd) {

@@ -1114,13 +1114,22 @@ static void render_script_page (struct n3n_runtime_data *eee, conn_t *conn) {
 static void render_debug_slots (struct n3n_runtime_data *eee, conn_t *conn) {
     int status;
     sb_zero(conn->request);
-    if(eee->conf.enable_debug_pages) {
-        slots_dump(&conn->request, eee->mgmt_slots);
-        status = 200;
-    } else {
+    if(!eee->conf.enable_debug_pages) {
         sb_printf(conn->request, "enable_debug_pages is false\n");
         status = 403;
+        // Update the reply buffer after last potential realloc
+        conn->reply = conn->request;
+        generate_http_headers(conn, "text/plain", status);
+        return;
     }
+
+    if(eee->mgmt_slots) {
+        slots_dump(&conn->request, eee->mgmt_slots);
+        sb_reprintf(&conn->request, "\n");
+    }
+    mainloop_dump(&conn->request);
+
+    status = 200;
     // Update the reply buffer after last potential realloc
     conn->reply = conn->request;
     generate_http_headers(conn, "text/plain", status);

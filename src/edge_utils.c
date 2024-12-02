@@ -340,6 +340,7 @@ void supernode_connect (struct n3n_runtime_data *eee) {
     if(eee->conf.connect_tcp) {
         // It might be already closed, but we can simply ignore errors and
         // carry on
+        mainloop_unregister_fd(eee->sock);
         closesocket(eee->sock);
         eee->sock = -1;
     }
@@ -359,7 +360,9 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         return;
     }
 
-    if(!eee->conf.connect_tcp) {
+    if(eee->conf.connect_tcp) {
+        mainloop_register_fd(eee->sock, fd_info_proto_v3tcp);
+    } else {
         mainloop_register_fd(eee->sock, fd_info_proto_v3udp);
     }
 
@@ -2324,6 +2327,7 @@ void process_udp (struct n3n_runtime_data *eee,
     /* REVISIT: when UDP/IPv6 is supported we will need a flag to indicate which
      * IP transport version the packet arrived on. May need to UDP sockets. */
 
+    // TODO: pass the sender to process_udp, dont calculate it here
     if(eee->conf.connect_tcp)
         // TCP expects that we know our comm partner and does not deliver the sender
         memcpy(&sender, &(eee->curr_sn->sock), sizeof(sender));
@@ -2947,31 +2951,14 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
 void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
                            SOCKET sock,
                            uint8_t *pktbuf,
-                           uint16_t *expected,
-                           uint16_t *position,
+                           ssize_t pktbuf_len,
                            time_t now) {
-    struct sockaddr_storage sas;
-    struct sockaddr *sender_sock = (struct sockaddr*)&sas;
-    socklen_t ss_size = sizeof(sas);
 
-    // tcp
-    ssize_t bread = recvfrom(
-        sock,
-        (void *)(pktbuf + *position),
-        *expected - *position,
-        0 /*flags*/,
-        sender_sock,
-        &ss_size
-    );
+    // tcp gets handed a pre filled pktbuf
 
-    if((bread <= 0) && (errno)) {
-        traceEvent(
-            TRACE_ERROR,
-            "recvfrom() failed %d errno %d (%s)",
-            bread,
-            errno,
-            strerror(errno)
-        );
+    // zero contents means an error
+    if(pktbuf_len <= 0) {
+        traceEvent(TRACE_ERROR, "tcp conn read error %i", pktbuf_len);
 #ifdef _WIN32
         traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
 #endif
@@ -2980,37 +2967,23 @@ void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
         return;
     }
 
-    *position = *position + bread;
-
-    if(*position != *expected) {
-        // not enough bytes yet to process buffer
+    if(pktbuf_len > N2N_PKT_BUF_SIZE + 2) {
+        supernode_disconnect(eee);
+        eee->sn_wait = 1;
+        traceEvent(TRACE_DEBUG, "too many bytes expected");
         return;
     }
 
-    if(*position == sizeof(uint16_t)) {
-        // the prepended length has been read, preparing for the packet
-        *expected = *expected + be16toh(*(uint16_t*)(pktbuf));
-        if(*expected > N2N_PKT_BUF_SIZE) {
-            supernode_disconnect(eee);
-            eee->sn_wait = 1;
-            traceEvent(TRACE_DEBUG, "too many bytes expected");
-        }
-        return;
-    }
-
-    // full packet read, handle it
+    // have a valid packet read, handle it
     process_udp(
         eee,
-        sender_sock,
+        NULL,
         sock,
-        pktbuf + sizeof(uint16_t),
-        *position - sizeof(uint16_t),
+        pktbuf,
+        pktbuf_len,
         now,
         SOCK_STREAM
     );
-    // reset, await new prepended length
-    *expected = sizeof(uint16_t);
-    *position = 0;
     return;
 }
 
@@ -3041,10 +3014,6 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
     time_t last_purge_host = 0;
 #endif
 
-    uint16_t expected = sizeof(uint16_t);
-    uint16_t position = 0;
-    uint8_t pktbuf[N2N_PKT_BUF_SIZE + sizeof(uint16_t)];  /* buffer + prepended buffer length in case of tcp */
-
 #ifdef _WIN32
     struct tunread_arg arg;
     arg.eee = eee;
@@ -3068,38 +3037,11 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 
     while(*eee->keep_running) {
 
-        int rc;
         fd_set readers;
         fd_set writers;
 
-        rc = mainloop_runonce(&readers, &writers, eee);
+        mainloop_runonce(&readers, &writers, eee);
         time_t now = time(NULL);
-
-        if(rc > 0) {
-            // any or all of the FDs could have input; check them all
-
-            // external TCP packets
-            if((eee->conf.connect_tcp) && (eee->sock != -1) && FD_ISSET(eee->sock, &readers)) {
-                edge_read_proto3_tcp(
-                    eee,
-                    eee->sock,
-                    pktbuf,
-                    &expected,
-                    &position,
-                    now
-                );
-
-                if((expected >= N2N_PKT_BUF_SIZE) || (position >= N2N_PKT_BUF_SIZE)) {
-                    // something went wrong, possibly even before
-                    // e.g. connection failure/closure in the middle of transmission (between len & data)
-                    supernode_disconnect(eee);
-                    eee->sn_wait = 1;
-
-                    expected = sizeof(uint16_t);
-                    position = 0;
-                }
-            }
-        }
 
         // If anything we recieved caused us to stop..
         if(!(*eee->keep_running))
