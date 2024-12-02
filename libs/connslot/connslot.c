@@ -104,38 +104,7 @@ void conn_accept(conn_t *conn, int fd, enum conn_proto proto) {
     conn->proto = proto;
 }
 
-void conn_read(conn_t *conn, int fd) {
-    conn->state = CONN_READING;
-
-    // If no space available, try increasing our capacity
-    if (!sb_avail(conn->request)) {
-        strbuf_t *p = sb_realloc(&conn->request, conn->request->capacity + 16);
-        if (!p) {
-            abort(); // FIXME: do something smarter?
-        }
-    }
-
-    ssize_t size = sb_read(fd, conn->request);
-
-    if (size == 0) {
-        // As we are dealing with non blocking sockets, and have made a non
-        // zero-sized read request, the only time we get a zero back is if the
-        // far end has closed
-        conn->state = CONN_CLOSED;
-        return;
-    }
-
-    if (size == -1) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            conn->state = CONN_EMPTY;
-            return;
-        }
-        conn->state = CONN_ERROR;
-        return;
-    }
-
-    // This will truncate the time to a int - usually 32bits
-    conn->activity = time(NULL);
+void conn_check_ready(conn_t *conn) {
     unsigned int expected_length;
 
     switch (conn->proto) {
@@ -206,6 +175,41 @@ void conn_read(conn_t *conn, int fd) {
     conn->state = CONN_READY;
     conn->request->rd_pos = 0;
     return;
+}
+
+void conn_read(conn_t *conn, int fd) {
+    conn->state = CONN_READING;
+
+    // If no space available, try increasing our capacity
+    if (!sb_avail(conn->request)) {
+        strbuf_t *p = sb_realloc(&conn->request, conn->request->capacity + 16);
+        if (!p) {
+            abort(); // FIXME: do something smarter?
+        }
+    }
+
+    ssize_t size = sb_read(fd, conn->request);
+
+    if (size == 0) {
+        // As we are dealing with non blocking sockets, and have made a non
+        // zero-sized read request, the only time we get a zero back is if the
+        // far end has closed
+        conn->state = CONN_CLOSED;
+        return;
+    }
+
+    if (size == -1) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            conn->state = CONN_EMPTY;
+            return;
+        }
+        conn->state = CONN_ERROR;
+        return;
+    }
+
+    // This will truncate the time to a int - usually 32bits
+    conn->activity = time(NULL);
+    conn_check_ready(conn);
 }
 
 ssize_t conn_write(conn_t *conn, int fd) {
