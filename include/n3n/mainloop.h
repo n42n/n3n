@@ -12,7 +12,9 @@
 #ifndef _MAINLOOP_H_
 #define _MAINLOOP_H_
 
+#include <connslot/strbuf.h>    // for strbuf_t
 #include <n2n_typedefs.h>   // for n3n_runtime_data
+
 #ifndef _WIN32
 #include <sys/select.h>     // for fd_set
 #endif
