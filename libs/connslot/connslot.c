@@ -153,7 +153,7 @@ void conn_check_ready(conn_t *conn) {
                 return;
             }
 
-            expected_length = ntohs(*(uint16_t *)&conn->request->str);
+            expected_length = ntohs(*(uint16_t *)&conn->request->str) + 2;
             break;
 
         default:
