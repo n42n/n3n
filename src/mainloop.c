@@ -338,10 +338,12 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
                     // Let the upper layer realise its connection is gone by
                     // showing it a zero sized request
 
-                    // TODO: if the upper layer doesnt react properly, we leak
-                    // slots and conns here
+                    // TODO: if the upper layer doesnt react properly by
+                    // unregistering the dead filehandle, we leak slots and
+                    // conns here
 
-                    /* fall through */
+                    edge_read_proto3_tcp(eee, -1, NULL, -1, now);
+                    return;
 
                 case CONN_READY:
                     int size = ntohs(*(uint16_t *)&conn->request->str);

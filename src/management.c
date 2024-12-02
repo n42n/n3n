@@ -1188,6 +1188,11 @@ void mgmt_api_handler (struct n3n_runtime_data *eee, conn_t *conn) {
         }
     }
     if( i >= nr_handlers ) {
+        traceEvent(
+            TRACE_DEBUG,
+            "unknown endpoint %s",
+            conn->request->str
+        );
         render_error(conn, "unknown endpoint");
     } else {
         api_endpoints[i].func(eee, conn);
