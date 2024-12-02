@@ -69,6 +69,7 @@ ssize_t conn_write(conn_t *, int);
 int conn_iswriter(conn_t *);
 void conn_close(conn_t *, int);
 bool conn_closeidle(conn_t *, int, int, int);
+void conn_dump(strbuf_t **, conn_t *);
 
 void slots_free(slots_t *slots);
 slots_t *slots_malloc(int nr_slots, size_t, size_t);
