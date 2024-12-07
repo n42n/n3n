@@ -1051,46 +1051,12 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /* ************************************** */
 
-/*
- * Confirm that we can send to this edge.
- * TODO: for the TCP case, this could cause a stall in the packet
- * send path, so this probably should be reworked to use a queue
- * (and non blocking IO)
- */
-static bool check_sock_ready (struct n3n_runtime_data *eee) {
-    if(!eee->conf.connect_tcp) {
-        // Just show udp sockets as ready
-        // TODO: this is may not be always true
-        return true;
-    }
-
-    if(eee->sock == -1) {
-        // If we have no sock, dont attempt to FD_SET() it
-        return false;
-    }
-
-    // if required (tcp), wait until writeable as socket is set to
-    // O_NONBLOCK, could require some wait time directly after re-opening
-    fd_set socket_mask;
-    struct timeval wait_time;
-
-    FD_ZERO(&socket_mask);
-    FD_SET(eee->sock, &socket_mask);
-    wait_time.tv_sec = 0;
-    wait_time.tv_usec = 500000;
-    return select(eee->sock + 1, NULL, &socket_mask, NULL, &wait_time);
-}
-
 /** Send a datagram to a socket file descriptor */
-static ssize_t sendto_fd (struct n3n_runtime_data *eee, const void *buf,
+static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
                           size_t len, struct sockaddr_in *dest,
                           const n2n_sock_t * n2ndest) {
 
     ssize_t sent = 0;
-
-    if(!check_sock_ready(eee)) {
-        goto err_out;
-    }
 
     sent = sendto(eee->sock, buf, len, 0 /*flags*/,
                   (struct sockaddr *)dest, sizeof(struct sockaddr_in));
@@ -1098,7 +1064,7 @@ static ssize_t sendto_fd (struct n3n_runtime_data *eee, const void *buf,
     if(sent != -1) {
         // sendto success
         traceEvent(TRACE_DEBUG, "sent=%d", (signed int)sent);
-        return sent;
+        return;
     }
 
     // We only get here if sendto failed, so errno must be valid
@@ -1129,25 +1095,9 @@ static ssize_t sendto_fd (struct n3n_runtime_data *eee, const void *buf,
 #endif
 
     /*
-     * we get here if the sock is not ready or
-     * if the sendto had an error
+     * TODO: metrics for errors
      */
-err_out:
-    if(eee->conf.connect_tcp) {
-        supernode_disconnect(eee);
-        eee->sn_wait = 1;
-        // Not true if eee->sock == -1
-        traceEvent(TRACE_DEBUG, "error in sendto_fd");
-    }
-
-    /*
-     * If we got an error and are using UDP, this is still an error
-     * case.  The only caller of sendto_fd() checks the return only
-     * in the TCP case.
-     *
-     * Thus, we can safely return an error code for any error.
-     */
-    return -1;
+    return;
 }
 
 
@@ -1156,8 +1106,6 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
                          size_t len, const n2n_sock_t * dest) {
 
     struct sockaddr_in peer_addr;
-    ssize_t sent;
-    int value = 0;
 
     if(!dest->family)
         // invalid socket
@@ -1167,44 +1115,24 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         // invalid socket file descriptor, e.g. TCP unconnected has fd of '-1'
         return;
 
-    peer_addr.sin_port = 0;
-
     // TODO:
-    // - also check n2n_sock_t type == SOCK_STREAM as a TCP indicator
+    // - also check n2n_sock_t type == SOCK_STREAM as a TCP indicator?
+
+    // if the connection is tcp, i.e. not the regular sock...
+    if(eee->conf.connect_tcp) {
+        mainloop_send_v3tcp(eee->sock, buf, len);
+        /*
+         * TODO: metrics for errors
+         */
+        return;
+    }
+
+    peer_addr.sin_port = 0;
 
     // network order socket
     fill_sockaddr((struct sockaddr *) &peer_addr, sizeof(peer_addr), dest);
 
-    // if the connection is tcp, i.e. not the regular sock...
-    if(eee->conf.connect_tcp) {
-
-        setsockopt(eee->sock, IPPROTO_TCP, TCP_NODELAY, (void *)&value, sizeof(value));
-        value = 1;
-#ifdef LINUX
-        setsockopt(eee->sock, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
-#endif
-
-        // prepend packet length...
-        uint16_t pktsize16 = htobe16(len);
-        sent = sendto_fd(eee, (uint8_t*)&pktsize16, sizeof(pktsize16), &peer_addr, dest);
-
-        if(sent <= 0)
-            return;
-        // ...before sending the actual data
-    }
-    sent = sendto_fd(eee, buf, len, &peer_addr, dest);
-
-    // if the connection is tcp, i.e. not the regular sock...
-    if(eee->conf.connect_tcp) {
-        value = 1; /* value should still be set to 1 */
-        setsockopt(eee->sock, IPPROTO_TCP, TCP_NODELAY, (void *)&value, sizeof(value));
-#ifdef LINUX
-        value = 0;
-        setsockopt(eee->sock, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
-#endif
-    }
-
-    return;
+    sendto_fd(eee, buf, len, &peer_addr, dest);
 }
 
 

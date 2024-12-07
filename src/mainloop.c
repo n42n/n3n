@@ -35,6 +35,7 @@ static struct metrics {
     uint32_t unregister_fd; // mainloop_unregister_fd() is called
     uint32_t connlist_alloc;
     uint32_t connlist_free;
+    uint32_t send_queue_fail;   // Attempted to send v3tcp but buffer in use
 } metrics;
 
 static struct n3n_metrics_items_llu32 metrics_items = {
@@ -61,6 +62,10 @@ static struct n3n_metrics_items_llu32 metrics_items = {
         {
             .val1 = "connlist_free",
             .offset = offsetof(struct metrics, connlist_free),
+        },
+        {
+            .val1 = "send_queue_fail",
+            .offset = offsetof(struct metrics, send_queue_fail),
         },
         { },
     },
@@ -514,6 +519,55 @@ void mainloop_dump (strbuf_t **buf) {
         sb_reprintf(buf,"%i: ",i);
         conn_dump(buf, &connlist[i]);
     }
+}
+
+bool mainloop_send_v3tcp (int fd, const void *buf, int bufsize) {
+    // TODO:
+    // - avoid the linear scan by changing the params to pass a fdlist slottnr
+    //   instead of a filehandle
+    int slot = 0;
+    while(slot < MAX_HANDLES) {
+        if(fdlist[slot].fd == fd) {
+            break;
+        }
+        slot++;
+    }
+    if(fdlist[slot].fd != fd) {
+        // Couldnt find this fd
+        return false;
+    }
+
+    if(fdlist[slot].connnr == -1) {
+        // No buffer associated with this fd
+        return false;
+    }
+
+    struct conn *conn = &connlist[fdlist[slot].connnr];
+
+    if(!conn->reply) {
+        conn->reply = sb_malloc(N2N_PKT_BUF_SIZE + 2, N2N_PKT_BUF_SIZE + 2);
+    } else {
+        if(sb_len(conn->reply)) {
+            // send buffer already in use
+            // TODO:
+            // - metrics!
+            return false;
+        }
+        sb_zero(conn->reply);
+    }
+
+    uint16_t pktsize16 = htobe16(bufsize);
+    sb_append(conn->reply, &pktsize16, sizeof(pktsize16));
+
+    // TODO:
+    // - avoid memcpy by using a global buffer pool and transferring ownership
+    sb_append(conn->reply, buf, bufsize);
+
+    // TODO:
+    // - check bufsize for N2N_PKT_BUF_SIZE overflow
+
+    conn_write(conn, fd);
+    return true;
 }
 
 void mainloop_register_fd (int fd, enum fd_info_proto proto) {

@@ -31,6 +31,13 @@ enum __attribute__((__packed__)) fd_info_proto {
 // Place debug info from the slots into the strbuf
 void mainloop_dump (strbuf_t **);
 
+// Starts sending a packet, queuing if needed
+// returns false when:
+// - no queue slot is available
+// - the file handle is not registered with the mainloop
+// - the file handle is not registered as a v3tcp proto
+bool mainloop_send_v3tcp (int, const void *, int);
+
 int mainloop_runonce (struct n3n_runtime_data *);
 
 void mainloop_register_fd (int, enum fd_info_proto);
