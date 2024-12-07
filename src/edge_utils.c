@@ -1159,12 +1159,6 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
     ssize_t sent;
     int value = 0;
 
-    // TODO: audit callers and confirm if this can ever happen
-    if(!eee) {
-        traceEvent(TRACE_WARNING, "bad eee");
-        return;
-    }
-
     if(!dest->family)
         // invalid socket
         return;
