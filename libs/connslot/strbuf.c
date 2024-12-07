@@ -143,7 +143,7 @@ bool sb_overflowed(strbuf_t *p) {
  * @param bufsize is the length of the new data to copy
  * @return the total length of the stored data
  */
-size_t sb_append(strbuf_t *p, void *buf, ssize_t bufsize) {
+size_t sb_append(strbuf_t *p, const void *buf, ssize_t bufsize) {
     ssize_t avail = sb_avail(p);
     if (avail <= 0) {
         // Cannot append to a full buffer
@@ -177,7 +177,7 @@ size_t sb_append(strbuf_t *p, void *buf, ssize_t bufsize) {
  * @param bufsize is the length of the new data to copy
  * @return the total length of the stored data
  */
-strbuf_t *sb_reappend(strbuf_t **pp, void *buf, size_t bufsize) {
+strbuf_t *sb_reappend(strbuf_t **pp, const void *buf, size_t bufsize) {
     strbuf_t *p = *pp;
     size_t needed = p->wr_pos + bufsize;
     if (needed > p->capacity) {
