@@ -2053,7 +2053,7 @@ static int send_packet (struct n3n_runtime_data * eee,
         // if no supernode around, foward the broadcast to all known peers
         if(eee->sn_wait) {
             HASH_ITER(hh, eee->known_peers, peer, tmp_peer)
-            sendto_sock(eee, pktbuf, pktlen, &peer->sock);
+                sendto_sock(eee, pktbuf, pktlen, &peer->sock);
             return 0;
         }
         // fall through otherwise
