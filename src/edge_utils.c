@@ -244,6 +244,8 @@ void reset_sup_attempts (struct n3n_runtime_data *eee) {
 
 
 // detect local IP address by probing a connection to the supernode
+// TODO: should try to refactor this function to be more accurate and handle
+// error cases better
 static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runtime_data* eee) {
 
     struct sockaddr_in local_sock;
@@ -288,19 +290,23 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
 
     fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
     if(connect(probe_sock, (struct sockaddr *)&sn_sock, sizeof(sn_sock)) != 0) {
+        closesocket(probe_sock);
         return -3;
     }
 
     sock_len = sizeof(local_sock);
     if(getsockname(probe_sock, (struct sockaddr *)&local_sock, &sock_len) != 0) {
+        closesocket(probe_sock);
         return -4;
     }
 
     if(local_sock.sin_family != AF_INET) {
+        closesocket(probe_sock);
         return -4;
     }
 
     if(sock_len != sizeof(local_sock)) {
+        closesocket(probe_sock);
         return -4;
     }
 
