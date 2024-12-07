@@ -23,6 +23,7 @@
 #include "edge_utils.h"         // for edge_read_from_tap
 #include "management.h"         // for readFromMgmtSocket
 #include "minmax.h"             // for min, max
+#include "portable_endian.h"    // for htobe16
 
 #ifndef _WIN32
 // Another wonderful gift from the world of POSIX compliance is not worth much
