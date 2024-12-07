@@ -845,11 +845,18 @@ int main (int argc, char* argv[]) {
     // for the sake of quickly establishing connection. REVISIT when a more elegant way to re-use main loop code
     // is found
 
-    // find at least one supernode alive to faster establish connection
+    // find at least one supernode alive to faster establish connection.
     // exceptions:
-    if((HASH_COUNT(eee->conf.supernodes) <= 1) || (eee->conf.connect_tcp) || (eee->conf.shared_secret)) {
-        // skip the initial supernode ping
-        traceEvent(TRACE_DEBUG, "skip PING to supernode");
+    if(eee->conf.connect_tcp) {
+        traceEvent(TRACE_DEBUG, "skip PING to supernode: TCP mode");
+        runlevel = 2;
+    }
+    if(eee->conf.shared_secret) {
+        traceEvent(TRACE_DEBUG, "skip PING to supernode: shared secret");
+        runlevel = 2;
+    }
+    if(HASH_COUNT(eee->conf.supernodes) <= 1) {
+        traceEvent(TRACE_DEBUG, "skip PING to supernode: only one supernode");
         runlevel = 2;
     }
 
