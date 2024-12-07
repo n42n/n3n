@@ -274,7 +274,7 @@ ssize_t conn_write(conn_t *conn, int fd) {
         conn->state = CONN_EMPTY;
         conn->reply_sendpos = 0;
         sb_zero(conn->reply_header);
-        sb_zero(conn->request);
+        sb_zero(conn->reply);
     }
 
     // This will truncate the time to a int - usually 32bits
