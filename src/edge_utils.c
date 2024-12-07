@@ -1052,8 +1052,8 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /** Send a datagram to a socket file descriptor */
 static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
-                          size_t len, struct sockaddr_in *dest,
-                          const n2n_sock_t * n2ndest) {
+                       size_t len, struct sockaddr_in *dest,
+                       const n2n_sock_t * n2ndest) {
 
     ssize_t sent = 0;
 
@@ -1979,8 +1979,9 @@ static int send_packet (struct n3n_runtime_data * eee,
 
         // if no supernode around, foward the broadcast to all known peers
         if(eee->sn_wait) {
-            HASH_ITER(hh, eee->known_peers, peer, tmp_peer)
+            HASH_ITER(hh, eee->known_peers, peer, tmp_peer) {
                 sendto_sock(eee, pktbuf, pktlen, &peer->sock);
+            }
             return 0;
         }
         // fall through otherwise
