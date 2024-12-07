@@ -3135,12 +3135,14 @@ void edge_term (struct n3n_runtime_data * eee) {
     if(eee->sock >= 0) {
         closesocket(eee->sock);
         mainloop_unregister_fd(eee->sock);
+        eee->sock = -1;
     }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     if(eee->udp_multicast_sock >= 0) {
         closesocket(eee->udp_multicast_sock);
         mainloop_unregister_fd(eee->udp_multicast_sock);
+        eee->udp_multicast_sock = -1;
     }
 #endif
 
@@ -3248,6 +3250,7 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     if(eee->udp_multicast_sock >= 0) {
         closesocket(eee->udp_multicast_sock);
         mainloop_unregister_fd(eee->udp_multicast_sock);
+        eee->udp_multicast_sock = -1;
     }
 
     /* Populate the multicast group for local edge */
