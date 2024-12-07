@@ -3036,11 +3036,12 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
      */
 
     while(*eee->keep_running) {
+        mainloop_runonce(eee);
 
-        fd_set readers;
-        fd_set writers;
+        // TODO:
+        // - migrate all the following regular actions into the
+        // mainloop_runonce() function
 
-        mainloop_runonce(&readers, &writers, eee);
         time_t now = time(NULL);
 
         // If anything we recieved caused us to stop..

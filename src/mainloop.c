@@ -456,24 +456,15 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
     }
 }
 
-static int setup_select (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
-    FD_ZERO(rd);
-    FD_ZERO(wr);
-    int max_sock = fdlist_fd_set(rd, wr);
+int mainloop_runonce (struct n3n_runtime_data *eee) {
+    fd_set rd;
+    fd_set wr;
 
-    // HACK - until this mainloop supports v3tcp proto sockets
-    if((eee->conf.connect_tcp) && (eee->sock != -1)) {
-        FD_SET(eee->sock, rd);
-        max_sock = MAX(max_sock, eee->sock);
-    }
-
-    return max_sock;
-}
-
-int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     metrics.mainloop++;
 
-    int maxfd = setup_select(rd, wr, eee);
+    FD_ZERO(&rd);
+    FD_ZERO(&wr);
+    int maxfd = fdlist_fd_set(&rd, &wr);
 
     // FIXME:
     // unlock the windows tun reader thread before select() and lock it
@@ -489,7 +480,7 @@ int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     }
     wait_time.tv_usec = 0;
 
-    int ready = select(maxfd + 1, rd, wr, NULL, &wait_time);
+    int ready = select(maxfd + 1, &rd, &wr, NULL, &wait_time);
 
     if(ready < 1) {
         // Nothing ready or an error
@@ -499,7 +490,7 @@ int mainloop_runonce (fd_set *rd, fd_set *wr, struct n3n_runtime_data *eee) {
     // One timestamp to use for this entire loop iteration
     time_t now = time(NULL);
 
-    fdlist_check_ready(rd, wr, now, eee);
+    fdlist_check_ready(&rd, &wr, now, eee);
 
     return ready;
 }

@@ -976,9 +976,7 @@ int main (int argc, char* argv[]) {
 
         // we usually wait for some answer, there however are exceptions when going back to a previous runlevel
         if(seek_answer) {
-            fd_set readers;
-            fd_set writers;
-            mainloop_runonce(&readers, &writers, eee);
+            mainloop_runonce(eee);
 
             // FIXME: the mainloop could wait for BOOTSTRAP_TIMEOUT, not its
             // usual timeout ?!?

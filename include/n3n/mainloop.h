@@ -31,7 +31,7 @@ enum __attribute__((__packed__)) fd_info_proto {
 // Place debug info from the slots into the strbuf
 void mainloop_dump (strbuf_t **);
 
-int mainloop_runonce (fd_set *, fd_set *, struct n3n_runtime_data *);
+int mainloop_runonce (struct n3n_runtime_data *);
 
 void mainloop_register_fd (int, enum fd_info_proto);
 void mainloop_unregister_fd (int);
