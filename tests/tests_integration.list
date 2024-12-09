@@ -4,3 +4,4 @@
 test_integration_packets.sh
 test_integration_supernode.sh
 test_integration_edge.sh
+test_integration_edge_tcp.sh

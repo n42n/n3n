@@ -103,6 +103,7 @@ OBJS=\
 	src/initfuncs.o \
 	src/json.o \
 	src/logging.o \
+	src/mainloop.o \
 	src/management.o \
 	src/metrics.o \
 	src/minilzo.o \
@@ -337,6 +338,11 @@ clean.cov:
 		src/*.gcno src/*.gcda \
 		apps/*.gcno apps/*.gcda \
 		tools/*.gcno tools/*.gcda
+
+.PHONY: iwyu
+iwyu: iwyu.out
+iwyu.out:
+	CFLAGS="-Xiwyu --error_always" $(MAKE) -k CC=include-what-you-use 2> iwyu.out
 
 .PHONY: clean
 clean: clean.cov

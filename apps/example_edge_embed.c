@@ -20,6 +20,7 @@
 
 #include <n3n/conffile.h>
 #include <n3n/edge.h>       // for edge_init_conf_defaults, edge_verify_conf
+#include <n3n/mainloop.h>   // for mainloop_register_fd, fd_info_proto
 #include <n3n/peer_info.h>   // for n3n_peer_add_by_hostname
 #include <stdbool.h>
 #include <stdio.h>   // for snprintf, NULL
@@ -67,6 +68,11 @@ int main () {
        ) < 0) {
         return -1;
     }
+
+#ifndef _WIN32
+    // TODO: this internal fn should not be called publicly
+    mainloop_register_fd(tuntap.fd, fd_info_proto_tuntap);
+#endif
 
     eee = edge_init(&conf, &rc);
     if(eee == NULL) {

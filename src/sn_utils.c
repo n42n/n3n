@@ -32,14 +32,17 @@
 #include <stdlib.h>             // for free, calloc, getenv
 #include <string.h>             // for memcpy, NULL, memset, size_t, strerror
 #include <sys/param.h>          // for MAX
-#include <sys/time.h>           // for timeval
-#include <sys/types.h>          // for ssize_t
 #include <time.h>               // for time_t, time
+#include <unistd.h>
+
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
 #include "management.h"         // for process_mgmt
+#include "minmax.h"                  // for MIN, MAX
 #include "n2n.h"                // for sn_community, n3n_runtime_data
+#include "n2n_define.h"
 #include "n2n_regex.h"          // for re_matchp, re_compile
+#include "n2n_typedefs.h"
 #include "n2n_wire.h"           // for encode_buf, encode_PEER_INFO, encode_...
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_32
 #include "peer_info.h"          // for purge_peer_list, clear_peer_list
@@ -50,14 +53,21 @@
 #include "uthash.h"             // for UT_hash_handle, HASH_ITER, HASH_DEL
 
 #ifdef _WIN32
-#include <direct.h>             // for _rmdir
 #include "win32/defs.h"
+
+#include <direct.h>             // for _rmdir
 #else
 #include <arpa/inet.h>          // for inet_addr, inet_ntoa
 #include <netinet/in.h>         // for ntohl, in_addr_t, sockaddr_in, INADDR...
 #include <netinet/tcp.h>        // for TCP_NODELAY
+#include <pwd.h>
 #include <sys/select.h>         // for FD_ISSET, FD_SET, select, FD_SETSIZE
 #include <sys/socket.h>         // for recvfrom, shutdown, sockaddr_storage
+#endif
+
+#ifndef _WIN32
+// Another wonderful gift from the world of POSIX compliance is not worth much
+#define closesocket(a) close(a)
 #endif
 
 
@@ -93,14 +103,6 @@ static int purge_expired_communities (struct n3n_runtime_data *sss,
 static int sort_communities (struct n3n_runtime_data *sss,
                              time_t* p_last_sort,
                              time_t now);
-
-static int process_udp (struct n3n_runtime_data *sss,
-                        const struct sockaddr *sender_sock, socklen_t sock_size,
-                        const SOCKET socket_fd,
-                        uint8_t *udp_buf,
-                        size_t udp_size,
-                        time_t now);
-
 
 /* ************************************** */
 
@@ -1638,7 +1640,8 @@ static int process_udp (struct n3n_runtime_data * sss,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
                         size_t udp_size,
-                        time_t now) {
+                        time_t now,
+                        int type) {
 
     n2n_common_t cmn;        /* common fields in the packet header */
     size_t rem;
@@ -1659,8 +1662,7 @@ static int process_udp (struct n3n_runtime_data * sss,
     int skip_add;
     time_t any_time = 0;
 
-    memset(&sender, 0, sizeof(n2n_sock_t));
-    fill_n2nsock(&sender, sender_sock);
+    fill_n2nsock(&sender, sender_sock, SOCK_DGRAM);
     orig_sender = &sender;
 
     traceEvent(TRACE_DEBUG, "processing incoming UDP packet [len: %lu][sender: %s]",
@@ -1720,8 +1722,8 @@ static int process_udp (struct n3n_runtime_data * sss,
                 header_enc = 2;
             }
             if(!header_enc) {
-                pearson_hash_128(hash_buf, udp_buf, max(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN));
-                header_enc = packet_header_decrypt(udp_buf, max(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN), comm->community,
+                pearson_hash_128(hash_buf, udp_buf, MAX(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN));
+                header_enc = packet_header_decrypt(udp_buf, MAX(0, (int)udp_size - (int)N2N_REG_SUP_HASH_CHECK_LEN), comm->community,
                                                    comm->header_encryption_ctx_static, comm->header_iv_ctx_static, &stamp);
             }
 
@@ -1864,7 +1866,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     // in case of user-password auth, also encrypt the iv of payload assuming ChaCha20 and SPECK having the same iv size
-                    packet_header_encrypt(rec_buf, oldEncx + (NULL != comm->allowed_users) * min(encx - oldEncx, N2N_SPECK_IVEC_SIZE), encx,
+                    packet_header_encrypt(rec_buf, oldEncx + (NULL != comm->allowed_users) * MIN(encx - oldEncx, N2N_SPECK_IVEC_SIZE), encx,
                                           comm->header_encryption_ctx_dynamic, comm->header_iv_ctx_dynamic,
                                           time_stamp());
                 }
@@ -1879,7 +1881,7 @@ static int process_udp (struct n3n_runtime_data * sss,
 
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     // in case of user-password auth, also encrypt the iv of payload assuming ChaCha20 and SPECK having the same iv size
-                    packet_header_encrypt(rec_buf, idx + (NULL != comm->allowed_users) * min(encx - idx, N2N_SPECK_IVEC_SIZE), encx,
+                    packet_header_encrypt(rec_buf, idx + (NULL != comm->allowed_users) * MIN(encx - idx, N2N_SPECK_IVEC_SIZE), encx,
                                           comm->header_encryption_ctx_dynamic, comm->header_iv_ctx_dynamic,
                                           time_stamp());
                 }
@@ -2615,6 +2617,10 @@ static int process_udp (struct n3n_runtime_data * sss,
                         pi.preferred_sock = scan->preferred_sock;
                     }
 
+                    // FIXME:
+                    // If we get the request on TCP, the reply should indicate
+                    // our prefered sock is TCP ??
+
                     encode_PEER_INFO(encbuf, &encx, &cmn2, &pi);
 
                     if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2764,7 +2770,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
 #endif
 
         slots_t *slots = sss->mgmt_slots;
-        max_sock = max(
+        max_sock = MAX(
             max_sock,
             slots_fdset(
                 slots,
@@ -2840,7 +2846,8 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                         sss->sock,
                         pktbuf,
                         bread,
-                        now
+                        now,
+                        SOCK_DGRAM
                     );
                 }
             }
@@ -2904,7 +2911,8 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                                 conn->socket_fd,
                                 conn->buffer + sizeof(uint16_t),
                                 conn->position - sizeof(uint16_t),
-                                now
+                                now,
+                                SOCK_STREAM
                             );
 
                             // reset, await new prepended length

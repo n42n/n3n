@@ -16,6 +16,17 @@
 #include <string.h>
 #include <unistd.h>             // for read, write
 
+// TODO:
+// - on linux there are headers with these predefined
+// - on windows, there are different predefines
+// - use them!
+#ifndef MAX
+#define MAX(a, b) (((a) < (b)) ? (b) : (a))
+#endif
+
+#ifndef MIN
+#define MIN(a, b) (((a) >(b)) ? (b) : (a))
+#endif
 
 #define GETOPTS "Vhv"
 
@@ -69,11 +80,11 @@ static void cmd_header_decrypt (int argc, char **argv, void *conf) {
         pearson_hash_128(
             hash_buf,
             buf,
-            max(0, (int)size - (int)N2N_REG_SUP_HASH_CHECK_LEN)
+            MAX(0, (int)size - (int)N2N_REG_SUP_HASH_CHECK_LEN)
         );
         ok = packet_header_decrypt(
             buf,
-            max(0, (int)size - (int)N2N_REG_SUP_HASH_CHECK_LEN),
+            MAX(0, (int)size - (int)N2N_REG_SUP_HASH_CHECK_LEN),
             community,
             ctx_static,
             ctx_iv_static,

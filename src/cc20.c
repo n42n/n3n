@@ -22,6 +22,7 @@
 #include <n3n/logging.h> // for traceEvent
 #include <stdlib.h>     // for calloc, free, size_t
 #include <string.h>     // for memcpy
+
 #include "cc20.h"
 #include "config.h"  // HAVE_LIBCRYPTO
 #include "portable_endian.h"  // for htole32

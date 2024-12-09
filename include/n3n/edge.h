@@ -28,8 +28,16 @@ void edge_term_conf (n2n_edge_conf_t *conf);
 void send_register_super (struct n3n_runtime_data *eee);
 void send_query_peer (struct n3n_runtime_data *eee, const n2n_mac_t dst_mac);
 int supernode_connect (struct n3n_runtime_data *eee);
-int fetch_and_eventually_process_data (struct n3n_runtime_data *eee, SOCKET sock,
-                                       uint8_t *pktbuf, uint16_t *expected, uint16_t *position,
-                                       time_t now);
+
+void edge_read_proto3_udp (struct n3n_runtime_data *eee,
+                           SOCKET sock,
+                           uint8_t *pktbuf,
+                           ssize_t pktbuf_len,
+                           time_t now);
+void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
+                           SOCKET sock,
+                           uint8_t *pktbuf,
+                           ssize_t pktbuf_len,
+                           time_t now);
 
 #endif

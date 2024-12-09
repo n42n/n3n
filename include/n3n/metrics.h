@@ -14,6 +14,7 @@ enum __attribute__((__packed__)) n3n_metrics_items_type {
     n3n_metrics_type_invalid = 0,
     n3n_metrics_type_uint32,    // items_uint32 is valid
     n3n_metrics_type_llu32,
+    n3n_metrics_type_cb,
 };
 
 // The simplest type of metrics: everything is the same storage type, there are
@@ -52,6 +53,7 @@ struct n3n_metrics_module {
     union {
         const struct n3n_metrics_items_uint32 *items_uint32;
         const struct n3n_metrics_items_llu32 *items_llu32;
+        void (*cb)(strbuf_t **, const struct n3n_metrics_module *);
     };
     const enum n3n_metrics_items_type type;
 };
@@ -59,7 +61,20 @@ struct n3n_metrics_module {
 // Register a block of metrics
 void n3n_metrics_register (struct n3n_metrics_module *);
 
+// Helper to assist with rendering during n3n_metrics_type_cb
+void n3n_metrics_render_u32tags (
+    strbuf_t **reply,
+    const struct n3n_metrics_module *module,
+    const char *name,
+    const int offset,
+    const int tags,         // The number of following tag+val pairs
+    ...
+);
+
 // Render all the metrics into a strbuf
 void n3n_metrics_render (strbuf_t **reply);
+
+// Set the session name for all metrics
+void n3n_metrics_set_session (char *);
 
 #endif

@@ -187,6 +187,7 @@ class PacketBase():
 
     def decode_sock(self, buffer, prefix="sock"):
         name_family = f"{prefix}_family"
+        name_type = f"{prefix}_type"
         name_port = f"{prefix}_port"
         name_addr = f"{prefix}_addr"
 
@@ -202,6 +203,11 @@ class PacketBase():
             format = "!HH16s"
         else:
             raise ValueError(f"Unknown sock_family {data[0]}")
+        sock_type = data[0] &0x4000
+        if sock_type == 0:
+            self.data[name_type] = socket.SOCK_DGRAM
+        else:
+            self.data[name_type] = socket.SOCK_STREAM
 
         calcsize = struct.calcsize(format)
         buffer = buffer[:calcsize]
@@ -694,8 +700,15 @@ def main():
     )
     ap.add_argument(
         "--raw",
+        action="store_true",
         help="Dont stablise the results - show the real data",
         default=False
+    )
+    ap.add_argument(
+        "--tcp",
+        action="store_true",
+        help="Switch to TCP connection",
+        default=False,
     )
     ap.add_argument("scenario", help="What packet to send")
 
@@ -707,10 +720,19 @@ def main():
     community = args.community.encode("utf8")
     PacketBase.set_default("community", community)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    if args.tcp:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
+    else:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
     sock.settimeout(args.timeout)
+
     if args.bind:
         sock.bind(('', args.bind))
+
+    if args.tcp:
+        sock.connect((host, port))
 
     if args.scenario != "listen":
         send_pkt = PacketGeneric.from_scenario(args.scenario)
@@ -718,12 +740,23 @@ def main():
         print("test:")
         hexdump(0, buf)
 
+        if args.tcp:
+            # add framing
+            header = struct.pack('>H', len(buf))
+            sock.sendto(header, (host, port))
+
         sock.sendto(buf, (host, port))
 
     if args.timeout == 0:
         return
 
-    data = sock.recv(1600)
+    if args.tcp:
+        # fetch framing
+        header = sock.recv(2, socket.MSG_WAITALL)
+        size = struct.unpack('>H', header)[0]
+        data = sock.recv(size, socket.MSG_WAITALL)
+    else:
+        data = sock.recv(1600)
 
     recv_pkt = PacketGeneric.from_buffer(data)
     recv_pkt.decode(data)

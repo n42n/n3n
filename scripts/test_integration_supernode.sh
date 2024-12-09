@@ -26,10 +26,12 @@ sudo chown "$USER" /run/n3n
 docmd "${BINDIR}"/apps/n3n-supernode start ci_sn1 \
     --daemon \
     -Oconnection.bind=7001 \
+    -Osupernode.macaddr=02:00:00:00:70:01 \
     -Osupernode.peer=localhost:7002
 docmd "${BINDIR}"/apps/n3n-supernode start ci_sn2 \
     --daemon \
     -Oconnection.bind=7002 \
+    -Osupernode.macaddr=02:00:00:00:70:02 \
     -Osupernode.peer=localhost:7001
 
 # TODO: probe the api endpoint, waiting for the supernode to be available?
@@ -41,8 +43,8 @@ docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_communities
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_packetstats
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_packetstats
 
-docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw | grep -vE "last_seen|macaddr|time_alloc"
-docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_edges --raw | grep -vE "last_seen|macaddr|time_alloc"
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw | grep -vE "last_seen|time_alloc"
+docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn2 get_edges --raw | grep -vE "last_seen|time_alloc"
 
 # Test with bad auth
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 set_verbose 1

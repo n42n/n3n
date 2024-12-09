@@ -11,9 +11,22 @@
 #include <n3n/metrics.h> // for traceEvent
 #include <sn_selection.h>   // for sn_selection_criterion_default
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+#ifndef _WIN32
+#include <sys/socket.h>
+#endif
+
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
 #include "resolve.h"    // for supernode2sock
+
+#ifndef _WIN32
+// Another wonderful gift from the world of POSIX compliance is not worth much
+#define closesocket(a) close(a)
+#endif
 
 static struct metrics {
     uint32_t init;      // peer_info_init() is called

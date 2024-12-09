@@ -38,8 +38,12 @@
 #include <sys/ioctl.h>                // for ioctl, SIOCGIFADDR, SIOCGIFFLAGS
 #include <sys/param.h>                // for MIN
 #include <sys/socket.h>               // for socket, msghdr, AF_INET, sockaddr
+#include <sys/uio.h>                  // for iovec
 #include <unistd.h>                   // for close, getpid, read, write, ssi...
+
 #include "n2n.h"                      // for tuntap_dev, ...
+#include "n2n_typedefs.h"
+#include "n3n/ethernet.h"
 
 
 static int setup_ifname (int fd, const char *ifname,

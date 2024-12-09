@@ -66,7 +66,6 @@
 #include <stdint.h>        // for uint8_t, uint64_t, uint32_t, uint16_t
 #include <sys/types.h>     // for time_t
 #include <unistd.h>        // for close
-#define closesocket(a) close(a)
 
 #ifdef __linux__
 #define N2N_CAN_NAME_IFACE 1
@@ -141,7 +140,6 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t nowTime);
 void readFromIPSocket (struct n3n_runtime_data * eee, int in_sock);
 void edge_term (struct n3n_runtime_data *eee);
 void edge_send_packet2net (struct n3n_runtime_data *eee, uint8_t *tap_pkt, size_t len);
-void edge_read_from_tap (struct n3n_runtime_data *eee);
 int run_edge_loop (struct n3n_runtime_data *eee);
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,

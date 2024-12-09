@@ -29,16 +29,18 @@
 
 #include <stdint.h>      // for uint8_t, uint16_t, uint32_t, uint64_t
 #include <string.h>      // for size_t, memset, memcpy
-#include "portable_endian.h"  // for be64toh, htobe64
-#include "n2n.h"         // for n2n_sock_t, n2n_common_t, n2n_auth_t, n2n_RE...
+
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
 #include "n2n_wire.h"    // for decode_PACKET, decode_PEER_INFO, decode_QUER...
+#include "n3n/ethernet.h"
+#include "portable_endian.h"  // for be64toh, htobe64
 
 #ifdef _WIN32
 #include "win32/defs.h"
 #else
 #include <netinet/in.h>  // for sockaddr_in, sockaddr_in6, in6_addr, in_addr
 #include <sys/socket.h>  // for AF_INET, AF_INET6, SOCK_STREAM, SOCK_DGRAM
-#include <sys/un.h>      // for sa_family_t
 #endif
 
 
@@ -688,9 +690,14 @@ int fill_sockaddr (struct sockaddr * addr,
 
 
 // fills struct sockaddr's data into n2n_sock
-int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa) {
+int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa, int type) {
+    // Ensure the return struct is fully initialised
+    // TODO: could be optimised
+    memset(sock, 0, sizeof(n2n_sock_t));
 
     sock->family = sa->sa_family;
+    // TODO: re enable this when it doesnt break things
+    // sock->type = type;  // SOCK_DGRAM or SOCK_STREAM
 
     switch(sock->family) {
         case AF_INET: {

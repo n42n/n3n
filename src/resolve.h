@@ -9,11 +9,16 @@
 #ifndef _RESOLVE_H_
 #define _RESOLVE_H_
 
-#include <n3n/resolve.h>    // for n2n_resolve_parameter_t
 #include <n2n_typedefs.h>   // for n2n_sock_t
+#include <n3n/resolve.h>    // for n2n_resolve_parameter_t
+#include <stdbool.h>
+#include <time.h>
 #include <uthash.h>         // for UT_hash_handle
+
 #include "config.h"         // for HAVE_LIBPTHREAD
 #include "peer_info.h"      // for struct peer_info
+
+struct peer_info;
 
 #ifdef HAVE_LIBPTHREAD
 struct n3n_resolve_ip_sock {

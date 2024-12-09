@@ -1,5 +1,6 @@
 [Unit]
 Description=n3n edge process, on %I
+Documentation=man:n3n-edge(8)
 After=network-online.target nfw.target
 Wants=network-online.target
 

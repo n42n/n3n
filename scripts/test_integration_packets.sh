@@ -78,4 +78,17 @@ docmd "${BINDIR}"/scripts/test_packets \
 
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 get_edges --raw
 
+# TCP
+#
+docmd "${BINDIR}"/scripts/test_packets \
+    --tcp \
+    --bind 7000 \
+    -s localhost:7001 \
+    test_QUERY_PEER_ping
+
+# TODO:
+# - run all the same tests above but that needs a persistant TCP connection
+# - remember that since we bound the port to TCP/7000 that becomes busy until
+#   the TIME-WAIT period ends
+
 docmd "${TOPDIR}"/scripts/n3nctl -s ci_sn1 -k $AUTH stop

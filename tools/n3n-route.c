@@ -56,6 +56,11 @@
 #include <sys/socket.h>        // for send, socket, AF_INET, recv, connect
 #endif
 
+#ifndef _WIN32
+// Another wonderful gift from the world of POSIX compliance is not worth much
+#define closesocket(a) close(a)
+#endif
+
 // FIXME, this tool needs porting to JsonRPC
 #define N2N_EDGE_MGMT_PORT        5644
 

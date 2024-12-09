@@ -7,25 +7,25 @@
 
 #define _GNU_SOURCE
 #ifndef _WIN32
-#include <arpa/inet.h>
+#include <arpa/inet.h>  // for ntohs
 #endif
-#include <errno.h>
-#include <fcntl.h>
+#include <errno.h>      // for errno, EAGAIN, ENOENT, EWOULDBLOCK
+#include <fcntl.h>      // for fcntl, F_SETFL, O_NONBLOCK
 #ifndef _WIN32
-#include <netinet/in.h>
+#include <netinet/in.h> // for htons, htonl, sockaddr_in, sock...
 #endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdint.h>     // for uint16_t
+#include <stdio.h>      // for remove
+#include <stdlib.h>     // for free, abort, malloc, strtoul
+#include <string.h>     // for memmem, memcpy, strlen, strncpy
 #ifndef _WIN32
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/un.h>
+#include <sys/socket.h> // for socket, bind, listen, setsockopt
+#include <sys/stat.h>   // for chmod
+#include <sys/uio.h>    // for writev
+#include <sys/un.h>     // for sockaddr_un
 #endif
-#include <time.h>
-#include <unistd.h>
+#include <time.h>       // for NULL, time, size_t
+#include <unistd.h>     // for close, chown
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -33,6 +33,7 @@
 #endif
 
 #include "connslot.h"
+#include "strbuf.h"     // for sb_reprintf, sb_len, strbuf_t
 
 #ifdef _WIN32
 // Windows is a strange place to live, if you are a POSIX programmer
@@ -63,6 +64,7 @@ void *memmem(void *haystack, size_t haystack_len, void * needle, size_t needle_l
 void conn_zero(conn_t *conn) {
     conn->fd = -1;
     conn->state = CONN_EMPTY;
+    conn->proto = CONN_PROTO_UNK;
     conn->reply = NULL;
     conn->reply_sendpos = 0;
     conn->activity = 0;
@@ -87,7 +89,95 @@ int conn_init(conn_t *conn, size_t request_max, size_t reply_header_max) {
     return 0;
 }
 
-void conn_read(conn_t *conn) {
+void conn_accept(conn_t *conn, int fd, enum conn_proto proto) {
+
+#ifndef _WIN32
+    fcntl(fd, F_SETFL, O_NONBLOCK);
+#else
+    u_long arg = 1;
+    ioctlsocket(fd, FIONBIO, &arg);
+#endif
+
+    // This will truncate the time to a int - usually 32bits
+    conn->activity = time(NULL);
+    conn->fd = fd;
+    conn->proto = proto;
+}
+
+void conn_check_ready(conn_t *conn) {
+    unsigned int expected_length;
+
+    switch (conn->proto) {
+        case CONN_PROTO_HTTP:
+            if (sb_len(conn->request)<4) {
+                // Not enough bytes to match the end of header check
+                return;
+            }
+
+            // retrieve the cached expected length, if any
+            expected_length = conn->request->rd_pos;
+
+            if (expected_length == 0) {
+                char *p = memmem(conn->request->str, sb_len(conn->request), "\r\n\r\n", 4);
+                if (!p) {
+                    // As yet, we dont have an entire header
+                    return;
+                }
+
+                int body_pos = p - conn->request->str + 4;
+
+                // Determine if we need to read a body
+                p = memmem(
+                        conn->request->str,
+                        body_pos,
+                        "Content-Length:",
+                        15
+                );
+
+                if (!p) {
+                    // We have an end of header, and the header has no content length field
+                    // so assume there is no body to read
+                    conn->state = CONN_READY;
+                    return;
+                }
+
+                p+=15; // Skip the field name
+                unsigned int content_length = strtoul(p, NULL, 10);
+                expected_length = body_pos + content_length;
+                // FIXME: what if Content-Length: is larger than unsigned int?
+            }
+            break;
+        case CONN_PROTO_BE16LEN:
+            if (sb_len(conn->request)<2) {
+                // Not enough bytes to have the header
+                return;
+            }
+
+            expected_length = ntohs(*(uint16_t *)&conn->request->str) + 2;
+            break;
+
+        default:
+            return;
+    }
+
+
+    // By this point we must have an expected_length
+
+    // cache the calculated total length in the conn
+    conn->request->rd_pos = expected_length;
+
+    if (sb_len(conn->request) < expected_length) {
+        // Dont have enough length
+        return;
+    }
+
+    // Do have enough length
+    conn->state = CONN_READY;
+    conn->request->rd_pos = 0;
+    return;
+}
+
+void conn_read(conn_t *conn, int fd) {
     conn->state = CONN_READING;
 
     // If no space available, try increasing our capacity
@@ -98,7 +188,7 @@ void conn_read(conn_t *conn) {
         }
     }
 
-    ssize_t size = sb_read(conn->fd, conn->request);
+    ssize_t size = sb_read(fd, conn->request);
 
     if (size == 0) {
         // As we are dealing with non blocking sockets, and have made a non
@@ -119,69 +209,15 @@ void conn_read(conn_t *conn) {
 
     // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
-
-    // case protocol==HTTP
-
-    if (sb_len(conn->request)<4) {
-        // Not enough bytes to match the end of header check
-        return;
-    }
-
-    // retrieve the cached expected length, if any
-    unsigned int expected_length = conn->request->rd_pos;
-
-    if (expected_length == 0) {
-        char *p = memmem(conn->request->str, sb_len(conn->request), "\r\n\r\n", 4);
-        if (!p) {
-            // As yet, we dont have an entire header
-            return;
-        }
-
-        int body_pos = p - conn->request->str + 4;
-
-        // Determine if we need to read a body
-        p = memmem(
-                conn->request->str,
-                body_pos,
-                "Content-Length:",
-                15
-        );
-
-        if (!p) {
-            // We have an end of header, and the header has no content length field
-            // so assume there is no body to read
-            conn->state = CONN_READY;
-            return;
-        }
-
-        p+=15; // Skip the field name
-        unsigned int content_length = strtoul(p, NULL, 10);
-        expected_length = body_pos + content_length;
-        // FIXME: what if Content-Length: is larger than unsigned int?
-    }
-
-    // By this point we must have an expected_length
-
-    // cache the calculated total length in the conn
-    conn->request->rd_pos = expected_length;
-
-    if (sb_len(conn->request) < expected_length) {
-        // Dont have enough length
-        return;
-    }
-
-    // Do have enough length
-    conn->state = CONN_READY;
-    conn->request->rd_pos = 0;
-    return;
+    conn_check_ready(conn);
 }
 
-ssize_t conn_write(conn_t *conn) {
+ssize_t conn_write(conn_t *conn, int fd) {
     ssize_t sent;
 
     conn->state = CONN_SENDING;
 
-    if (conn->fd == -1) {
+    if (fd == -1) {
         return 0;
     }
 #ifndef _WIN32
@@ -209,20 +245,20 @@ ssize_t conn_write(conn_t *conn) {
         nr++;
     }
 
-    sent = writev(conn->fd, &vecs[0], nr);
+    sent = writev(fd, &vecs[0], nr);
 #else
 // no iovec
 //
     if (conn->reply_sendpos < sb_len(conn->reply_header)) {
         sent = sb_write(
-                conn->fd,
+                fd,
                 conn->reply_header,
                 conn->reply_sendpos,
                 -1
         );
     } else {
         sent = sb_write(
-                conn->fd,
+                fd,
                 conn->reply,
                 conn->reply_sendpos - sb_len(conn->reply_header),
                 -1
@@ -238,7 +274,7 @@ ssize_t conn_write(conn_t *conn) {
         conn->state = CONN_EMPTY;
         conn->reply_sendpos = 0;
         sb_zero(conn->reply_header);
-        sb_zero(conn->request);
+        sb_zero(conn->reply);
     }
 
     // This will truncate the time to a int - usually 32bits
@@ -255,10 +291,20 @@ int conn_iswriter(conn_t *conn) {
     }
 }
 
-void conn_close(conn_t *conn) {
-    closesocket(conn->fd);
+void conn_close(conn_t *conn, int fd) {
+    closesocket(fd);
     conn_zero(conn);
     // TODO: could shrink the size here, maybe in certain circumstances?
+}
+
+bool conn_closeidle(conn_t *conn, int fd, int now, int timeout) {
+    int delta_t = now - conn->activity;
+    if (delta_t > timeout) {
+        // TODO: metrics timeouts ++
+        conn_close(conn, fd);
+        return true;
+    }
+    return false;
 }
 
 void conn_dump(strbuf_t **buf, conn_t *conn) {
@@ -383,12 +429,7 @@ static int _slots_listen_find_empty(slots_t *slots) {
     return listen_nr;
 }
 
-int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
-    int listen_nr = _slots_listen_find_empty(slots);
-    if (listen_nr <0) {
-        return -2;
-    }
-
+int slots_create_listen_tcp(int port, bool allow_remote) {
     int server;
 #ifndef _WIN32
     int on = 1;
@@ -433,17 +474,26 @@ int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
         return -1;
     }
 
-    slots->listen[listen_nr] = server;
-    return 0;
+    return server;
 }
 
-#ifndef _WIN32
-int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
+int slots_listen_tcp(slots_t *slots, int port, bool allow_remote) {
     int listen_nr = _slots_listen_find_empty(slots);
     if (listen_nr <0) {
         return -2;
     }
 
+    int fd = slots_create_listen_tcp(port, allow_remote);
+    if(fd == -1) {
+        return fd;
+    }
+
+    slots->listen[listen_nr] = fd;
+    return 0;
+}
+
+#ifndef _WIN32
+int slots_create_listen_unix(char *path, int mode, int uid, int gid) {
     struct sockaddr_un addr;
 
     if (strlen(path) > sizeof(addr.sun_path) -1) {
@@ -483,14 +533,33 @@ int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
         result += chown(path, uid, gid);
     }
 
+    if(result != 0) {
+        return -1;
+    }
+
     // backlog of 1 - low, but sheds load quickly when we run out of slots
     if (listen(server, 1) < 0) {
         return -1;
     }
 
-    slots->listen[listen_nr] = server;
-    return result;
+    return server;
 }
+
+int slots_listen_unix(slots_t *slots, char *path, int mode, int uid, int gid) {
+    int listen_nr = _slots_listen_find_empty(slots);
+    if (listen_nr <0) {
+        return -2;
+    }
+
+    int fd = slots_create_listen_unix(path, mode, uid, gid);
+    if(fd == -1) {
+        return fd;
+    }
+
+    slots->listen[listen_nr] = fd;
+    return 0;
+}
+
 #endif
 
 /*
@@ -545,7 +614,7 @@ int slots_fdset(slots_t *slots, fd_set *readers, fd_set *writers) {
     return fdmax;
 }
 
-int slots_accept(slots_t *slots, int listen_nr) {
+int slots_accept(slots_t *slots, int fd, enum conn_proto proto) {
     int i;
 
     // TODO: remember previous checked slot and dont start at zero
@@ -560,22 +629,13 @@ int slots_accept(slots_t *slots, int listen_nr) {
         return -2;
     }
 
-    int client = accept(slots->listen[listen_nr], NULL, 0);
+    int client = accept(fd, NULL, 0);
     if (client == -1) {
         return -1;
     }
 
-#ifndef _WIN32
-    fcntl(client, F_SETFL, O_NONBLOCK);
-#else
-    u_long arg = 1;
-    ioctlsocket(client, FIONBIO, &arg);
-#endif
-
+    conn_accept(&slots->conn[i], client, proto);
     slots->nr_open++;
-    // This will truncate the time to a int - usually 32bits
-    slots->conn[i].activity = time(NULL);
-    slots->conn[i].fd = client;
     return i;
 }
 
@@ -588,10 +648,8 @@ int slots_closeidle(slots_t *slots) {
         if (slots->conn[i].fd == -1) {
             continue;
         }
-        int delta_t = now - slots->conn[i].activity;
-        if (delta_t > slots->timeout) {
-            // TODO: metrics timeouts ++
-            conn_close(&slots->conn[i]);
+        int fd = slots->conn[i].fd;
+        if (conn_closeidle(&slots->conn[i], fd, now, slots->timeout)) {
             nr_closed++;
         }
     }
@@ -611,7 +669,9 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
         }
         if (FD_ISSET(slots->listen[i], readers)) {
             // A new connection
-            int slotnr = slots_accept(slots, i);
+            // TODO:
+            // - allow each listen socket to have a protocol
+            int slotnr = slots_accept(slots, slots->listen[i], CONN_PROTO_HTTP);
 
             switch (slotnr) {
                 case -1:
@@ -636,7 +696,7 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
         nr_open++;
 
         if (FD_ISSET(slots->conn[i].fd, readers)) {
-            conn_read(&slots->conn[i]);
+            conn_read(&slots->conn[i], slots->conn[i].fd);
             // possibly sets state to CONN_READY
         }
 
@@ -654,14 +714,14 @@ int slots_fdset_loop(slots_t *slots, fd_set *readers, fd_set *writers) {
                 /* fallsthrough */
             case CONN_CLOSED:
                 slots->nr_open--;
-                conn_close(&slots->conn[i]);
+                conn_close(&slots->conn[i], slots->conn[i].fd);
                 continue;
             default:
                 break;
         }
 
         if (FD_ISSET(slots->conn[i].fd, writers)) {
-            conn_write(&slots->conn[i]);
+            conn_write(&slots->conn[i], slots->conn[i].fd);
         }
     }
 

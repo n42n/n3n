@@ -24,19 +24,23 @@
 #include <n3n/logging.h>     // for traceEvent
 #include <n3n/random.h>      // for n3n_rand
 #include <n3n/strings.h>     // for ip_subnet_to_str, sock_to_cstr
-#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>          // for free, atoi, calloc, strtol
 #include <string.h>          // for memcmp, memcpy, memset, strlen, strerror
 #include <sys/time.h>        // for gettimeofday, timeval
-#include <time.h>            // for time, localtime, strftime
+
 #include "n2n.h"
-#include "uthash.h"          // for UT_hash_handle, HASH_DEL, HASH_ITER, HAS...
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"
+
 #include <ws2def.h>
 #else
 #include <arpa/inet.h>       // for inet_ntop
+#include <netinet/in.h>
 #include <sys/socket.h>      // for AF_INET, PF_INET, bind, setsockopt, shut...
 #endif
 
@@ -271,24 +275,34 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
     }
     memset(out, 0, N2N_SOCKBUF_SIZE);
 
+    bool is_tcp = (sock->type == SOCK_STREAM);
+
     if(AF_INET6 == sock->family) {
         char tmp[INET6_ADDRSTRLEN+1];
 
         tmp[0] = '\0';
         inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(n2n_sock_str_t));
-        snprintf(out, N2N_SOCKBUF_SIZE, "[%s]:%hu", tmp[0] ? tmp : "", sock->port);
-        return out;
-    } else {
-        const uint8_t * a = sock->addr.v4;
-
-        snprintf(out, N2N_SOCKBUF_SIZE, "%hu.%hu.%hu.%hu:%hu",
-                 (unsigned short)(a[0] & 0xff),
-                 (unsigned short)(a[1] & 0xff),
-                 (unsigned short)(a[2] & 0xff),
-                 (unsigned short)(a[3] & 0xff),
-                 (unsigned short)sock->port);
+        snprintf(
+            out,
+            N2N_SOCKBUF_SIZE,
+            "%s[%s]:%hu",
+            is_tcp ? "TCP/" : "",
+            tmp[0] ? tmp : "",
+            sock->port
+        );
         return out;
     }
+
+    const uint8_t * a = sock->addr.v4;
+
+    snprintf(out, N2N_SOCKBUF_SIZE, "%s%hu.%hu.%hu.%hu:%hu",
+             is_tcp ? "TCP/" : "",
+             (unsigned short)(a[0] & 0xff),
+             (unsigned short)(a[1] & 0xff),
+             (unsigned short)(a[2] & 0xff),
+             (unsigned short)(a[3] & 0xff),
+             (unsigned short)sock->port);
+    return out;
 }
 
 // TODO: move to a strings helper source file

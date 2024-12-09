@@ -6,14 +6,20 @@
  * The resolver thread code and functions
  */
 
-#include <n2n.h>             // for sock_equal
 #include <n3n/logging.h>
 #include <n3n/metrics.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
-#include <n3n/strings.h>     // for sock_to_cstr
-#include <unistd.h>          // for sleep
-#include "resolve.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "config.h"          // for HAVE_LIBPTHREAD
+#include "resolve.h"
+#include "n2n_define.h"
+#include "n2n_typedefs.h"
+
+struct peer_info;
 
 #ifdef HAVE_LIBPTHREAD
 #include <pthread.h>
@@ -24,6 +30,7 @@
 #include <ws2def.h>
 #else
 #include <netdb.h>           // for addrinfo, freeaddrinfo, gai_strerror
+#include <netinet/in.h>
 #include <sys/socket.h>      // for AF_INET, PF_INET
 #include <sys/time.h>        // for gettimeofday, timersub
 #endif

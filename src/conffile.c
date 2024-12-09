@@ -7,11 +7,12 @@
 
 #include <ctype.h>              // for isprint and friends
 #include <errno.h>              // for errno
+#include <getopt.h>
 #include <n3n/conffile.h>
-#include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/logging.h>        // for setTraceLevel
-#include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <n3n/network_traffic_filter.h>
+#include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
+#include <n3n/transform.h>      // for n3n_transform_lookup_
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
@@ -19,14 +20,22 @@
 #include <string.h>             // for strcmp
 #include <sys/stat.h>           // for mkdir
 #include <unistd.h>             // for access
+
 #include "peer_info.h"          // for struct peer_info
+#include "n2n_typedefs.h"
+#include "n3n/ethernet.h"
+#include "uthash.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"
+
 #include <direct.h>             // for _mkdir
 #else
+#include <arpa/inet.h>
 #include <grp.h>                // for getgrnam
 #include <netinet/in.h>  // for sockaddr_in
+#include <pwd.h>
+#include <sys/socket.h>
 #endif
 
 #include <auth.h>               // for generate_private_key

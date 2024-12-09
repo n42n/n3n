@@ -9,6 +9,12 @@
 #define _PEER_INFO_H_
 
 #include <n2n_typedefs.h>   // for n2n_mac_t, n2n_ip_subnet_t, n2n_desc_t, n2n_sock_t
+#include <stdint.h>
+#include <time.h>
+
+#include "n2n_typedefs.h"
+#include "n3n/ethernet.h"
+#include "uthash.h"
 
 #define HASH_ADD_PEER(head,add) \
     HASH_ADD(hh,head,mac_addr,sizeof(n2n_mac_t),add)

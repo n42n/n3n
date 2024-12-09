@@ -1,5 +1,6 @@
 [Unit]
 Description=n3n supernode process
+Documentation=man:n3n-supernode(8)
 After=network-online.target
 Wants=network-online.target
 

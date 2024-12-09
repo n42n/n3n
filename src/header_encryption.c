@@ -22,16 +22,16 @@
 #include <n3n/logging.h>        // for traceEvent
 #include <n3n/random.h>         // for n3n_rand
 #include <stdint.h>             // for uint32_t, uint8_t, uint64_t, uint16_t
-#include <stdlib.h>             // for calloc
 #include <string.h>             // for memcpy
 #include "header_encryption.h"  // for packet_header_change_dynamic_key, pac...
-#include "n2n.h"                // for N2N_COMMUNITY_SIZE...
 #include "n2n_define.h"         // for N2N_COMMUNITY_SIZE
 #include "n2n_typedefs.h"       // for N2N_AUTH_CHALLENGE_SIZE
 #include "pearson.h"            // for pearson_hash_128, pearson_hash_64
 #include "portable_endian.h"    // for htobe32, be32toh, be64toh, htobe64
 #include "speck.h"              // for speck_init, speck_context_t, speck_ctr
 #include "uthash.h"             // for HASH_FIND_STR
+
+struct speck_context_t;
 
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)

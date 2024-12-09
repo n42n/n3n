@@ -48,8 +48,8 @@ size_t sb_len(strbuf_t *);
 ssize_t sb_avail(strbuf_t *);
 bool sb_full(strbuf_t *);
 bool sb_overflowed(strbuf_t *);
-size_t sb_append(strbuf_t *, void *, ssize_t);
-strbuf_t *sb_reappend(strbuf_t **, void *, size_t);
+size_t sb_append(strbuf_t *, const void *, ssize_t);
+strbuf_t *sb_reappend(strbuf_t **, const void *, size_t);
 size_t sb_vprintf(strbuf_t *, const char *, va_list);
 size_t sb_printf(strbuf_t *, const char *, ...)
 __attribute__ ((format (printf, 2, 3)));

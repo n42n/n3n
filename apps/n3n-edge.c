@@ -20,7 +20,6 @@
 
 
 #include <ctype.h>                   // for isspace
-#include <connslot/connslot.h>       // for slots_listen_close
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
 #include <inttypes.h>                // for PRIu64
@@ -29,6 +28,7 @@
 #include <n3n/ethernet.h>            // for macaddr_str, macstr_t
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
+#include <n3n/mainloop.h>            // for mainloop_register_fd
 #include <n3n/tests.h>               // for test_hashing
 #include <n3n/random.h>              // for n3n_rand_seeds, n3n_rand_seeds_s...
 #include <n3n/transform.h>           // for n3n_transform_lookup_id
@@ -697,7 +697,7 @@ static void term_handler (int sig) {
 #endif
 
 #ifdef _WIN32
-struct n3n_runtime_data *windows_stop_eee;
+extern int windows_stop_fd;
 
 // Note well, this gets called from a brand new thread, thus is completely
 // different to how signals work in POSIX
@@ -718,7 +718,7 @@ BOOL WINAPI ConsoleCtrlHandler (DWORD sig) {
     // mainloop to notice that we are no longer wanting to run.
     //
     // something something, darkside
-    slots_listen_close(windows_stop_eee->mgmt_slots);
+    closesocket(windows_stop_fd);
 
     switch(sig) {
         case CTRL_CLOSE_EVENT:
@@ -743,13 +743,7 @@ int main (int argc, char* argv[]) {
     uint8_t seek_answer = 1;      /*            expecting answer from supernode */
     time_t now, last_action = 0;  /*            timeout */
     macstr_t mac_buf;             /*            output mac address */
-    fd_set socket_mask;           /*            for supernode answer */
-    struct timeval wait_time;     /*            timeout for sn answer */
     peer_info_t *scan, *scan_tmp; /*            supernode iteration */
-
-    uint16_t expected = sizeof(uint16_t);
-    uint16_t position = 0;
-    uint8_t pktbuf[N2N_SN_PKTBUF_SIZE + sizeof(uint16_t)]; /* buffer + prepended buffer length in case of tcp */
 
 #ifdef HAVE_LIBCAP
     cap_t caps;
@@ -830,6 +824,7 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_ERROR, "failed in edge_init");
         exit(1);
     }
+    eee->keep_running = &keep_on_running;
 
     switch(eee->conf.tuntap_ip_mode) {
         case TUNTAP_IP_MODE_SN_ASSIGN:
@@ -850,11 +845,18 @@ int main (int argc, char* argv[]) {
     // for the sake of quickly establishing connection. REVISIT when a more elegant way to re-use main loop code
     // is found
 
-    // find at least one supernode alive to faster establish connection
+    // find at least one supernode alive to faster establish connection.
     // exceptions:
-    if((HASH_COUNT(eee->conf.supernodes) <= 1) || (eee->conf.connect_tcp) || (eee->conf.shared_secret)) {
-        // skip the initial supernode ping
-        traceEvent(TRACE_DEBUG, "skip PING to supernode");
+    if(eee->conf.connect_tcp) {
+        traceEvent(TRACE_DEBUG, "skip PING to supernode: TCP mode");
+        runlevel = 2;
+    }
+    if(eee->conf.shared_secret) {
+        traceEvent(TRACE_DEBUG, "skip PING to supernode: shared secret");
+        runlevel = 2;
+    }
+    if(HASH_COUNT(eee->conf.supernodes) <= 1) {
+        traceEvent(TRACE_DEBUG, "skip PING to supernode: only one supernode");
         runlevel = 2;
     }
 
@@ -957,6 +959,10 @@ int main (int argc, char* argv[]) {
                            eee->conf.mtu,
                            eee->conf.metric) < 0)
                 exit(1);
+#ifndef _WIN32
+            // TODO: this internal fn should not be called publicly
+            mainloop_register_fd(eee->device.fd, fd_info_proto_tuntap);
+#endif
             in_addr_t addr = eee->conf.tuntap_v4.net_addr;
             struct in_addr *tmp = (struct in_addr *)&addr;
             traceEvent(TRACE_NORMAL, "created local tap device IPv4: %s/%u, MAC: %s",
@@ -970,19 +976,10 @@ int main (int argc, char* argv[]) {
 
         // we usually wait for some answer, there however are exceptions when going back to a previous runlevel
         if(seek_answer) {
-            FD_ZERO(&socket_mask);
-            FD_SET(eee->sock, &socket_mask);
-            wait_time.tv_sec = BOOTSTRAP_TIMEOUT;
-            wait_time.tv_usec = 0;
+            mainloop_runonce(eee);
 
-            if(select(eee->sock + 1, &socket_mask, NULL, NULL, &wait_time) > 0) {
-                if(FD_ISSET(eee->sock, &socket_mask)) {
-
-                    fetch_and_eventually_process_data(eee, eee->sock,
-                                                      pktbuf, &expected, &position,
-                                                      now);
-                }
-            }
+            // FIXME: the mainloop could wait for BOOTSTRAP_TIMEOUT, not its
+            // usual timeout ?!?
         }
         seek_answer = 1;
 
@@ -1061,11 +1058,9 @@ int main (int argc, char* argv[]) {
     signal(SIGINT,  term_handler);
 #endif
 #ifdef _WIN32
-    windows_stop_eee = eee;
     SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
 #endif
 
-    eee->keep_running = &keep_on_running;
     traceEvent(TRACE_NORMAL, "edge started");
     rc = run_edge_loop(eee);
     print_edge_stats(eee);

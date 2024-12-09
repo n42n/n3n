@@ -11,22 +11,32 @@
 #include <connslot/jsonrpc.h>   // for jsonrpc_t, jsonrpc_parse
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/mainloop.h>       // for mainloop_unregister_fd
 #include <n3n/metrics.h> // for n3n_metrics_render
 #include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community
 #include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
-#include <stdio.h>       // for snprintf, NULL, size_t
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>      // for strtoul
 #include <string.h>      // for strtok, strlen, strncpy
+#include <time.h>
+#include <unistd.h>
+
 #include "base64.h"      // for base64decode
+#include "connslot/strbuf.h"
 #include "management.h"
+#include "n2n.h"
+#include "n2n_typedefs.h"
 #include "peer_info.h"   // for peer_info
+#include "uthash.h"
 
 #ifdef _WIN32
 #include "win32/defs.h"
 #else
 #include <netdb.h>       // for getnameinfo, NI_NUMERICHOST, NI_NUMERICSERV
+#include <netinet/in.h>
 #include <sys/socket.h>  // for sendto, sockaddr
 #endif
 
@@ -245,7 +255,10 @@ static void event_subscribe (struct n3n_runtime_data *eee, conn_t *conn) {
 
     // Take the filehandle away from the connslots.
     mgmt_event_subscribers[topicid] = conn->fd;
-    conn_zero(conn);
+    // TODO:
+    // - Keep these filehandles in the mainloop
+    // - change the mainloop proto mark it as "event"
+    mainloop_unregister_fd(conn->fd);
 
     // TODO: shutdown(fd, SHUT_RD) - but that does nothing for unix domain
 
@@ -1077,7 +1090,7 @@ static void render_metrics_page (struct n3n_runtime_data *eee, conn_t *conn) {
 
     // Update the reply buffer after last potential realloc
     conn->reply = conn->request;
-    generate_http_headers(conn, "text/plain", 501);
+    generate_http_headers(conn, "text/plain", 200);
 }
 
 #include "management_index.html.h"
@@ -1101,13 +1114,22 @@ static void render_script_page (struct n3n_runtime_data *eee, conn_t *conn) {
 static void render_debug_slots (struct n3n_runtime_data *eee, conn_t *conn) {
     int status;
     sb_zero(conn->request);
-    if(eee->conf.enable_debug_pages) {
-        slots_dump(&conn->request, eee->mgmt_slots);
-        status = 200;
-    } else {
+    if(!eee->conf.enable_debug_pages) {
         sb_printf(conn->request, "enable_debug_pages is false\n");
         status = 403;
+        // Update the reply buffer after last potential realloc
+        conn->reply = conn->request;
+        generate_http_headers(conn, "text/plain", status);
+        return;
     }
+
+    if(eee->mgmt_slots) {
+        slots_dump(&conn->request, eee->mgmt_slots);
+        sb_reprintf(&conn->request, "\n");
+    }
+    mainloop_dump(&conn->request);
+
+    status = 200;
     // Update the reply buffer after last potential realloc
     conn->reply = conn->request;
     generate_http_headers(conn, "text/plain", status);
@@ -1166,11 +1188,16 @@ void mgmt_api_handler (struct n3n_runtime_data *eee, conn_t *conn) {
         }
     }
     if( i >= nr_handlers ) {
+        traceEvent(
+            TRACE_DEBUG,
+            "unknown endpoint %s",
+            conn->request->str
+        );
         render_error(conn, "unknown endpoint");
     } else {
         api_endpoints[i].func(eee, conn);
     }
 
     // Try to immediately start sending the reply
-    conn_write(conn);
+    conn_write(conn, conn->fd);
 }
