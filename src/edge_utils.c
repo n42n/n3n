@@ -381,12 +381,35 @@ void supernode_connect (struct n3n_runtime_data *eee) {
 
         fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
 
-        if((connect(eee->sock, (struct sockaddr*)&(sn_sock), sizeof(struct sockaddr)) < 0)
-           && (errno != EINPROGRESS)) {
+        int result = connect(
+            eee->sock,
+            (struct sockaddr*)&(sn_sock),
+            sizeof(struct sockaddr)
+        );
+
+#ifndef _WIN32
+        if((result == -1) && (errno != EINPROGRESS)) {
             traceEvent(TRACE_INFO, "Error connecting TCP: %i", errno);
+            closesocket(eee->sock);
+            mainloop_unregister_fd(eee->sock);
             eee->sock = -1;
             return;
         }
+#else
+        // Oh Windows, this just seems needlessly incompatible
+        int wsaerr = WSAGetLastError();
+        if((result == -1) && (wsaerr != WSAEWOULDBLOCK)) {
+            traceEvent(
+                TRACE_INFO,
+                "Error connecting TCP: WSAGetLastError %i",
+                wsaerr
+            );
+            closesocket(eee->sock);
+            mainloop_unregister_fd(eee->sock);
+            eee->sock = -1;
+            return;
+        }
+#endif
     }
 
     if(eee->conf.tos) {
