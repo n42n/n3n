@@ -131,8 +131,7 @@ static struct n3n_conf_option section_connection[] = {
         .desc = "Control use of TCP connections to supernode",
         .help = "Defaulting to false, this is used to enable the use of a "
                 "TCP connection to the supernode.  If set, the allow_p2p "
-                "setting should usually also be set to false.  This feature "
-                "is not currently available on Windows edge nodes.",
+                "setting should usually also be set to false.",
     },
     {
         .name = "description",
