@@ -1630,11 +1630,13 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
         if(eee->conf.bind_address) {
             // do not explicitly disconnect every time as the condition described is rare, so ...
             // ... check that there are no external peers (indicating a working socket) ...
-            HASH_ITER(hh, eee->known_peers, peer, tmp_peer)
-            if(!peer->local) {
-                cnt++;
-                break;
+            HASH_ITER(hh, eee->known_peers, peer, tmp_peer) {
+                if(!peer->local) {
+                    cnt++;
+                    break;
+                }
             }
+
             if(!cnt) {
                 // ... and then count the connection retries
                 (eee->close_socket_counter)++;
