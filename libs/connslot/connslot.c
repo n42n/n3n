@@ -215,8 +215,6 @@ ssize_t conn_read(conn_t *conn, int fd) {
 ssize_t conn_write(conn_t *conn, int fd) {
     ssize_t sent;
 
-    conn->state = CONN_SENDING;
-
     if (fd == -1) {
         return 0;
     }
@@ -282,13 +280,20 @@ ssize_t conn_write(conn_t *conn, int fd) {
     return sent;
 }
 
-int conn_iswriter(conn_t *conn) {
-    switch (conn->state) {
-        case CONN_SENDING:
-            return 1;
-        default:
-            return 0;
+bool conn_iswriter(conn_t *conn) {
+    int endpos = 0;
+    if (conn->reply_header) {
+        endpos += sb_len(conn->reply_header);
     }
+    if (conn->reply) {
+        endpos += sb_len(conn->reply);
+    }
+
+    // If there are any bytes ready to send, then we are writable
+    if(endpos) {
+        return true;
+    }
+    return false;
 }
 
 void conn_close(conn_t *conn, int fd) {
