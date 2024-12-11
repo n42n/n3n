@@ -265,6 +265,13 @@ ssize_t conn_write(conn_t *conn, int fd) {
     unsigned int end_pos = sb_len(conn->reply_header) + sb_len(conn->reply);
 #endif
 
+    if (sent == -1) {
+        sent = 0;
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            conn->state = CONN_ERROR;
+        }
+    }
+
     conn->reply_sendpos += sent;
 
     if (conn->reply_sendpos >= end_pos) {
