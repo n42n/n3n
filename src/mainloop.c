@@ -226,6 +226,10 @@ static int fdlist_allocslot (int fd, enum fd_info_proto proto) {
 
 static void fdlist_freefd (int fd) {
     int slot = 0;
+    if(fd == -1) {
+        // Cannot release an error fd!
+        return;
+    }
     while(slot < MAX_HANDLES) {
         if(fdlist[slot].fd != fd) {
             slot++;
