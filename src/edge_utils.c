@@ -2299,7 +2299,7 @@ void process_udp (struct n3n_runtime_data *eee,
     via_multicast = (in_sock == eee->udp_multicast_sock);
 #endif
 
-    traceEvent(TRACE_DEBUG, "Rx N2N_UDP of size %d from [%s]",
+    traceEvent(TRACE_DEBUG, "Rx VPN packet of size %d from [%s]",
                (signed int)udp_size, sock_to_cstr(sockbuf1, &sender));
 
     if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
