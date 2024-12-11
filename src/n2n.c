@@ -62,8 +62,41 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
     /* fcntl(sock_fd, F_SETFL, O_NONBLOCK); */
 #endif
 
+    int result;
+
     sockopt = 1;
-    setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&sockopt, sizeof(sockopt));
+    result = setsockopt(
+        sock_fd,
+        SOL_SOCKET,
+        SO_REUSEADDR,
+        (char *)&sockopt,
+        sizeof(sockopt)
+    );
+    if(result == -1) {
+        traceEvent(
+            TRACE_ERROR,
+            "SO_REUSEADDR fd=%i, error=%s\n",
+            sock_fd,
+            strerror(errno)
+        );
+    }
+#ifdef SO_REUSEPORT /* no SO_REUSEPORT in Windows / old linux versions */
+    result = setsockopt(
+        sock_fd,
+        SOL_SOCKET,
+        SO_REUSEPORT,
+        (char *)&sockopt,
+        sizeof(sockopt)
+    );
+    if(result == -1) {
+        traceEvent(
+            TRACE_ERROR,
+            "SO_REUSEPORT fd=%i, error=%s\n",
+            sock_fd,
+            strerror(errno)
+        );
+    }
+#endif
 
     if(!local_address) {
         // skip binding if we dont have the right details
