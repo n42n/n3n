@@ -177,7 +177,7 @@ void conn_check_ready(conn_t *conn) {
     return;
 }
 
-void conn_read(conn_t *conn, int fd) {
+ssize_t conn_read(conn_t *conn, int fd) {
     conn->state = CONN_READING;
 
     // If no space available, try increasing our capacity
@@ -195,21 +195,22 @@ void conn_read(conn_t *conn, int fd) {
         // zero-sized read request, the only time we get a zero back is if the
         // far end has closed
         conn->state = CONN_CLOSED;
-        return;
+        return 0;
     }
 
     if (size == -1) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
             conn->state = CONN_EMPTY;
-            return;
+            return 0;
         }
         conn->state = CONN_ERROR;
-        return;
+        return 0;
     }
 
     // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
     conn_check_ready(conn);
+    return size;
 }
 
 ssize_t conn_write(conn_t *conn, int fd) {

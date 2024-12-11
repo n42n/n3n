@@ -64,7 +64,7 @@ void conn_zero(conn_t *);
 int conn_init(conn_t *, size_t, size_t);
 void conn_accept(conn_t *, int, enum conn_proto);
 void conn_check_ready(conn_t *);
-void conn_read(conn_t *, int);
+ssize_t conn_read(conn_t *, int);
 ssize_t conn_write(conn_t *, int);
 int conn_iswriter(conn_t *);
 void conn_close(conn_t *, int);
