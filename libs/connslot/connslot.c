@@ -200,7 +200,6 @@ ssize_t conn_read(conn_t *conn, int fd) {
 
     if (size == -1) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            conn->state = CONN_EMPTY;
             return 0;
         }
         conn->state = CONN_ERROR;
