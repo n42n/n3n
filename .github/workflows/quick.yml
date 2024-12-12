@@ -36,7 +36,7 @@ jobs:
 
   smoketest_all_opts:
     name: Smoke test With all options turned on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
       - name: Generate coverage reports
         run: |
           make gcov
-          make cover COVERAGEDIR=coverage/ubuntu-latest
+          make cover COVERAGEDIR=coverage/ubuntu-22.04
         shell: bash
 
       - name: Upload gcovr report artifact
@@ -114,7 +114,7 @@ jobs:
 
   lint:
     name: Code syntax
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
