@@ -335,7 +335,6 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             switch(conn->state) {
                 case CONN_EMPTY:
                 case CONN_READING:
-                case CONN_SENDING:
                     // These states dont require us to do anything
                     // TODO:
                     // - handle reading/sending simultaneous?
@@ -406,7 +405,6 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             switch(conn->state) {
                 case CONN_EMPTY:
                 case CONN_READING:
-                case CONN_SENDING:
                     // These states dont require us to do anything
                     // TODO:
                     // - handle reading/sending simultaneous?

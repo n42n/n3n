@@ -29,7 +29,6 @@ enum __attribute__((__packed__)) conn_state {
     CONN_EMPTY = 0,
     CONN_READING = 1,
     CONN_READY = 2,
-    CONN_SENDING = 3,
     CONN_CLOSED = 4,
     CONN_ERROR = 5,
 };
