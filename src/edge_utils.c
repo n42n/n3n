@@ -1630,11 +1630,13 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
         if(eee->conf.bind_address) {
             // do not explicitly disconnect every time as the condition described is rare, so ...
             // ... check that there are no external peers (indicating a working socket) ...
-            HASH_ITER(hh, eee->known_peers, peer, tmp_peer)
-            if(!peer->local) {
-                cnt++;
-                break;
+            HASH_ITER(hh, eee->known_peers, peer, tmp_peer) {
+                if(!peer->local) {
+                    cnt++;
+                    break;
+                }
             }
+
             if(!cnt) {
                 // ... and then count the connection retries
                 (eee->close_socket_counter)++;
@@ -2297,7 +2299,7 @@ void process_udp (struct n3n_runtime_data *eee,
     via_multicast = (in_sock == eee->udp_multicast_sock);
 #endif
 
-    traceEvent(TRACE_DEBUG, "Rx N2N_UDP of size %d from [%s]",
+    traceEvent(TRACE_DEBUG, "Rx VPN packet of size %d from [%s]",
                (signed int)udp_size, sock_to_cstr(sockbuf1, &sender));
 
     if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {

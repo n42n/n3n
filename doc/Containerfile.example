@@ -1,0 +1,46 @@
+#
+# A simple example of how to build a docker container for n3n-edge
+#
+# Build with the command:
+# podman build \
+#   --device=/dev/net/tun \
+#   --cap-add=NET_ADMIN \
+#   -t=n3n \
+#   -f doc/Containerfile.example \
+#   .
+#
+# Start a n3n session with:
+# podman run \
+#   -it \
+#   --name=n3n \
+#   --device=/dev/net/tun \
+#   --cap-add=NET_ADMIN \
+#   -v $PWD/n3n:/etc/n3n/ \
+#   n3n start -vvvv
+#
+# Note that the build could be done without the --device and --cap-add if
+# the `make test` is omitted
+
+FROM docker.io/library/debian:12 AS builder
+
+RUN apt-get update
+RUN apt-get install -y build-essential autoconf git python3 jq sudo
+
+WORKDIR /n3n
+
+COPY . .
+
+RUN \
+    ./autogen.sh && \
+    ./configure && \
+    make clean all && \
+    make test
+
+
+FROM docker.io/library/debian:12
+
+COPY --from=builder /n3n/apps/n3n-edge /n3n-edge
+
+VOLUME [ "/etc/n3n" ]
+ENTRYPOINT ["/n3n-edge"]
+CMD ["start"]

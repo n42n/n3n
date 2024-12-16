@@ -177,7 +177,7 @@ void conn_check_ready(conn_t *conn) {
     return;
 }
 
-void conn_read(conn_t *conn, int fd) {
+ssize_t conn_read(conn_t *conn, int fd) {
     conn->state = CONN_READING;
 
     // If no space available, try increasing our capacity
@@ -195,27 +195,25 @@ void conn_read(conn_t *conn, int fd) {
         // zero-sized read request, the only time we get a zero back is if the
         // far end has closed
         conn->state = CONN_CLOSED;
-        return;
+        return 0;
     }
 
     if (size == -1) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            conn->state = CONN_EMPTY;
-            return;
+            return 0;
         }
         conn->state = CONN_ERROR;
-        return;
+        return 0;
     }
 
     // This will truncate the time to a int - usually 32bits
     conn->activity = time(NULL);
     conn_check_ready(conn);
+    return size;
 }
 
 ssize_t conn_write(conn_t *conn, int fd) {
     ssize_t sent;
-
-    conn->state = CONN_SENDING;
 
     if (fd == -1) {
         return 0;
@@ -267,11 +265,17 @@ ssize_t conn_write(conn_t *conn, int fd) {
     unsigned int end_pos = sb_len(conn->reply_header) + sb_len(conn->reply);
 #endif
 
+    if (sent == -1) {
+        sent = 0;
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            conn->state = CONN_ERROR;
+        }
+    }
+
     conn->reply_sendpos += sent;
 
     if (conn->reply_sendpos >= end_pos) {
         // We have sent the last bytes of this reply
-        conn->state = CONN_EMPTY;
         conn->reply_sendpos = 0;
         sb_zero(conn->reply_header);
         sb_zero(conn->reply);
@@ -282,13 +286,20 @@ ssize_t conn_write(conn_t *conn, int fd) {
     return sent;
 }
 
-int conn_iswriter(conn_t *conn) {
-    switch (conn->state) {
-        case CONN_SENDING:
-            return 1;
-        default:
-            return 0;
+bool conn_iswriter(conn_t *conn) {
+    int endpos = 0;
+    if (conn->reply_header) {
+        endpos += sb_len(conn->reply_header);
     }
+    if (conn->reply) {
+        endpos += sb_len(conn->reply);
+    }
+
+    // If there are any bytes ready to send, then we are writable
+    if(endpos) {
+        return true;
+    }
+    return false;
 }
 
 void conn_close(conn_t *conn, int fd) {

@@ -96,7 +96,10 @@ static void cmd_header_decrypt (int argc, char **argv, void *conf) {
         exit(1);
     }
 
-    write(1, &buf, size);
+    int r = write(1, &buf, size);
+    if(r != size) {
+        printf("Short write\n");
+    }
     exit(0);
 
 }
@@ -130,7 +133,10 @@ static void cmd_pearson_128 (int argc, char **argv, void *conf) {
     unsigned char hash[16];
     size = read(0, &buf, sizeof(buf));
     pearson_hash_128(hash, buf, size);
-    write(1, &hash, sizeof(hash));
+    int r = write(1, &hash, sizeof(hash));
+    if(r != sizeof(hash)) {
+        printf("Short write\n");
+    }
     exit(0);
 }
 

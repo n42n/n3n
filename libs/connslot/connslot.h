@@ -29,7 +29,6 @@ enum __attribute__((__packed__)) conn_state {
     CONN_EMPTY = 0,
     CONN_READING = 1,
     CONN_READY = 2,
-    CONN_SENDING = 3,
     CONN_CLOSED = 4,
     CONN_ERROR = 5,
 };
@@ -64,9 +63,9 @@ void conn_zero(conn_t *);
 int conn_init(conn_t *, size_t, size_t);
 void conn_accept(conn_t *, int, enum conn_proto);
 void conn_check_ready(conn_t *);
-void conn_read(conn_t *, int);
+ssize_t conn_read(conn_t *, int);
 ssize_t conn_write(conn_t *, int);
-int conn_iswriter(conn_t *);
+bool conn_iswriter(conn_t *);
 void conn_close(conn_t *, int);
 bool conn_closeidle(conn_t *, int, int, int);
 void conn_dump(strbuf_t **, conn_t *);
