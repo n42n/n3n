@@ -80,7 +80,7 @@ static struct n3n_conf_option section_community[] = {
     },
     {
         .name = "supernode",
-        .type = n3n_conf_supernode,
+        .type = n3n_conf_peer,
         .offset = offsetof(n2n_edge_conf_t, supernodes),
         .desc = "Add a supernode",
         .help = "Multiple supernodes can be specified, each one as a "
@@ -366,7 +366,7 @@ static struct n3n_conf_option section_supernode[] = {
     },
     {
         .name = "peer",
-        .type = n3n_conf_supernode,
+        .type = n3n_conf_peer,
         .offset = offsetof(n2n_edge_conf_t, sn_edges),
         .desc = "Add a federated supernode",
         .help = "Multiple federated supernodes can be specified, each one as"

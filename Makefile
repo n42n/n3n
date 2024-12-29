@@ -118,6 +118,7 @@ OBJS=\
 	src/sn_selection.o \
 	src/sn_utils.o \
 	src/speck.o \
+	src/strlist.o \
 	src/test_hashing.o \
 	src/tf.o \
 	src/transform.o \
