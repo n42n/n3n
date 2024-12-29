@@ -889,7 +889,7 @@ int main (int argc, char* argv[]) {
                 traceEvent(
                     TRACE_NORMAL,
                     "received first PONG from supernode [%s]",
-                    eee->curr_sn->hostname
+                    peer_info_get_hostname(eee->curr_sn)
                 );
                 runlevel++;
             } else if(last_action <= (now - BOOTSTRAP_TIMEOUT)) {
@@ -923,7 +923,7 @@ int main (int argc, char* argv[]) {
                 traceEvent(
                     TRACE_INFO,
                     "send REGISTER_SUPER to supernode [%s] asking for IP address",
-                    eee->curr_sn->hostname
+                    peer_info_get_hostname(eee->curr_sn)
                 );
             } else {
                 runlevel += 2; /* skip waiting for TUNTAP IP address */
