@@ -77,9 +77,9 @@ static struct n3n_metrics_module metrics_module = {
 /** Resolve the supernode IP address.
  *
  */
-int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
+int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
 
-    n2n_sn_name_t addr;
+    char addr[64];  // FIXME: hardcoded max len for resolving
     char *supernode_host;
     char *supernode_port;
     int nameerr;
@@ -88,19 +88,19 @@ int supernode2sock (n2n_sock_t *sn, const n2n_sn_name_t addrIn) {
     struct sockaddr_in * saddr;
 
     size_t length = strlen(addrIn);
-    if(length >= N2N_EDGE_SN_HOST_SIZE) {
+    if(length > sizeof(addr)-1) {
         traceEvent(
             TRACE_WARNING,
             "size of supernode argument too long: %zu; maximum size is %d",
             length,
-            N2N_EDGE_SN_HOST_SIZE
+            sizeof(addr)-1
         );
-        return -5;;
+        return -5;
     }
 
     sn->family = AF_INVALID;
 
-    memcpy(addr, addrIn, N2N_EDGE_SN_HOST_SIZE);
+    strncpy(addr, addrIn, sizeof(addr));
     supernode_host = strtok(addr, ":");
 
     if(!supernode_host) {
@@ -348,7 +348,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
 }
 
 
-int maybe_supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn) {
+int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
     return 0;
 }
 
@@ -367,7 +367,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
     return requires_resolution;
 }
 
-int maybe_supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn) {
+int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
     return supernode2sock(sn, addrIn);
 }
 #endif

@@ -157,8 +157,6 @@ typedef u_short sa_family_t;
 #endif
 
 
-typedef char n2n_sn_name_t[N2N_EDGE_SN_HOST_SIZE];
-
 // This one bit higher than the largest used flag value.  It is used in the
 // header encryption detection heuristic and is not a flag itself
 #define N2N_FLAGS_OPTIONS_MAX            0x0080

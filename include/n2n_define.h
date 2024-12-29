@@ -90,7 +90,6 @@
 
 #define DEFAULT_MTU     1290
 
-#define N2N_EDGE_SN_HOST_SIZE     48
 #define N2N_EDGE_SUP_ATTEMPTS     3             /* Number of failed attmpts before moving on to next supernode. */
 #define N2N_PATHNAME_MAXLEN       256
 #define N2N_EDGE_MGMT_PORT        5644

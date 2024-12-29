@@ -49,8 +49,8 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool resolution_request, tim
 void resolve_cancel_thread (n3n_resolve_parameter_t *param);
 
 // Internal resolver function, will turn static once supernode.c doesnt use it
-int supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);
+int supernode2sock (n2n_sock_t * sn, const char *addrIn);
 
 // called from edge_utils, runs supernode2sock only ifndef HAVE_LIBPTHREAD
-int maybe_supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);
+int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn);
 #endif
