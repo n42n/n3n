@@ -80,8 +80,8 @@ static struct n3n_conf_option section_community[] = {
     },
     {
         .name = "supernode",
-        .type = n3n_conf_peer,
-        .offset = offsetof(n2n_edge_conf_t, supernodes),
+        .type = n3n_conf_strlist,
+        .offset = offsetof(n2n_edge_conf_t, supernodes_str),
         .desc = "Add a supernode",
         .help = "Multiple supernodes can be specified, each one as a "
                 "host:port string, which will be resolved if needed.",

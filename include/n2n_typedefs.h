@@ -418,7 +418,7 @@ typedef struct n2n_trans_op {
 /* *************************************************** */
 
 typedef struct n2n_edge_conf {
-    struct peer_info         *supernodes;            /**< List of supernodes */
+    struct n3n_strlist *supernodes_str;         /**< sn host:[port] list */
     n2n_community_t community_name;                  /**< The community. 16 full octets. */
     n2n_desc_t dev_desc;                             /**< The device description (hint) */
     bool allow_routing;                              /**< Accept packet no to interface address. */
@@ -542,6 +542,7 @@ struct n3n_runtime_data {
 #endif
 
     /* Peers */
+    struct peer_info *supernodes;               /**< List of supernodes */
     struct peer_info *               known_peers;                        /**< Edges we are connected to. */
     struct peer_info *               pending_peers;                      /**< Edges we have tried to register with. */
 #ifdef HAVE_BRIDGING_SUPPORT

@@ -770,7 +770,7 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
 
-    HASH_ITER(hh, eee->conf.supernodes, peer, tmpPeer) {
+    HASH_ITER(hh, eee->supernodes, peer, tmpPeer) {
 
         /*
          * TODO:

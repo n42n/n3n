@@ -21,7 +21,7 @@
 #include <n3n/conffile.h>
 #include <n3n/edge.h>       // for edge_init_conf_defaults, edge_verify_conf
 #include <n3n/mainloop.h>   // for mainloop_register_fd, fd_info_proto
-#include <n3n/peer_info.h>   // for n3n_peer_add_by_hostname
+#include <n3n/strlist.h>
 #include <stdbool.h>
 #include <stdio.h>   // for snprintf, NULL
 #include <stdlib.h>  // for exit
@@ -46,7 +46,7 @@ int main () {
     // conf.bind_address = sockaddr; // can be used to bind to a local port
     conf.register_interval = 1;                                                              // Interval for both UDP NAT hole punching and supernode registration
     conf.register_ttl = 1;                                                                   // Interval for UDP NAT hole punching through supernode
-    n3n_peer_add_by_hostname(&conf.supernodes, "localhost:1234");                                        // Supernode to connect to
+    n3n_strlist_add(&conf.supernodes_str, "localhost:1234");                                 // Supernode to connect to
     conf.tos = 16;                                                                           // Type of service for sent packets
     conf.transop_id = N2N_TRANSFORM_ID_TWOFISH;                                              // Use the twofish encryption
 
