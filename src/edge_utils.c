@@ -2612,6 +2612,7 @@ void process_udp (struct n3n_runtime_data *eee,
             // from here on, 'sn' gets used differently
             for(i = 0; i < ra.num_sn; i++) {
                 n2n_sock_t payload_sock;
+
                 skip_add = SN_ADD;
 
                 // bugfix for https://github.com/ntop/n2n/issues/1029
@@ -2623,24 +2624,13 @@ void process_udp (struct n3n_runtime_data *eee,
                 sn = add_sn_to_list_by_mac_or_sock(&(eee->supernodes), &payload_sock, payload->mac, &skip_add);
 
                 if(skip_add == SN_ADD_ADDED) {
-                    // TODO: could just avoid adding the special string
-                    // with the hostname when we are adding a supernode
-                    // discovered from the reg packet
-                    sn->hostname = calloc(1, N2N_EDGE_SN_HOST_SIZE);
-                    if(sn->hostname != NULL) {
-                        char ip_tmp[N2N_EDGE_SN_HOST_SIZE];
-
-                        inet_ntop(payload_sock.family,
-                                  (payload_sock.family == AF_INET) ? (void*)&(payload_sock.addr.v4) : (void*)&(payload_sock.addr.v6),
-                                  sn->hostname, N2N_EDGE_SN_HOST_SIZE - 1);
-                        sprintf(ip_tmp, "%s:%u", (char*)sn->hostname, (uint16_t)(payload_sock.port));
-                        memcpy(sn->hostname, ip_tmp, sizeof(ip_tmp));
-                    }
+                    n2n_sock_str_t sockbuf;
                     sn->last_seen = 0; /* as opposed to payload handling in supernode */
+                    sn->hostname = NULL;
                     traceEvent(
                         TRACE_NORMAL,
                         "supernode '%s' added to the list of supernodes.",
-                        peer_info_get_hostname(sn)
+                        sock_to_cstr(sockbuf, &(sn->sock))
                     );
                 }
                 // shift to next payload entry
