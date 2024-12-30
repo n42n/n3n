@@ -1,0 +1,7 @@
+.git/
+LICENSES/
+debian/
+doc/
+packages/
+thirdparty/
+wireshark/
