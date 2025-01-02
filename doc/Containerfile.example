@@ -9,17 +9,36 @@
 #   -f doc/Containerfile.example \
 #   .
 #
+# Note that podman must be run in rootful mode for the build tests to pass.
+# To build in rootless mode:
+# podman build \
+#   --build-arg SKIP_TESTS=1 \
+#   -t=n3n \
+#   -f doc/Containerfile.example \
+#   .
+#
 # Start a n3n session with:
 # podman run \
+#   --rm \
 #   -it \
 #   --name=n3n \
 #   --device=/dev/net/tun \
 #   --cap-add=NET_ADMIN \
-#   -v $PWD/n3n:/etc/n3n/ \
+#   -v "$PWD"/n3n:/etc/n3n/ \
 #   n3n start -vvvv
 #
-# Note that the build could be done without the --device and --cap-add if
-# the `make test` is omitted
+# Start an n3n supernode with the following, where 1234 is the port
+# configured in your supernode config file:
+# podman run
+#   --rm \
+#   -it \
+#   --name=n3n-supernode \
+#   -p1234:1234/udp \
+#   --device=/dev/net/tun \
+#   --cap-add=NET_ADMIN \
+#   -v "$PWD"/n3n:/etc/n3n/ \
+#   --entrypoint=/n3n-supernode \
+#   n3n start -vvvv
 
 FROM docker.io/library/debian:12 AS builder
 
@@ -33,13 +52,17 @@ COPY . .
 RUN \
     ./autogen.sh && \
     ./configure && \
-    make clean all && \
-    make test
+    make clean all
+
+ARG SKIP_TESTS=0
+
+RUN if [ 0 -eq "$SKIP_TESTS" ]; then make test; fi
 
 
 FROM docker.io/library/debian:12
 
 COPY --from=builder /n3n/apps/n3n-edge /n3n-edge
+COPY --from=builder /n3n/apps/n3n-supernode /n3n-supernode
 
 VOLUME [ "/etc/n3n" ]
 ENTRYPOINT ["/n3n-edge"]
