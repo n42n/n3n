@@ -13,6 +13,7 @@
 struct n3n_strlist {
     UT_hash_handle hh;
     int id;
+    // 4 bytes hole, could add flags here
     char *s;
 };
 
