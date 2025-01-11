@@ -45,11 +45,7 @@ static struct n3n_pktbuf *pool;
 static struct n3n_pktbuf *pool_item_next_search;
 static struct n3n_pktbuf *pool_item_max;
 static ssize_t pool_item_size;
-static ssize_t pool_item_data_size;
 static int pool_item_count;
-
-// Leave space at the start for any header prepend needed
-static const ssize_t pool_item_prefix = 16;
 
 void n3n_pktbuf_initialise(ssize_t mtu, int count) {
     if(pool) {
@@ -80,10 +76,6 @@ void n3n_pktbuf_initialise(ssize_t mtu, int count) {
     pool_item_next_search = pool;
     pool_item_max = pool + (count - 1) * sizeof(struct n3n_pktbuf);
 
-    // The prefix space is used for prepending headers, not for data, so 
-    // subtract it from the data size calculation
-    pool_item_data_size = item_size - pool_item_prefix;
-
     int i;
     for(i=0; i < pool_item_count; i++) {
         pool[i].buf = pool_buf + i * item_size;
@@ -95,7 +87,7 @@ void n3n_pktbuf_initialise(ssize_t mtu, int count) {
 
 struct n3n_pktbuf *n3n_pktbuf_alloc(ssize_t size) {
     // We only have one pool, so we can use a simple check
-    if(size > pool_item_data_size) {
+    if(size > pool_item_size) {
         return NULL;
     }
 
@@ -137,8 +129,8 @@ void n3n_pktbuf_free(struct n3n_pktbuf *p) {
 }
 
 void n3n_pktbuf_zero(struct n3n_pktbuf *p) {
-    p->offset_start = pool_item_prefix;
-    p->offset_end = pool_item_prefix;
+    p->offset_start = 0;
+    p->offset_end = 0;
 }
 
 ssize_t n3n_pktbuf_getbufsize(struct n3n_pktbuf *p) {
@@ -153,12 +145,14 @@ void *n3n_pktbuf_getbufptr(struct n3n_pktbuf *p) {
     return &p->buf[p->offset_start];
 }
 
-int n3n_pktbuf_prepend(struct n3n_pktbuf *p, ssize_t size) {
-    int new_start = p->offset_start + size;
-    if(new_start < 0) {
+int n3n_pktbuf_prepend(struct n3n_pktbuf *p, ssize_t prepend) {
+    if(prepend < 0) {
         return -1;
     }
-    p->offset_start = new_start;
+    if(prepend > p->capacity) {
+        return -1;
+    }
+    p->offset_start = prepend;
     return 1;
 }
 
