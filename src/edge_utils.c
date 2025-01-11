@@ -3344,6 +3344,7 @@ int quick_edge_init (char *device_name, char *community_name,
     conf.encrypt_key = encrypt_key;
     conf.transop_id = N2N_TRANSFORM_ID_AES;
     conf.compression = N2N_COMPRESSION_ID_NONE;
+    conf.mtu = DEFAULT_MTU;
     snprintf((char*)conf.community_name, sizeof(conf.community_name), "%s", community_name);
     n3n_strlist_add(&conf.supernodes_str, supernode_ip_address_port);
 
@@ -3358,7 +3359,7 @@ int quick_edge_init (char *device_name, char *community_name,
     /* Open the tuntap device */
     if(tuntap_open(&tuntap, device_name, TUNTAP_IP_MODE_STATIC,
                    subnet,
-                   device_mac, DEFAULT_MTU,
+                   device_mac, conf.mtu,
                    0) < 0)
         return(-2);
 
