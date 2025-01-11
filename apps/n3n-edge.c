@@ -798,8 +798,10 @@ int main (int argc, char* argv[]) {
         }
     }
 
-    if(edge_verify_conf(&conf) != 0)
+    if(edge_verify_conf(&conf) != 0) {
+        printf("ERROR: missing or incomplete configuration provided\n");
         cmd_help_about(0, NULL, NULL);
+    }
 
     traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", VERSION, BUILDDATE);
 
