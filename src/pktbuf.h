@@ -15,6 +15,7 @@ enum __attribute__((__packed__)) n3n_pktbuf_owner {
     n3n_pktbuf_owner_alloc,             // the new requester owns it
     n3n_pktbuf_owner_resolver_query,
     n3n_pktbuf_owner_resolver_result,
+    n3n_pktbuf_owner_rx_pdu,
 };
 
 struct n3n_pktbuf {

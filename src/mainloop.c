@@ -23,6 +23,7 @@
 #include "edge_utils.h"         // for edge_read_from_tap
 #include "management.h"         // for readFromMgmtSocket
 #include "minmax.h"             // for min, max
+#include "pktbuf.h"
 #include "portable_endian.h"    // for htobe16
 
 #ifndef _WIN32
@@ -317,14 +318,19 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
         }
 
         case fd_info_proto_v3udp: {
-            uint8_t pktbuf[N2N_PKT_BUF_SIZE];
+            struct n3n_pktbuf *pkt = n3n_pktbuf_alloc(N2N_PKT_BUF_SIZE);
+            if(!pkt) {
+                abort();
+            }
+            pkt->owner = n3n_pktbuf_owner_rx_pdu;
             edge_read_proto3_udp(
                 eee,
                 info.fd,
-                pktbuf,
-                sizeof(pktbuf),
+                n3n_pktbuf_getbufptr(pkt),
+                n3n_pktbuf_getbufavail(pkt),
                 now
             );
+            n3n_pktbuf_free(pkt);
             return;
         }
 
