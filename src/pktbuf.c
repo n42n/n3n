@@ -40,35 +40,37 @@ static struct n3n_metrics_module metrics_module_static = {
     .type = n3n_metrics_type_llu32,
 };
 
-static void *pool;
-static void *pool_item_next_search;
-static void *pool_item_max;
+static void *pool_buf;
+static struct n3n_pktbuf *pool;
+static struct n3n_pktbuf *pool_item_next_search;
+static struct n3n_pktbuf *pool_item_max;
 static ssize_t pool_item_size;
 static ssize_t pool_item_data_size;
 static int pool_item_count;
 
-// Calculate the size of the available prepended space
-static const ssize_t pool_item_prefix = (
-    ((sizeof(struct n3n_pktbuf) + 15) & ~ 0xf)
-    - sizeof(struct n3n_pktbuf)
-);
+// Leave space at the start for any header prepend needed
+static const ssize_t pool_item_prefix = 16;
 
 void n3n_pktbuf_initialise(ssize_t mtu, int count) {
     if(pool) {
         if(metrics.alloc != metrics.free) {
-            // Cannot change the pktbuf pool shape while there are any users
-            abort();
+            // Simplify logic by not allowing the pool shape to change while
+            // there are any users
+            return;
         }
         free(pool);
+        free(pool_buf);
     }
 
-    ssize_t item_size = sizeof(struct n3n_pktbuf) + pool_item_prefix + mtu;
-
     // Round up to a multiple
-    item_size = (item_size + 2047) & ~0x7ff;
+    int item_size = (mtu + 2047) & ~0x7ff;
     
-    pool = calloc(count, item_size);
+    pool_buf = calloc(count, item_size);
+    if(!pool_buf) {
+        abort();
+    }
 
+    pool = calloc(count, sizeof(struct n3n_pktbuf));
     if(!pool) {
         abort();
     }
@@ -76,20 +78,18 @@ void n3n_pktbuf_initialise(ssize_t mtu, int count) {
     pool_item_size = item_size;
     pool_item_count = count;
     pool_item_next_search = pool;
-    pool_item_max = pool + (count - 1) * item_size;
+    pool_item_max = pool + (count - 1) * sizeof(struct n3n_pktbuf);
 
     // The prefix space is used for prepending headers, not for data, so 
     // subtract it from the data size calculation
-    pool_item_data_size =
-        item_size - sizeof(struct n3n_pktbuf) - pool_item_prefix;
+    pool_item_data_size = item_size - pool_item_prefix;
 
     int i;
-    struct n3n_pktbuf *p;
     for(i=0; i < pool_item_count; i++) {
-        p = (struct n3n_pktbuf *)(pool + (i * pool_item_size));
-        p->capacity = item_size - sizeof(struct n3n_pktbuf);
-        p->owner = n3n_pktbuf_owner_none;
-        n3n_pktbuf_zero(p);
+        pool[i].buf = pool_buf + i * item_size;
+        pool[i].capacity = item_size;
+        pool[i].owner = n3n_pktbuf_owner_none;
+        n3n_pktbuf_zero(&pool[i]);
     }
 }
 
@@ -125,14 +125,15 @@ struct n3n_pktbuf *n3n_pktbuf_alloc(ssize_t size) {
 void n3n_pktbuf_free(struct n3n_pktbuf *p) {
     // Confirm we are within the pool boundaries
     if(p < (struct n3n_pktbuf *)pool) {
-        abort();
+        return;
     }
     if(p > (struct n3n_pktbuf *)pool_item_max) {
-        abort();
+        return;
     }
 
     p->owner = n3n_pktbuf_owner_none;
     pool_item_next_search = p;
+    metrics.free++;
 }
 
 void n3n_pktbuf_zero(struct n3n_pktbuf *p) {

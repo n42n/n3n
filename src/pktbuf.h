@@ -18,12 +18,12 @@ enum __attribute__((__packed__)) n3n_pktbuf_owner {
 };
 
 struct n3n_pktbuf {
-    int capacity;       // Total size of buf
-    int offset_start;   // Offset to start of data
-    int offset_end;     // Offset to end of data
+    unsigned char *buf;
+    short capacity;       // Total size of buf
+    short offset_start;   // Offset to start of data
+    short offset_end;     // Offset to end of data
     enum n3n_pktbuf_owner owner;    // What process and data owns this
-    unsigned char buf[];
-} __attribute__((__packed__));
+};
 
 void n3n_pktbuf_initialise(ssize_t mtu, int count);
 
