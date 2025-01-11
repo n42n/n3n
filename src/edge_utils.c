@@ -52,6 +52,7 @@
 #include "n2n_wire.h"                // for fill_sockaddr, decod...
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
+#include "pktbuf.h"                  // for n3n_pktbuf_initialise
 #include "resolve.h"                 // for resolve_create_thread, resolve_c...
 #include "sn_selection.h"            // for sn_selection_criterion_common_da...
 #include "speck.h"                   // for speck_128_decrypt, speck_128_enc...
@@ -543,6 +544,12 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     }
 
     n3n_peer_add_strlist(&eee->supernodes, &eee->conf.supernodes_str);
+
+    // Statically calculate how many packet buffers we need:
+    // - one for resolver, one for rx, one for tx, one spare
+    // (We might need more for multi-peer buffered TCP connections, or for
+    // multi-queue / multi-thread
+    n3n_pktbuf_initialise(eee->conf.mtu, 4);
 
     eee->curr_sn = eee->supernodes;
     eee->start_time = time(NULL);

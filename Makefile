@@ -113,6 +113,7 @@ OBJS=\
 	src/network_traffic_filter.o \
 	src/pearson.o \
 	src/peer_info.o \
+	src/pktbuf.o \
 	src/random_numbers.o \
 	src/resolve.o \
 	src/sn_selection.o \

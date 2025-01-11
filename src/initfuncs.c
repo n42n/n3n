@@ -11,6 +11,7 @@ void n3n_initfuncs_mainloop ();
 void n3n_initfuncs_metrics ();
 void n3n_initfuncs_pearson ();
 void n3n_initfuncs_peer_info ();
+void n3n_initfuncs_pktbuf ();
 void n3n_initfuncs_random ();
 void n3n_initfuncs_resolve ();
 void n3n_initfuncs_transform ();
@@ -33,6 +34,7 @@ void n3n_initfuncs () {
     n3n_initfuncs_metrics();
     n3n_initfuncs_pearson();
     n3n_initfuncs_peer_info();
+    n3n_initfuncs_pktbuf();
     n3n_initfuncs_random();
     n3n_initfuncs_resolve();
     n3n_initfuncs_transform();
