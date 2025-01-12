@@ -8,4 +8,15 @@
 
 void edge_read_from_tap (struct n3n_runtime_data *eee);
 
+void edge_read_proto3_udp (struct n3n_runtime_data *eee,
+                           SOCKET sock,
+                           uint8_t *pktbuf,
+                           ssize_t pktbuf_len,
+                           time_t now);
+void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
+                           SOCKET sock,
+                           uint8_t *pktbuf,
+                           ssize_t pktbuf_len,
+                           time_t now);
+
 #endif
