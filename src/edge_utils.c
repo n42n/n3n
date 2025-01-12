@@ -52,7 +52,7 @@
 #include "n2n_wire.h"                // for fill_sockaddr, decod...
 #include "pearson.h"                 // for pearson_hash_128, pearson_hash_64
 #include "peer_info.h"               // for peer_info, clear_peer_list, ...
-#include "pktbuf.h"                  // for n3n_pktbuf_initialise
+#include "pktbuf.h"                  // for n3n_pktbuf_initialise, n3n_pktbu...
 #include "resolve.h"                 // for resolve_create_thread, resolve_c...
 #include "sn_selection.h"            // for sn_selection_criterion_common_da...
 #include "speck.h"                   // for speck_128_decrypt, speck_128_enc...
@@ -2859,8 +2859,7 @@ void process_udp (struct n3n_runtime_data *eee,
 
 void edge_read_proto3_udp (struct n3n_runtime_data *eee,
                            SOCKET sock,
-                           uint8_t *pktbuf,
-                           ssize_t pktbuf_len,
+                           struct n3n_pktbuf *pktbuf,
                            time_t now) {
     struct sockaddr_storage sas;
     struct sockaddr *sender_sock = (struct sockaddr*)&sas;
@@ -2868,29 +2867,32 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
 
     ssize_t bread = recvfrom(
         sock,
-        pktbuf,
-        pktbuf_len,
+        n3n_pktbuf_getbufptr(pktbuf),
+        n3n_pktbuf_getbufavail(pktbuf),
         0 /*flags*/,
         sender_sock,
         &ss_size
     );
+    pktbuf->offset_end = pktbuf->offset_start + bread;
 
     if(bread < 0) {
 #ifdef _WIN32
         unsigned int wsaerr = WSAGetLastError();
         if(wsaerr == WSAECONNRESET) {
+            // On a UDP-datagram socket this error indicates a previous send
+            // operation resulted in an ICMP Port Unreachable message.
             return;
         }
         traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", wsaerr);
 #endif
 
-        /* For UDP bread of zero just means no data (unlike TCP). */
         /* The fd is no good now. Maybe we lost our interface. */
         traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
         *eee->keep_running = false;
         return;
     }
     if(bread == 0) {
+        /* For UDP bread of zero just means no data (unlike TCP). */
         return;
     }
 
@@ -2901,7 +2903,15 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
     // we have a datagram to process...
     // ...and the datagram has data (not just a header)
     //
-    process_udp(eee, sender_sock, sock, pktbuf, bread, now, SOCK_DGRAM);
+    process_udp(
+        eee,
+        sender_sock,
+        sock,
+        n3n_pktbuf_getbufptr(pktbuf),
+        n3n_pktbuf_getbufsize(pktbuf),
+        now,
+        SOCK_DGRAM
+    );
     return;
 }
 

@@ -323,13 +323,7 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
                 abort();
             }
             pkt->owner = n3n_pktbuf_owner_rx_pdu;
-            edge_read_proto3_udp(
-                eee,
-                info.fd,
-                n3n_pktbuf_getbufptr(pkt),
-                n3n_pktbuf_getbufavail(pkt),
-                now
-            );
+            edge_read_proto3_udp(eee, info.fd, pkt, now);
             n3n_pktbuf_free(pkt);
             return;
         }
