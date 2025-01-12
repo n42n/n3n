@@ -100,7 +100,7 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
 
     sn->family = AF_INVALID;
 
-    strncpy(addr, addrIn, sizeof(addr));
+    strncpy(addr, addrIn, sizeof(addr)-1);
     supernode_host = strtok(addr, ":");
 
     if(!supernode_host) {
