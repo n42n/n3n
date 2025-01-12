@@ -81,6 +81,8 @@
 
 /* ************************************** */
 
+// TODO: most of these forward defs can be removed by re-ordering the code
+
 static void send_register (struct n3n_runtime_data *eee, const n2n_sock_t *remote_peer, const n2n_mac_t peer_mac, n2n_cookie_t cookie);
 
 static void check_peer_registration_needed (struct n3n_runtime_data *eee,
