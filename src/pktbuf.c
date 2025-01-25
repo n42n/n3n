@@ -47,7 +47,7 @@ static struct n3n_pktbuf *pool_item_max;
 static ssize_t pool_item_size;
 static int pool_item_count;
 
-void n3n_pktbuf_initialise(ssize_t mtu, int count) {
+void n3n_pktbuf_initialise (ssize_t mtu, int count) {
     if(pool) {
         if(metrics.alloc != metrics.free) {
             // Simplify logic by not allowing the pool shape to change while
@@ -60,7 +60,7 @@ void n3n_pktbuf_initialise(ssize_t mtu, int count) {
 
     // Round up to a multiple
     int item_size = (mtu + 2047) & ~0x7ff;
-    
+
     pool_buf = calloc(count, item_size);
     if(!pool_buf) {
         abort();
@@ -85,7 +85,7 @@ void n3n_pktbuf_initialise(ssize_t mtu, int count) {
     }
 }
 
-struct n3n_pktbuf *n3n_pktbuf_alloc(ssize_t size) {
+struct n3n_pktbuf *n3n_pktbuf_alloc (ssize_t size) {
     // We only have one pool, so we can use a simple check
     if(size > pool_item_size) {
         return NULL;
@@ -114,7 +114,7 @@ struct n3n_pktbuf *n3n_pktbuf_alloc(ssize_t size) {
     return NULL;
 }
 
-void n3n_pktbuf_free(struct n3n_pktbuf *p) {
+void n3n_pktbuf_free (struct n3n_pktbuf *p) {
     // Confirm we are within the pool boundaries
     if(p < (struct n3n_pktbuf *)pool) {
         return;
@@ -128,24 +128,24 @@ void n3n_pktbuf_free(struct n3n_pktbuf *p) {
     metrics.free++;
 }
 
-void n3n_pktbuf_zero(struct n3n_pktbuf *p) {
+void n3n_pktbuf_zero (struct n3n_pktbuf *p) {
     p->offset_start = 0;
     p->offset_end = 0;
 }
 
-ssize_t n3n_pktbuf_getbufsize(struct n3n_pktbuf *p) {
+ssize_t n3n_pktbuf_getbufsize (struct n3n_pktbuf *p) {
     return p->offset_end - p->offset_start;
 }
 
-ssize_t n3n_pktbuf_getbufavail(struct n3n_pktbuf *p) {
+ssize_t n3n_pktbuf_getbufavail (struct n3n_pktbuf *p) {
     return p->capacity - p->offset_end;
 }
 
-void *n3n_pktbuf_getbufptr(struct n3n_pktbuf *p) {
+void *n3n_pktbuf_getbufptr (struct n3n_pktbuf *p) {
     return &p->buf[p->offset_start];
 }
 
-int n3n_pktbuf_prepend(struct n3n_pktbuf *p, ssize_t prepend) {
+int n3n_pktbuf_prepend (struct n3n_pktbuf *p, ssize_t prepend) {
     if(prepend < 0) {
         return -1;
     }
@@ -156,7 +156,7 @@ int n3n_pktbuf_prepend(struct n3n_pktbuf *p, ssize_t prepend) {
     return 1;
 }
 
-int n3n_pktbuf_append(struct n3n_pktbuf *p, ssize_t size, void *buf) {
+int n3n_pktbuf_append (struct n3n_pktbuf *p, ssize_t size, void *buf) {
     int new_end = p->offset_end + size;
     if(new_end > p->capacity) {
         return -1;
@@ -166,6 +166,6 @@ int n3n_pktbuf_append(struct n3n_pktbuf *p, ssize_t size, void *buf) {
     return 1;
 }
 
-void n3n_initfuncs_pktbuf() {
+void n3n_initfuncs_pktbuf () {
     n3n_metrics_register(&metrics_module_static);
 }

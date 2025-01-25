@@ -26,16 +26,16 @@ struct n3n_pktbuf {
     enum n3n_pktbuf_owner owner;    // What process and data owns this
 };
 
-void n3n_pktbuf_initialise(ssize_t mtu, int count);
+void n3n_pktbuf_initialise (ssize_t mtu, int count);
 
 struct n3n_pktbuf *n3n_pktbuf_alloc(ssize_t);
-void n3n_pktbuf_free(struct n3n_pktbuf *);
+void n3n_pktbuf_free (struct n3n_pktbuf *);
 
-void n3n_pktbuf_zero(struct n3n_pktbuf *);
+void n3n_pktbuf_zero (struct n3n_pktbuf *);
 
-ssize_t n3n_pktbuf_getbufsize(struct n3n_pktbuf *);
-ssize_t n3n_pktbuf_getbufavail(struct n3n_pktbuf *);
-void *n3n_pktbuf_getbufptr(struct n3n_pktbuf *);
+ssize_t n3n_pktbuf_getbufsize (struct n3n_pktbuf *);
+ssize_t n3n_pktbuf_getbufavail (struct n3n_pktbuf *);
+void *n3n_pktbuf_getbufptr (struct n3n_pktbuf *);
 
 int n3n_pktbuf_prepend(struct n3n_pktbuf *, ssize_t);
 int n3n_pktbuf_append(struct n3n_pktbuf *, ssize_t, void *);
