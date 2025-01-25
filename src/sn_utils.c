@@ -826,7 +826,7 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     // Cannot rely on having unix domain sockets on windows
     conf->mgmt_port = N2N_SN_MGMT_PORT;
 #endif
-    conf->mgmt_password = N3N_MGMT_PASSWORD;
+    conf->mgmt_password = strdup(N3N_MGMT_PASSWORD);
 
     /* Random auth token */
     conf->auth.scheme = n2n_auth_simple_id;
