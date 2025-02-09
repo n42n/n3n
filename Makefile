@@ -266,7 +266,7 @@ src/win32/edge_rc.o: src/win32/edge.rc
 $(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
 %.o: %.c
 	@echo "  CC      $@ $(CFLAGS_$<)"
-	@$(CC) $(CFLAGS) $(CFLAGS_$<) $(CPPFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) $(CFLAGS_$<) $(CPPFLAGS) -c -o $@ $< -MT$@ -MT$(<:.c=.d)
 
 %.gz : %
 	gzip -n -c $< > $@
