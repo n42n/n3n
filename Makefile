@@ -45,6 +45,7 @@ endif
 endif
 
 CFLAGS+=-Wall
+CFLAGS+=-MMD
 
 # Quick sanity check on our build environment
 UNAME_S := $(shell uname -s)
@@ -133,6 +134,11 @@ OBJS=\
 	src/tuntap_netbsd.o \
 	src/tuntap_osx.o \
 	src/wire.o \
+
+DEPS+=$(OBJS:%.o=%.d)
+
+CLEAN_FILES+=$(OBJS)
+CLEAN_FILES+=$(DEPS)
 
 # TODO: add performance testing and then try to avoid ignoring this warning
 CFLAGS_src/speck.c := -Wno-maybe-uninitialized
@@ -345,7 +351,7 @@ iwyu.out:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
 	rm -f $(CLEAN_FILES)
 	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
@@ -399,3 +405,7 @@ install: n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
 
 .PHONY: install
 install: install.bin install.doc install.systemd
+
+ifeq (0, $(words $(findstring $(MAKECMDGOALS), clean)))
+-include $(DEPS)
+endif
