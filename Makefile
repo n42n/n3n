@@ -202,8 +202,8 @@ SUBDIR_CLEAN+=libs/connslot
 
 #######################################
 
-# As source files pass the linter, they can be added here (If all the source
-# is passing the linter tests, this can be refactored)
+# As source files pass the linter, they can be added here (As all the non
+# library source is passing the linter tests, this could be refactored)
 LINT_CCODE=\
 	apps/ \
 	include/ \
