@@ -53,7 +53,7 @@ int supernode2sock (n2n_sock_t * sn, const char *addrIn);
 // called from edge_utils, runs supernode2sock only ifndef HAVE_LIBPTHREAD
 int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn);
 
-const char *resolve_supernode_str_get(int);
-int resolve_supernode_str_to_peer_info(struct peer_info **);
+const char *resolve_supernode_str_get (int);
+int resolve_supernode_str_to_peer_info (struct peer_info **);
 
 #endif
