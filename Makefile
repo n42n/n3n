@@ -79,7 +79,7 @@ CONFIG_SYSTEMDDIR?=$(PREFIX)/lib/systemd/system
 CFLAGS+=-DCONFIG_RUNDIR='"$(CONFIG_RUNDIR)"'
 
 #######################################
-# All the additiona needed for using the n3n library
+# All the additions needed for using the n3n library
 #
 CFLAGS+=-I$(abspath include)
 LDFLAGS+=-L$(abspath src)
