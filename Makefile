@@ -44,7 +44,7 @@ endif
 endif
 
 WARN=-Wall
-CFLAGS+=$(DEBUG) $(OPTIMIZATION) $(WARN) $(OPTIONS) $(PLATOPTS)
+CFLAGS+=$(DEBUG) $(WARN) $(PLATOPTS)
 
 # Quick sanity check on our build environment
 UNAME_S := $(shell uname -s)
