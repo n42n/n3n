@@ -22,7 +22,7 @@
 #include <unistd.h>             // for access
 
 #include "peer_info.h"          // for struct peer_info
-#include "strlist.h"
+#include "resolve.h"            // for resolve_supernode_str_get
 #include "n2n_typedefs.h"
 #include "n3n/ethernet.h"
 #include "uthash.h"
@@ -410,9 +410,8 @@ try_uint32:
             *val[0] |= 0x02;
             return 0;
         }
-        case n3n_conf_strlist: {
-            struct n3n_strlist **list = (struct n3n_strlist **)valvoid;
-            n3n_strlist_add(list, value);
+        case n3n_conf_supernode_str: {
+            resolve_supernode_str_add(value);
             return 0;
         }
     }
@@ -613,7 +612,7 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             macaddr_str(buf, *val);
             return buf;
         }
-        case n3n_conf_strlist: {
+        case n3n_conf_supernode_str: {
             // This is a multi-value item, so needs special handling to dump
             return NULL;
         }
@@ -695,7 +694,7 @@ static int option_storagesize (struct n3n_conf_option *option) {
             n2n_mac_t *val = (n2n_mac_t *)valvoid;
             return sizeof(*val);
         }
-        case n3n_conf_strlist: {
+        case n3n_conf_supernode_str: {
             return -1;
         }
     }
@@ -763,21 +762,22 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
             return;
         }
 
-        if(option->type == n3n_conf_strlist) {
+        if(option->type == n3n_conf_supernode_str) {
             // special case for this multi-value item
             // TODO: this breaks layering, but I cannot think of a simple
             // alternative
             fprintf(f, "#%s=\n", option->name);
-            void *valvoid = (char *)conf + option->offset;
-            struct n3n_strlist **list = (struct n3n_strlist **)valvoid;
-            struct n3n_strlist *scan, *tmp;
-            HASH_ITER(hh, *list, scan, tmp) {
+            int index = 0;
+            char *p = (char *)resolve_supernode_str_get(index);
+            while(p) {
                 fprintf(
                     f,
                     "%s=%s\n",
                     option->name,
-                    scan->s
+                    p
                 );
+                index++;
+                p = (char *)resolve_supernode_str_get(index);
             }
             fprintf(f, "\n");
             return;
@@ -844,7 +844,7 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
                 option++;
                 continue;
             }
-            if(option->type == n3n_conf_strlist) {
+            if(option->type == n3n_conf_supernode_str) {
                 option++;
                 continue;
             }

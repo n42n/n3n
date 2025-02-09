@@ -56,7 +56,6 @@
 #include "resolve.h"                 // for resolve_create_thread, resolve_c...
 #include "sn_selection.h"            // for sn_selection_criterion_common_da...
 #include "speck.h"                   // for speck_128_decrypt, speck_128_enc...
-#include "strlist.h"
 #include "uthash.h"                  // for UT_hash_handle, HASH_COUNT, HASH...
 #include "n2n_define.h"
 #include "n2n_typedefs.h"
@@ -183,8 +182,10 @@ int edge_verify_conf (const n2n_edge_conf_t *conf) {
     if(conf->community_name[0] == 0)
         return -1;
 
-    if(HASH_COUNT(conf->supernodes_str) == 0)
+    if(!resolve_supernode_str_get(0)) {
+        // confirm that there is at least one supernode string provided
         return -5;
+    }
 
     if(conf->register_interval < 1)
         return -3;
@@ -529,23 +530,31 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     memcpy(&eee->conf, conf, sizeof(*conf));
 
     {
-        traceEvent(
-            TRACE_INFO,
-            "number of supernodes configured: %d\n",
-            HASH_COUNT(eee->conf.supernodes_str)
-        );
-        struct n3n_strlist *scan, *tmp;
-        HASH_ITER(hh, eee->conf.supernodes_str, scan, tmp) {
+        int index = 0;
+        char *p = (char *)resolve_supernode_str_get(index);
+        while(p) {
             traceEvent(
                 TRACE_INFO,
-                "supernode %u => %s\n",
-                scan->id,
-                scan->s
+                "supernode %i => %s\n",
+                index,
+                p
             );
+            index++;
+            p = (char *)resolve_supernode_str_get(index);
         }
+        traceEvent(
+            TRACE_INFO,
+            "number of supernodes configured: %i\n",
+            index
+        );
     }
 
-    n3n_peer_add_strlist(&eee->supernodes, &eee->conf.supernodes_str);
+    if(resolve_supernode_str_to_peer_info(&eee->supernodes)) {
+        traceEvent(
+            TRACE_ERROR,
+            "resolve_supernode_str_to_peer_info returned errors"
+        );
+    }
 
     // Statically calculate how many packet buffers we need:
     // - one for resolver, one for rx, one for tx, one spare
@@ -3365,7 +3374,7 @@ int quick_edge_init (char *device_name, char *community_name,
     conf.compression = N2N_COMPRESSION_ID_NONE;
     conf.mtu = DEFAULT_MTU;
     snprintf((char*)conf.community_name, sizeof(conf.community_name), "%s", community_name);
-    n3n_strlist_add(&conf.supernodes_str, supernode_ip_address_port);
+    resolve_supernode_str_add(supernode_ip_address_port);
 
     /* Validate configuration */
     if(edge_verify_conf(&conf) != 0)

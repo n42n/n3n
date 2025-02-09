@@ -22,7 +22,6 @@
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
 #include "resolve.h"    // for supernode2sock
-#include "strlist.h"
 #include "uthash.h"
 
 #ifndef _WIN32
@@ -356,21 +355,6 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
     metrics.hostname++;
 
     return 0;
-}
-
-int n3n_peer_add_strlist (struct peer_info **peers, struct n3n_strlist **list) {
-    if(!peers) {
-        return 1;
-    }
-    if(!list) {
-        return 1;
-    }
-    int rv = 0;
-    struct n3n_strlist *scan, *tmp;
-    HASH_ITER(hh, *list, scan, tmp) {
-        rv += n3n_peer_add_by_hostname(peers, scan->s);
-    }
-    return rv;
 }
 
 /* ***************************************************** */

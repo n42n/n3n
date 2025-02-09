@@ -74,6 +74,15 @@ static struct n3n_metrics_module metrics_module = {
 
 /**********************************************************/
 
+struct supernode_str {
+    struct supernode_str *next;
+    uint32_t next_resolve;  // Use 0 for "now"
+    char s[];
+};
+
+static struct supernode_str *supernode_list;
+// static struct supernode_str *supernode_next_resolve;
+
 /** Resolve the supernode IP address.
  *
  */
@@ -371,6 +380,63 @@ int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
     return supernode2sock(sn, addrIn);
 }
 #endif
+
+/*
+ * Add a string to our list of resolvable supernodes
+ */
+void resolve_supernode_str_add (const char *s) {
+    int len = sizeof(struct supernode_str) + strlen(s) + 1;
+    struct supernode_str *p = malloc(len);
+    if(!p) {
+        return;
+    }
+
+    strcpy((char *)&(p->s), s);
+    p->next_resolve = 0;    // mark as "Now"
+    p->next = supernode_list;
+    supernode_list = p;
+}
+
+/*
+ * For config dumping, provide a way to access the list
+ * (Not intended to be called often, so not performant)
+ */
+const char *resolve_supernode_str_get (int index) {
+    struct supernode_str *p = supernode_list;
+    while(index) {
+        if(!p) {
+            return NULL;
+        }
+        p = p->next;
+        index--;
+    }
+    if(!p) {
+        return NULL;
+    }
+    return p->s;
+}
+
+/*
+ * Convert the entire supernode list into peer_info structs
+ *
+ * TODO:
+ * - do the resolving here, use an "add by addr" function to avoid duplicates
+ * - update the next_resolve field, also use it to skip fast resolves
+ * - support multiple hostname results (both A and AAAA as well)
+ * - eventually, support SRV
+ */
+int resolve_supernode_str_to_peer_info (struct peer_info **peers) {
+    if(!peers) {
+        return 1;
+    }
+    struct supernode_str *p = supernode_list;
+    int rv = 0;
+    while(p) {
+        rv += n3n_peer_add_by_hostname(peers, p->s);
+        p = p->next;
+    }
+    return rv;
+}
 
 void n3n_initfuncs_resolve () {
     n3n_metrics_register(&metrics_module);

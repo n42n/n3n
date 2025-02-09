@@ -34,7 +34,7 @@ enum n3n_conf_type {
     n3n_conf_userid,
     n3n_conf_groupid,
     n3n_conf_macaddr,       // TODO: conf has another macaddr string type
-    n3n_conf_strlist,
+    n3n_conf_supernode_str,
 };
 
 struct n3n_conf_option {
