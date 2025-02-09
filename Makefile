@@ -33,7 +33,8 @@ endif
 
 #Ultrasparc64 users experiencing SIGBUS should try the following gcc options
 #(thanks to Robert Gibbon)
-PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finline-functions -fweb -frename-registers -mapp-regs
+# PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finline-functions -fweb -frename-registers -mapp-regs
+# CFLAGS+=$(PLATOPTS)
 
 # Only do the openssl pkg config and flags if it has been enabled
 ifeq ($(CONFIG_WITH_OPENSSL), yes)
@@ -43,8 +44,7 @@ ifeq ($(OPENSSL_CFLAGS), 0)
 endif
 endif
 
-WARN=-Wall
-CFLAGS+=$(DEBUG) $(WARN) $(PLATOPTS)
+CFLAGS+=-Wall
 
 # Quick sanity check on our build environment
 UNAME_S := $(shell uname -s)
