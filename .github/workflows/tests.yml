@@ -200,18 +200,6 @@ jobs:
           # make cover COVERAGEDIR=coverage/${{ matrix.os }}
         shell: bash
 
-      # - name: Upload gcovr report artifact
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    name: coverage
-      #    path: coverage
-
-      # Now the codecov on a mac fails with
-      # Error: spawn Unknown system error -86
-      # I guess mac people just dont like coverage
-      # - name: Upload data to codecov
-      #   uses: codecov/codecov-action@v3
-
   test_windows:
     name: Test Windows
     runs-on: ${{ matrix.os }}

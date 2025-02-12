@@ -89,29 +89,6 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-# TODO: Since windows has a bunch of build differences, it would be good to
-# have a smoketest for it, but it is about 5 times slower than the other
-# quick tests...
-#
-#  smoketest_windows:
-#    name: Smoke test Windows
-#    runs-on: windows-latest
-#
-#    steps:
-#      - uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#      - name: Fix Checkout
-#        run: |
-#          git fetch --force --tags
-#
-#      - name: Run minimal test set
-#        run: |
-#          ./scripts/hack_fakeautoconf.sh
-#          make
-#          make test.units
-#        shell: bash
-
   lint:
     name: Code syntax
     runs-on: ubuntu-22.04
