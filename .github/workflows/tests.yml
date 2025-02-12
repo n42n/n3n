@@ -125,7 +125,7 @@ jobs:
       - name: Upload gcovr report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage
+          name: coverage-${{ matrix.os }}
           path: coverage
 
       - name: Upload data to codecov
