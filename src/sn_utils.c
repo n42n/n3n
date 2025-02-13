@@ -2999,6 +2999,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
 
                     if(slots->conn[i].state == CONN_READY) {
                         mgmt_api_handler(sss, &slots->conn[i]);
+                        sb_zero(slots->conn[i].request);
                     }
                 }
             }

@@ -416,6 +416,7 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
                 case CONN_ERROR:
                 case CONN_CLOSED:
+                    sb_zero(conn->request);
                     conn_close(conn, info.fd);
                     // TODO: freefd() is doing a fd search, we could optimise
                     fdlist_freefd(info.fd);
