@@ -1100,6 +1100,7 @@ static void render_index_page (struct n3n_runtime_data *eee, conn_t *conn) {
     // TODO:
     // - could allow overriding of built in text with an external file
     conn->reply = &management_index;
+    conn->reply->wr_pos = conn->reply->capacity - 1;
     generate_http_headers(conn, "text/html", 200);
 }
 
@@ -1108,6 +1109,7 @@ static void render_index_page (struct n3n_runtime_data *eee, conn_t *conn) {
 // Generate the output for the small set of javascript functions
 static void render_script_page (struct n3n_runtime_data *eee, conn_t *conn) {
     conn->reply = &management_script;
+    conn->reply->wr_pos = conn->reply->capacity - 1;
     generate_http_headers(conn, "text/javascript", 200);
 }
 
