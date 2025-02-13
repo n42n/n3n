@@ -307,7 +307,7 @@ jobs:
       - name: Upload dpkg
         uses: actions/upload-artifact@v4
         with:
-          name: packages-dpkg
+          name: packages-dpkg-${{ matrix.arch }}
           path: "*.deb"
 
   package_rpm:
