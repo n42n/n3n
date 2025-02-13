@@ -400,7 +400,14 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
         case fd_info_proto_http: {
             struct conn *conn = &connlist[info.connnr];
-            conn_read(conn, info.fd);
+            // FIXME:
+            // this check assumes that the conn_write() that kicks off
+            // a sending event will have made at least some progress
+            if(conn->reply_sendpos == 0) {
+                // dont start reading new request until the old reply is
+                // finished sending
+                conn_read(conn, info.fd);
+            }
 
             switch(conn->state) {
                 case CONN_EMPTY:
@@ -412,11 +419,11 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
                 case CONN_READY:
                     mgmt_api_handler(eee, conn);
+                    sb_zero(conn->request);
                     return;
 
                 case CONN_ERROR:
                 case CONN_CLOSED:
-                    sb_zero(conn->request);
                     conn_close(conn, info.fd);
                     // TODO: freefd() is doing a fd search, we could optimise
                     fdlist_freefd(info.fd);
