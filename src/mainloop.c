@@ -423,6 +423,10 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
                 case CONN_READY:
                     mgmt_api_handler(eee, conn);
+                    if(conn->reply_sendpos == 0) {
+                        // Looks like we have finished a write, so we can clean up
+                        sb_zero(conn->request);
+                    }
                     return;
 
                 case CONN_ERROR:
