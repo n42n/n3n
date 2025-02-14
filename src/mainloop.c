@@ -263,8 +263,19 @@ static int fdlist_fd_set (fd_set *rd, fd_set *wr) {
         // TODO:
         // - if no empty conn, dont FD_SET on proto TCP listen
 
-        FD_SET(fdlist[slot].fd, rd);
-        max_sock = MAX(max_sock, fdlist[slot].fd);
+        if(fdlist[slot].connnr == -1) {
+            FD_SET(fdlist[slot].fd, rd);
+            max_sock = MAX(max_sock, fdlist[slot].fd);
+        } else {
+            if(connlist[fdlist[slot].connnr].reply_sendpos == 0) {
+                // Only select for reading if we have finished previous write
+                // FIXME:
+                // this check assumes that the conn_write() that kicks off
+                // a sending event will have made at least some progress
+                FD_SET(fdlist[slot].fd, rd);
+                max_sock = MAX(max_sock, fdlist[slot].fd);
+            }
+        }
 
         if(fdlist[slot].connnr == -1) {
             slot++;
@@ -400,14 +411,7 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
         case fd_info_proto_http: {
             struct conn *conn = &connlist[info.connnr];
-            // FIXME:
-            // this check assumes that the conn_write() that kicks off
-            // a sending event will have made at least some progress
-            if(conn->reply_sendpos == 0) {
-                // dont start reading new request until the old reply is
-                // finished sending
-                conn_read(conn, info.fd);
-            }
+            conn_read(conn, info.fd);
 
             switch(conn->state) {
                 case CONN_EMPTY:
@@ -419,7 +423,6 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
                 case CONN_READY:
                     mgmt_api_handler(eee, conn);
-                    sb_zero(conn->request);
                     return;
 
                 case CONN_ERROR:
@@ -456,8 +459,15 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
                 continue;
             }
 
+            struct conn *conn = &connlist[fdlist[slot].connnr];
+
             // TODO: track the stats on writes?
-            conn_write(&connlist[fdlist[slot].connnr], fd);
+            conn_write(conn, fd);
+
+            if(conn->reply_sendpos == 0) {
+                // Looks like we have finished a write, so we can clean up
+                sb_zero(conn->request);
+            }
         }
 
         if(fdlist[slot].connnr != -1) {

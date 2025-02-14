@@ -252,6 +252,8 @@ ssize_t conn_write(conn_t *conn, int fd) {
 #else
 // no iovec
 //
+
+    // First, send the header
     if (conn->reply_sendpos < sb_len(conn->reply_header)) {
         sent = sb_write(
                 fd,
@@ -259,7 +261,15 @@ ssize_t conn_write(conn_t *conn, int fd) {
                 conn->reply_sendpos,
                 -1
         );
-    } else {
+        if (sent > 0) {
+            conn->reply_sendpos += sent;
+            // TODO: this will cause our return value to be a lie
+            sent = 0;
+        }
+    }
+
+    // Then, maybe send the body
+    if (conn->reply_sendpos >= sb_len(conn->reply_header)) {
         sent = sb_write(
                 fd,
                 conn->reply,
