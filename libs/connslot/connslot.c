@@ -188,6 +188,11 @@ ssize_t conn_read(conn_t *conn, int fd) {
         }
     }
 
+    if (sb_overflowed(conn->request)) {
+        conn->state = CONN_ERROR;
+        return 0;
+    }
+
     ssize_t size = sb_read(fd, conn->request);
 
     if (size == 0) {
