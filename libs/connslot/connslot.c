@@ -218,7 +218,6 @@ ssize_t conn_read(conn_t *conn, int fd) {
 }
 
 ssize_t conn_write(conn_t *conn, int fd) {
-    ssize_t sent;
 
     if (fd == -1) {
         return 0;
@@ -248,10 +247,11 @@ ssize_t conn_write(conn_t *conn, int fd) {
         nr++;
     }
 
-    sent = writev(fd, &vecs[0], nr);
+    ssize_t sent = writev(fd, &vecs[0], nr);
 #else
 // no iovec
 //
+    ssize_t sent = 0;
 
     // First, send the header
     if (conn->reply_sendpos < sb_len(conn->reply_header)) {
