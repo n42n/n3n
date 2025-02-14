@@ -826,7 +826,7 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     // Cannot rely on having unix domain sockets on windows
     conf->mgmt_port = N2N_SN_MGMT_PORT;
 #endif
-    conf->mgmt_password = N3N_MGMT_PASSWORD;
+    conf->mgmt_password = strdup(N3N_MGMT_PASSWORD);
 
     /* Random auth token */
     conf->auth.scheme = n2n_auth_simple_id;
@@ -902,6 +902,13 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
+    if(resolve_supernode_str_to_peer_info(&sss->supernodes)) {
+        traceEvent(
+            TRACE_ERROR,
+            "resolve_supernode_str_to_peer_info returned errors"
+        );
+    }
+
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
     }
@@ -2992,6 +2999,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
 
                     if(slots->conn[i].state == CONN_READY) {
                         mgmt_api_handler(sss, &slots->conn[i]);
+                        sb_zero(slots->conn[i].request);
                     }
                 }
             }

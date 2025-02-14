@@ -9,6 +9,7 @@
 #define _PEER_INFO_H_
 
 #include <n2n_typedefs.h>   // for n2n_mac_t, n2n_ip_subnet_t, n2n_desc_t, n2n_sock_t
+#include <n3n/peer_info.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -91,4 +92,5 @@ int find_peer_time_stamp_and_verify (
     int allow_jitter
 );
 
+int n3n_peer_add_by_hostname (peer_info_t **list, const char *ip_and_port);
 #endif

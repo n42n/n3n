@@ -11,4 +11,6 @@
 
 typedef struct n3n_resolve_parameter n3n_resolve_parameter_t;
 
+void resolve_supernode_str_add (const char *);
+
 #endif

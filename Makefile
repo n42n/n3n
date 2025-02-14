@@ -33,7 +33,8 @@ endif
 
 #Ultrasparc64 users experiencing SIGBUS should try the following gcc options
 #(thanks to Robert Gibbon)
-PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finline-functions -fweb -frename-registers -mapp-regs
+# PLATOPTS_SPARC64=-mcpu=ultrasparc -pipe -fomit-frame-pointer -ffast-math -finline-functions -fweb -frename-registers -mapp-regs
+# CFLAGS+=$(PLATOPTS)
 
 # Only do the openssl pkg config and flags if it has been enabled
 ifeq ($(CONFIG_WITH_OPENSSL), yes)
@@ -43,8 +44,8 @@ ifeq ($(OPENSSL_CFLAGS), 0)
 endif
 endif
 
-WARN=-Wall
-CFLAGS+=$(DEBUG) $(OPTIMIZATION) $(WARN) $(OPTIONS) $(PLATOPTS)
+CFLAGS+=-Wall
+CFLAGS+=-MMD
 
 # Quick sanity check on our build environment
 UNAME_S := $(shell uname -s)
@@ -62,15 +63,11 @@ INSTALL_DOC=$(INSTALL) -m444
 # DESTDIR set in debian make system
 PREFIX=$(DESTDIR)/$(CONFIG_PREFIX)
 
-# Note that these three install dirs are outside of the CONFIG_PREFIX.
+# Note that these two install dirs are outside of the CONFIG_PREFIX.
 # The ETCDIR is not configurable in the code, so no changes should be done
 # without code changes.
-# The systemd unit dir should default to /lib for most Debian packages (if
-# CONFIG_PREFIX is /usr) otherwise it should be based on the prefix.
-# The current autotools has hacks to apply this logic.
 ETCDIR=$(DESTDIR)/etc/n3n
 CONFIG_RUNDIR?=$(DESTDIR)/run
-CONFIG_SYSTEMDDIR?=$(DESTDIR)/lib/systemd/system
 
 CONFIG_BINDIR?=$(PREFIX)/bin
 CONFIG_SBINDIR?=$(PREFIX)/sbin
@@ -78,11 +75,12 @@ CONFIG_MANDIR?=$(PREFIX)/share/man
 MAN7DIR=$(CONFIG_MANDIR)/man7
 MAN8DIR=$(CONFIG_MANDIR)/man8
 CONFIG_DOCDIR?=$(PREFIX)/share/doc/n3n
+CONFIG_SYSTEMDDIR?=$(PREFIX)/lib/systemd/system
 
 CFLAGS+=-DCONFIG_RUNDIR='"$(CONFIG_RUNDIR)"'
 
 #######################################
-# All the additiona needed for using the n3n library
+# All the additions needed for using the n3n library
 #
 CFLAGS+=-I$(abspath include)
 LDFLAGS+=-L$(abspath src)
@@ -113,6 +111,7 @@ OBJS=\
 	src/network_traffic_filter.o \
 	src/pearson.o \
 	src/peer_info.o \
+	src/pktbuf.o \
 	src/random_numbers.o \
 	src/resolve.o \
 	src/sn_selection.o \
@@ -134,6 +133,11 @@ OBJS=\
 	src/tuntap_netbsd.o \
 	src/tuntap_osx.o \
 	src/wire.o \
+
+DEPS+=$(OBJS:%.o=%.d)
+
+CLEAN_FILES+=$(OBJS)
+CLEAN_FILES+=$(DEPS)
 
 # TODO: add performance testing and then try to avoid ignoring this warning
 CFLAGS_src/speck.c := -Wno-maybe-uninitialized
@@ -203,8 +207,8 @@ SUBDIR_CLEAN+=libs/connslot
 
 #######################################
 
-# As source files pass the linter, they can be added here (If all the source
-# is passing the linter tests, this can be refactored)
+# As source files pass the linter, they can be added here (As all the non
+# library source is passing the linter tests, this could be refactored)
 LINT_CCODE=\
 	apps/ \
 	include/ \
@@ -261,7 +265,7 @@ src/win32/edge_rc.o: src/win32/edge.rc
 $(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
 %.o: %.c
 	@echo "  CC      $@ $(CFLAGS_$<)"
-	@$(CC) $(CFLAGS) $(CFLAGS_$<) $(CPPFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) $(CFLAGS_$<) $(CPPFLAGS) -c -o $@ $< -MT$@ -MT$(<:.c=.d)
 
 %.gz : %
 	gzip -n -c $< > $@
@@ -346,7 +350,7 @@ iwyu.out:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(OBJS) $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
 	rm -f $(CLEAN_FILES)
 	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
@@ -400,3 +404,7 @@ install: n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
 
 .PHONY: install
 install: install.bin install.doc install.systemd
+
+ifeq (0, $(words $(findstring $(MAKECMDGOALS), clean)))
+-include $(DEPS)
+endif

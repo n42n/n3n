@@ -23,6 +23,7 @@
 #include "edge_utils.h"         // for edge_read_from_tap
 #include "management.h"         // for readFromMgmtSocket
 #include "minmax.h"             // for min, max
+#include "pktbuf.h"
 #include "portable_endian.h"    // for htobe16
 
 #ifndef _WIN32
@@ -317,14 +318,13 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
         }
 
         case fd_info_proto_v3udp: {
-            uint8_t pktbuf[N2N_PKT_BUF_SIZE];
-            edge_read_proto3_udp(
-                eee,
-                info.fd,
-                pktbuf,
-                sizeof(pktbuf),
-                now
-            );
+            struct n3n_pktbuf *pkt = n3n_pktbuf_alloc(N2N_PKT_BUF_SIZE);
+            if(!pkt) {
+                abort();
+            }
+            pkt->owner = n3n_pktbuf_owner_rx_pdu;
+            edge_read_proto3_udp(eee, info.fd, pkt, now);
+            n3n_pktbuf_free(pkt);
             return;
         }
 
@@ -400,7 +400,14 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
         case fd_info_proto_http: {
             struct conn *conn = &connlist[info.connnr];
-            conn_read(conn, info.fd);
+            // FIXME:
+            // this check assumes that the conn_write() that kicks off
+            // a sending event will have made at least some progress
+            if(conn->reply_sendpos == 0) {
+                // dont start reading new request until the old reply is
+                // finished sending
+                conn_read(conn, info.fd);
+            }
 
             switch(conn->state) {
                 case CONN_EMPTY:
@@ -412,6 +419,7 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
 
                 case CONN_READY:
                     mgmt_api_handler(eee, conn);
+                    sb_zero(conn->request);
                     return;
 
                 case CONN_ERROR:

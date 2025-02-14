@@ -798,8 +798,10 @@ int main (int argc, char* argv[]) {
         }
     }
 
-    if(edge_verify_conf(&conf) != 0)
+    if(edge_verify_conf(&conf) != 0) {
+        printf("ERROR: missing or incomplete configuration provided\n");
         cmd_help_about(0, NULL, NULL);
+    }
 
     traceEvent(TRACE_NORMAL, "starting n3n edge %s %s", VERSION, BUILDDATE);
 
@@ -855,13 +857,13 @@ int main (int argc, char* argv[]) {
         traceEvent(TRACE_DEBUG, "skip PING to supernode: shared secret");
         runlevel = 2;
     }
-    if(HASH_COUNT(eee->conf.supernodes) <= 1) {
+    if(HASH_COUNT(eee->supernodes) <= 1) {
         traceEvent(TRACE_DEBUG, "skip PING to supernode: only one supernode");
         runlevel = 2;
     }
 
     eee->last_sup = 0; /* if it wasn't zero yet */
-    eee->curr_sn = eee->conf.supernodes;
+    eee->curr_sn = eee->supernodes; // Duplicates action taken by edge_init()
     supernode_connect(eee);
     while(runlevel < 5) {
 
@@ -883,13 +885,13 @@ int main (int argc, char* argv[]) {
             if(eee->sn_pong) {
                 // first answer
                 eee->sn_pong = 0;
-                sn_selection_sort(&(eee->conf.supernodes));
-                eee->curr_sn = eee->conf.supernodes;
+                sn_selection_sort(&(eee->supernodes));
+                eee->curr_sn = eee->supernodes;
                 supernode_connect(eee);
                 traceEvent(
                     TRACE_NORMAL,
                     "received first PONG from supernode [%s]",
-                    eee->curr_sn->hostname
+                    peer_info_get_hostname(eee->curr_sn)
                 );
                 runlevel++;
             } else if(last_action <= (now - BOOTSTRAP_TIMEOUT)) {
@@ -923,7 +925,7 @@ int main (int argc, char* argv[]) {
                 traceEvent(
                     TRACE_INFO,
                     "send REGISTER_SUPER to supernode [%s] asking for IP address",
-                    eee->curr_sn->hostname
+                    peer_info_get_hostname(eee->curr_sn)
                 );
             } else {
                 runlevel += 2; /* skip waiting for TUNTAP IP address */
@@ -941,7 +943,7 @@ int main (int argc, char* argv[]) {
                 if(eee->curr_sn->hh.next)
                     eee->curr_sn = eee->curr_sn->hh.next;
                 else
-                    eee->curr_sn = eee->conf.supernodes;
+                    eee->curr_sn = eee->supernodes;
                 supernode_connect(eee);
                 runlevel--;
                 // skip waiting for answer to direcly go to send REGISTER_SUPER again
@@ -989,13 +991,13 @@ int main (int argc, char* argv[]) {
     // to quicker get an inital 'supernode selection criterion overview'
     eee->conf.number_max_sn_pings = NUMBER_SN_PINGS_INITIAL;
     // shape supernode list; make current one the first on the list
-    HASH_ITER(hh, eee->conf.supernodes, scan, scan_tmp) {
+    HASH_ITER(hh, eee->supernodes, scan, scan_tmp) {
         if(scan == eee->curr_sn)
             sn_selection_criterion_good(&(scan->selection_criterion));
         else
             sn_selection_criterion_default(&(scan->selection_criterion));
     }
-    sn_selection_sort(&(eee->conf.supernodes));
+    sn_selection_sort(&(eee->supernodes));
     // do not immediately ping again, allow some time
     eee->last_sweep = now - SWEEP_TIME + 2 * BOOTSTRAP_TIMEOUT;
     eee->sn_wait = 1;

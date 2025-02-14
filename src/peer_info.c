@@ -22,6 +22,7 @@
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
 #include "resolve.h"    // for supernode2sock
+#include "uthash.h"
 
 #ifndef _WIN32
 // Another wonderful gift from the world of POSIX compliance is not worth much
@@ -330,12 +331,11 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
     }
 
     // FIXME: what if ->hostname is already set?
-    sn->hostname = calloc(1, N2N_EDGE_SN_HOST_SIZE);
+    sn->hostname = strdup(ip_and_port);
     if(!sn->hostname) {
         // FIXME: add to list, but left half initialised
         return 1;
     }
-    strncpy(sn->hostname, ip_and_port, N2N_EDGE_SN_HOST_SIZE - 1);
     memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
 
     // If it added an entry, it is already peer_info_init()

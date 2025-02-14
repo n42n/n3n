@@ -43,10 +43,10 @@ chmod u+w $RPM_BUILD_ROOT/usr/sbin/*
 rm -fr $RPM_BUILD_ROOT
 
 %files
-/lib/systemd/system/n3n-edge.service
-/lib/systemd/system/n3n-edge@.service
-/lib/systemd/system/n3n-supernode.service
 /usr/bin/n3nctl
+/usr/lib/systemd/system/n3n-edge.service
+/usr/lib/systemd/system/n3n-edge@.service
+/usr/lib/systemd/system/n3n-supernode.service
 /usr/sbin/n3n-edge
 /usr/sbin/n3n-supernode
 /usr/share/doc/n3n/Advanced.md

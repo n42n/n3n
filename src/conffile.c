@@ -22,6 +22,7 @@
 #include <unistd.h>             // for access
 
 #include "peer_info.h"          // for struct peer_info
+#include "resolve.h"            // for resolve_supernode_str_get
 #include "n2n_typedefs.h"
 #include "n3n/ethernet.h"
 #include "uthash.h"
@@ -186,9 +187,9 @@ try_uint32:
             }
             return -1;
         }
-        case n3n_conf_supernode: {
-            peer_info_t **supernodes = (peer_info_t **)valvoid;
-            return n3n_peer_add_by_hostname(supernodes, value);
+        case n3n_conf_peer: {
+            peer_info_t **peer = (peer_info_t **)valvoid;
+            return n3n_peer_add_by_hostname(peer, value);
         }
         case n3n_conf_privatekey: {
             n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
@@ -409,6 +410,10 @@ try_uint32:
             *val[0] |= 0x02;
             return 0;
         }
+        case n3n_conf_supernode_str: {
+            resolve_supernode_str_add(value);
+            return 0;
+        }
     }
     return -1;
 }
@@ -511,7 +516,7 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             uint8_t *val = (uint8_t *)valvoid;
             return n3n_compression_id2str(*val);
         }
-        case n3n_conf_supernode: {
+        case n3n_conf_peer: {
             // This is a multi-value item, so needs special handling to dump
             return NULL;
         }
@@ -607,6 +612,10 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             macaddr_str(buf, *val);
             return buf;
         }
+        case n3n_conf_supernode_str: {
+            // This is a multi-value item, so needs special handling to dump
+            return NULL;
+        }
     }
 
     return NULL;
@@ -644,7 +653,7 @@ static int option_storagesize (struct n3n_conf_option *option) {
             uint8_t *val = (uint8_t *)valvoid;
             return sizeof(*val);
         }
-        case n3n_conf_supernode: {
+        case n3n_conf_peer: {
             return -1;
         }
         case n3n_conf_privatekey: {
@@ -684,6 +693,9 @@ static int option_storagesize (struct n3n_conf_option *option) {
         case n3n_conf_macaddr: {
             n2n_mac_t *val = (n2n_mac_t *)valvoid;
             return sizeof(*val);
+        }
+        case n3n_conf_supernode_str: {
+            return -1;
         }
     }
     return -1;
@@ -730,21 +742,42 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
     if(level >= 1) {
         // show both name and value
 
-        if(option->type == n3n_conf_supernode) {
+        if(option->type == n3n_conf_peer) {
             // special case for this multi-value item
             // TODO: this breaks layering, but I cannot think of a simple
             // alternative
             fprintf(f, "#%s=\n", option->name);
             void *valvoid = (char *)conf + option->offset;
-            struct peer_info **supernodes = (struct peer_info **)valvoid;
+            struct peer_info **peers = (struct peer_info **)valvoid;
             struct peer_info *scan, *tmp;
-            HASH_ITER(hh, *supernodes, scan, tmp) {
+            HASH_ITER(hh, *peers, scan, tmp) {
                 fprintf(
                     f,
                     "%s=%s\n",
                     option->name,
                     peer_info_get_hostname(scan)
                 );
+            }
+            fprintf(f, "\n");
+            return;
+        }
+
+        if(option->type == n3n_conf_supernode_str) {
+            // special case for this multi-value item
+            // TODO: this breaks layering, but I cannot think of a simple
+            // alternative
+            fprintf(f, "#%s=\n", option->name);
+            int index = 0;
+            char *p = (char *)resolve_supernode_str_get(index);
+            while(p) {
+                fprintf(
+                    f,
+                    "%s=%s\n",
+                    option->name,
+                    p
+                );
+                index++;
+                p = (char *)resolve_supernode_str_get(index);
             }
             fprintf(f, "\n");
             return;
@@ -807,7 +840,11 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
     while(section) {
         option = section->options;
         while(option->name) {
-            if(option->type == n3n_conf_supernode) {
+            if(option->type == n3n_conf_peer) {
+                option++;
+                continue;
+            }
+            if(option->type == n3n_conf_supernode_str) {
                 option++;
                 continue;
             }

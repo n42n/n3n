@@ -54,7 +54,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "analysis${{ matrix.flags }}"
           path: tests
@@ -111,7 +111,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tests-linux
           path: tests
@@ -123,9 +123,9 @@ jobs:
         shell: bash
 
       - name: Upload gcovr report artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: coverage
+          name: coverage-${{ matrix.os }}
           path: coverage
 
       - name: Upload data to codecov
@@ -182,7 +182,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tests-macos
           path: tests
@@ -199,18 +199,6 @@ jobs:
           #
           # make cover COVERAGEDIR=coverage/${{ matrix.os }}
         shell: bash
-
-      # - name: Upload gcovr report artifact
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    name: coverage
-      #    path: coverage
-
-      # Now the codecov on a mac fails with
-      # Error: spawn Unknown system error -86
-      # I guess mac people just dont like coverage
-      # - name: Upload data to codecov
-      #   uses: codecov/codecov-action@v3
 
   test_windows:
     name: Test Windows
@@ -255,7 +243,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tests-windows
           path: tests
@@ -317,9 +305,9 @@ jobs:
           git status
 
       - name: Upload dpkg
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: packages-dpkg
+          name: packages-dpkg-${{ matrix.arch }}
           path: "*.deb"
 
   package_rpm:
@@ -349,7 +337,7 @@ jobs:
           mv ~/rpmbuild ./
 
       - name: Upload rpm
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packages-rpm
           path: rpmbuild/RPMS/x86_64/*.rpm
@@ -445,13 +433,13 @@ jobs:
 
       - name: Upload config file used for build
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openwrt-config
           path: config.*
 
       - name: Upload ipk
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: packages-ipk
           path: openwrt/bin/packages/*/base/*.ipk
@@ -483,7 +471,7 @@ jobs:
           make install DESTDIR=binaries/x86_64-pc-mingw64
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: binaries
@@ -526,7 +514,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload config.log output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: config-log-${{ matrix.arch }}
           path: config.log
@@ -537,9 +525,9 @@ jobs:
           make install DESTDIR=binaries/${{ matrix.arch }}
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-${{ matrix.arch }}
           path: binaries
 
   binaries_macos_universal:
@@ -578,9 +566,9 @@ jobs:
           make install DESTDIR=binaries/universal-apple-darwin
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-universal-macos
           path: binaries
 
   binaries_linux_crosscompile:
@@ -638,9 +626,9 @@ jobs:
           make install DESTDIR=binaries/${{ matrix.arch }}
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-${{ matrix.arch }}
           path: binaries
 
   # Given the clearly documented use of annotated tags to signal releases,
@@ -690,7 +678,7 @@ jobs:
 
       - name: Fetch all Artifacts
         if: steps.get_tagtype.outputs.TAGTYPE == 'tag'
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 

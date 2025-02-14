@@ -148,7 +148,7 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
             if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
                 tmp *= 2;
             }
-            eee->sn_selection_criterion_common_data = tmp / HASH_COUNT(eee->conf.supernodes);
+            eee->sn_selection_criterion_common_data = tmp / HASH_COUNT(eee->supernodes);
             break;
         }
 

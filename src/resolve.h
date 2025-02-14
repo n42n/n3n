@@ -43,14 +43,17 @@ struct n3n_resolve_parameter {
 };
 #endif
 
-
 int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn_list);
 bool resolve_check (n3n_resolve_parameter_t *param, bool resolution_request, time_t now);
 void resolve_cancel_thread (n3n_resolve_parameter_t *param);
 
 // Internal resolver function, will turn static once supernode.c doesnt use it
-int supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);
+int supernode2sock (n2n_sock_t * sn, const char *addrIn);
 
 // called from edge_utils, runs supernode2sock only ifndef HAVE_LIBPTHREAD
-int maybe_supernode2sock (n2n_sock_t * sn, const n2n_sn_name_t addrIn);
+int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn);
+
+const char *resolve_supernode_str_get (int);
+int resolve_supernode_str_to_peer_info (struct peer_info **);
+
 #endif

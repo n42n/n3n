@@ -35,7 +35,6 @@ void sb_zero(strbuf_t *p) {
     p->wr_pos = 0;
     p->rd_pos = 0;
     p->overflowed = false;
-    p->str[0] = 0;
 }
 
 /**

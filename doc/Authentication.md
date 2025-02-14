@@ -124,7 +124,7 @@ recommended, the supernode's public key is provided to the edges via the
 using the `edge tools keygen` utility as well:
 
 ```bash
-[user@host n3n]$ edge tools keygen secretFed
+[user@host n3n]$ n3n-edge tools keygen secretFed
 auth.pubkey=opIyaWhWjKLJSNOHNpKnGmelhHWRqkmY5pAx7lbDHp4
 ```
 

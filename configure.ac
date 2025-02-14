@@ -126,13 +126,10 @@ AS_IF([test "x$prefix" = "xNONE" ],
     prefix=/usr/local
 )
 
-# The systemd unit dir should be in a sane location (based on the prefix) but
-# that is not always a dir underneath the prefix.  Apply another hack
+# The systemd unit dir should be in a sane location (based on the prefix).
+# On modern systems, that should default to a dir underneath the prefix.
 AS_IF([test "x$systemddir" = "x" ],
-    AS_IF([test "x$prefix" = "x/usr"],
-        systemddir=/lib/systemd/system,
-        systemddir=$prefix/lib/systemd/system
-    )
+    systemddir=$prefix/lib/systemd/system
 )
 
 # All this indirection would be great, if the namespace wasnt poluted

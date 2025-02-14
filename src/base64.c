@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "base64.h"
+
 static int letter2number (const char ch) {
     if(ch >= 'A' && ch <= 'Z') {
         return ch-'A';
