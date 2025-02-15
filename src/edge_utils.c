@@ -175,6 +175,39 @@ static struct n3n_metrics_module edge_metrics_module2 = {
     .type = n3n_metrics_type_llu32,
 };
 
+/* addr should be in network order. Things are so much simpler that way. */
+char* intoa (uint32_t /* host order */ addr, char* buf, uint16_t buf_len) {
+
+    char *cp, *retStr;
+    uint8_t byteval;
+    int n;
+
+    cp = &buf[buf_len];
+    *--cp = '\0';
+
+    n = 4;
+    do {
+        byteval = addr & 0xff;
+        *--cp = byteval % 10 + '0';
+        byteval /= 10;
+        if(byteval > 0) {
+            *--cp = byteval % 10 + '0';
+            byteval /= 10;
+            if(byteval > 0) {
+                *--cp = byteval + '0';
+            }
+        }
+        *--cp = '.';
+        addr >>= 8;
+    } while(--n > 0);
+
+    /* Convert the string to lowercase */
+    retStr = (char*)(cp + 1);
+
+    return(retStr);
+}
+
+
 /* ************************************** */
 
 int edge_verify_conf (const n2n_edge_conf_t *conf) {

@@ -116,39 +116,6 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
 /* *********************************************** */
 
 
-/* addr should be in network order. Things are so much simpler that way. */
-char* intoa (uint32_t /* host order */ addr, char* buf, uint16_t buf_len) {
-
-    char *cp, *retStr;
-    uint8_t byteval;
-    int n;
-
-    cp = &buf[buf_len];
-    *--cp = '\0';
-
-    n = 4;
-    do {
-        byteval = addr & 0xff;
-        *--cp = byteval % 10 + '0';
-        byteval /= 10;
-        if(byteval > 0) {
-            *--cp = byteval % 10 + '0';
-            byteval /= 10;
-            if(byteval > 0) {
-                *--cp = byteval + '0';
-            }
-        }
-        *--cp = '.';
-        addr >>= 8;
-    } while(--n > 0);
-
-    /* Convert the string to lowercase */
-    retStr = (char*)(cp + 1);
-
-    return(retStr);
-}
-
-
 /** Convert subnet prefix bit length to host order subnet mask. */
 uint32_t bitlen2mask (uint8_t bitlen) {
 

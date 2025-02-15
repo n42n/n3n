@@ -112,7 +112,6 @@ void tuntap_close (struct tuntap_dev *tuntap);
 void tuntap_get_address (struct tuntap_dev *tuntap);
 
 /* Utils */
-char* intoa (uint32_t addr, char* buf, uint16_t buf_len);
 uint32_t bitlen2mask (uint8_t bitlen);
 uint8_t mask2bitlen (uint32_t mask);
 uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
