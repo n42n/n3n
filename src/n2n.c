@@ -116,16 +116,6 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
 /* *********************************************** */
 
 
-/* stringify in_addr type to ipstr_t */
-char* inaddrtoa (ipstr_t out, struct in_addr addr) {
-
-    if(!inet_ntop(AF_INET, &addr, out, sizeof(ipstr_t)))
-        out[0] = '\0';
-
-    return out;
-}
-
-
 /* addr should be in network order. Things are so much simpler that way. */
 char* intoa (uint32_t /* host order */ addr, char* buf, uint16_t buf_len) {
 
