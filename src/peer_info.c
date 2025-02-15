@@ -308,6 +308,9 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
 
 /* ************************************** */
 
+// TODO:
+// - only one remaining user of this function (supernode peer conf), migrate
+// it and remove
 int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) {
 
     n2n_sock_t sock;
