@@ -130,23 +130,6 @@ uint32_t bitlen2mask (uint8_t bitlen) {
 }
 
 
-/** Convert host order subnet mask to subnet prefix bit length. */
-uint8_t mask2bitlen (uint32_t mask) {
-
-    uint8_t i, bitlen = 0;
-
-    for(i = 0; i < 32; ++i) {
-        if((mask << i) & 0x80000000) {
-            ++bitlen;
-        } else {
-            break;
-        }
-    }
-
-    return bitlen;
-}
-
-
 /* *********************************************** */
 
 // TODO: move to a ethernet helper source file

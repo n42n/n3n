@@ -107,6 +107,23 @@ static int sort_communities (struct n3n_runtime_data *sss,
 /* ************************************** */
 
 
+/** Convert host order subnet mask to subnet prefix bit length. */
+uint8_t mask2bitlen (uint32_t mask) {
+
+    uint8_t i, bitlen = 0;
+
+    for(i = 0; i < 32; ++i) {
+        if((mask << i) & 0x80000000) {
+            ++bitlen;
+        } else {
+            break;
+        }
+    }
+
+    return bitlen;
+}
+
+
 void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn) {
 
     struct sn_community *comm, *tmp_comm;
