@@ -1,6 +1,6 @@
 /**
  * (C) 2007-23 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  */
@@ -308,6 +308,9 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
 
 /* ************************************** */
 
+// TODO:
+// - only one remaining user of this function (supernode peer conf), migrate
+// it and remove
 int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) {
 
     n2n_sock_t sock;
@@ -359,6 +362,44 @@ int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) 
 
 /* ***************************************************** */
 
+
+// checks if a provided time stamp is consistent with current time and previously valid time stamps
+// and, in case of validity, updates the "last valid time stamp"
+static int time_stamp_verify_and_update (uint64_t stamp, uint64_t *previous_stamp, int allow_jitter) {
+
+    int64_t diff; /* do not change to unsigned */
+    uint64_t co;  /* counter only mode (for sub-seconds) */
+
+    co = (stamp << 63) >> 63;
+
+    // is it around current time (+/- allowed deviation TIME_STAMP_FRAME)?
+    diff = stamp - time_stamp();
+    // abs()
+    diff = (diff < 0 ? -diff : diff);
+    if(diff >= TIME_STAMP_FRAME) {
+        traceEvent(TRACE_DEBUG, "time_stamp_verify_and_update found a timestamp out of allowed frame.");
+        return 0; // failure
+    }
+
+    // if applicable: is it higher than previous time stamp (including allowed deviation of TIME_STAMP_JITTER)?
+    if(NULL != previous_stamp) {
+        diff = stamp - *previous_stamp;
+        if(allow_jitter) {
+            // 8 times higher jitter allowed for counter-only flagged timestamps ( ~ 1.25 sec with 160 ms default jitter)
+            diff += TIME_STAMP_JITTER << (co << 3);
+        }
+
+        if(diff <= 0) {
+            traceEvent(TRACE_DEBUG, "time_stamp_verify_and_update found a timestamp too old compared to previous.");
+            return 0; // failure
+        }
+        // for not allowing to exploit the allowed TIME_STAMP_JITTER to "turn the clock backwards",
+        // set the higher of the values
+        *previous_stamp = (stamp > *previous_stamp ? stamp : *previous_stamp);
+    }
+
+    return 1; // success
+}
 
 /***
  *

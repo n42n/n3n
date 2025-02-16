@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2023 Hamish Coleman
+# Copyright (C) Hamish Coleman
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Send known packets to the daemons and allow confirming the expected replies

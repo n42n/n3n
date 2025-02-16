@@ -1,4 +1,4 @@
-Copyright (C) 2023-24 Hamish Coleman
+Copyright (C) Hamish Coleman
 SPDX-License-Identifier: GPL-3.0-only
 
 # Management API
@@ -12,6 +12,7 @@ curl --unix-socket /run/n3n/edge/mgmt http://x/v1 -d '{"jsonrpc": "2.0", "method
 or
 ```
 n3nctl edges
+```
 
 (The supernode still uses the legacy default of TCP/5645, but it will soon
 switch to using the unix domain socket as its default)

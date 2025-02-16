@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2023 Hamish Coleman
+# Copyright (C) Hamish Coleman
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # Simple script to query the management interface of a running n3n edge node

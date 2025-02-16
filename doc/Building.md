@@ -1,4 +1,5 @@
-Copyright (C) 2023 Hamish Coleman and other contributors
+Copyright (C) 2020 other n2n contributors
+Copyright (C) 2023-25 Hamish Coleman
 SPDX-License-Identifier: GPL-3.0-only
 
 This document describes the process for compiling n3n in several different

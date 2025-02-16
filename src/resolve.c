@@ -1,6 +1,6 @@
 /*
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-24 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * The resolver thread code and functions
@@ -180,6 +180,9 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
         freeaddrinfo(ainfo);
         return -1;
     }
+
+    // TODO:
+    // - switch to using fill_n2nsock()
 
     /* It is definitely and IPv4 address -> sockaddr_in */
     saddr = (struct sockaddr_in *)ainfo->ai_addr;
@@ -417,10 +420,69 @@ const char *resolve_supernode_str_get (int index) {
 }
 
 /*
+ * Convert one string into an added peer_info
+ * (This is a refactor of n3n_peer_add_by_hostname)
+ *
+ */
+static int resolve_supernode_str_to_peer_info_one (
+    struct peer_info **list,
+    const char *s
+) {
+
+    n2n_sock_t sock;
+    memset(&sock, 0, sizeof(sock));
+
+    // WARN: this function could block for a name resolution
+    int rv = supernode2sock(&sock, s);
+
+    if(rv < 0) {
+        /* just warn, since it might resolve next time */
+        traceEvent(TRACE_WARNING, "could not resolve %s", s);
+        return 1;
+    }
+
+    int skip_add = SN_ADD;
+    struct peer_info *peer = add_sn_to_list_by_mac_or_sock(
+        list,
+        &sock,
+        null_mac,
+        &skip_add
+    );
+
+    if(!peer) {
+        return 1;
+    }
+
+    if(!peer_info_get_hostname(peer)) {
+        peer->hostname = (char *)s;
+    }
+
+    memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
+
+    // If a new peer was added, it has already been init, but we want to reset
+    // the state of any old peer object
+    if(skip_add != SN_ADD_ADDED) {
+        peer_info_init(peer, null_mac);
+    }
+
+    // This is the only peer_info where the default purgeable=true
+    // is overwritten
+    peer->purgeable = false;
+
+    // TODO: say something different if we updated an existing record?
+    traceEvent(
+        TRACE_INFO,
+        "adding supernode = %s",
+        peer_info_get_hostname(peer)
+    );
+
+    return 0;
+}
+
+/*
  * Convert the entire supernode list into peer_info structs
  *
  * TODO:
- * - do the resolving here, use an "add by addr" function to avoid duplicates
  * - update the next_resolve field, also use it to skip fast resolves
  * - support multiple hostname results (both A and AAAA as well)
  * - eventually, support SRV
@@ -432,7 +494,7 @@ int resolve_supernode_str_to_peer_info (struct peer_info **peers) {
     struct supernode_str *p = supernode_list;
     int rv = 0;
     while(p) {
-        rv += n3n_peer_add_by_hostname(peers, p->s);
+        rv += resolve_supernode_str_to_peer_info_one(peers, p->s);
         p = p->next;
     }
     return rv;

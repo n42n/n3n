@@ -23,7 +23,7 @@ Copyright: Copyright (C) 1991, 1999 Free Software Foundation, Inc.
 
 Files:
  libs/connslot/*
-Copyright: 2024 Hamish Coleman
+Copyright: Hamish Coleman
 License: LGPL-2.1-only
  A copy of the GNU Lesser General Public License version 2.1 is available as
  LICENSES/preferred/LGPL-2.1 in the source of this package or at
@@ -38,7 +38,7 @@ Files:
  tests/*
  tools/Makefile
  uncrustify.cfg
-Copyright: 2024 Hamish Coleman
+Copyright: Hamish Coleman
 License: GPL-2.0-only
  A copy of the GNU General Public License version 2 is available as
  LICENSES/preferred/GPL-2.0 in the source of this package or at
@@ -57,7 +57,7 @@ Files:
  tools/tests-elliptic.c
  tools/tests-transform.c
  tools/tests-wire.c
-Copyright: 2024 Hamish Coleman
+Copyright: Hamish Coleman
 License: GPL-3.0-only
  A copy of the GNU General Public License version 3 is available as
  LICENSES/preferred/GPL-3.0 in the source of this package or at

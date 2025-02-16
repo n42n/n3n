@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -34,7 +34,7 @@
 #include <time.h>              // for time, time_t
 #include <unistd.h>            // for getpid, STDIN_FILENO, _exit, geteuid
 #include "json.h"              // for _jsonpair, json_object_t, _jsonvalue
-#include "n2n.h"               // for inaddrtoa, traceEvent, TRACE_WARNING
+#include "n2n.h"
 #include "uthash.h"            // for UT_hash_handle, HASH_ADD, HASH_DEL
 
 #ifdef __linux__
@@ -123,6 +123,16 @@ typedef struct n2n_route_conf {
 
 
 static bool keep_running = true;              /* for main loop, handled by signals */
+
+
+/* stringify in_addr type to ipstr_t */
+char* inaddrtoa (ipstr_t out, struct in_addr addr) {
+
+    if(!inet_ntop(AF_INET, &addr, out, sizeof(ipstr_t)))
+        out[0] = '\0';
+
+    return out;
+}
 
 
 // -------------------------------------------------------------------------------------------------------

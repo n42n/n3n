@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Hamish Coleman
+ * Copyright (C) Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Command line helper to expose the built-in crypto routines and allow them

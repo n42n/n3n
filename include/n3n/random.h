@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2024 Hamish Coleman
+ * Copyright (C) 2024-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 #include <stdint.h>   // for uint64_t, uint32_t
 
 uint64_t n3n_rand (void);
+int memrnd (uint8_t *address, size_t len);
 
 // Only use when attempting to make a reproducible test case
 void n3n_srand_stable_default (void);

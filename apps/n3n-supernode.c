@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -609,6 +609,13 @@ int main (int argc, char * argv[]) {
     HASH_ITER(hh, sss_node.federation->edges, scan, tmp) {
         scan->socket_fd = sss_node.sock;
     }
+
+    traceEvent(
+        TRACE_NORMAL,
+        "starting n3n supernode %s %s",
+        VERSION,
+        BUILDDATE
+    );
 
 #ifndef _WIN32
 

@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -362,6 +362,22 @@ uint32_t n3n_rand_sqr (uint32_t max_n) {
         ret = max_n;
 
     return ret;
+}
+
+// fills a specified memory area with random numbers
+int memrnd (uint8_t *address, size_t len) {
+
+    for(; len >= 4; len -= 4) {
+        *(uint32_t*)address = n3n_rand();
+        address += 4;
+    }
+
+    for(; len > 0; len--) {
+        *address = n3n_rand();
+        address++;
+    }
+
+    return 0;
 }
 
 void n3n_initfuncs_random () {

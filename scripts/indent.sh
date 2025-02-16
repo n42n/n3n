@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) 2023 Hamish Coleman
+# Copyright (C) Hamish Coleman
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # Given one or more input source files, run a re-indenter on them.

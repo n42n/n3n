@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-24 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 #include <errno.h>              // for errno, EAFNOSUPPORT
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
-#include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr
+#include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr, memrnd
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community, calculate_...
 #include <stdbool.h>
@@ -105,6 +105,23 @@ static int sort_communities (struct n3n_runtime_data *sss,
                              time_t now);
 
 /* ************************************** */
+
+
+/** Convert host order subnet mask to subnet prefix bit length. */
+uint8_t mask2bitlen (uint32_t mask) {
+
+    uint8_t i, bitlen = 0;
+
+    for(i = 0; i < 32; ++i) {
+        if((mask << i) & 0x80000000) {
+            ++bitlen;
+        } else {
+            break;
+        }
+    }
+
+    return bitlen;
+}
 
 
 void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn) {
@@ -902,6 +919,10 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
+    // TODO:
+    // - is sss->supernodes even used in supernode?
+    // - should sss->federation->edges be used instead?
+    // - which works better in a merged edge/supernode environment?
     if(resolve_supernode_str_to_peer_info(&sss->supernodes)) {
         traceEvent(
             TRACE_ERROR,

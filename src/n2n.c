@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-24 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -116,49 +116,6 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
 /* *********************************************** */
 
 
-/* stringify in_addr type to ipstr_t */
-char* inaddrtoa (ipstr_t out, struct in_addr addr) {
-
-    if(!inet_ntop(AF_INET, &addr, out, sizeof(ipstr_t)))
-        out[0] = '\0';
-
-    return out;
-}
-
-
-/* addr should be in network order. Things are so much simpler that way. */
-char* intoa (uint32_t /* host order */ addr, char* buf, uint16_t buf_len) {
-
-    char *cp, *retStr;
-    uint8_t byteval;
-    int n;
-
-    cp = &buf[buf_len];
-    *--cp = '\0';
-
-    n = 4;
-    do {
-        byteval = addr & 0xff;
-        *--cp = byteval % 10 + '0';
-        byteval /= 10;
-        if(byteval > 0) {
-            *--cp = byteval % 10 + '0';
-            byteval /= 10;
-            if(byteval > 0) {
-                *--cp = byteval + '0';
-            }
-        }
-        *--cp = '.';
-        addr >>= 8;
-    } while(--n > 0);
-
-    /* Convert the string to lowercase */
-    retStr = (char*)(cp + 1);
-
-    return(retStr);
-}
-
-
 /** Convert subnet prefix bit length to host order subnet mask. */
 uint32_t bitlen2mask (uint8_t bitlen) {
 
@@ -170,23 +127,6 @@ uint32_t bitlen2mask (uint8_t bitlen) {
     }
 
     return mask;
-}
-
-
-/** Convert host order subnet mask to subnet prefix bit length. */
-uint8_t mask2bitlen (uint32_t mask) {
-
-    uint8_t i, bitlen = 0;
-
-    for(i = 0; i < 32; ++i) {
-        if((mask << i) & 0x80000000) {
-            ++bitlen;
-        } else {
-            break;
-        }
-    }
-
-    return bitlen;
 }
 
 
@@ -217,14 +157,6 @@ uint8_t is_multi_broadcast (const n2n_mac_t dest_mac) {
 }
 
 
-uint8_t is_broadcast (const n2n_mac_t dest_mac) {
-
-    int is_broadcast = (memcmp(broadcast_mac, dest_mac, N2N_MAC_SIZE) == 0);
-
-    return is_broadcast;
-}
-
-
 // TODO: move to a ethernet helper source file
 uint8_t is_null_mac (const n2n_mac_t dest_mac) {
 
@@ -236,30 +168,11 @@ uint8_t is_null_mac (const n2n_mac_t dest_mac) {
 
 /* *********************************************** */
 
-char* msg_type2str (uint16_t msg_type) {
-
-    switch(msg_type) {
-        case MSG_TYPE_REGISTER: return("MSG_TYPE_REGISTER");
-        case MSG_TYPE_DEREGISTER: return("MSG_TYPE_DEREGISTER");
-        case MSG_TYPE_PACKET: return("MSG_TYPE_PACKET");
-        case MSG_TYPE_REGISTER_ACK: return("MSG_TYPE_REGISTER_ACK");
-        case MSG_TYPE_REGISTER_SUPER: return("MSG_TYPE_REGISTER_SUPER");
-        case MSG_TYPE_REGISTER_SUPER_ACK: return("MSG_TYPE_REGISTER_SUPER_ACK");
-        case MSG_TYPE_REGISTER_SUPER_NAK: return("MSG_TYPE_REGISTER_SUPER_NAK");
-        case MSG_TYPE_FEDERATION: return("MSG_TYPE_FEDERATION");
-        default: return("???");
-    }
-
-    return("???");
-}
-
-/* *********************************************** */
-
 void print_n3n_version () {
 
     printf("n3n v%s, configured %s\n"
            "Copyright 2007-2022 - ntop.org and contributors\n"
-           "Copyright (C) 2023-24 Hamish Coleman\n\n",
+           "Copyright (C) 2023-25 Hamish Coleman\n\n",
            VERSION, BUILDDATE);
 }
 
@@ -385,23 +298,6 @@ int sock_equal (const n2n_sock_t * a,
 
 /* *********************************************** */
 
-// fills a specified memory area with random numbers
-int memrnd (uint8_t *address, size_t len) {
-
-    for(; len >= 4; len -= 4) {
-        *(uint32_t*)address = n3n_rand();
-        address += 4;
-    }
-
-    for(; len > 0; len--) {
-        *address = n3n_rand();
-        address++;
-    }
-
-    return 0;
-}
-
-
 // exclusive-ors a specified memory area with another
 int memxor (uint8_t *destination, const uint8_t *source, size_t len) {
 
@@ -495,43 +391,4 @@ uint64_t time_stamp (void) {
     previously_issued_time_stamp = micro_seconds;
 
     return micro_seconds;
-}
-
-
-// checks if a provided time stamp is consistent with current time and previously valid time stamps
-// and, in case of validity, updates the "last valid time stamp"
-int time_stamp_verify_and_update (uint64_t stamp, uint64_t *previous_stamp, int allow_jitter) {
-
-    int64_t diff; /* do not change to unsigned */
-    uint64_t co;  /* counter only mode (for sub-seconds) */
-
-    co = (stamp << 63) >> 63;
-
-    // is it around current time (+/- allowed deviation TIME_STAMP_FRAME)?
-    diff = stamp - time_stamp();
-    // abs()
-    diff = (diff < 0 ? -diff : diff);
-    if(diff >= TIME_STAMP_FRAME) {
-        traceEvent(TRACE_DEBUG, "time_stamp_verify_and_update found a timestamp out of allowed frame.");
-        return 0; // failure
-    }
-
-    // if applicable: is it higher than previous time stamp (including allowed deviation of TIME_STAMP_JITTER)?
-    if(NULL != previous_stamp) {
-        diff = stamp - *previous_stamp;
-        if(allow_jitter) {
-            // 8 times higher jitter allowed for counter-only flagged timestamps ( ~ 1.25 sec with 160 ms default jitter)
-            diff += TIME_STAMP_JITTER << (co << 3);
-        }
-
-        if(diff <= 0) {
-            traceEvent(TRACE_DEBUG, "time_stamp_verify_and_update found a timestamp too old compared to previous.");
-            return 0; // failure
-        }
-        // for not allowing to exploit the allowed TIME_STAMP_JITTER to "turn the clock backwards",
-        // set the higher of the values
-        *previous_stamp = (stamp > *previous_stamp ? stamp : *previous_stamp);
-    }
-
-    return 1; // success
 }

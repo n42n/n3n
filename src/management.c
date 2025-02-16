@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-24 Hamish Coleman
+ * Copyright (C) Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Common routines shared between the management interfaces
@@ -732,11 +732,9 @@ static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *co
     macstr_t mac_buf;
     n2n_sock_str_t sockbuf;
 
-    struct in_addr ip_addr;
     ipstr_t ip_address;
 
-    ip_addr.s_addr = eee->device.ip_addr;
-    inaddrtoa(ip_address, ip_addr);
+    inet_ntop(AF_INET, &eee->device.ip_addr, ip_address, sizeof(ip_address));
 
     jsonrpc_result_head(id, conn);
 

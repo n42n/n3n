@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024 Hamish Coleman
+ * Copyright (C) Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Public API for adding metrics

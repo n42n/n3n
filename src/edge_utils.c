@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-24 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 #include <n3n/mainloop.h>            // for mainloop_runonce, mainloop_regis...
 #include <n3n/metrics.h>
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
-#include <n3n/random.h>              // for n3n_rand, n3n_rand_sqr
+#include <n3n/random.h>              // for n3n_rand, n3n_rand_sqr, memrnd
 #include <n3n/strings.h>             // for sock_to_cstr
 #include <n3n/transform.h>           // for n3n_compression_id2str, n3n_tran...
 #include <stdbool.h>
@@ -174,6 +174,39 @@ static struct n3n_metrics_module edge_metrics_module2 = {
     .items_llu32 = &edge_utils_metrics_items2,
     .type = n3n_metrics_type_llu32,
 };
+
+/* addr should be in network order. Things are so much simpler that way. */
+char* intoa (uint32_t /* host order */ addr, char* buf, uint16_t buf_len) {
+
+    char *cp, *retStr;
+    uint8_t byteval;
+    int n;
+
+    cp = &buf[buf_len];
+    *--cp = '\0';
+
+    n = 4;
+    do {
+        byteval = addr & 0xff;
+        *--cp = byteval % 10 + '0';
+        byteval /= 10;
+        if(byteval > 0) {
+            *--cp = byteval % 10 + '0';
+            byteval /= 10;
+            if(byteval > 0) {
+                *--cp = byteval + '0';
+            }
+        }
+        *--cp = '.';
+        addr >>= 8;
+    } while(--n > 0);
+
+    /* Convert the string to lowercase */
+    retStr = (char*)(cp + 1);
+
+    return(retStr);
+}
+
 
 /* ************************************** */
 
@@ -1123,7 +1156,6 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
     // We only get here if sendto failed, so errno must be valid
 
     char * errstr = strerror(errno);
-    n2n_sock_str_t sockbuf;
 
     if(!errstr) {
         traceEvent(TRACE_WARNING, "bad strerror");
@@ -1136,16 +1168,22 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
         level = TRACE_DEBUG;
     }
 
+#ifdef _WIN32
+    int werrno = WSAGetLastError();
+    if(werrno == WSAEAFNOSUPPORT /* 10047 */) {
+        level = TRACE_DEBUG;
+    }
+    traceEvent(level, "WSAGetLastError(): %u", WSAGetLastError());
+#endif
+
     // TODO:
     // - remove n2ndest param, as the only reason it is here is to
     //   stringify for errors.
     //   Better would be to stringify the dest sockaddr_t
+    n2n_sock_str_t sockbuf;
     traceEvent(level, "sendto(%s) failed (%d) %s",
                sock_to_cstr(sockbuf, n2ndest),
                errno, errstr);
-#ifdef _WIN32
-    traceEvent(level, "WSAGetLastError(): %u", WSAGetLastError());
-#endif
 
     /*
      * TODO: metrics for errors
@@ -1671,7 +1709,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
                 }
             }
 
-            traceEvent(TRACE_DEBUG, "reconnected to supernode");
+            traceEvent(TRACE_DEBUG, "detected supernode disconnect");
         }
         supernode_connect(eee);
 

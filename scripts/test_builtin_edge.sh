@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (C) 2024 Hamish Coleman
+# Copyright (C) Hamish Coleman
 # SPDX-License-Identifier: GPL-3.0-only
 #
 # Run builtin commands to generate test data

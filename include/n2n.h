@@ -1,6 +1,6 @@
 /**
  * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-24 Hamish Coleman
+ * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
@@ -112,17 +112,11 @@ void tuntap_close (struct tuntap_dev *tuntap);
 void tuntap_get_address (struct tuntap_dev *tuntap);
 
 /* Utils */
-char* inaddrtoa (ipstr_t out, struct in_addr addr);
-char* intoa (uint32_t addr, char* buf, uint16_t buf_len);
 uint32_t bitlen2mask (uint8_t bitlen);
-uint8_t mask2bitlen (uint32_t mask);
 uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
-uint8_t is_broadcast (const n2n_mac_t dest_mac);
-char* msg_type2str (uint16_t msg_type);
 void print_n3n_version ();
 int is_empty_ip_address (const n2n_sock_t * sock);
 void print_edge_stats (const struct n3n_runtime_data *eee);
-int memrnd (uint8_t *address, size_t len);
 int memxor (uint8_t *destination, const uint8_t *source, size_t len);
 
 /* Sockets */
@@ -132,7 +126,6 @@ int sock_equal (const n2n_sock_t * a,
 
 /* Header encryption */
 uint64_t time_stamp (void);
-int time_stamp_verify_and_update (uint64_t stamp, uint64_t * previous_stamp, int allow_jitter);
 
 /* Public functions */
 struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv);
