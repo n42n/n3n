@@ -25,6 +25,7 @@
 #include <stdint.h>   // for uint64_t, uint32_t
 
 uint64_t n3n_rand (void);
+int memrnd (uint8_t *address, size_t len);
 
 // Only use when attempting to make a reproducible test case
 void n3n_srand_stable_default (void);

@@ -117,7 +117,6 @@ uint8_t is_multi_broadcast (const n2n_mac_t dest_mac);
 void print_n3n_version ();
 int is_empty_ip_address (const n2n_sock_t * sock);
 void print_edge_stats (const struct n3n_runtime_data *eee);
-int memrnd (uint8_t *address, size_t len);
 int memxor (uint8_t *destination, const uint8_t *source, size_t len);
 
 /* Sockets */

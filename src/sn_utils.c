@@ -23,7 +23,7 @@
 #include <errno.h>              // for errno, EAFNOSUPPORT
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
-#include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr
+#include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr, memrnd
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community, calculate_...
 #include <stdbool.h>

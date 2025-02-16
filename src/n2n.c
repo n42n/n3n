@@ -298,23 +298,6 @@ int sock_equal (const n2n_sock_t * a,
 
 /* *********************************************** */
 
-// fills a specified memory area with random numbers
-int memrnd (uint8_t *address, size_t len) {
-
-    for(; len >= 4; len -= 4) {
-        *(uint32_t*)address = n3n_rand();
-        address += 4;
-    }
-
-    for(; len > 0; len--) {
-        *address = n3n_rand();
-        address++;
-    }
-
-    return 0;
-}
-
-
 // exclusive-ors a specified memory area with another
 int memxor (uint8_t *destination, const uint8_t *source, size_t len) {
 

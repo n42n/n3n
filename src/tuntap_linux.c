@@ -30,6 +30,7 @@
 #include <linux/netlink.h>            // for sockaddr_nl, nlmsghdr, NETLINK_...
 #include <linux/rtnetlink.h>          // for ifinfomsg, RTMGRP_LINK
 #include <n3n/logging.h>              // for traceEvent
+#include <n3n/random.h>               // for memrnd
 #include <net/if.h>                   // for ifreq, IFNAMSIZ, ifr_name, ifr_...
 #include <net/if_arp.h>               // for ARPHRD_ETHER
 #include <netinet/in.h>               // for sockaddr_in, IPPROTO_IP, in_addr

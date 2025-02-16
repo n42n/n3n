@@ -364,6 +364,22 @@ uint32_t n3n_rand_sqr (uint32_t max_n) {
     return ret;
 }
 
+// fills a specified memory area with random numbers
+int memrnd (uint8_t *address, size_t len) {
+
+    for(; len >= 4; len -= 4) {
+        *(uint32_t*)address = n3n_rand();
+        address += 4;
+    }
+
+    for(; len > 0; len--) {
+        *address = n3n_rand();
+        address++;
+    }
+
+    return 0;
+}
+
 void n3n_initfuncs_random () {
     /* Random seed */
     n3n_srand(n3n_seed());
