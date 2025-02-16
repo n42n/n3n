@@ -126,7 +126,6 @@ int sock_equal (const n2n_sock_t * a,
 
 /* Header encryption */
 uint64_t time_stamp (void);
-int time_stamp_verify_and_update (uint64_t stamp, uint64_t * previous_stamp, int allow_jitter);
 
 /* Public functions */
 struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv);
