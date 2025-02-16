@@ -362,7 +362,7 @@ int open_wintap (struct tuntap_dev *device,
         if(result != 0) {
             traceEvent(TRACE_ERROR, "GetIpInterfaceEntry returned %i", result);
         }
-        traceEvent(TRACE_INFO, "Existing metric=%i", Row->metric);
+        traceEvent(TRACE_INFO, "Existing metric=%i", Row->Metric);
         traceEvent(
             TRACE_DEBUG,
             "Post get InterfaceLuid=%lu",
