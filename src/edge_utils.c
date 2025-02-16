@@ -1709,7 +1709,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
                 }
             }
 
-            traceEvent(TRACE_DEBUG, "reconnected to supernode");
+            traceEvent(TRACE_DEBUG, "detected supernode disconnect");
         }
         supernode_connect(eee);
 
