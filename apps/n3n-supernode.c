@@ -610,6 +610,13 @@ int main (int argc, char * argv[]) {
         scan->socket_fd = sss_node.sock;
     }
 
+    traceEvent(
+        TRACE_NORMAL,
+        "starting n3n supernode %s %s",
+        VERSION,
+        BUILDDATE
+    );
+
 #ifndef _WIN32
 
     /*
