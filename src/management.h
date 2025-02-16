@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-24 Hamish Coleman
+ * Copyright (C) Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
  *
  * Internal interface definitions for the management interfaces

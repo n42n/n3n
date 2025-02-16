@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2023-24 Hamish Coleman
+# Copyright (C) Hamish Coleman
 #
 # This makefile shows how to build applications using the libn3n library.
 #
