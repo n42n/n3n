@@ -1156,7 +1156,6 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
     // We only get here if sendto failed, so errno must be valid
 
     char * errstr = strerror(errno);
-    n2n_sock_str_t sockbuf;
 
     if(!errstr) {
         traceEvent(TRACE_WARNING, "bad strerror");
@@ -1169,16 +1168,22 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
         level = TRACE_DEBUG;
     }
 
+#ifdef _WIN32
+    int werrno = WSAGetLastError();
+    if(werrno == WSAEAFNOSUPPORT /* 10047 */) {
+        level = TRACE_DEBUG;
+    }
+    traceEvent(level, "WSAGetLastError(): %u", WSAGetLastError());
+#endif
+
     // TODO:
     // - remove n2ndest param, as the only reason it is here is to
     //   stringify for errors.
     //   Better would be to stringify the dest sockaddr_t
+    n2n_sock_str_t sockbuf;
     traceEvent(level, "sendto(%s) failed (%d) %s",
                sock_to_cstr(sockbuf, n2ndest),
                errno, errstr);
-#ifdef _WIN32
-    traceEvent(level, "WSAGetLastError(): %u", WSAGetLastError());
-#endif
 
     /*
      * TODO: metrics for errors
