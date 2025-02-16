@@ -181,6 +181,9 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
         return -1;
     }
 
+    // TODO:
+    // - switch to using fill_n2nsock()
+
     /* It is definitely and IPv4 address -> sockaddr_in */
     saddr = (struct sockaddr_in *)ainfo->ai_addr;
     memcpy(sn->addr.v4, &(saddr->sin_addr.s_addr), IPV4_SIZE);

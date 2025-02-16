@@ -919,6 +919,10 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
+    // TODO:
+    // - is sss->supernodes even used in supernode?
+    // - should sss->federation->edges be used instead?
+    // - which works better in a merged edge/supernode environment?
     if(resolve_supernode_str_to_peer_info(&sss->supernodes)) {
         traceEvent(
             TRACE_ERROR,
