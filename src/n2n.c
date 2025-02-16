@@ -157,14 +157,6 @@ uint8_t is_multi_broadcast (const n2n_mac_t dest_mac) {
 }
 
 
-uint8_t is_broadcast (const n2n_mac_t dest_mac) {
-
-    int is_broadcast = (memcmp(broadcast_mac, dest_mac, N2N_MAC_SIZE) == 0);
-
-    return is_broadcast;
-}
-
-
 // TODO: move to a ethernet helper source file
 uint8_t is_null_mac (const n2n_mac_t dest_mac) {
 
