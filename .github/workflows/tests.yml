@@ -441,7 +441,7 @@ jobs:
       - name: Upload ipk
         uses: actions/upload-artifact@v4
         with:
-          name: packages-ipk
+          name: packages-ipk-${{ matrix.name }}
           path: openwrt/bin/packages/*/base/*.ipk
 
   binaries_windows:
