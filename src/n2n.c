@@ -168,25 +168,6 @@ uint8_t is_null_mac (const n2n_mac_t dest_mac) {
 
 /* *********************************************** */
 
-char* msg_type2str (uint16_t msg_type) {
-
-    switch(msg_type) {
-        case MSG_TYPE_REGISTER: return("MSG_TYPE_REGISTER");
-        case MSG_TYPE_DEREGISTER: return("MSG_TYPE_DEREGISTER");
-        case MSG_TYPE_PACKET: return("MSG_TYPE_PACKET");
-        case MSG_TYPE_REGISTER_ACK: return("MSG_TYPE_REGISTER_ACK");
-        case MSG_TYPE_REGISTER_SUPER: return("MSG_TYPE_REGISTER_SUPER");
-        case MSG_TYPE_REGISTER_SUPER_ACK: return("MSG_TYPE_REGISTER_SUPER_ACK");
-        case MSG_TYPE_REGISTER_SUPER_NAK: return("MSG_TYPE_REGISTER_SUPER_NAK");
-        case MSG_TYPE_FEDERATION: return("MSG_TYPE_FEDERATION");
-        default: return("???");
-    }
-
-    return("???");
-}
-
-/* *********************************************** */
-
 void print_n3n_version () {
 
     printf("n3n v%s, configured %s\n"
