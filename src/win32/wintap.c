@@ -4,6 +4,7 @@
 
 #include "defs.h"
 #include <iphlpapi.h>   // for GetAdaptersInfo
+#include <n3n/logging.h>             // for traceEvent
 
 #include "n2n.h"
 #include "n2n_win32.h"
@@ -254,6 +255,8 @@ int open_wintap (struct tuntap_dev *device,
 
     free(buffer);
 
+    traceEvent(TRACE_DEBUG,"Found interface index=%i", device->if_idx);
+
     /* ************************************** */
 
     if(device_mac && device_mac[0])
@@ -341,15 +344,30 @@ int open_wintap (struct tuntap_dev *device,
 
     /* metric */
 
-    PMIB_IPINTERFACE_ROW Row;
 
     if(metric) { /* try to change only if a value has been given, otherwise leave with default or as set before */
+        traceEvent(TRACE_INFO, "Set metric=%i", metric);
+
         // find & store original metric
-        Row = calloc(1, sizeof(MIB_IPINTERFACE_ROW));
+        PMIB_IPINTERFACE_ROW Row = calloc(1, sizeof(MIB_IPINTERFACE_ROW));
         InitializeIpInterfaceEntry(Row);
+        traceEvent(
+            TRACE_DEBUG,
+            "Post init InterfaceLuid=%lu",
+            Row->InterfaceLuid.Value
+        );
         Row->InterfaceIndex = device->if_idx;
         Row->Family = AF_INET;
-        GetIpInterfaceEntry(Row);
+        int result = GetIpInterfaceEntry(Row);
+        if(result != 0) {
+            traceEvent(TRACE_ERROR, "GetIpInterfaceEntry returned %i", result);
+        }
+        traceEvent(TRACE_INFO, "Existing metric=%i", Row->metric);
+        traceEvent(
+            TRACE_DEBUG,
+            "Post get InterfaceLuid=%lu",
+            Row->InterfaceLuid.Value
+        );
 
         device->metric_original = Row->Metric;
         device->metric = metric;
@@ -359,7 +377,10 @@ int open_wintap (struct tuntap_dev *device,
 
         // store
         Row->SitePrefixLength = 0; /* if not set to zero, following function call fails... */
-        SetIpInterfaceEntry(Row);
+        result = SetIpInterfaceEntry(Row);
+        if(result != 0) {
+            traceEvent(TRACE_ERROR, "SetIpInterfaceEntry returned %i", result);
+        }
 
         free(Row);
     }
