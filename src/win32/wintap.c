@@ -365,32 +365,26 @@ int open_wintap (struct tuntap_dev *device,
      * Windows XP and are probably 32-bit.
      */
 
-    /* metric */
-
-
     if(metric) { /* try to change only if a value has been given, otherwise leave with default or as set before */
-        traceEvent(TRACE_INFO, "Set metric=%i", metric);
+        traceEvent(TRACE_INFO, "Set New Metric=%i", metric);
 
         // find & store original metric
         PMIB_IPINTERFACE_ROW Row = calloc(1, sizeof(MIB_IPINTERFACE_ROW));
         InitializeIpInterfaceEntry(Row);
-        traceEvent(
-            TRACE_DEBUG,
-            "Post init InterfaceLuid=%lu",
-            Row->InterfaceLuid.Value
-        );
+
         Row->InterfaceIndex = device->if_idx;
         Row->Family = AF_INET;
         int result = GetIpInterfaceEntry(Row);
         if(result != 0) {
-            traceEvent(TRACE_ERROR, "GetIpInterfaceEntry returned %i", result);
+            traceEvent(TRACE_ERROR, "GetIpInterfaceEntry error = %i", result);
         }
-        traceEvent(TRACE_INFO, "Existing metric=%i", Row->Metric);
-        traceEvent(
-            TRACE_DEBUG,
-            "Post get InterfaceLuid=%lu",
-            Row->InterfaceLuid.Value
-        );
+        traceEvent(TRACE_INFO, "Old Metric=%i", Row->Metric);
+        traceEvent(TRACE_DEBUG, "luid = %lu", Row->InterfaceLuid.Value);
+        traceEvent(TRACE_DEBUG, "GetIpInterfaceEntry:");
+        traceEvent(TRACE_DEBUG, "UseAutomaticMetric=%i", Row->UseAutomaticMetric);
+        traceEvent(TRACE_DEBUG, "NlMtu=%i", Row->NlMtu);
+        traceEvent(TRACE_DEBUG, "InterfaceIndex=%i", Row->InterfaceIndex);
+        traceEvent(TRACE_DEBUG, "SitePrefixLength=%i", Row->SitePrefixLength);
 
         device->metric_original = Row->Metric;
         device->metric = metric;
@@ -402,7 +396,7 @@ int open_wintap (struct tuntap_dev *device,
         Row->SitePrefixLength = 0; /* if not set to zero, following function call fails... */
         result = SetIpInterfaceEntry(Row);
         if(result != 0) {
-            traceEvent(TRACE_ERROR, "SetIpInterfaceEntry returned %i", result);
+            traceEvent(TRACE_ERROR, "SetIpInterfaceEntry error = %i", result);
         }
 
         free(Row);
