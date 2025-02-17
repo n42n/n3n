@@ -317,7 +317,7 @@ int open_wintap (struct tuntap_dev *device,
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" dhcp > nul",
                   device->ifName);
-    }else {
+    } else {
         in_addr_t mask = htonl(bitlen2mask(v4subnet.net_bitlen));
         struct in_addr *tmp = (struct in_addr *)&mask;
 
