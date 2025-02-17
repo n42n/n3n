@@ -280,8 +280,10 @@ int open_wintap (struct tuntap_dev *device,
 
     /* ************************************** */
 
-    if(device_mac && device_mac[0])
+    if(device_mac && device_mac[0]) {
+        traceEvent(TRACE_INFO,"Setting interface mac");
         set_interface_mac(device, device_mac);
+    }
 
     /* Get MAC address from tap device->device_name */
 
