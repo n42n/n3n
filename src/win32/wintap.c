@@ -399,8 +399,29 @@ int open_wintap (struct tuntap_dev *device,
             traceEvent(TRACE_ERROR, "SetIpInterfaceEntry error = %i", result);
         }
 
+#if 0
+        // The following is an example of a 100% working metrics setting
+        // automated command.
+        _snprintf(
+            cmd,
+            sizeof(cmd),
+            "netsh interface ipv4 set interface \"%s\" metric=%d > nul",
+            device->ifName,
+            metric
+        );
+        traceEvent(TRACE_DEBUG, "cmd %s", cmd);
+
+        // set new value
+        if(system(cmd) != 0) {
+            traceEvent(TRACE_ERROR, "Unable to set metric", cmd);
+        } else {
+            device->metric = metric;
+        }
+#endif
+
         free(Row);
     }
+
 #endif /* _WIN64 */
 
     /* ****************** */
