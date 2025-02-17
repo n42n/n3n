@@ -55,6 +55,7 @@ static void iterate_win_network_adapters (
         if(RegEnumKeyEx(key, i, (LPTSTR)adapter.adapterid, &len, 0, 0, 0, NULL))
             break;
 
+        traceEvent(TRACE_DEBUG, "Found adaptorid=%s", adapter.adapterid);
         /* Find out more about this adapter */
 
         _snprintf(regpath, sizeof(regpath), "%s\\%s\\Connection", NETWORK_CONNECTIONS_KEY, adapter.adapterid);
@@ -69,8 +70,11 @@ static void iterate_win_network_adapters (
         if(err)
             continue;
 
+        traceEvent(TRACE_DEBUG, "Found adaptorname=%s", adapter.adaptername);
 
         adapter.handle = open_tap_device(adapter.adapterid);
+
+        traceEvent(TRACE_DEBUG, "using handle=%i", adapter.handle);
 
         if(adapter.handle != INVALID_HANDLE_VALUE) {
             /* Valid device, use the callback */
