@@ -389,6 +389,10 @@ int open_wintap (struct tuntap_dev *device,
         device->metric_original = Row->Metric;
         device->metric = metric;
 
+        // Avoid a race somewhere
+        // FIXME - find the race, wait for the actual object, not just sleep
+        sleep(1);
+
         // set new value
         Row->Metric = metric;
 
