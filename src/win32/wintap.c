@@ -224,6 +224,7 @@ int open_wintap (struct tuntap_dev *device,
     device->device_handle = INVALID_HANDLE_VALUE;
     device->device_name = devname[0] ? _strdup(devname) : NULL;
     device->ifName = NULL;
+    device->if_idx = -1;
 
     iterate_win_network_adapters(choose_adapter_callback, device);
 
@@ -246,10 +247,21 @@ int open_wintap (struct tuntap_dev *device,
     GetAdaptersInfo(NULL, &buffer_len);
     buffer = malloc(buffer_len);
 
+    if(!buffer) {
+        printf("malloc failure");
+        return -1;
+    }
+
     // find device by name and get its index
-    if(buffer && !GetAdaptersInfo(buffer, &buffer_len)) {
+    if(!GetAdaptersInfo(buffer, &buffer_len)) {
         IP_ADAPTER_INFO *i;
         for(i = buffer; i != NULL; i = i->Next) {
+            traceEvent(
+                TRACE_DEBUG,
+                "GetAdaptersInfo (%i)=%s",
+                i->Index,
+                i->AdapterName
+            );
             if(!strcmp(device->device_name, i->AdapterName)) {
                 device->if_idx = i->Index;
                 break;
@@ -258,6 +270,11 @@ int open_wintap (struct tuntap_dev *device,
     }
 
     free(buffer);
+
+    if(device->if_idx == -1) {
+        printf("GetAdaptersInfo fid not find interface");
+        return -1;
+    }
 
     traceEvent(TRACE_DEBUG,"Found interface index=%i", device->if_idx);
 
