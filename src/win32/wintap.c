@@ -4,6 +4,7 @@
 
 #include "defs.h"
 #include <iphlpapi.h>   // for GetAdaptersInfo
+#include <n3n/logging.h>             // for traceEvent
 
 #include "n2n.h"
 #include "n2n_win32.h"
@@ -54,6 +55,7 @@ static void iterate_win_network_adapters (
         if(RegEnumKeyEx(key, i, (LPTSTR)adapter.adapterid, &len, 0, 0, 0, NULL))
             break;
 
+        traceEvent(TRACE_DEBUG, "Found adaptorid=%s", adapter.adapterid);
         /* Find out more about this adapter */
 
         _snprintf(regpath, sizeof(regpath), "%s\\%s\\Connection", NETWORK_CONNECTIONS_KEY, adapter.adapterid);
@@ -68,8 +70,11 @@ static void iterate_win_network_adapters (
         if(err)
             continue;
 
+        traceEvent(TRACE_DEBUG, "Found adaptorname=%s", adapter.adaptername);
 
         adapter.handle = open_tap_device(adapter.adapterid);
+
+        traceEvent(TRACE_DEBUG, "using handle=%i", adapter.handle);
 
         if(adapter.handle != INVALID_HANDLE_VALUE) {
             /* Valid device, use the callback */
@@ -219,6 +224,7 @@ int open_wintap (struct tuntap_dev *device,
     device->device_handle = INVALID_HANDLE_VALUE;
     device->device_name = devname[0] ? _strdup(devname) : NULL;
     device->ifName = NULL;
+    device->if_idx = -1;
 
     iterate_win_network_adapters(choose_adapter_callback, device);
 
@@ -241,10 +247,21 @@ int open_wintap (struct tuntap_dev *device,
     GetAdaptersInfo(NULL, &buffer_len);
     buffer = malloc(buffer_len);
 
+    if(!buffer) {
+        printf("malloc failure");
+        return -1;
+    }
+
     // find device by name and get its index
-    if(buffer && !GetAdaptersInfo(buffer, &buffer_len)) {
+    if(!GetAdaptersInfo(buffer, &buffer_len)) {
         IP_ADAPTER_INFO *i;
         for(i = buffer; i != NULL; i = i->Next) {
+            traceEvent(
+                TRACE_DEBUG,
+                "GetAdaptersInfo (%i)=%s",
+                i->Index,
+                i->AdapterName
+            );
             if(!strcmp(device->device_name, i->AdapterName)) {
                 device->if_idx = i->Index;
                 break;
@@ -254,10 +271,19 @@ int open_wintap (struct tuntap_dev *device,
 
     free(buffer);
 
+    if(device->if_idx == -1) {
+        printf("GetAdaptersInfo fid not find interface");
+        return -1;
+    }
+
+    traceEvent(TRACE_DEBUG,"Found interface index=%i", device->if_idx);
+
     /* ************************************** */
 
-    if(device_mac && device_mac[0])
+    if(device_mac && device_mac[0]) {
+        traceEvent(TRACE_INFO,"Setting interface mac");
         set_interface_mac(device, device_mac);
+    }
 
     /* Get MAC address from tap device->device_name */
 
@@ -291,7 +317,7 @@ int open_wintap (struct tuntap_dev *device,
         _snprintf(cmd, sizeof(cmd),
                   "netsh interface ip set address \"%s\" dhcp > nul",
                   device->ifName);
-    }else {
+    } else {
         in_addr_t mask = htonl(bitlen2mask(v4subnet.net_bitlen));
         struct in_addr *tmp = (struct in_addr *)&mask;
 
@@ -339,30 +365,67 @@ int open_wintap (struct tuntap_dev *device,
      * Windows XP and are probably 32-bit.
      */
 
-    /* metric */
-
-    PMIB_IPINTERFACE_ROW Row;
-
     if(metric) { /* try to change only if a value has been given, otherwise leave with default or as set before */
+        traceEvent(TRACE_INFO, "Set New Metric=%i", metric);
+
         // find & store original metric
-        Row = calloc(1, sizeof(MIB_IPINTERFACE_ROW));
+        PMIB_IPINTERFACE_ROW Row = calloc(1, sizeof(MIB_IPINTERFACE_ROW));
         InitializeIpInterfaceEntry(Row);
+
         Row->InterfaceIndex = device->if_idx;
         Row->Family = AF_INET;
-        GetIpInterfaceEntry(Row);
+        int result = GetIpInterfaceEntry(Row);
+        if(result != 0) {
+            traceEvent(TRACE_ERROR, "GetIpInterfaceEntry error = %i", result);
+        }
+        traceEvent(TRACE_INFO, "Old Metric=%i", Row->Metric);
+        traceEvent(TRACE_DEBUG, "luid = %lu", Row->InterfaceLuid.Value);
+        traceEvent(TRACE_DEBUG, "GetIpInterfaceEntry:");
+        traceEvent(TRACE_DEBUG, "UseAutomaticMetric=%i", Row->UseAutomaticMetric);
+        traceEvent(TRACE_DEBUG, "NlMtu=%i", Row->NlMtu);
+        traceEvent(TRACE_DEBUG, "InterfaceIndex=%i", Row->InterfaceIndex);
+        traceEvent(TRACE_DEBUG, "SitePrefixLength=%i", Row->SitePrefixLength);
 
         device->metric_original = Row->Metric;
         device->metric = metric;
+
+        // Avoid a race somewhere
+        // FIXME - find the race, wait for the actual object, not just sleep
+        sleep(1);
 
         // set new value
         Row->Metric = metric;
 
         // store
         Row->SitePrefixLength = 0; /* if not set to zero, following function call fails... */
-        SetIpInterfaceEntry(Row);
+        result = SetIpInterfaceEntry(Row);
+        if(result != 0) {
+            traceEvent(TRACE_ERROR, "SetIpInterfaceEntry error = %i", result);
+        }
+
+#if 0
+        // The following is an example of a 100% working metrics setting
+        // automated command.
+        _snprintf(
+            cmd,
+            sizeof(cmd),
+            "netsh interface ipv4 set interface \"%s\" metric=%d > nul",
+            device->ifName,
+            metric
+        );
+        traceEvent(TRACE_DEBUG, "cmd %s", cmd);
+
+        // set new value
+        if(system(cmd) != 0) {
+            traceEvent(TRACE_ERROR, "Unable to set metric", cmd);
+        } else {
+            device->metric = metric;
+        }
+#endif
 
         free(Row);
     }
+
 #endif /* _WIN64 */
 
     /* ****************** */
