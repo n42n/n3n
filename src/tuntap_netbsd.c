@@ -24,11 +24,13 @@
 
 #ifdef __NetBSD__
 
-
 #include <errno.h>
-#include <string.h>
-#include <n3n/logging.h>  // for traceEvent
+#include <fcntl.h>          // for open
+#include <n3n/logging.h>    // for traceEvent
+#include <net/if.h>         // for TAPGIFNAME
 #include <net/if_tap.h>
+#include <string.h>
+#include <sys/ioctl.h>      // for ioctl
 
 
 #define N2N_NETBSD_TAPDEVICE_SIZE 32

@@ -27,14 +27,14 @@ char *json_find_field(char *haystack, char *field) {
 
     p += strlen(field);
 
-    while (isspace(*p)) {p++;}
+    while (isspace((unsigned char)*p)) {p++;}
 
     if (*p != ':') {
         return NULL;
     }
     p++;
 
-    while (isspace(*p)) {p++;}
+    while (isspace((unsigned char)*p)) {p++;}
 
     return p;
 }
@@ -57,9 +57,9 @@ char *json_extract_val(char *p) {
     }
 
     // A positive integer val
-    if (isdigit(*p)) {
+    if (isdigit((unsigned char)*p)) {
         e = p;
-        while (isdigit(*e)) {e++;}
+        while (isdigit((unsigned char)*e)) {e++;}
         *e = '\0';
         return p;
     }
