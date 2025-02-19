@@ -21,6 +21,9 @@ jobs:
           - name: freebsd
             architecture: x86-64
             version: '13.2'
+          - name: netbsd
+            architecture: x86-64
+            version: '10.1'
 
     steps:
       - uses: actions/checkout@v4
