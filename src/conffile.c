@@ -993,7 +993,7 @@ char *extract_section (char *line) {
     bool closed = false;
 
     while(*line) {
-        if(isspace(*line)) {
+        if(isspace((unsigned char)*line)) {
             // Any space terminates the section name and introduces
             // the (unused in this parser) instance name
             *line++ = 0;
@@ -1013,7 +1013,7 @@ char *extract_section (char *line) {
             closed = true;
             continue;
         }
-        if(isalnum(*line)) {
+        if(isalnum((unsigned char)*line)) {
             // These are valid chars for a name
             line++;
             continue;
@@ -1055,7 +1055,7 @@ int n3n_config_load_file (void *conf, char *name) {
 
     while((line = fgets(buf, sizeof(buf), f))) {
         linenr++;
-        while(isspace(*line)) {
+        while(isspace((unsigned char)*line)) {
             line++;
         }
         if(!*line || *line == '\r' ) {
@@ -1097,12 +1097,12 @@ int n3n_config_load_file (void *conf, char *name) {
         char *option = line;
 
         while(*line) {
-            if(isalnum(*line) || (*line == '_')) {
+            if(isalnum((unsigned char)*line) || (*line == '_')) {
                 // These are valid chars for a name
                 line++;
                 continue;
             }
-            if(isspace(*line)) {
+            if(isspace((unsigned char)*line)) {
                 *line++ = 0;
                 break;
             }
@@ -1116,7 +1116,7 @@ int n3n_config_load_file (void *conf, char *name) {
         }
 
         while(*line) {
-            if(isspace(*line)) {
+            if(isspace((unsigned char)*line)) {
                 *line++ = 0;
                 continue;
             }
@@ -1133,7 +1133,7 @@ int n3n_config_load_file (void *conf, char *name) {
         *line++ = 0;
 
         while(*line) {
-            if(isspace(*line)) {
+            if(isspace((unsigned char)*line)) {
                 line++;
                 continue;
             }
@@ -1151,7 +1151,7 @@ int n3n_config_load_file (void *conf, char *name) {
 
         // Strip trailing spaces
         char *end = &line[strlen(line) - 1];
-        while(end > line && isspace(*end)) {
+        while(end > line && isspace((unsigned char)*end)) {
             end--;
         }
         end[1] = 0;
