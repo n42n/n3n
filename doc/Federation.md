@@ -52,7 +52,7 @@ Thanks to this feature, n3n is now able to handle security attacks such as DoS a
 
 To serve scenarios in which an edge is supposed to select the supernode by
 round trip time, i.e. choosing the "closest" one, the
-`onnection.supernode_selection=rtt` config option is available at the edge.
+`connection.supernode_selection=rtt` config option is available at the edge.
 Note, that workload distribution among supernodes might not be so fair then.
 
 Furthermore, `connection.supernode_selection=mac` would switch to a MAC address
