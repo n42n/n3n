@@ -108,7 +108,12 @@ When an overflow condition is returned, the error object may contain the
 count of the number of items that could be added before the overflow occurred.
 The request can be retried with pagination parameters to avoid the overflow.
 (Note that this also opens up a window for the internal data to change during
-the paginated request)
+the paginated request).
+
+For performance and or implementation simplicity, the returned items may
+include empty items in the returned result array (Generally with an empty
+dictionaty) - these are included in counting, but should be ignored by the
+requester.
 
 Add the offset and limit values to the param dictionary.
 
