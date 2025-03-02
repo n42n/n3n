@@ -315,14 +315,24 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             }
 
             int slotnr = fdlist_allocslot(client, fd_info_proto_http);
-            int connnr = connlist_alloc(CONN_PROTO_HTTP);
-            if(slotnr < 0 || connnr < 0) {
+            if(slotnr < 0) {
                 // TODO:
                 // - increment error stats
                 // - send static text
                 closesocket(client);
                 return;
             }
+
+            int connnr = connlist_alloc(CONN_PROTO_HTTP);
+            if(connnr < 0) {
+                // TODO:
+                // - increment error stats
+                // - send static text
+                closesocket(client);
+                fdlist_freefd(client);
+                return;
+            }
+
             fdlist[slotnr].connnr = connnr;
             conn_accept(&connlist[connnr], client, CONN_PROTO_HTTP);
 
