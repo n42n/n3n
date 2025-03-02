@@ -318,7 +318,7 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             if(slotnr < 0) {
                 // TODO:
                 // - increment error stats
-                // - send static text
+                send(client, "HTTP/1.1 503 full\r\n", 19, 0);
                 closesocket(client);
                 return;
             }
@@ -327,7 +327,7 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             if(connnr < 0) {
                 // TODO:
                 // - increment error stats
-                // - send static text
+                send(client, "HTTP/1.1 503 full\r\n", 19, 0);
                 closesocket(client);
                 fdlist_freefd(client);
                 return;
