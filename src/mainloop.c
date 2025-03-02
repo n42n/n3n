@@ -451,7 +451,12 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
     }
 }
 
-static void fdlist_closeidle(const time_t now) {
+/* TODO: decide if this quick helper is actually useful and needed
+ * It was added to try and provide an action to do if select returns an error,
+ * but it didnt end up closing connections - and the original error was traced
+ * to an alloc without matching free
+ */
+static void fdlist_closeidle (const time_t now) {
     int slot = 0;
     // A linear scan is not ideal, but until we support things other than
     // select() it will need to suffice
