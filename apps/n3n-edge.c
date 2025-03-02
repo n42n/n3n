@@ -19,6 +19,7 @@
  */
 
 
+#include <config.h>                  // for HAVE_LIBCRYPTO
 #include <ctype.h>                   // for isspace
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
@@ -53,6 +54,10 @@
 // FIXME, including private headers
 #include "../src/peer_info.h"        // for peer_info, peer_info_t
 #include "../src/resolve.h"          // for resolve_check
+
+#ifdef HAVE_LIBCRYPTO
+#include <openssl/crypto.h>          // for OpenSSL_version
+#endif
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
