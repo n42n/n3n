@@ -351,6 +351,9 @@ jobs:
       fail-fast: true
       matrix:
         include:
+          - name: arm32
+            sdk_ver: 22.03.3
+            sdk: https://mirror-03.infra.openwrt.org/releases/22.03.3/targets/armvirt/32/openwrt-sdk-22.03.3-armvirt-32_gcc-11.2.0_musl_eabi.Linux-x86_64.tar.xz
           - name: arm64
             sdk_ver: 22.03.3
             sdk: https://downloads.openwrt.org/releases/22.03.3/targets/armvirt/64/openwrt-sdk-22.03.3-armvirt-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
