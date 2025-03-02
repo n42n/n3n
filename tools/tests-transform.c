@@ -28,6 +28,7 @@
 #include <stdlib.h>     // for exit
 #include <string.h>     // for memcpy, memset, memcmp, strncpy
 #include <sys/types.h>  // for ssize_t
+#include "config.h"     // for HAVE_LIBZSTD
 #include "hexdump.h"    // for fhexdump
 #include "n2n.h"        // for n2n_trans_op_t, n2n_edge_conf_t, n2n_common_t
 #include "n2n_wire.h"   // for decode_PACKET, decode_common, encode_PACKET
