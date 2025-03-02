@@ -24,7 +24,7 @@
 #include <getopt.h>                  // for required_argument, no_argument
 #include <inttypes.h>                // for PRIu64
 #include <n3n/conffile.h>            // for n3n_config_set_option
-#include <n3n/edge.h>
+#include <n3n/edge.h>                // for edge_init_conf_defaults
 #include <n3n/ethernet.h>            // for macaddr_str, macstr_t
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent

@@ -19,7 +19,7 @@
  */
 
 
-#include <n3n/edge.h>
+#include <n3n/edge.h>    // for edge_init_conf_defaults
 #include <n3n/initfuncs.h> // for n3n_initfuncs
 #include <n3n/logging.h> // for traceEvent
 #include <stdint.h>      // for uint8_t, uint64_t
