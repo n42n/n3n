@@ -33,8 +33,6 @@
     tunctl -u UID -t tunX
  */
 
-#define SN_MANUAL_MAC   /* allows supernode MAC address to be set manually */
-
 #define N2N_HAVE_TCP    /* needs to be defined before it gets undefined */
 
 #include "config.h" /* Visual C++ */
