@@ -26,6 +26,7 @@
 
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/transform.h>   // for n3n_transform_register
+#include <zstd.h>
 
 #include "n2n.h"
 
@@ -152,6 +153,11 @@ static struct n3n_transform transform = {
 
 void n3n_initfuncs_transform_zstd () {
     n3n_transform_register(&transform);
+}
+
+#else
+
+void n3n_initfuncs_transform_zstd () {
 }
 
 #endif // HAVE_LIBZSTD

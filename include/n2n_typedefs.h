@@ -34,8 +34,6 @@
 #include <uthash.h>
 #include <n2n_define.h>
 
-#include <config.h>     // for HAVE_LIBZSTD
-
 #include "speck.h"      // for struct speck_context_t
 
 typedef char n2n_community_t[N2N_COMMUNITY_SIZE];

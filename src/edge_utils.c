@@ -44,6 +44,7 @@
 #include <unistd.h>                  // for gethostname, sleep
 #include <stddef.h>
 
+#include "config.h"                  // for HAVE_LIBZSTD
 #include "edge_utils.h"
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "management.h"              // for mgmt_event_post

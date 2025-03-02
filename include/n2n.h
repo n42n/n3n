@@ -73,10 +73,6 @@
 #include <netinet/in_systm.h>
 #endif /* #ifdef __FreeBSD__ */
 
-#ifdef HAVE_LIBZSTD
-#include <zstd.h>
-#endif
-
 #ifdef HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
