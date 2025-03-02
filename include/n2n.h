@@ -35,10 +35,10 @@
 
 #define N2N_HAVE_TCP    /* needs to be defined before it gets undefined */
 
+
+#ifdef _WIN32
 #include "config.h" /* Visual C++ */
 
-/* Moved here to define _CRT_SECURE_NO_WARNINGS before all the including takes place */
-#ifdef _WIN32
 #define N2N_CAN_NAME_IFACE 1
 #undef N2N_HAVE_TCP           /* as explained on https://github.com/ntop/n2n/pull/627#issuecomment-782093706 */
 #endif /* _WIN32 */
