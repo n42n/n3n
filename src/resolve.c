@@ -9,13 +9,16 @@
 #include <n3n/logging.h>
 #include <n3n/metrics.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
+#include <n3n/strings.h>     // for sock_to_cstr
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>          // for sleep
 
 #include "config.h"          // for HAVE_LIBPTHREAD
 #include "resolve.h"
+#include "n2n.h"             // for sock_equal
 #include "n2n_define.h"
 #include "n2n_typedefs.h"
 
