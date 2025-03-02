@@ -27,6 +27,6 @@ void edge_term_conf (n2n_edge_conf_t *conf);
 
 void send_register_super (struct n3n_runtime_data *eee);
 void send_query_peer (struct n3n_runtime_data *eee, const n2n_mac_t dst_mac);
-int supernode_connect (struct n3n_runtime_data *eee);
+void supernode_connect (struct n3n_runtime_data *eee);
 
 #endif
