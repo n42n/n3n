@@ -391,7 +391,17 @@ def main():
 
     args = ap.parse_args()
 
-    opener = urllib.request.build_opener(UnixHandler("/run/n3n"))
+    # Sadly, the more than a decade old improvement to the expected location
+    # of the # run dir has not made it everywhere (eg OpenWrt), so we need to
+    # probe for it
+    if os.path.exists("/run"):
+        rundir = "/run"
+    elif os.path.exists("/var/run"):
+        rundir = "/var/run"
+    else:
+        raise ValueError("No run directory found")
+
+    opener = urllib.request.build_opener(UnixHandler(f"{rundir}/n3n"))
     urllib.request.install_opener(opener)
 
     if args.sessionname is not None:
@@ -400,13 +410,13 @@ def main():
     if args.mgmturl is None:
         # try to guess the sessionname
         try:
-            sessiondirs = os.listdir("/run/n3n")
+            sessiondirs = os.listdir(f"{rundir}/n3n")
         except FileNotFoundError:
             sessiondirs = []
 
         sessions = []
         for dirname in sessiondirs:
-            if os.path.exists(f"/run/n3n/{dirname}/mgmt"):
+            if os.path.exists(f"{rundir}/n3n/{dirname}/mgmt"):
                 sessions.append(dirname)
 
         if len(sessions) == 0:
