@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <connslot/connslot.h>  // for slots_fdset
+#include <errno.h>              // for errno
 #include <n2n_typedefs.h>       // for n3n_runtime_data
 #include <n3n/edge.h>           // for edge_read_proto3_udp
 #include <n3n/logging.h>        // for traceEvent
@@ -314,14 +315,24 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             }
 
             int slotnr = fdlist_allocslot(client, fd_info_proto_http);
-            int connnr = connlist_alloc(CONN_PROTO_HTTP);
-            if(slotnr < 0 || connnr < 0) {
+            if(slotnr < 0) {
                 // TODO:
                 // - increment error stats
-                // - send static text
+                send(client, "HTTP/1.1 503 full\r\n", 19, 0);
                 closesocket(client);
                 return;
             }
+
+            int connnr = connlist_alloc(CONN_PROTO_HTTP);
+            if(connnr < 0) {
+                // TODO:
+                // - increment error stats
+                send(client, "HTTP/1.1 503 full\r\n", 19, 0);
+                closesocket(client);
+                fdlist_freefd(client);
+                return;
+            }
+
             fdlist[slotnr].connnr = connnr;
             conn_accept(&connlist[connnr], client, CONN_PROTO_HTTP);
 
@@ -440,6 +451,29 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
     }
 }
 
+/* TODO: decide if this quick helper is actually useful and needed
+ * It was added to try and provide an action to do if select returns an error,
+ * but it didnt end up closing connections - and the original error was traced
+ * to an alloc without matching free
+ */
+static void fdlist_closeidle (const time_t now) {
+    int slot = 0;
+    // A linear scan is not ideal, but until we support things other than
+    // select() it will need to suffice
+    while(slot < MAX_HANDLES) {
+        int fd = fdlist[slot].fd;
+        if(fdlist[slot].connnr != -1) {
+            int timeout = 60;
+            struct conn *conn = &connlist[fdlist[slot].connnr];
+            bool closed = conn_closeidle(conn, fd, now, timeout);
+            if(closed) {
+                fdlist_freefd(fd);
+            }
+        }
+        slot++;
+    }
+}
+
 static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct n3n_runtime_data *eee) {
     int slot = 0;
     // A linear scan is not ideal, but until we support things other than
@@ -512,13 +546,19 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
 
     int ready = select(maxfd + 1, &rd, &wr, NULL, &wait_time);
 
-    if(ready < 1) {
-        // Nothing ready or an error
-        return ready;
-    }
-
     // One timestamp to use for this entire loop iteration
     time_t now = time(NULL);
+
+    if(ready == -1) {
+        traceEvent(TRACE_ERROR, "select errno=%i", errno);
+        fdlist_closeidle(now);
+        return -1;
+    }
+
+    if(ready < 1) {
+        // Nothing ready
+        return ready;
+    }
 
     fdlist_check_ready(&rd, &wr, now, eee);
 

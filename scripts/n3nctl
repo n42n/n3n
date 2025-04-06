@@ -170,7 +170,7 @@ class JsonRPC:
             """Since we overflowed, params must be compatible"""
             raise ValueError(f"Cannot use params={params} with autopagination")
 
-        params["limit"] = count_max
+        params["limit"] = count_max - 1
         params["offset"] = 0
 
         result = []

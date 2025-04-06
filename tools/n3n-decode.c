@@ -24,6 +24,7 @@
 #ifdef HAVE_LIBPCAP
 
 #include <errno.h>             // for errno
+#include <n3n/edge.h>          // for edge_init_conf_defaults
 #include <n3n/logging.h>       // for traceEvent
 #include <pcap.h>
 #include <signal.h>            // for signal, SIGINT, SIGTERM

@@ -19,13 +19,14 @@
  */
 
 
-#include <n3n/edge.h>
+#include <n3n/edge.h>    // for edge_init_conf_defaults
 #include <n3n/initfuncs.h> // for n3n_initfuncs
 #include <n3n/logging.h> // for traceEvent
 #include <stdint.h>      // for uint8_t, uint64_t
 #include <stdio.h>       // for printf, fflush, size_t, NULL, stdout
 #include <string.h>      // for memset, memcpy, memcmp, strncpy
 #include <sys/types.h>   // for ssize_t
+#include "config.h"      // for HAVE_LIBZSTD
 #include "curve25519.h"  // for curve25519
 #include "n2n.h"         // for n2n_trans_op_t, n2n_common_t, n2n_edge_conf_t
 #include "n2n_wire.h"    // for decode_PACKET, decode_common, encode_PACKET

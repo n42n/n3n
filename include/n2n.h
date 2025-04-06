@@ -33,14 +33,12 @@
     tunctl -u UID -t tunX
  */
 
-#define SN_MANUAL_MAC   /* allows supernode MAC address to be set manually */
-
 #define N2N_HAVE_TCP    /* needs to be defined before it gets undefined */
 
+
+#ifdef _WIN32
 #include "config.h" /* Visual C++ */
 
-/* Moved here to define _CRT_SECURE_NO_WARNINGS before all the including takes place */
-#ifdef _WIN32
 #define N2N_CAN_NAME_IFACE 1
 #undef N2N_HAVE_TCP           /* as explained on https://github.com/ntop/n2n/pull/627#issuecomment-782093706 */
 #endif /* _WIN32 */
@@ -74,10 +72,6 @@
 #ifdef __FreeBSD__
 #include <netinet/in_systm.h>
 #endif /* #ifdef __FreeBSD__ */
-
-#ifdef HAVE_LIBZSTD
-#include <zstd.h>
-#endif
 
 #ifdef HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>

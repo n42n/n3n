@@ -26,6 +26,7 @@
 #include <errno.h>                   // for errno, EAFNOSUPPORT, EINPROGRESS
 #include <fcntl.h>                   // for fcntl, F_SETFL, O_NONBLOCK
 #include <n3n/conffile.h>            // for n3n_config_load_env
+#include <n3n/edge.h>                // for edge_init_conf_defaults
 #include <n3n/ethernet.h>            // for is_null_mac
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/mainloop.h>            // for mainloop_runonce, mainloop_regis...
@@ -44,6 +45,7 @@
 #include <unistd.h>                  // for gethostname, sleep
 #include <stddef.h>
 
+#include "config.h"                  // for HAVE_LIBZSTD
 #include "edge_utils.h"
 #include "header_encryption.h"       // for packet_header_encrypt, packet_he...
 #include "management.h"              // for mgmt_event_post

@@ -97,7 +97,5 @@ void n3n_initfuncs_transform () {
     n3n_initfuncs_transform_null();
     n3n_initfuncs_transform_speck();
     n3n_initfuncs_transform_twofish();
-#ifdef HAVE_LIBZSTD
     n3n_initfuncs_transform_zstd();
-#endif
 }
