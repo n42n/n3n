@@ -54,6 +54,7 @@ int supernode2sock (n2n_sock_t * sn, const char *addrIn);
 int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn);
 
 const char *resolve_supernode_str_get (int);
+void resolve_log_supernodes (void);
 int resolve_supernode_str_to_peer_info (struct peer_info **);
 
 #endif

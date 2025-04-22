@@ -564,25 +564,8 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
     memcpy(&eee->conf, conf, sizeof(*conf));
 
-    {
-        int index = 0;
-        char *p = (char *)resolve_supernode_str_get(index);
-        while(p) {
-            traceEvent(
-                TRACE_INFO,
-                "supernode %i => %s\n",
-                index,
-                p
-            );
-            index++;
-            p = (char *)resolve_supernode_str_get(index);
-        }
-        traceEvent(
-            TRACE_INFO,
-            "number of supernodes configured: %i\n",
-            index
-        );
-    }
+    // Show the user what has been configured
+    resolve_log_supernodes();
 
     if(resolve_supernode_str_to_peer_info(&eee->supernodes)) {
         traceEvent(

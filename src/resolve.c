@@ -422,6 +422,27 @@ const char *resolve_supernode_str_get (int index) {
     return p->s;
 }
 
+// Just dump the supernode_list to the log
+void resolve_log_supernodes (void) {
+    int count = 0;
+    struct supernode_str *p = supernode_list;
+    while(p) {
+        count ++;
+        traceEvent(
+            TRACE_INFO,
+            "supernode %i => %s\n",
+            count,
+            p->s
+        );
+        p = p->next;
+    }
+    traceEvent(
+        TRACE_INFO,
+        "number of supernodes configured: %i\n",
+        count
+    );
+}
+
 /*
  * Convert one string into an added peer_info
  * (This is a refactor of n3n_peer_add_by_hostname)
