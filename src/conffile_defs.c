@@ -83,7 +83,8 @@ static struct n3n_conf_option section_community[] = {
         .type = n3n_conf_supernode_str,
         .desc = "Add a supernode",
         .help = "Multiple supernodes can be specified, each one as a "
-                "host:port string, which will be resolved if needed.",
+                "host:port string, which will be resolved if needed. "
+                "If no port is provided, a default of 7654 will be used.",
     },
     {.name = NULL},
 };

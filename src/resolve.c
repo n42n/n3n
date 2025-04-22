@@ -127,15 +127,15 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
     supernode_port = strtok(NULL, ":");
 
     if(!supernode_port) {
-        traceEvent(
-            TRACE_WARNING,
-            "malformed supernode parameter (should be <host:port>) %s",
-            addrIn
-        );
-        return -3;
-    }
+        sn->port = 7654;
 
-    sn->port = atoi(supernode_port);
+        traceEvent(
+            TRACE_INFO,
+            "no port specified, assuming default 7654"
+        );
+    } else {
+        sn->port = atoi(supernode_port);
+    }
 
     struct timeval time1;
     struct timeval time2;
