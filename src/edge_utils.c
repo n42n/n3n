@@ -3242,7 +3242,8 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     // - do we actually want to tie the user/group to the running pid?
 
     if(fd < 0) {
-        perror("slots_listen_tcp");
+        perror("slots_listen_unix");
+        edge_term(eee);
         exit(1);
     }
     mainloop_register_fd(fd, fd_info_proto_listen_http);
