@@ -3190,6 +3190,7 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     closeTraceFile();
 
+    free(eee->conf.mgmt_password);
     free(eee);
 
 #ifdef _WIN32
