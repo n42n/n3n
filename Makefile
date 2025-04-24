@@ -307,7 +307,9 @@ lint.yaml:
 .PHONY: cover
 cover:
 	mkdir -p $(COVERAGEDIR)
-	gcovr -s --html --html-details --output=$(COVERAGEDIR)/index.html
+	gcovr \
+	    --gcov-ignore-errors=no_working_dir_found \
+	    -s --html --html-details --output=$(COVERAGEDIR)/index.html
 
 # Use coverage data to generate gcov text report files.
 # Unfortunately, these end up in the wrong directory due to the
