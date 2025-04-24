@@ -2303,13 +2303,13 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
 
 
 /** handle a datagram from the main UDP socket to the internet. */
-void process_udp (struct n3n_runtime_data *eee,
+void process_pdu (struct n3n_runtime_data *eee,
                   const struct sockaddr *sender_sock,
                   const SOCKET in_sock,
                   uint8_t *udp_buf,
                   size_t udp_size,
-                  time_t now,
-                  int type) {
+                  time_t now
+) {
 
     n2n_common_t cmn;          /* common fields in the packet header */
     n2n_sock_str_t sockbuf1;
@@ -2332,14 +2332,14 @@ void process_udp (struct n3n_runtime_data *eee,
     /* REVISIT: when UDP/IPv6 is supported we will need a flag to indicate which
      * IP transport version the packet arrived on. May need to UDP sockets. */
 
-    // TODO: pass the sender to process_udp, dont calculate it here
+    // TODO: pass the sender to process_pdu, dont calculate it here
     if(eee->conf.connect_tcp)
         // TCP expects that we know our comm partner and does not deliver the sender
         memcpy(&sender, &(eee->curr_sn->sock), sizeof(sender));
     else {
         // REVISIT: type conversion back and forth, choose a consistent approach throughout whole code,
         //          i.e. stick with more general sockaddr as long as possible and narrow only if required
-        fill_n2nsock(&sender, sender_sock, type);
+        fill_n2nsock(&sender, sender_sock);
     }
     /* The packet may not have an orig_sender socket spec. So default to last
      * hop as sender. */
@@ -2941,14 +2941,13 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
     // we have a datagram to process...
     // ...and the datagram has data (not just a header)
     //
-    process_udp(
+    process_pdu(
         eee,
         sender_sock,
         sock,
         n3n_pktbuf_getbufptr(pktbuf),
         n3n_pktbuf_getbufsize(pktbuf),
-        now,
-        SOCK_DGRAM
+        now
     );
     return;
 }
@@ -2980,14 +2979,13 @@ void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
     }
 
     // have a valid packet read, handle it
-    process_udp(
+    process_pdu(
         eee,
         NULL,
         sock,
         pktbuf,
         pktbuf_len,
-        now,
-        SOCK_STREAM
+        now
     );
     return;
 }

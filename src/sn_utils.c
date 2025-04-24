@@ -1676,13 +1676,13 @@ static int sort_communities (struct n3n_runtime_data *sss,
 /** Examine a datagram and determine what to do with it.
  *
  */
-static int process_udp (struct n3n_runtime_data * sss,
+static int process_pdu (struct n3n_runtime_data * sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
                         size_t udp_size,
-                        time_t now,
-                        int type) {
+                        time_t now
+) {
 
     n2n_common_t cmn;        /* common fields in the packet header */
     size_t rem;
@@ -1703,7 +1703,7 @@ static int process_udp (struct n3n_runtime_data * sss,
     int skip_add;
     time_t any_time = 0;
 
-    fill_n2nsock(&sender, sender_sock, SOCK_DGRAM);
+    fill_n2nsock(&sender, sender_sock);
     orig_sender = &sender;
 
     traceEvent(TRACE_DEBUG, "processing incoming UDP packet [len: %lu][sender: %s]",
@@ -2502,7 +2502,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                        nak.srcMac,
                        stamp,
                        TIME_STAMP_NO_JITTER)) {
-                    traceEvent(TRACE_DEBUG, "process_udp dropped REGISTER_SUPER_NAK due to time stamp error");
+                    traceEvent(TRACE_DEBUG, "process_pdu dropped REGISTER_SUPER_NAK due to time stamp error");
                     return -1;
                 }
             }
@@ -2886,15 +2886,14 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                 // we have a datagram to process...
                 if(bread > 0) {
                     // ...and the datagram has data (not just a header)
-                    process_udp(
+                    process_pdu(
                         sss,
                         sender_sock,
                         ss_size,
                         sss->sock,
                         pktbuf,
                         bread,
-                        now,
-                        SOCK_DGRAM
+                        now
                     );
                 }
             }
@@ -2951,15 +2950,14 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                             }
                         } else {
                             // full packet read, handle it
-                            process_udp(
+                            process_pdu(
                                 sss,
                                 &(conn->sock),
                                 conn->sock_len,
                                 conn->socket_fd,
                                 conn->buffer + sizeof(uint16_t),
                                 conn->position - sizeof(uint16_t),
-                                now,
-                                SOCK_STREAM
+                                now
                             );
 
                             // reset, await new prepended length
