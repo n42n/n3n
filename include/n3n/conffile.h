@@ -21,7 +21,6 @@ enum n3n_conf_type {
     n3n_conf_transform,
     n3n_conf_headerenc,
     n3n_conf_compression,
-    n3n_conf_peer,          // TODO: could merge with _conf_sockaddr
     n3n_conf_privatekey,
     n3n_conf_publickey,
     n3n_conf_sockaddr,
@@ -34,7 +33,7 @@ enum n3n_conf_type {
     n3n_conf_userid,
     n3n_conf_groupid,
     n3n_conf_macaddr,       // TODO: conf has another macaddr string type
-    n3n_conf_supernode_str,
+    n3n_conf_hostname_str,
 };
 
 struct n3n_conf_option {

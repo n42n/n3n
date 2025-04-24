@@ -77,13 +77,14 @@ static struct n3n_metrics_module metrics_module = {
 
 /**********************************************************/
 
-struct supernode_str {
-    struct supernode_str *next;
+struct hostname_list_item {
+    struct hostname_list_item *next;
     uint32_t next_resolve;  // Use 0 for "now"
     char s[];
 };
 
-static struct supernode_str *supernode_list;
+// TODO: zeroth item unused
+static struct hostname_list_item *hostname_lists[3];
 // static struct supernode_str *supernode_next_resolve;
 
 /** Resolve the supernode IP address.
@@ -390,25 +391,25 @@ int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
 /*
  * Add a string to our list of resolvable supernodes
  */
-void resolve_supernode_str_add (const char *s) {
-    int len = sizeof(struct supernode_str) + strlen(s) + 1;
-    struct supernode_str *p = malloc(len);
+void resolve_hostnames_str_add (int listnr, const char *s) {
+    int len = sizeof(struct hostname_list_item) + strlen(s) + 1;
+    struct hostname_list_item *p = malloc(len);
     if(!p) {
         return;
     }
 
     strcpy((char *)&(p->s), s);
     p->next_resolve = 0;    // mark as "Now"
-    p->next = supernode_list;
-    supernode_list = p;
+    p->next = hostname_lists[listnr];
+    hostname_lists[listnr] = p;
 }
 
 /*
  * For config dumping, provide a way to access the list
  * (Not intended to be called often, so not performant)
  */
-const char *resolve_supernode_str_get (int index) {
-    struct supernode_str *p = supernode_list;
+const char *resolve_hostnames_str_get (int listnr, int index) {
+    struct hostname_list_item *p = hostname_lists[listnr];
     while(index) {
         if(!p) {
             return NULL;
@@ -422,25 +423,18 @@ const char *resolve_supernode_str_get (int index) {
     return p->s;
 }
 
-// Just dump the supernode_list to the log
-void resolve_log_supernodes (void) {
+// Just dump the whole hostname list to the log
+void resolve_log_hostnames (int listnr) {
+    traceEvent(TRACE_INFO, "hostname list %i:", listnr);
+
     int count = 0;
-    struct supernode_str *p = supernode_list;
+    struct hostname_list_item *p = hostname_lists[listnr];
     while(p) {
-        count ++;
-        traceEvent(
-            TRACE_INFO,
-            "supernode %i => %s\n",
-            count,
-            p->s
-        );
+        count++;
+        traceEvent(TRACE_INFO, "name %i = %s\n", count, p->s);
         p = p->next;
     }
-    traceEvent(
-        TRACE_INFO,
-        "number of supernodes configured: %i\n",
-        count
-    );
+    traceEvent(TRACE_INFO, "number of hostnames in this list: %i\n", count);
 }
 
 /*
@@ -448,13 +442,15 @@ void resolve_log_supernodes (void) {
  * (This is a refactor of n3n_peer_add_by_hostname)
  *
  */
-static int resolve_supernode_str_to_peer_info_one (
+static int resolve_hostnames_str_to_peer_info_one (
     struct peer_info **list,
     const char *s
 ) {
 
     n2n_sock_t sock;
     memset(&sock, 0, sizeof(sock));
+
+    traceEvent(TRACE_DEBUG, "resolving %s", s);
 
     // WARN: this function could block for a name resolution
     int rv = supernode2sock(&sock, s);
@@ -511,14 +507,14 @@ static int resolve_supernode_str_to_peer_info_one (
  * - support multiple hostname results (both A and AAAA as well)
  * - eventually, support SRV
  */
-int resolve_supernode_str_to_peer_info (struct peer_info **peers) {
+int resolve_hostnames_str_to_peer_info (int listnr, struct peer_info **peers) {
     if(!peers) {
         return 1;
     }
-    struct supernode_str *p = supernode_list;
+    struct hostname_list_item *p = hostname_lists[listnr];
     int rv = 0;
     while(p) {
-        rv += resolve_supernode_str_to_peer_info_one(peers, p->s);
+        rv += resolve_hostnames_str_to_peer_info_one(peers, p->s);
         p = p->next;
     }
     return rv;

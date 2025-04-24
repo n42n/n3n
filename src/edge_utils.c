@@ -217,7 +217,7 @@ int edge_verify_conf (const n2n_edge_conf_t *conf) {
     if(conf->community_name[0] == 0)
         return -1;
 
-    if(!resolve_supernode_str_get(0)) {
+    if(!resolve_hostnames_str_get(RESOLVE_LIST_SUPERNODE, 0)) {
         // confirm that there is at least one supernode string provided
         return -5;
     }
@@ -565,12 +565,14 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     memcpy(&eee->conf, conf, sizeof(*conf));
 
     // Show the user what has been configured
-    resolve_log_supernodes();
+    resolve_log_hostnames(RESOLVE_LIST_SUPERNODE);
 
-    if(resolve_supernode_str_to_peer_info(&eee->supernodes)) {
+    if(resolve_hostnames_str_to_peer_info(
+           RESOLVE_LIST_SUPERNODE,
+           &eee->supernodes)) {
         traceEvent(
             TRACE_ERROR,
-            "resolve_supernode_str_to_peer_info returned errors"
+            "resolve_hostnames_str_to_peer_info returned errors"
         );
     }
 
@@ -3397,7 +3399,10 @@ int quick_edge_init (char *device_name, char *community_name,
     conf.compression = N2N_COMPRESSION_ID_NONE;
     conf.mtu = DEFAULT_MTU;
     snprintf((char*)conf.community_name, sizeof(conf.community_name), "%s", community_name);
-    resolve_supernode_str_add(supernode_ip_address_port);
+    resolve_hostnames_str_add(
+        RESOLVE_LIST_SUPERNODE,
+        supernode_ip_address_port
+    );
 
     /* Validate configuration */
     if(edge_verify_conf(&conf) != 0)

@@ -11,6 +11,9 @@
 
 typedef struct n3n_resolve_parameter n3n_resolve_parameter_t;
 
-void resolve_supernode_str_add (const char *);
+#define RESOLVE_LIST_SUPERNODE  1   // edge uses to list supernode hostnames
+#define RESOLVE_LIST_PEER       2   // supernode uses to list peer hostnames
+
+void resolve_hostnames_str_add (int, const char *);
 
 #endif

@@ -24,6 +24,7 @@
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/logging.h>        // for traceEvent
 #include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr, memrnd
+#include <n3n/resolve.h>        // for RESOLVE_LIST_*
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community, calculate_...
 #include <stdbool.h>
@@ -919,17 +920,24 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
+    // Show the user what has been configured
+    resolve_log_hostnames(RESOLVE_LIST_SUPERNODE);
+    resolve_log_hostnames(RESOLVE_LIST_PEER);
+
     // TODO:
     // - is sss->supernodes even used in supernode?
     // - should sss->federation->edges be used instead?
     // - which works better in a merged edge/supernode environment?
-    if(resolve_supernode_str_to_peer_info(&sss->supernodes)) {
+    if(resolve_hostnames_str_to_peer_info(
+           RESOLVE_LIST_SUPERNODE,
+           &sss->supernodes)) {
         traceEvent(
             TRACE_ERROR,
-            "resolve_supernode_str_to_peer_info returned errors"
+            "resolve_hostnames_str_to_peer_info returned errors"
         );
     }
 
+    // TODO: thread should probably be created before the above resolve!
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
     }
@@ -2454,6 +2462,12 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             } else {
                 traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong or old cookie");
+                traceEvent(
+                    TRACE_DEBUG,
+                    "got %u, expected %u",
+                    ack.cookie,
+                    scan->last_cookie
+                );
             }
             return 0;
         }

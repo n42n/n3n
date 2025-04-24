@@ -306,60 +306,6 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
     return peer;
 }
 
-/* ************************************** */
-
-// TODO:
-// - only one remaining user of this function (supernode peer conf), migrate
-// it and remove
-int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) {
-
-    n2n_sock_t sock;
-    int rv = -1;
-
-    memset(&sock, 0, sizeof(sock));
-
-    // WARN: this function could block for a name resolution
-    rv = supernode2sock(&sock, ip_and_port);
-
-    if(rv < -2) { /* we accept resolver failure as it might resolve later */
-        traceEvent(TRACE_WARNING, "invalid supernode parameter.");
-        return 1;
-    }
-
-    int skip_add = SN_ADD;
-    struct peer_info *sn = add_sn_to_list_by_mac_or_sock(list, &sock, null_mac, &skip_add);
-
-    if(!sn) {
-        return 1;
-    }
-
-    // FIXME: what if ->hostname is already set?
-    sn->hostname = strdup(ip_and_port);
-    if(!sn->hostname) {
-        // FIXME: add to list, but left half initialised
-        return 1;
-    }
-    memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
-
-    // If it added an entry, it is already peer_info_init()
-    if(skip_add != SN_ADD_ADDED) {
-        peer_info_init(sn, null_mac);
-    }
-
-    // This is the only peer_info where the default purgeable=true
-    // is overwritten
-    sn->purgeable = false;
-
-    traceEvent(
-        TRACE_INFO,
-        "adding supernode = %s",
-        peer_info_get_hostname(sn)
-    );
-    metrics.hostname++;
-
-    return 0;
-}
-
 /* ***************************************************** */
 
 
