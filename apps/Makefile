@@ -42,8 +42,9 @@ install: $(addsuffix $(EXE),$(APPS))
 	$(INSTALL_PROG) n3n-edge$(EXE) $(CONFIG_SBINDIR)/
 
 # See comments in the topdir Makefile about how to generate coverage data.
+# TODO: why are these apps detected with strange names by coverage?
 gcov:
-	gcov $(APPS)
+	gcov n3n-edge-n3n-edge n3n-supernode-n3n-supernode
 
 clean:
 	rm -f $(APPS) $(EXAMPLES)
