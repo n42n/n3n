@@ -18,6 +18,7 @@ void n3n_initfuncs_transform ();
 void n3n_initfuncs_win32 ();
 
 void n3n_deinitfuncs_config ();
+void n3n_deinitfuncs_mainloop ();
 
 void n3n_initfuncs () {
     // TODO:
@@ -45,5 +46,7 @@ void n3n_initfuncs () {
 void n3n_deinitfuncs () {
     //
 
+    // (sorted list)
     n3n_deinitfuncs_config();
+    n3n_deinitfuncs_mainloop();
 }

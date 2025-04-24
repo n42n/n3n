@@ -153,6 +153,16 @@ static void connlist_init () {
     connlist_next_search = 0;
 }
 
+static void connlist_deinit () {
+    int conn = 0;
+    while(conn < MAX_CONN) {
+        // TODO: this crosses the layer boundaries
+        free(connlist[conn].request);
+        free(connlist[conn].reply_header);
+        conn++;
+    }
+}
+
 static int connlist_alloc (enum conn_proto proto) {
     int conn = connlist_next_search % MAX_CONN;
     int count = MAX_CONN;
@@ -648,4 +658,11 @@ void n3n_initfuncs_mainloop () {
     fdlist_zero();
     n3n_metrics_register(&metrics_module_dynamic);
     n3n_metrics_register(&metrics_module_static);
+}
+
+void n3n_deinitfuncs_mainloop () {
+    connlist_deinit();
+    // TODO: once the metrics framework supports it
+    // n3n_metrics_unregister(&metrics_module_dynamic);
+    // n3n_metrics_unregister(&metrics_module_static);
 }
