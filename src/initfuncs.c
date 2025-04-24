@@ -17,6 +17,8 @@ void n3n_initfuncs_resolve ();
 void n3n_initfuncs_transform ();
 void n3n_initfuncs_win32 ();
 
+void n3n_deinitfuncs_config ();
+
 void n3n_initfuncs () {
     // TODO:
     // - ideally, these functions would all be defined statically as
@@ -38,4 +40,10 @@ void n3n_initfuncs () {
     n3n_initfuncs_random();
     n3n_initfuncs_resolve();
     n3n_initfuncs_transform();
+}
+
+void n3n_deinitfuncs () {
+    //
+
+    n3n_deinitfuncs_config();
 }

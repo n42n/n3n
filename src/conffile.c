@@ -60,6 +60,20 @@ void n3n_config_register_section (char *name, char *help, struct n3n_conf_option
     registered_sections = section;
 }
 
+void n3n_deinitfuncs_config () {
+    // TODO:
+    // - ideally, each caller to the n3n_config_register_section() function
+    //   would be able to call a matching deregister(), but we are cheating
+    //   and simply do a mass free here
+
+    struct n3n_conf_section *p = registered_sections;
+    while(p) {
+        struct n3n_conf_section *new_p = p->next;
+        free(p);
+        p = new_p;
+    }
+}
+
 static struct n3n_conf_option *lookup_section (char *section) {
     struct n3n_conf_section *p = registered_sections;
     while(p) {
