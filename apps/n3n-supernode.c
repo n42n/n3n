@@ -610,7 +610,8 @@ int main (int argc, char * argv[]) {
     // - do we actually want to tie the user/group to the running pid?
 
     if(e !=0) {
-        perror("slots_listen_tcp");
+        perror("slots_listen_unix");
+        sn_term(&sss_node);
         exit(1);
     }
 #endif
