@@ -389,6 +389,19 @@ int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
 #endif
 
 /*
+ * Remove all entries from a hostnames list
+ *
+ */
+void resolve_hostnames_free (int listnr) {
+    struct hostname_list_item *p = hostname_lists[listnr];
+    while(p) {
+        struct hostname_list_item *p_next = p->next;
+        free(p);
+        p = p_next;
+    }
+}
+
+/*
  * Add a string to our list of resolvable supernodes
  */
 void resolve_hostnames_str_add (int listnr, const char *s) {
@@ -474,7 +487,10 @@ static int resolve_hostnames_str_to_peer_info_one (
     }
 
     if(!peer_info_get_hostname(peer)) {
-        peer->hostname = (char *)s;
+        // We dup the string here because the peer_info_free() thinks it owns
+        // the hostname and wants to free() it
+        // TODO: refactor
+        peer->hostname = strdup(s);
     }
 
     memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
@@ -522,4 +538,11 @@ int resolve_hostnames_str_to_peer_info (int listnr, struct peer_info **peers) {
 
 void n3n_initfuncs_resolve () {
     n3n_metrics_register(&metrics_module);
+}
+
+void n3n_deinitfuncs_resolve () {
+    // TODO: there chould be a _del() function that the original callers
+    // can use to remove their entries in their own
+    resolve_hostnames_free(RESOLVE_LIST_SUPERNODE);
+    resolve_hostnames_free(RESOLVE_LIST_PEER);
 }

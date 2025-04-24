@@ -28,6 +28,7 @@
 #include <n3n/conffile.h>            // for n3n_config_load_env
 #include <n3n/edge.h>                // for edge_init_conf_defaults
 #include <n3n/ethernet.h>            // for is_null_mac
+#include <n3n/initfuncs.h>           // for n3n_deinitfuncs
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/mainloop.h>            // for mainloop_runonce, mainloop_regis...
 #include <n3n/metrics.h>
@@ -3192,6 +3193,8 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     free(eee->conf.mgmt_password);
     free(eee);
+
+    n3n_deinitfuncs();
 
 #ifdef _WIN32
     destroyWin32();
