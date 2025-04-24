@@ -417,14 +417,22 @@ void destroy_network_traffic_filter (network_traffic_filter_t *filter) {
     filter_rule_t *el = 0, *tmp = 0;
     filter_rule_pair_cache_t* el1 = 0, * tmp1 = 0;
 
-    HASH_ITER(hh, filter->rules, el, tmp) {
-        HASH_DEL(filter->rules, el);
-        free(el);
+    if(!filter) {
+        return;
     }
 
-    HASH_ITER(hh, filter->connections_rule_cache, el1, tmp1) {
-        HASH_DEL(filter->connections_rule_cache, el1);
-        free(el);
+    if(filter->rules) {
+        HASH_ITER(hh, filter->rules, el, tmp) {
+            HASH_DEL(filter->rules, el);
+            free(el);
+        }
+    }
+
+    if(filter->connections_rule_cache) {
+        HASH_ITER(hh, filter->connections_rule_cache, el1, tmp1) {
+            HASH_DEL(filter->connections_rule_cache, el1);
+            free(el);
+        }
     }
 
     free(filter);

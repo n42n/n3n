@@ -686,6 +686,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
         traceEvent(TRACE_NORMAL, "successfully created resolver thread");
     }
 
+    // TODO: skip creating this if there are no filters to add
     eee->network_traffic_filter = create_network_traffic_filter();
     network_traffic_filter_add_rule(eee->network_traffic_filter, eee->conf.network_traffic_filter_rules);
 
