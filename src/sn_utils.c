@@ -1011,6 +1011,8 @@ void sn_term (struct n3n_runtime_data *sss) {
 
     free(sss->conf.community_file);
 
+    free(sss->conf.mgmt_password);
+
 #ifndef _WIN32
     char unixsock[1024];
     snprintf(unixsock, sizeof(unixsock), "%s/mgmt", sss->conf.sessiondir);
