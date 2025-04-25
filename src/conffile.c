@@ -9,6 +9,7 @@
 #include <errno.h>              // for errno
 #include <getopt.h>
 #include <n3n/conffile.h>
+#include <n3n/ethernet.h>       // for n2n_mac_t
 #include <n3n/logging.h>        // for setTraceLevel
 #include <n3n/network_traffic_filter.h>
 #include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
@@ -24,7 +25,6 @@
 
 #include "peer_info.h"          // for struct peer_info
 #include "resolve.h"            // for resolve_supernode_str_get
-#include "n3n/ethernet.h"
 #include "uthash.h"
 
 #ifdef _WIN32
