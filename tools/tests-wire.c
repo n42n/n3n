@@ -19,10 +19,10 @@
  */
 
 
+#include <n3n/hexdump.h>  // for fhexdump
 #include <stdint.h>    // for uint8_t
 #include <stdio.h>     // for printf, fprintf, size_t, stderr, stdout
 #include <string.h>    // for memset, strcpy, strncpy
-#include "hexdump.h"   // for fhexdump
 #include "n2n.h"       // for n2n_common_t, n2n_REGISTER_SUPER_t, n2n_REGIST...
 #include "n2n_wire.h"  // for encode_REGISTER, encode_REGISTER_SUPER, encode...
 
