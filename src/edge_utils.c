@@ -2813,7 +2813,7 @@ void process_pdu (struct n3n_runtime_data *eee,
                     scan->uptime = pi.uptime;
                     memcpy(scan->version, pi.version, sizeof(n2n_version_t));
                     /* The data type depends on the actual selection strategy that has been chosen. */
-                    SN_SELECTION_CRITERION_DATA_TYPE sn_sel_tmp = pi.load;
+                    uint64_t sn_sel_tmp = pi.load;
                     sn_selection_criterion_calculate(eee, scan, &sn_sel_tmp);
 
                     traceEvent(TRACE_INFO, "Rx PONG from supernode %s version '%s'",

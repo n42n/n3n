@@ -41,7 +41,7 @@ struct peer_info {
     time_t last_p2p;
     time_t last_sent_query;
     time_t time_alloc;
-    SN_SELECTION_CRITERION_DATA_TYPE selection_criterion;
+    uint64_t selection_criterion;
     uint64_t last_valid_time_stamp;
     char *hostname;
     time_t uptime;

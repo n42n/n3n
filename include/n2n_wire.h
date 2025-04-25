@@ -30,8 +30,6 @@
 #include <sys/socket.h> /* AF_INET and AF_INET6 */
 #endif /* #ifndef _WIN32 */
 
-#include "sn_selection.h"
-
 
 int encode_buf (uint8_t * base,
                 size_t * idx,

@@ -524,7 +524,7 @@ struct n3n_runtime_data {
     n2n_trans_op_t transop;                                              /**< The transop to use when encoding */
     n2n_trans_op_t transop_lzo;                                          /**< The transop for LZO  compression */
     n2n_trans_op_t transop_zstd;                                         /**< The transop for ZSTD compression */
-    SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_data;
+    uint64_t sn_selection_criterion_common_data;
 
     /* Sockets */
     /* supernode socket is in        eee->curr_sn->sock (of type n2n_sock_t) */
