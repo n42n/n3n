@@ -7,6 +7,8 @@
 
 #include <n2n.h>        // for time_stamp
 #include <n2n_define.h> // for TIME_STAMP_FRAME
+#include <n2n_wire.h>   // for fill_n2nsock
+#include <n3n/ethernet.h> // for for n2n_mac_t
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/metrics.h> // for traceEvent
 #include <sn_selection.h>   // for sn_selection_criterion_default
@@ -302,6 +304,54 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
     memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
     HASH_ADD_PEER(*sn_list, peer);
     *skip_add = SN_ADD_ADDED;
+
+    return peer;
+}
+
+struct peer_info* peer_upsert_by_sockaddr (
+    struct peer_info **list,
+    struct sockaddr *addr,
+    size_t addrlen
+) {
+    struct n2n_sock sock;
+    if(fill_n2nsock(&sock, addr) != 0) {
+        return NULL;
+    }
+
+    struct peer_info *peer = NULL;
+
+    // TODO:
+    // - keep count of how many non-indexed "full scan" are done
+    // - if there are many, could add an index for that
+
+    /* search by socket */
+    {
+        struct peer_info *scan, *tmp;
+        HASH_ITER(hh, *list, scan, tmp) {
+            if(memcmp(&(scan->sock), &sock, sizeof(sock)) != 0) {
+                continue;
+            }
+
+            peer = scan;
+            break;
+        }
+    }
+
+    // If we didnt find one, alloc one
+    if(!peer) {
+        n2n_mac_t null = {0,0,0,0,0,0};
+        peer = peer_info_malloc(null);
+
+        // If the alloc didnt work, bail out
+        if(!peer) {
+            return NULL;
+        }
+
+        peer->selection_criterion = sn_selection_criterion_default();
+        memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
+
+        HASH_ADD_PEER(*list, peer);
+    }
 
     return peer;
 }

@@ -79,6 +79,11 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (
     const n2n_mac_t mac,
     int *skip_add
 );
+struct peer_info* peer_upsert_by_sockaddr (
+    struct peer_info **list,
+    struct sockaddr *sa,
+    size_t addrlen
+);
 
 int find_and_remove_peer (struct peer_info **, const n2n_mac_t);
 struct peer_info* find_peer_by_sock (const n2n_sock_t *, struct peer_info *);
