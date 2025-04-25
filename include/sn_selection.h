@@ -34,11 +34,10 @@ typedef char selection_criterion_str_t[SN_SELECTION_CRITERION_BUF_SIZE];
 #include "n2n.h"
 
 /* selection criterion's functions */
-int sn_selection_criterion_init (peer_info_t *peer);
-int sn_selection_criterion_default (uint64_t *selection_criterion);
-int sn_selection_criterion_bad (uint64_t *selection_criterion);
-int sn_selection_criterion_good (uint64_t *selection_criterion);
-int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t *peer, uint64_t *data);
+uint64_t sn_selection_criterion_default ();
+uint64_t sn_selection_criterion_bad ();
+uint64_t sn_selection_criterion_good ();
+int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t *peer, uint64_t data);
 
 /* common data's functions */
 int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee);

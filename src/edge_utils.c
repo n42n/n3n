@@ -1465,9 +1465,9 @@ static void sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
 
     HASH_ITER(hh, eee->supernodes, scan, tmp) {
         if(scan == eee->curr_sn)
-            sn_selection_criterion_good(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_good();
         else
-            sn_selection_criterion_default(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_default();
     }
     sn_selection_criterion_common_data_default(eee);
 
@@ -1653,7 +1653,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
 
     if(0 == eee->sup_attempts) {
         /* Give up on that supernode and try the next one. */
-        sn_selection_criterion_bad(&(eee->curr_sn->selection_criterion));
+        eee->curr_sn->selection_criterion = sn_selection_criterion_bad();
         sn_selection_sort(&(eee->supernodes));
         eee->curr_sn = eee->supernodes;
         traceEvent(
@@ -2814,7 +2814,7 @@ void process_pdu (struct n3n_runtime_data *eee,
                     memcpy(scan->version, pi.version, sizeof(n2n_version_t));
                     /* The data type depends on the actual selection strategy that has been chosen. */
                     uint64_t sn_sel_tmp = pi.load;
-                    sn_selection_criterion_calculate(eee, scan, &sn_sel_tmp);
+                    sn_selection_criterion_calculate(eee, scan, sn_sel_tmp);
 
                     traceEvent(TRACE_INFO, "Rx PONG from supernode %s version '%s'",
                                macaddr_str(mac_buf1, pi.srcMac),

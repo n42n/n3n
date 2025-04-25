@@ -998,9 +998,9 @@ int main (int argc, char* argv[]) {
     // shape supernode list; make current one the first on the list
     HASH_ITER(hh, eee->supernodes, scan, scan_tmp) {
         if(scan == eee->curr_sn)
-            sn_selection_criterion_good(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_good();
         else
-            sn_selection_criterion_default(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_default();
     }
     sn_selection_sort(&(eee->supernodes));
     // do not immediately ping again, allow some time

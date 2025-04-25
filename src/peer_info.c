@@ -298,7 +298,7 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
         return peer;
     }
 
-    sn_selection_criterion_default(&(peer->selection_criterion));
+    peer->selection_criterion = sn_selection_criterion_default();
     memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
     HASH_ADD_PEER(*sn_list, peer);
     *skip_add = SN_ADD_ADDED;
