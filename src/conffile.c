@@ -13,6 +13,7 @@
 #include <n3n/network_traffic_filter.h>
 #include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/transform.h>      // for n3n_transform_lookup_
+#include <sn_selection.h>       // for SN_SELECTION_STRATEGY_RTT, ...
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
@@ -23,7 +24,6 @@
 
 #include "peer_info.h"          // for struct peer_info
 #include "resolve.h"            // for resolve_supernode_str_get
-#include "n2n_typedefs.h"
 #include "n3n/ethernet.h"
 #include "uthash.h"
 

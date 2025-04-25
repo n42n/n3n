@@ -20,6 +20,12 @@
 #ifndef _SN_SELECTION_
 #define _SN_SELECTION_
 
+#define SN_SELECTION_STRATEGY_LOAD       1
+#define SN_SELECTION_STRATEGY_RTT        2
+#define SN_SELECTION_STRATEGY_MAC        3
+
+#define SN_SELECTION_CRITERION_BUF_SIZE     16
+
 // FIXME: including the private header in a public interface, should untangle
 #include "../src/peer_info.h" // for peer_info, peer_info_t
 
