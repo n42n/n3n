@@ -23,7 +23,6 @@
 
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
-#include "resolve.h"    // for supernode2sock
 #include "uthash.h"
 
 #ifndef _WIN32
