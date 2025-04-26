@@ -6,6 +6,7 @@
  * The resolver thread code and functions
  */
 
+#include <errno.h>           // for EBUSY
 #include <n3n/logging.h>
 #include <n3n/metrics.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
@@ -76,6 +77,28 @@ static struct n3n_metrics_module metrics_module = {
 };
 
 /**********************************************************/
+
+enum request_pkt_type {
+    request_pkt_type_none = 0, // buf is unused
+    request_pkt_type_error,    // contains an error result
+    request_pkt_type_prep,     // preparing a request
+    request_pkt_type_request,  // contains a request
+    request_pkt_type_result,   // contains a non error result
+};
+
+#define REQUEST_PKT_MAX_HOSTNAME    64
+
+struct request_pkt {
+    enum request_pkt_type type;
+    uint64_t id;               // Opaque data from requestor
+    union {
+        int error;
+        char hostname[REQUEST_PKT_MAX_HOSTNAME];
+        struct sockaddr_storage sa[15];
+    };
+};
+
+static struct request_pkt request_pkt;
 
 struct hostname_list_item {
     struct hostname_list_item *next;
@@ -536,8 +559,153 @@ int resolve_hostnames_str_to_peer_info (int listnr, struct peer_info **peers) {
     return rv;
 }
 
+// This function is the main thread processor
+static void request_pkt_process () {
+    if(request_pkt.type != request_pkt_type_request) {
+        // The request buf is not owned by us, return to sleep
+        return;
+    }
+
+    char *p = (char *)&request_pkt.hostname;
+    char *node = p;
+    char *service;
+
+    if(*p == '[') {
+        // This is a IPv6 raw address
+        node = p + 1;
+
+        // find the end of the raw address
+        p = strchr(p, ']');
+        if(!p) {
+            traceEvent(
+                TRACE_ERROR,
+                "Bad end of IPv6 address: %s",
+                node - 1
+            );
+            request_pkt.type = request_pkt_type_error;
+            request_pkt.error = 1000;
+            return;
+        }
+
+        // and mark the raw addr end
+        *p = '\0';
+
+        // Point at the start of any possible port
+        p++;
+    }
+
+    service = strchr(p, ':');
+    if(service) {
+        // mark the end of node name
+        *service = '\0';
+        // skip to the port
+        service++;
+    } else {
+        service = "7654";   // The default port if none is specified
+    }
+
+    struct addrinfo hints = {
+        .ai_family = AF_UNSPEC,     // Allow both
+        .ai_socktype = SOCK_DGRAM,  // TODO: address this for TCP support
+        .ai_flags = AI_ADDRCONFIG,
+        .ai_protocol = 0,
+    };
+    struct addrinfo *result;
+
+    struct timeval time1;
+    struct timeval time2;
+
+    gettimeofday(&time1, NULL);
+    int rc = getaddrinfo(node, service, &hints, &result);
+    gettimeofday(&time2, NULL);
+
+    struct timeval elapsed;
+    timersub(&time2, &time1, &elapsed);
+
+    uint64_t elapsed_usec = elapsed.tv_sec * 1000000 + elapsed.tv_usec;
+
+    metrics.count++;
+    metrics.total_usec += elapsed_usec;
+    if(metrics.longest_usec < elapsed_usec) {
+        metrics.longest_usec = elapsed_usec;
+    }
+
+    if(rc != 0) {
+        // Since network disconnection events can happen, a failure to resolve
+        // is not a TRACE_ERROR
+        traceEvent(
+            TRACE_WARNING,
+            "getaddrinfo(%s, %s, ..) returned error %i",
+            node,
+            service,
+            rc
+        );
+        request_pkt.error = rc;
+        request_pkt.type = request_pkt_type_error;
+        return;
+    }
+
+    struct addrinfo *rp;
+    for(rp = result; rp != NULL; rp = rp->ai_next) {
+        // append to results
+        // if n > count of request_buf.sa
+        // if rp->ai_addrlen > sizeof(request_buf.sa[0]) then error
+        // memcpy to request_buf.sa[n] from rp->ai_addr size rp->ai_addrlen
+        traceEvent(
+            TRACE_ERROR,
+            "rp %i %i %i %i %i sa %s",
+            rp->ai_flags,
+            rp->ai_family,
+            rp->ai_socktype,
+            rp->ai_protocol,
+            rp->ai_addrlen,
+            // sa
+            rp->ai_canonname
+        );
+    }
+    freeaddrinfo(result);
+}
+
+static int request_pkt_send (uint64_t id, char *hostname) {
+    if(request_pkt.type != request_pkt_type_none) {
+        // If the buf is already busy, we cannot add more to it
+        return EBUSY;
+    }
+
+    // Mark it as incomplete
+    request_pkt.type = request_pkt_type_prep;
+
+    // Fill in the details
+    request_pkt.id = id;
+    strncpy(
+        (char *)&request_pkt.hostname,
+        hostname,
+        REQUEST_PKT_MAX_HOSTNAME - 1
+    );
+    // request_pkt.hostname[sizeof(&request_pkt.hostname)] = 0;
+    request_pkt.hostname[REQUEST_PKT_MAX_HOSTNAME - 1] = 0;
+
+    // Mark it for processing by the resolve thread
+    request_pkt.type = request_pkt_type_request;
+
+    // TODO:
+    // ifdef HAVE_LIBPTHREAD
+    //   wake up the thread
+    // else
+    request_pkt_process();
+    // endif
+
+    // no error
+    return 0;
+}
+
+static void request_pkt_init () {
+    request_pkt.type = request_pkt_type_none;
+}
+
 void n3n_initfuncs_resolve () {
     n3n_metrics_register(&metrics_module);
+    request_pkt_init();
 }
 
 void n3n_deinitfuncs_resolve () {
