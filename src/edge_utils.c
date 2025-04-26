@@ -663,7 +663,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
         // make sure that only stream ciphers are being used
         if((transop_id != N2N_TRANSFORM_ID_CHACHA20)
            && (transop_id != N2N_TRANSFORM_ID_SPECK)) {
-            traceEvent(TRACE_ERROR, "user-password authentication requires ChaCha20 (-A4) or SPECK (-A5) to be used.");
+            traceEvent(TRACE_ERROR, "user-password authentication requires ChaCha20 or SPECK to be used.");
             goto edge_init_error;
         }
     }
