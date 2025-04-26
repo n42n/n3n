@@ -3191,7 +3191,18 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     closeTraceFile();
 
+    speck_deinit((speck_context_t*)eee->conf.header_encryption_ctx_dynamic);
+    speck_deinit((speck_context_t*)eee->conf.header_encryption_ctx_static);
+    speck_deinit((speck_context_t*)eee->conf.header_iv_ctx_dynamic);
+    speck_deinit((speck_context_t*)eee->conf.header_iv_ctx_static);
+    speck_deinit(eee->conf.shared_secret_ctx);
+
+    free(eee->conf.community_file);
+    free(eee->conf.encrypt_key);
+    free(eee->conf.federation_public_key);
     free(eee->conf.mgmt_password);
+    free(eee->conf.public_key);
+    free(eee->conf.shared_secret);
     free(eee);
 
     n3n_deinitfuncs();
@@ -3371,9 +3382,6 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
 /* ************************************** */
 // TODO: why are there two term functions? remove one!
 void edge_term_conf (n2n_edge_conf_t *conf) {
-
-    free(conf->encrypt_key);
-    free(conf->mgmt_password);
 
     if(conf->network_traffic_filter_rules) {
         filter_rule_t *el = 0, *tmp = 0;
