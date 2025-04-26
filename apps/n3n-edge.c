@@ -832,6 +832,15 @@ int main (int argc, char* argv[]) {
     }
     eee->keep_running = &keep_on_running;
 
+#ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGTERM, term_handler);
+    signal(SIGINT,  term_handler);
+#endif
+#ifdef _WIN32
+    SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
+#endif
+
     switch(eee->conf.tuntap_ip_mode) {
         case TUNTAP_IP_MODE_SN_ASSIGN:
             traceEvent(TRACE_NORMAL, "automatically assign IP address by supernode");
@@ -870,6 +879,10 @@ int main (int argc, char* argv[]) {
     eee->curr_sn = eee->supernodes; // Duplicates action taken by edge_init()
     supernode_connect(eee);
     while(runlevel < 5) {
+        if(!keep_on_running) {
+            edge_term(eee);
+            return 1;
+        }
 
         now = time(NULL);
 
@@ -991,6 +1004,7 @@ int main (int argc, char* argv[]) {
 
         resolve_check(eee->resolve_parameter, false /* no intermediate resolution requirement at this point */, now);
     }
+
     // allow a higher number of pings for first regular round of ping
     // to quicker get an inital 'supernode selection criterion overview'
     eee->conf.number_max_sn_pings = NUMBER_SN_PINGS_INITIAL;
@@ -1057,15 +1071,6 @@ int main (int argc, char* argv[]) {
             "running as root is discouraged, check out the userid/groupid options"
         );
 #endif /* _WIN32 */
-
-#ifndef _WIN32
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGTERM, term_handler);
-    signal(SIGINT,  term_handler);
-#endif
-#ifdef _WIN32
-    SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
-#endif
 
     traceEvent(TRACE_NORMAL, "edge started");
     rc = run_edge_loop(eee);
