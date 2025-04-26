@@ -3133,6 +3133,8 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 /** Deinitialise the edge and deallocate any owned memory. */
 void edge_term (struct n3n_runtime_data * eee) {
 
+    edge_term_conf(&eee->conf);
+
     resolve_cancel_thread(eee->resolve_parameter);
 
     if(eee->sock >= 0) {
@@ -3367,7 +3369,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
 }
 
 /* ************************************** */
-
+// TODO: why are there two term functions? remove one!
 void edge_term_conf (n2n_edge_conf_t *conf) {
 
     free(conf->encrypt_key);
@@ -3430,7 +3432,6 @@ int quick_edge_init (char *device_name, char *community_name,
     eee->keep_running = keep_on_running;
     rv = run_edge_loop(eee);
     edge_term(eee);
-    edge_term_conf(&conf);
 
 quick_edge_init_end:
     tuntap_close(&tuntap);
