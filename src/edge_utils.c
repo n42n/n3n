@@ -697,7 +697,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
 edge_init_error:
     if(eee)
-        free(eee);
+        edge_term(eee);
     *rv = rc;
     return(NULL);
 }
@@ -3180,7 +3180,9 @@ void edge_term (struct n3n_runtime_data * eee) {
     char unixsock[1024];
     snprintf(unixsock, sizeof(unixsock), "%s/mgmt", eee->conf.sessiondir);
     unlink(unixsock);
-    rmdir(eee->conf.sessiondir);
+    if(eee->conf.sessiondir) {
+        rmdir(eee->conf.sessiondir);
+    }
 #else
     _rmdir(eee->conf.sessiondir);
 #endif
