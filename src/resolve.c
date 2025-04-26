@@ -607,7 +607,11 @@ static void request_pkt_process () {
     struct addrinfo hints = {
         .ai_family = AF_UNSPEC,     // Allow both
         .ai_socktype = SOCK_DGRAM,  // TODO: address this for TCP support
+#ifdef AI_ADDRCONFIG
+        // Another wierd Windows ifdef
+        // TODO: understand and fix
         .ai_flags = AI_ADDRCONFIG,
+#endif
         .ai_protocol = 0,
     };
     struct addrinfo *result;
