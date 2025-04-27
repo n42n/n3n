@@ -140,7 +140,7 @@ int main (int argc, char * argv[]) {
 #endif
 
     edge_term_conf(&conf);
-
+    n3n_deinitfuncs();
     return 0;
 }
 

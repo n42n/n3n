@@ -3130,6 +3130,48 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 
 /* ************************************** */
 
+/** Deinitialise the edge conf structure and deallocate any memory */
+
+void edge_term_conf (n2n_edge_conf_t *conf) {
+
+    if(conf->network_traffic_filter_rules) {
+        filter_rule_t *el = 0, *tmp = 0;
+        HASH_ITER(hh, conf->network_traffic_filter_rules, el, tmp) {
+            HASH_DEL(conf->network_traffic_filter_rules, el);
+            free(el);
+        }
+    }
+
+    // - have a helper to calculate/remember the socket pathname
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", conf->sessiondir);
+    unlink(unixsock);
+    if(conf->sessiondir) {
+        rmdir(conf->sessiondir);
+    }
+#else
+    _rmdir(conf->sessiondir);
+#endif
+    // Ignore errors in the unlink/rmdir as they could simply be that the
+    // paths were chown/chmod by the administrator
+
+
+    speck_deinit((speck_context_t*)conf->header_encryption_ctx_dynamic);
+    speck_deinit((speck_context_t*)conf->header_encryption_ctx_static);
+    speck_deinit((speck_context_t*)conf->header_iv_ctx_dynamic);
+    speck_deinit((speck_context_t*)conf->header_iv_ctx_static);
+    speck_deinit(conf->shared_secret_ctx);
+
+    free(conf->community_file);
+    free(conf->encrypt_key);
+    free(conf->federation_public_key);
+    free(conf->mgmt_password);
+    free(conf->public_key);
+    free(conf->sessiondir);
+    free(conf->shared_secret);
+}
+
 /** Deinitialise the edge and deallocate any owned memory. */
 void edge_term (struct n3n_runtime_data * eee) {
 
@@ -3175,36 +3217,9 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     // TODO:
     // - slots_close(eee->mgmt_slots)
-    // - have a helper to calculate/remember the socket pathname
-#ifndef _WIN32
-    char unixsock[1024];
-    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", eee->conf.sessiondir);
-    unlink(unixsock);
-    if(eee->conf.sessiondir) {
-        rmdir(eee->conf.sessiondir);
-    }
-#else
-    _rmdir(eee->conf.sessiondir);
-#endif
-    // Ignore errors in the unlink/rmdir as they could simply be that the
-    // paths were chown/chmod by the administrator
-
-    free(eee->conf.sessiondir);
 
     closeTraceFile();
 
-    speck_deinit((speck_context_t*)eee->conf.header_encryption_ctx_dynamic);
-    speck_deinit((speck_context_t*)eee->conf.header_encryption_ctx_static);
-    speck_deinit((speck_context_t*)eee->conf.header_iv_ctx_dynamic);
-    speck_deinit((speck_context_t*)eee->conf.header_iv_ctx_static);
-    speck_deinit(eee->conf.shared_secret_ctx);
-
-    free(eee->conf.community_file);
-    free(eee->conf.encrypt_key);
-    free(eee->conf.federation_public_key);
-    free(eee->conf.mgmt_password);
-    free(eee->conf.public_key);
-    free(eee->conf.shared_secret);
     free(eee);
 
     n3n_deinitfuncs();
@@ -3379,19 +3394,6 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
         conf->groupid = pw->pw_gid;
     }
 #endif
-}
-
-/* ************************************** */
-// TODO: why are there two term functions? remove one!
-void edge_term_conf (n2n_edge_conf_t *conf) {
-
-    if(conf->network_traffic_filter_rules) {
-        filter_rule_t *el = 0, *tmp = 0;
-        HASH_ITER(hh, conf->network_traffic_filter_rules, el, tmp) {
-            HASH_DEL(conf->network_traffic_filter_rules, el);
-            free(el);
-        }
-    }
 }
 
 /* ************************************** */
