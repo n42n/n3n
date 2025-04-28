@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <connslot/connslot.h>  // for slots_fdset
 #include <errno.h>              // for errno
+#include <malloc.h>             // for mallinfo2, malloc_info
 #include <n2n_typedefs.h>       // for n3n_runtime_data
 #include <n3n/edge.h>           // for edge_read_proto3_udp
 #include <n3n/logging.h>        // for traceEvent
@@ -530,6 +531,8 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
     }
 }
 
+static time_t last_mallinfo;
+
 int mainloop_runonce (struct n3n_runtime_data *eee) {
     fd_set rd;
     fd_set wr;
@@ -571,6 +574,27 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
     }
 
     fdlist_check_ready(&rd, &wr, now, eee);
+
+    if(getTraceLevel() >= TRACE_DEBUG) {
+        if((now & ~0x3f) > last_mallinfo) {
+            last_mallinfo = now;
+            struct mallinfo2 mi = mallinfo2();
+            traceEvent(
+                TRACE_DEBUG,
+                "mallinfo: area=%i uordblks=%i, fordblks=%i, keepcost=%i",
+                mi.arena,
+                mi.uordblks,
+                mi.fordblks,
+                mi.keepcost
+            );
+
+#ifdef DEBUG_MALLOC
+            fprintf(stderr,"===malloc_info start===\n");
+            malloc_info(0, stderr);
+            fprintf(stderr,"===malloc_info end===\n");
+#endif
+        }
+    }
 
     return ready;
 }

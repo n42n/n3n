@@ -44,6 +44,11 @@ ifeq ($(OPENSSL_CFLAGS), 0)
 endif
 endif
 
+# To output extensive malloc stats to stderr when verbosity is >= DEBUG
+# uncomment this line.  This is intended for helping to track difficult
+# errors with memory allocation and not for any normal use.
+# CFLAGS+=-DDEBUG_MALLOC
+
 CFLAGS+=-Wall
 CFLAGS+=-MMD
 
