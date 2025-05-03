@@ -242,13 +242,10 @@ BUILD_DEP:=\
 	yamllint \
 	jq \
 
-SUBDIRS+=tools
-SUBDIRS+=apps
-
 COVERAGEDIR?=coverage
 
 .PHONY: all
-all: version $(DOCS) subdirs apps
+all: version $(DOCS) tools apps
 
 .PHONY: version
 # This allows breaking the build if the version.sh script discovers
@@ -257,10 +254,15 @@ version:
 	@scripts/version.sh >/dev/null
 	@echo "Build for version: $(VERSION)"
 
-.PHONY: subdirs
-subdirs: $(SUBDIR_LIBS)
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir; done
-SUBDIR_CLEAN+=$(SUBDIRS)
+.PHONY: tools
+tools: $(SUBDIR_LIBS)
+	$(MAKE) -C tools
+SUBDIR_CLEAN+=tools
+
+.PHONY: apps
+apps: $(SUBDIR_LIBS)
+	$(MAKE) -C apps
+SUBDIR_CLEAN+=apps
 
 src/win32/edge.rc: src/win32/edge.manifest
 src/win32/edge_rc.o: src/win32/edge.rc
@@ -281,13 +283,13 @@ $(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) -c -o $$@ $$<)
 .PHONY: test test.units test.integration
 test: test.builtin test.units test.integration
 
-test.units: subdirs		# needs tools
+test.units: tools		# needs tools
 	scripts/test_harness.sh tests/tests_units.list
 
-test.integration: subdirs	# needs apps
+test.integration: apps	# needs apps
 	scripts/test_harness.sh tests/tests_integration.list
 
-test.builtin: subdirs		# needs apps
+test.builtin: apps		# needs apps
 	scripts/test_harness.sh tests/tests_builtin.list
 
 .PHONY: lint lint.python lint.ccode lint.shell lint.yaml
