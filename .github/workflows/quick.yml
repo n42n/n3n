@@ -70,7 +70,7 @@ jobs:
             CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
             LDFLAGS="--coverage"
           make build-dep
-          make -j4 all
+          make -j4 all examples
           make test
 
       - name: Generate coverage reports
