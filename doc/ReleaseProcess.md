@@ -20,8 +20,6 @@ Then, on github:
 
 ### TODO - improving the process
 
-- The VERSION file is intended to stop foot-gun events for the cases where no
-  git checkout is being used.  Is this still useful?
 - The changelog is added in two places.  This is not the intent of the
   automation, but github might have changed something
 - The CI was intended to automatically run when the tag is uploaded and then
@@ -31,11 +29,17 @@ Then, on github:
 After the above TODO items are addressed, the process could be as simple as
 create the annotated tag, push the tag, wait for the CI to run.
 
-### TODO - dpkg built versions show as dirty
+## Notes on the VERSION file
 
-- a skeleton debian changelog is committed to the repository and is
-  automatically appended to as part of the dpkg build.  However, this means
-  that any dpkg build is going to show up as a dirty build.
+The VERSION file is intended to provide a version number of last resort when
+a non git checkout is being used.  The build process will warn if the official
+git describe version number does not match the one found in the VERSION file.
+This will not stop the build, but it should be fixed to allow correctly
+building from a .tar.gz download.  The release process above includes steps for
+that update.
+
+This being said, the use of a non git checkout should be discouraged.  Thus,
+there is still a question as to if this feature should be retained.
 
 ## Stable patch release notes
 

@@ -28,8 +28,7 @@ if [ -d "$TOPDIR/.git" ]; then
     VER_GIT_SHORT=$(git describe --abbrev=0)
 
     if [ "$VER_FILE_SHORT" != "$VER_GIT_SHORT" ]; then
-        echo "Error: VERSION file does not match tag version ($VER_FILE_SHORT != $VER_GIT_SHORT)" 1>&2
-        exit 1
+        echo "WARNING: VERSION file does not match tag version ($VER_FILE_SHORT != $VER_GIT_SHORT)" 1>&2
     fi
 
     VER_SHORT="$VER_GIT_SHORT"
@@ -47,8 +46,10 @@ else
     # If there is no .git directory in our TOPDIR, we fall back on relying on
     # the VERSION file
 
+    echo "WARNING: no .git dir, versions are just guesses" 1>&2
+
     VER_SHORT="$VER_FILE_SHORT"
-    VER_HASH="HEAD"
+    VER_HASH="unknown"
     VER="$VER_FILE_SHORT"
     DATE=$(date)
 fi
