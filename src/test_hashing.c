@@ -5,10 +5,10 @@
  */
 
 #include <inttypes.h>  // for PRIx64, PRIx16, PRIx32
+#include <n3n/hexdump.h>  // for fhexdump
 #include <stdio.h>     // for printf, fprintf, stderr, stdout
 #include <string.h>    // for memcmp
 
-#include "hexdump.h"   // for fhexdump
 #include "pearson.h"   // for pearson_hash_128, pearson_hash_16, pearson_has...
 
 

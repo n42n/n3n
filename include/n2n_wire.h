@@ -30,8 +30,6 @@
 #include <sys/socket.h> /* AF_INET and AF_INET6 */
 #endif /* #ifndef _WIN32 */
 
-#include "sn_selection.h"
-
 
 int encode_buf (uint8_t * base,
                 size_t * idx,
@@ -138,9 +136,7 @@ int fill_sockaddr (struct sockaddr * addr,
                    size_t addrlen,
                    const n2n_sock_t * sock);
 
-int fill_n2nsock (n2n_sock_t* sock,
-                  const struct sockaddr* sa,
-                  int type);
+int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa);
 
 int encode_PACKET (uint8_t * base,
                    size_t * idx,

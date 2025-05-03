@@ -7,6 +7,8 @@
 
 #include <n2n.h>        // for time_stamp
 #include <n2n_define.h> // for TIME_STAMP_FRAME
+#include <n2n_wire.h>   // for fill_n2nsock
+#include <n3n/ethernet.h> // for for n2n_mac_t
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/metrics.h> // for traceEvent
 #include <sn_selection.h>   // for sn_selection_criterion_default
@@ -21,7 +23,6 @@
 
 #include "management.h" // for mgmt_event_post
 #include "peer_info.h"
-#include "resolve.h"    // for supernode2sock
 #include "uthash.h"
 
 #ifndef _WIN32
@@ -298,7 +299,7 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
         return peer;
     }
 
-    sn_selection_criterion_default(&(peer->selection_criterion));
+    peer->selection_criterion = sn_selection_criterion_default();
     memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
     HASH_ADD_PEER(*sn_list, peer);
     *skip_add = SN_ADD_ADDED;
@@ -306,58 +307,52 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
     return peer;
 }
 
-/* ************************************** */
-
-// TODO:
-// - only one remaining user of this function (supernode peer conf), migrate
-// it and remove
-int n3n_peer_add_by_hostname (struct peer_info **list, const char *ip_and_port) {
-
-    n2n_sock_t sock;
-    int rv = -1;
-
-    memset(&sock, 0, sizeof(sock));
-
-    // WARN: this function could block for a name resolution
-    rv = supernode2sock(&sock, ip_and_port);
-
-    if(rv < -2) { /* we accept resolver failure as it might resolve later */
-        traceEvent(TRACE_WARNING, "invalid supernode parameter.");
-        return 1;
+struct peer_info* peer_upsert_by_sockaddr (
+    struct peer_info **list,
+    struct sockaddr *addr,
+    size_t addrlen
+) {
+    struct n2n_sock sock;
+    if(fill_n2nsock(&sock, addr) != 0) {
+        return NULL;
     }
 
-    int skip_add = SN_ADD;
-    struct peer_info *sn = add_sn_to_list_by_mac_or_sock(list, &sock, null_mac, &skip_add);
+    struct peer_info *peer = NULL;
 
-    if(!sn) {
-        return 1;
+    // TODO:
+    // - keep count of how many non-indexed "full scan" are done
+    // - if there are many, could add an index for that
+
+    /* search by socket */
+    {
+        struct peer_info *scan, *tmp;
+        HASH_ITER(hh, *list, scan, tmp) {
+            if(memcmp(&(scan->sock), &sock, sizeof(sock)) != 0) {
+                continue;
+            }
+
+            peer = scan;
+            break;
+        }
     }
 
-    // FIXME: what if ->hostname is already set?
-    sn->hostname = strdup(ip_and_port);
-    if(!sn->hostname) {
-        // FIXME: add to list, but left half initialised
-        return 1;
+    // If we didnt find one, alloc one
+    if(!peer) {
+        n2n_mac_t null = {0,0,0,0,0,0};
+        peer = peer_info_malloc(null);
+
+        // If the alloc didnt work, bail out
+        if(!peer) {
+            return NULL;
+        }
+
+        peer->selection_criterion = sn_selection_criterion_default();
+        memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
+
+        HASH_ADD_PEER(*list, peer);
     }
-    memcpy(&(sn->sock), &sock, sizeof(n2n_sock_t));
 
-    // If it added an entry, it is already peer_info_init()
-    if(skip_add != SN_ADD_ADDED) {
-        peer_info_init(sn, null_mac);
-    }
-
-    // This is the only peer_info where the default purgeable=true
-    // is overwritten
-    sn->purgeable = false;
-
-    traceEvent(
-        TRACE_INFO,
-        "adding supernode = %s",
-        peer_info_get_hostname(sn)
-    );
-    metrics.hostname++;
-
-    return 0;
+    return peer;
 }
 
 /* ***************************************************** */

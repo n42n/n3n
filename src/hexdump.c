@@ -18,9 +18,9 @@
  */
 
 
+#include <n3n/hexdump.h>  // for fhexdump
 #include <stdint.h>   // for uint8_t
 #include <stdio.h>    // for fprintf, FILE
-#include "hexdump.h"  // for fhexdump
 
 
 void fhexdump (unsigned int display_addr, void *in, int size, FILE *stream) {

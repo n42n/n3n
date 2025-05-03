@@ -28,6 +28,7 @@
 #include <n3n/conffile.h>            // for n3n_config_load_env
 #include <n3n/edge.h>                // for edge_init_conf_defaults
 #include <n3n/ethernet.h>            // for is_null_mac
+#include <n3n/initfuncs.h>           // for n3n_deinitfuncs
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/mainloop.h>            // for mainloop_runonce, mainloop_regis...
 #include <n3n/metrics.h>
@@ -217,7 +218,7 @@ int edge_verify_conf (const n2n_edge_conf_t *conf) {
     if(conf->community_name[0] == 0)
         return -1;
 
-    if(!resolve_supernode_str_get(0)) {
+    if(!resolve_hostnames_str_get(RESOLVE_LIST_SUPERNODE, 0)) {
         // confirm that there is at least one supernode string provided
         return -5;
     }
@@ -564,30 +565,15 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
     memcpy(&eee->conf, conf, sizeof(*conf));
 
-    {
-        int index = 0;
-        char *p = (char *)resolve_supernode_str_get(index);
-        while(p) {
-            traceEvent(
-                TRACE_INFO,
-                "supernode %i => %s\n",
-                index,
-                p
-            );
-            index++;
-            p = (char *)resolve_supernode_str_get(index);
-        }
-        traceEvent(
-            TRACE_INFO,
-            "number of supernodes configured: %i\n",
-            index
-        );
-    }
+    // Show the user what has been configured
+    resolve_log_hostnames(RESOLVE_LIST_SUPERNODE);
 
-    if(resolve_supernode_str_to_peer_info(&eee->supernodes)) {
+    if(resolve_hostnames_str_to_peer_info(
+           RESOLVE_LIST_SUPERNODE,
+           &eee->supernodes)) {
         traceEvent(
             TRACE_ERROR,
-            "resolve_supernode_str_to_peer_info returned errors"
+            "resolve_hostnames_str_to_peer_info returned errors"
         );
     }
 
@@ -677,7 +663,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
         // make sure that only stream ciphers are being used
         if((transop_id != N2N_TRANSFORM_ID_CHACHA20)
            && (transop_id != N2N_TRANSFORM_ID_SPECK)) {
-            traceEvent(TRACE_ERROR, "user-password authentication requires ChaCha20 (-A4) or SPECK (-A5) to be used.");
+            traceEvent(TRACE_ERROR, "user-password authentication requires ChaCha20 or SPECK to be used.");
             goto edge_init_error;
         }
     }
@@ -701,6 +687,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
         traceEvent(TRACE_NORMAL, "successfully created resolver thread");
     }
 
+    // TODO: skip creating this if there are no filters to add
     eee->network_traffic_filter = create_network_traffic_filter();
     network_traffic_filter_add_rule(eee->network_traffic_filter, eee->conf.network_traffic_filter_rules);
 
@@ -710,7 +697,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
 edge_init_error:
     if(eee)
-        free(eee);
+        edge_term(eee);
     *rv = rc;
     return(NULL);
 }
@@ -1478,9 +1465,9 @@ static void sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
 
     HASH_ITER(hh, eee->supernodes, scan, tmp) {
         if(scan == eee->curr_sn)
-            sn_selection_criterion_good(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_good();
         else
-            sn_selection_criterion_default(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_default();
     }
     sn_selection_criterion_common_data_default(eee);
 
@@ -1666,7 +1653,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
 
     if(0 == eee->sup_attempts) {
         /* Give up on that supernode and try the next one. */
-        sn_selection_criterion_bad(&(eee->curr_sn->selection_criterion));
+        eee->curr_sn->selection_criterion = sn_selection_criterion_bad();
         sn_selection_sort(&(eee->supernodes));
         eee->curr_sn = eee->supernodes;
         traceEvent(
@@ -2316,13 +2303,13 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
 
 
 /** handle a datagram from the main UDP socket to the internet. */
-void process_udp (struct n3n_runtime_data *eee,
+void process_pdu (struct n3n_runtime_data *eee,
                   const struct sockaddr *sender_sock,
                   const SOCKET in_sock,
                   uint8_t *udp_buf,
                   size_t udp_size,
-                  time_t now,
-                  int type) {
+                  time_t now
+) {
 
     n2n_common_t cmn;          /* common fields in the packet header */
     n2n_sock_str_t sockbuf1;
@@ -2345,14 +2332,14 @@ void process_udp (struct n3n_runtime_data *eee,
     /* REVISIT: when UDP/IPv6 is supported we will need a flag to indicate which
      * IP transport version the packet arrived on. May need to UDP sockets. */
 
-    // TODO: pass the sender to process_udp, dont calculate it here
+    // TODO: pass the sender to process_pdu, dont calculate it here
     if(eee->conf.connect_tcp)
         // TCP expects that we know our comm partner and does not deliver the sender
         memcpy(&sender, &(eee->curr_sn->sock), sizeof(sender));
     else {
         // REVISIT: type conversion back and forth, choose a consistent approach throughout whole code,
         //          i.e. stick with more general sockaddr as long as possible and narrow only if required
-        fill_n2nsock(&sender, sender_sock, type);
+        fill_n2nsock(&sender, sender_sock);
     }
     /* The packet may not have an orig_sender socket spec. So default to last
      * hop as sender. */
@@ -2440,7 +2427,11 @@ void process_udp (struct n3n_runtime_data *eee,
             // TODO:
             // stats.errors.community.supernode ++;
         } else {
-            traceEvent(TRACE_INFO, "ignoring packet with unknown community");
+            traceEvent(
+                TRACE_INFO,
+                "ignoring packet with unknown community (%s)",
+                cmn.community
+            );
             // TODO:
             // stats.errors.community.other ++;
         }
@@ -2826,8 +2817,8 @@ void process_udp (struct n3n_runtime_data *eee,
                     scan->uptime = pi.uptime;
                     memcpy(scan->version, pi.version, sizeof(n2n_version_t));
                     /* The data type depends on the actual selection strategy that has been chosen. */
-                    SN_SELECTION_CRITERION_DATA_TYPE sn_sel_tmp = pi.load;
-                    sn_selection_criterion_calculate(eee, scan, &sn_sel_tmp);
+                    uint64_t sn_sel_tmp = pi.load;
+                    sn_selection_criterion_calculate(eee, scan, sn_sel_tmp);
 
                     traceEvent(TRACE_INFO, "Rx PONG from supernode %s version '%s'",
                                macaddr_str(mac_buf1, pi.srcMac),
@@ -2954,14 +2945,13 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
     // we have a datagram to process...
     // ...and the datagram has data (not just a header)
     //
-    process_udp(
+    process_pdu(
         eee,
         sender_sock,
         sock,
         n3n_pktbuf_getbufptr(pktbuf),
         n3n_pktbuf_getbufsize(pktbuf),
-        now,
-        SOCK_DGRAM
+        now
     );
     return;
 }
@@ -2993,14 +2983,13 @@ void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
     }
 
     // have a valid packet read, handle it
-    process_udp(
+    process_pdu(
         eee,
         NULL,
         sock,
         pktbuf,
         pktbuf_len,
-        now,
-        SOCK_STREAM
+        now
     );
     return;
 }
@@ -3145,8 +3134,52 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
 
 /* ************************************** */
 
+/** Deinitialise the edge conf structure and deallocate any memory */
+
+void edge_term_conf (n2n_edge_conf_t *conf) {
+
+    if(conf->network_traffic_filter_rules) {
+        filter_rule_t *el = 0, *tmp = 0;
+        HASH_ITER(hh, conf->network_traffic_filter_rules, el, tmp) {
+            HASH_DEL(conf->network_traffic_filter_rules, el);
+            free(el);
+        }
+    }
+
+    // - have a helper to calculate/remember the socket pathname
+#ifndef _WIN32
+    char unixsock[1024];
+    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", conf->sessiondir);
+    unlink(unixsock);
+    if(conf->sessiondir) {
+        rmdir(conf->sessiondir);
+    }
+#else
+    _rmdir(conf->sessiondir);
+#endif
+    // Ignore errors in the unlink/rmdir as they could simply be that the
+    // paths were chown/chmod by the administrator
+
+
+    speck_deinit((speck_context_t*)conf->header_encryption_ctx_dynamic);
+    speck_deinit((speck_context_t*)conf->header_encryption_ctx_static);
+    speck_deinit((speck_context_t*)conf->header_iv_ctx_dynamic);
+    speck_deinit((speck_context_t*)conf->header_iv_ctx_static);
+    speck_deinit(conf->shared_secret_ctx);
+
+    free(conf->community_file);
+    free(conf->encrypt_key);
+    free(conf->federation_public_key);
+    free(conf->mgmt_password);
+    free(conf->public_key);
+    free(conf->sessiondir);
+    free(conf->shared_secret);
+}
+
 /** Deinitialise the edge and deallocate any owned memory. */
 void edge_term (struct n3n_runtime_data * eee) {
+
+    edge_term_conf(&eee->conf);
 
     resolve_cancel_thread(eee->resolve_parameter);
 
@@ -3188,23 +3221,12 @@ void edge_term (struct n3n_runtime_data * eee) {
 
     // TODO:
     // - slots_close(eee->mgmt_slots)
-    // - have a helper to calculate/remember the socket pathname
-#ifndef _WIN32
-    char unixsock[1024];
-    snprintf(unixsock, sizeof(unixsock), "%s/mgmt", eee->conf.sessiondir);
-    unlink(unixsock);
-    rmdir(eee->conf.sessiondir);
-#else
-    _rmdir(eee->conf.sessiondir);
-#endif
-    // Ignore errors in the unlink/rmdir as they could simply be that the
-    // paths were chown/chmod by the administrator
-
-    free(eee->conf.sessiondir);
 
     closeTraceFile();
 
     free(eee);
+
+    n3n_deinitfuncs();
 
 #ifdef _WIN32
     destroyWin32();
@@ -3252,7 +3274,8 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     // - do we actually want to tie the user/group to the running pid?
 
     if(fd < 0) {
-        perror("slots_listen_tcp");
+        perror("slots_listen_unix");
+        edge_term(eee);
         exit(1);
     }
     mainloop_register_fd(fd, fd_info_proto_listen_http);
@@ -3379,22 +3402,6 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
 
 /* ************************************** */
 
-void edge_term_conf (n2n_edge_conf_t *conf) {
-
-    free(conf->encrypt_key);
-    free(conf->mgmt_password);
-
-    if(conf->network_traffic_filter_rules) {
-        filter_rule_t *el = 0, *tmp = 0;
-        HASH_ITER(hh, conf->network_traffic_filter_rules, el, tmp) {
-            HASH_DEL(conf->network_traffic_filter_rules, el);
-            free(el);
-        }
-    }
-}
-
-/* ************************************** */
-
 int quick_edge_init (char *device_name, char *community_name,
                      char *encrypt_key, char *device_mac,
                      in_addr_t local_ip_address,
@@ -3414,7 +3421,10 @@ int quick_edge_init (char *device_name, char *community_name,
     conf.compression = N2N_COMPRESSION_ID_NONE;
     conf.mtu = DEFAULT_MTU;
     snprintf((char*)conf.community_name, sizeof(conf.community_name), "%s", community_name);
-    resolve_supernode_str_add(supernode_ip_address_port);
+    resolve_hostnames_str_add(
+        RESOLVE_LIST_SUPERNODE,
+        supernode_ip_address_port
+    );
 
     /* Validate configuration */
     if(edge_verify_conf(&conf) != 0)
@@ -3438,7 +3448,6 @@ int quick_edge_init (char *device_name, char *community_name,
     eee->keep_running = keep_on_running;
     rv = run_edge_loop(eee);
     edge_term(eee);
-    edge_term_conf(&conf);
 
 quick_edge_init_end:
     tuntap_close(&tuntap);

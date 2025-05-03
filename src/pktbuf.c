@@ -85,6 +85,11 @@ void n3n_pktbuf_initialise (ssize_t mtu, int count) {
     }
 }
 
+void n3n_pktbuf_deinitialise () {
+    free(pool);
+    free(pool_buf);
+}
+
 struct n3n_pktbuf *n3n_pktbuf_alloc (ssize_t size) {
     // We only have one pool, so we can use a simple check
     if(size > pool_item_size) {
@@ -168,4 +173,8 @@ int n3n_pktbuf_append (struct n3n_pktbuf *p, ssize_t size, void *buf) {
 
 void n3n_initfuncs_pktbuf () {
     n3n_metrics_register(&metrics_module_static);
+}
+
+void n3n_deinitfuncs_pktbuf () {
+    n3n_pktbuf_deinitialise();
 }

@@ -29,7 +29,9 @@ LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_LOCAL)
 LDLIBS+=$(LDLIBS_EXTRA)
 
-all: $(APPS) $(EXAMPLES)
+all: $(APPS)
+
+examples: $(EXAMPLES)
 
 # TODO: a better path for this lib, as it would need to change to use this
 # makefile outside the build environment
@@ -41,9 +43,14 @@ install: $(addsuffix $(EXE),$(APPS))
 	$(INSTALL_PROG) n3n-supernode$(EXE) $(CONFIG_SBINDIR)/
 	$(INSTALL_PROG) n3n-edge$(EXE) $(CONFIG_SBINDIR)/
 
+%: %.c
+	@echo "  CC      $@"
+	@$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
 # See comments in the topdir Makefile about how to generate coverage data.
+# TODO: why are these apps detected with strange names by coverage?
 gcov:
-	gcov $(APPS)
+	gcov n3n-edge-n3n-edge n3n-supernode-n3n-supernode
 
 clean:
 	rm -f $(APPS) $(EXAMPLES)

@@ -6,6 +6,7 @@
  * The resolver thread code and functions
  */
 
+#include <errno.h>           // for EBUSY
 #include <n3n/logging.h>
 #include <n3n/metrics.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
@@ -77,13 +78,36 @@ static struct n3n_metrics_module metrics_module = {
 
 /**********************************************************/
 
-struct supernode_str {
-    struct supernode_str *next;
+enum request_pkt_type {
+    request_pkt_type_none = 0, // buf is unused
+    request_pkt_type_error,    // contains an error result
+    request_pkt_type_prep,     // preparing a request
+    request_pkt_type_request,  // contains a request
+    request_pkt_type_result,   // contains a non error result
+};
+
+#define REQUEST_PKT_MAX_HOSTNAME    64
+
+struct request_pkt {
+    enum request_pkt_type type;
+    uint64_t id;               // Opaque data from requestor
+    union {
+        int error;
+        char hostname[REQUEST_PKT_MAX_HOSTNAME];
+        struct sockaddr_storage sa[15];
+    };
+};
+
+static struct request_pkt request_pkt;
+
+struct hostname_list_item {
+    struct hostname_list_item *next;
     uint32_t next_resolve;  // Use 0 for "now"
     char s[];
 };
 
-static struct supernode_str *supernode_list;
+// TODO: zeroth item unused
+static struct hostname_list_item *hostname_lists[3];
 // static struct supernode_str *supernode_next_resolve;
 
 /** Resolve the supernode IP address.
@@ -127,15 +151,15 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
     supernode_port = strtok(NULL, ":");
 
     if(!supernode_port) {
-        traceEvent(
-            TRACE_WARNING,
-            "malformed supernode parameter (should be <host:port>) %s",
-            addrIn
-        );
-        return -3;
-    }
+        sn->port = 7654;
 
-    sn->port = atoi(supernode_port);
+        traceEvent(
+            TRACE_INFO,
+            "no port specified, assuming default 7654"
+        );
+    } else {
+        sn->port = atoi(supernode_port);
+    }
 
     struct timeval time1;
     struct timeval time2;
@@ -388,27 +412,40 @@ int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
 #endif
 
 /*
+ * Remove all entries from a hostnames list
+ *
+ */
+void resolve_hostnames_free (int listnr) {
+    struct hostname_list_item *p = hostname_lists[listnr];
+    while(p) {
+        struct hostname_list_item *p_next = p->next;
+        free(p);
+        p = p_next;
+    }
+}
+
+/*
  * Add a string to our list of resolvable supernodes
  */
-void resolve_supernode_str_add (const char *s) {
-    int len = sizeof(struct supernode_str) + strlen(s) + 1;
-    struct supernode_str *p = malloc(len);
+void resolve_hostnames_str_add (int listnr, const char *s) {
+    int len = sizeof(struct hostname_list_item) + strlen(s) + 1;
+    struct hostname_list_item *p = malloc(len);
     if(!p) {
         return;
     }
 
     strcpy((char *)&(p->s), s);
     p->next_resolve = 0;    // mark as "Now"
-    p->next = supernode_list;
-    supernode_list = p;
+    p->next = hostname_lists[listnr];
+    hostname_lists[listnr] = p;
 }
 
 /*
  * For config dumping, provide a way to access the list
  * (Not intended to be called often, so not performant)
  */
-const char *resolve_supernode_str_get (int index) {
-    struct supernode_str *p = supernode_list;
+const char *resolve_hostnames_str_get (int listnr, int index) {
+    struct hostname_list_item *p = hostname_lists[listnr];
     while(index) {
         if(!p) {
             return NULL;
@@ -422,18 +459,34 @@ const char *resolve_supernode_str_get (int index) {
     return p->s;
 }
 
+// Just dump the whole hostname list to the log
+void resolve_log_hostnames (int listnr) {
+    traceEvent(TRACE_INFO, "hostname list %i:", listnr);
+
+    int count = 0;
+    struct hostname_list_item *p = hostname_lists[listnr];
+    while(p) {
+        count++;
+        traceEvent(TRACE_INFO, "name %i = %s\n", count, p->s);
+        p = p->next;
+    }
+    traceEvent(TRACE_INFO, "number of hostnames in this list: %i\n", count);
+}
+
 /*
  * Convert one string into an added peer_info
  * (This is a refactor of n3n_peer_add_by_hostname)
  *
  */
-static int resolve_supernode_str_to_peer_info_one (
+static int resolve_hostnames_str_to_peer_info_one (
     struct peer_info **list,
     const char *s
 ) {
 
     n2n_sock_t sock;
     memset(&sock, 0, sizeof(sock));
+
+    traceEvent(TRACE_DEBUG, "resolving %s", s);
 
     // WARN: this function could block for a name resolution
     int rv = supernode2sock(&sock, s);
@@ -457,7 +510,10 @@ static int resolve_supernode_str_to_peer_info_one (
     }
 
     if(!peer_info_get_hostname(peer)) {
-        peer->hostname = (char *)s;
+        // We dup the string here because the peer_info_free() thinks it owns
+        // the hostname and wants to free() it
+        // TODO: refactor
+        peer->hostname = strdup(s);
     }
 
     memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
@@ -490,19 +546,175 @@ static int resolve_supernode_str_to_peer_info_one (
  * - support multiple hostname results (both A and AAAA as well)
  * - eventually, support SRV
  */
-int resolve_supernode_str_to_peer_info (struct peer_info **peers) {
+int resolve_hostnames_str_to_peer_info (int listnr, struct peer_info **peers) {
     if(!peers) {
         return 1;
     }
-    struct supernode_str *p = supernode_list;
+    struct hostname_list_item *p = hostname_lists[listnr];
     int rv = 0;
     while(p) {
-        rv += resolve_supernode_str_to_peer_info_one(peers, p->s);
+        rv += resolve_hostnames_str_to_peer_info_one(peers, p->s);
         p = p->next;
     }
     return rv;
 }
 
+// This function is the main thread processor
+static void request_pkt_process () {
+    if(request_pkt.type != request_pkt_type_request) {
+        // The request buf is not owned by us, return to sleep
+        return;
+    }
+
+    char *p = (char *)&request_pkt.hostname;
+    char *node = p;
+    char *service;
+
+    if(*p == '[') {
+        // This is a IPv6 raw address
+        node = p + 1;
+
+        // find the end of the raw address
+        p = strchr(p, ']');
+        if(!p) {
+            traceEvent(
+                TRACE_ERROR,
+                "Bad end of IPv6 address: %s",
+                node - 1
+            );
+            request_pkt.type = request_pkt_type_error;
+            request_pkt.error = 1000;
+            return;
+        }
+
+        // and mark the raw addr end
+        *p = '\0';
+
+        // Point at the start of any possible port
+        p++;
+    }
+
+    service = strchr(p, ':');
+    if(service) {
+        // mark the end of node name
+        *service = '\0';
+        // skip to the port
+        service++;
+    } else {
+        service = "7654";   // The default port if none is specified
+    }
+
+    struct addrinfo hints = {
+        .ai_family = AF_UNSPEC,     // Allow both
+        .ai_socktype = SOCK_DGRAM,  // TODO: address this for TCP support
+#ifdef AI_ADDRCONFIG
+        // Another wierd Windows ifdef
+        // TODO: understand and fix
+        .ai_flags = AI_ADDRCONFIG,
+#endif
+        .ai_protocol = 0,
+    };
+    struct addrinfo *result;
+
+    struct timeval time1;
+    struct timeval time2;
+
+    gettimeofday(&time1, NULL);
+    int rc = getaddrinfo(node, service, &hints, &result);
+    gettimeofday(&time2, NULL);
+
+    struct timeval elapsed;
+    timersub(&time2, &time1, &elapsed);
+
+    uint64_t elapsed_usec = elapsed.tv_sec * 1000000 + elapsed.tv_usec;
+
+    metrics.count++;
+    metrics.total_usec += elapsed_usec;
+    if(metrics.longest_usec < elapsed_usec) {
+        metrics.longest_usec = elapsed_usec;
+    }
+
+    if(rc != 0) {
+        // Since network disconnection events can happen, a failure to resolve
+        // is not a TRACE_ERROR
+        traceEvent(
+            TRACE_WARNING,
+            "getaddrinfo(%s, %s, ..) returned error %i",
+            node,
+            service,
+            rc
+        );
+        request_pkt.error = rc;
+        request_pkt.type = request_pkt_type_error;
+        return;
+    }
+
+    struct addrinfo *rp;
+    for(rp = result; rp != NULL; rp = rp->ai_next) {
+        // append to results
+        // if n > count of request_buf.sa
+        // if rp->ai_addrlen > sizeof(request_buf.sa[0]) then error
+        // memcpy to request_buf.sa[n] from rp->ai_addr size rp->ai_addrlen
+        traceEvent(
+            TRACE_ERROR,
+            "rp %i %i %i %i %i sa %s",
+            rp->ai_flags,
+            rp->ai_family,
+            rp->ai_socktype,
+            rp->ai_protocol,
+            rp->ai_addrlen,
+            // sa
+            rp->ai_canonname
+        );
+    }
+    freeaddrinfo(result);
+}
+
+static int request_pkt_send (uint64_t id, char *hostname) {
+    if(request_pkt.type != request_pkt_type_none) {
+        // If the buf is already busy, we cannot add more to it
+        return EBUSY;
+    }
+
+    // Mark it as incomplete
+    request_pkt.type = request_pkt_type_prep;
+
+    // Fill in the details
+    request_pkt.id = id;
+    strncpy(
+        (char *)&request_pkt.hostname,
+        hostname,
+        REQUEST_PKT_MAX_HOSTNAME - 1
+    );
+    // request_pkt.hostname[sizeof(&request_pkt.hostname)] = 0;
+    request_pkt.hostname[REQUEST_PKT_MAX_HOSTNAME - 1] = 0;
+
+    // Mark it for processing by the resolve thread
+    request_pkt.type = request_pkt_type_request;
+
+    // TODO:
+    // ifdef HAVE_LIBPTHREAD
+    //   wake up the thread
+    // else
+    request_pkt_process();
+    // endif
+
+    // no error
+    return 0;
+}
+
+static void request_pkt_init () {
+    request_pkt.type = request_pkt_type_none;
+}
+
 void n3n_initfuncs_resolve () {
     n3n_metrics_register(&metrics_module);
+    request_pkt_init();
+}
+
+void n3n_deinitfuncs_resolve () {
+    // TODO: there chould be a _del() function that the original callers
+    // can use to remove their entries in their own
+    resolve_hostnames_free(RESOLVE_LIST_SUPERNODE);
+    resolve_hostnames_free(RESOLVE_LIST_PEER);
 }

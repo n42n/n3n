@@ -19,10 +19,10 @@
  */
 
 
+#include <n3n/hexdump.h>  // for fhexdump
 #include <stdio.h>       // for printf, fprintf, stdout, stderr
 #include <string.h>      // for memset
 #include "curve25519.h"  // for curve25519
-#include "hexdump.h"     // for fhexdump
 
 
 void test_curve25519 (unsigned char *pkt_input, unsigned char *key) {

@@ -793,7 +793,6 @@ int main (int argc, char* argv[]) {
                 generate_public_key(*conf.public_key, *(conf.shared_secret));
             generate_shared_secret(*(conf.shared_secret), *(conf.shared_secret), *(conf.federation_public_key));
             // prepare (first 128 bit) for use as key
-            conf.shared_secret_ctx = calloc(1, sizeof(*conf.shared_secret_ctx));
             speck_init(&conf.shared_secret_ctx, *(conf.shared_secret), 128);
         }
         // force header encryption
@@ -833,6 +832,15 @@ int main (int argc, char* argv[]) {
     }
     eee->keep_running = &keep_on_running;
 
+#ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);
+    signal(SIGTERM, term_handler);
+    signal(SIGINT,  term_handler);
+#endif
+#ifdef _WIN32
+    SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
+#endif
+
     switch(eee->conf.tuntap_ip_mode) {
         case TUNTAP_IP_MODE_SN_ASSIGN:
             traceEvent(TRACE_NORMAL, "automatically assign IP address by supernode");
@@ -871,6 +879,10 @@ int main (int argc, char* argv[]) {
     eee->curr_sn = eee->supernodes; // Duplicates action taken by edge_init()
     supernode_connect(eee);
     while(runlevel < 5) {
+        if(!keep_on_running) {
+            edge_term(eee);
+            return 1;
+        }
 
         now = time(NULL);
 
@@ -992,15 +1004,16 @@ int main (int argc, char* argv[]) {
 
         resolve_check(eee->resolve_parameter, false /* no intermediate resolution requirement at this point */, now);
     }
+
     // allow a higher number of pings for first regular round of ping
     // to quicker get an inital 'supernode selection criterion overview'
     eee->conf.number_max_sn_pings = NUMBER_SN_PINGS_INITIAL;
     // shape supernode list; make current one the first on the list
     HASH_ITER(hh, eee->supernodes, scan, scan_tmp) {
         if(scan == eee->curr_sn)
-            sn_selection_criterion_good(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_good();
         else
-            sn_selection_criterion_default(&(scan->selection_criterion));
+            scan->selection_criterion = sn_selection_criterion_default();
     }
     sn_selection_sort(&(eee->supernodes));
     // do not immediately ping again, allow some time
@@ -1059,15 +1072,6 @@ int main (int argc, char* argv[]) {
         );
 #endif /* _WIN32 */
 
-#ifndef _WIN32
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGTERM, term_handler);
-    signal(SIGINT,  term_handler);
-#endif
-#ifdef _WIN32
-    SetConsoleCtrlHandler(ConsoleCtrlHandler, TRUE);
-#endif
-
     traceEvent(TRACE_NORMAL, "edge started");
     rc = run_edge_loop(eee);
     print_edge_stats(eee);
@@ -1084,7 +1088,6 @@ int main (int argc, char* argv[]) {
 #endif
 
     /* Cleanup */
-    edge_term_conf(&eee->conf);
     tuntap_close(&eee->device);
     edge_term(eee);
 

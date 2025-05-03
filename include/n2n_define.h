@@ -166,9 +166,6 @@ enum n3n_event_topic {
 #define N2N_IFNAMSIZ               16 /* 15 chars * NULL */
 #endif
 
-#define SN_SELECTION_CRITERION_DATA_TYPE    uint64_t
-#define SN_SELECTION_CRITERION_BUF_SIZE     16
-
 #define N2N_TRANSFORM_ID_USER_START         64
 #define N2N_TRANSFORM_ID_MAX                65535
 

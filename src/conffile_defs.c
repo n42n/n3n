@@ -5,9 +5,10 @@
  * Internal monolithic configuration definitions
  */
 
-#include <stddef.h>
 #include <n2n_typedefs.h>       // for n2n_edge_conf_t
 #include <n3n/conffile.h>
+#include <n3n/resolve.h>        // for RESOLVE_LIST_SUPERNODE, RESOLVE_LIST...
+#include <stddef.h>
 
 #include "n2n_define.h"
 
@@ -80,10 +81,12 @@ static struct n3n_conf_option section_community[] = {
     },
     {
         .name = "supernode",
-        .type = n3n_conf_supernode_str,
+        .type = n3n_conf_hostname_str,
+        .offset = RESOLVE_LIST_SUPERNODE,
         .desc = "Add a supernode",
         .help = "Multiple supernodes can be specified, each one as a "
-                "host:port string, which will be resolved if needed.",
+                "host:port string, which will be resolved if needed. "
+                "If no port is provided, a default of 7654 will be used.",
     },
     {.name = NULL},
 };
@@ -365,8 +368,8 @@ static struct n3n_conf_option section_supernode[] = {
     },
     {
         .name = "peer",
-        .type = n3n_conf_peer,
-        .offset = offsetof(n2n_edge_conf_t, sn_edges),
+        .type = n3n_conf_hostname_str,
+        .offset = RESOLVE_LIST_PEER,
         .desc = "Add a federated supernode",
         .help = "Multiple federated supernodes can be specified, each one as"
                 "a host:port string, which will be resolved if needed.",

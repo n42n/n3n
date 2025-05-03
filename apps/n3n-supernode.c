@@ -42,6 +42,7 @@
 
 // FIXME, including private headers
 #include "../src/peer_info.h"         // for peer_info
+#include "../src/resolve.h"           // for resolve_hostnames_str_to_peer_info
 
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
@@ -461,6 +462,18 @@ int main (int argc, char * argv[]) {
         traceEvent(TRACE_WARNING, "The default federation name is FOR TESTING ONLY - use of a custom setting for supernode.federation is highly recommended!");
     }
 
+    // During configuration, the federated peer list gets populated, so
+    // resolve that now.
+    // TODO: move this and the following move into sn_init()
+    if(resolve_hostnames_str_to_peer_info(
+           RESOLVE_LIST_PEER,
+           &sss_node.conf.sn_edges)) {
+        traceEvent(
+            TRACE_ERROR,
+            "resolve_hostnames_str_to_peer_info returned errors"
+        );
+    }
+
     // After configuration phase, move the federation edges to their runtime
     // place
     sss_node.federation->edges = sss_node.conf.sn_edges;
@@ -597,7 +610,8 @@ int main (int argc, char * argv[]) {
     // - do we actually want to tie the user/group to the running pid?
 
     if(e !=0) {
-        perror("slots_listen_tcp");
+        perror("slots_listen_unix");
+        sn_term(&sss_node);
         exit(1);
     }
 #endif

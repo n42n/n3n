@@ -21,6 +21,10 @@
 #include <unistd.h>             // for close
 #endif
 
+#ifdef __linux__
+#include <malloc.h>             // for mallinfo2, malloc_info
+#endif
+
 #include "edge_utils.h"         // for edge_read_from_tap
 #include "management.h"         // for readFromMgmtSocket
 #include "minmax.h"             // for min, max
@@ -130,6 +134,58 @@ static void metrics_callback (strbuf_t **reply, const struct n3n_metrics_module 
     }
 }
 
+#ifdef __linux__
+static struct mallinfo2 metrics_mi;
+
+static void metrics_mallinfo2 (strbuf_t **reply, const struct n3n_metrics_module *module) {
+    metrics_mi = mallinfo2();
+
+    n3n_metrics_render_u32tags(
+        reply,
+        module,
+        "bytes",
+        offsetof(struct mallinfo2, arena),
+        1,  // number of tag+val pairs
+        "field",
+        "arena"
+    );
+    n3n_metrics_render_u32tags(
+        reply,
+        module,
+        "bytes",
+        offsetof(struct mallinfo2, uordblks),
+        1,  // number of tag+val pairs
+        "field",
+        "uordblks"
+    );
+    n3n_metrics_render_u32tags(
+        reply,
+        module,
+        "bytes",
+        offsetof(struct mallinfo2, fordblks),
+        1,  // number of tag+val pairs
+        "field",
+        "fordblks"
+    );
+    n3n_metrics_render_u32tags(
+        reply,
+        module,
+        "bytes",
+        offsetof(struct mallinfo2, keepcost),
+        1,  // number of tag+val pairs
+        "field",
+        "keepcost"
+    );
+}
+
+static struct n3n_metrics_module metrics_module_mallinfo2 = {
+    .name = "mallinfo2",
+    .data = &metrics_mi,
+    .cb = &metrics_mallinfo2,
+    .type = n3n_metrics_type_cb,
+};
+#endif
+
 static struct n3n_metrics_module metrics_module_dynamic = {
     .name = "mainloop",
     .data = &fdlist,
@@ -151,6 +207,16 @@ static void connlist_init () {
         conn++;
     }
     connlist_next_search = 0;
+}
+
+static void connlist_deinit () {
+    int conn = 0;
+    while(conn < MAX_CONN) {
+        // TODO: this crosses the layer boundaries
+        free(connlist[conn].request);
+        free(connlist[conn].reply_header);
+        conn++;
+    }
 }
 
 static int connlist_alloc (enum conn_proto proto) {
@@ -520,6 +586,10 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
     }
 }
 
+#ifdef __linux__
+static time_t last_mallinfo;
+#endif
+
 int mainloop_runonce (struct n3n_runtime_data *eee) {
     fd_set rd;
     fd_set wr;
@@ -561,6 +631,29 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
     }
 
     fdlist_check_ready(&rd, &wr, now, eee);
+
+#ifdef __linux__
+    if(getTraceLevel() >= TRACE_DEBUG) {
+        if((now & ~0x3f) > last_mallinfo) {
+            last_mallinfo = now;
+            struct mallinfo2 mi = mallinfo2();
+            traceEvent(
+                TRACE_DEBUG,
+                "mallinfo: area=%i uordblks=%i, fordblks=%i, keepcost=%i",
+                mi.arena,
+                mi.uordblks,
+                mi.fordblks,
+                mi.keepcost
+            );
+
+#ifdef DEBUG_MALLOC
+            fprintf(stderr,"===malloc_info start===\n");
+            malloc_info(0, stderr);
+            fprintf(stderr,"===malloc_info end===\n");
+#endif
+        }
+    }
+#endif
 
     return ready;
 }
@@ -647,5 +740,15 @@ void n3n_initfuncs_mainloop () {
     connlist_init();
     fdlist_zero();
     n3n_metrics_register(&metrics_module_dynamic);
+#ifdef __linux__
+    n3n_metrics_register(&metrics_module_mallinfo2);
+#endif
     n3n_metrics_register(&metrics_module_static);
+}
+
+void n3n_deinitfuncs_mainloop () {
+    connlist_deinit();
+    // TODO: once the metrics framework supports it
+    // n3n_metrics_unregister(&metrics_module_dynamic);
+    // n3n_metrics_unregister(&metrics_module_static);
 }

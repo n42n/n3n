@@ -634,7 +634,9 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 (uint32_t)peer->last_seen
     );
 
-    // TODO: add a proto: TCP|UDP item to the output
+    // TODO:
+    // - add a proto: TCP|UDP item to the output
+    // - add last_cookie to the output?
 }
 
 static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {

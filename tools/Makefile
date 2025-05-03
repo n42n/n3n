@@ -21,8 +21,6 @@ TESTS+=tests-auth
 .PHONY: all clean install
 all: $(TOOLS) $(TESTS)
 
-# Remember to keep the two CC lines in sync
-$(info CC is: $(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $$^ $(LDLIBS) -o $$@)
 %: %.c
 	@echo "  CC      $@"
 	@$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@

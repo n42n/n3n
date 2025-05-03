@@ -20,6 +20,7 @@
 
 
 #include <n3n/edge.h>   // for edge_init_conf_defaults
+#include <n3n/hexdump.h>  // for fhexdump
 #include <n3n/initfuncs.h>     // for n3n_initfuncs
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/random.h> // for n3n_srand_stable_default
@@ -29,7 +30,6 @@
 #include <string.h>     // for memcpy, memset, memcmp, strncpy
 #include <sys/types.h>  // for ssize_t
 #include "config.h"     // for HAVE_LIBZSTD
-#include "hexdump.h"    // for fhexdump
 #include "n2n.h"        // for n2n_trans_op_t, n2n_edge_conf_t, n2n_common_t
 #include "n2n_wire.h"   // for decode_PACKET, decode_common, encode_PACKET
 
@@ -140,7 +140,7 @@ int main (int argc, char * argv[]) {
 #endif
 
     edge_term_conf(&conf);
-
+    n3n_deinitfuncs();
     return 0;
 }
 

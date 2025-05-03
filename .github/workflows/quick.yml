@@ -36,7 +36,7 @@ jobs:
 
   smoketest_all_opts:
     name: Smoke test With all options turned on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +70,7 @@ jobs:
             CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
             LDFLAGS="--coverage"
           make build-dep
-          make -j4 all
+          make -j4 all examples
           make test
 
       - name: Generate coverage reports

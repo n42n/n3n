@@ -46,7 +46,10 @@ int main () {
     // conf.bind_address = sockaddr; // can be used to bind to a local port
     conf.register_interval = 1;                                                              // Interval for both UDP NAT hole punching and supernode registration
     conf.register_ttl = 1;                                                                   // Interval for UDP NAT hole punching through supernode
-    resolve_supernode_str_add("localhost:1234");                                             // Supernode to connect to
+
+    // Supernode to connect to
+    resolve_hostnames_str_add(RESOLVE_LIST_SUPERNODE, "localhost:1234");
+
     conf.tos = 16;                                                                           // Type of service for sent packets
     conf.transop_id = N2N_TRANSFORM_ID_TWOFISH;                                              // Use the twofish encryption
 

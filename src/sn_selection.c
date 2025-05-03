@@ -33,53 +33,35 @@
 #include "uthash.h"           // for UT_hash_handle, HASH_COUNT, HASH_ITER, HAS...
 
 
-static SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_read (struct n3n_runtime_data *eee);
-static int sn_selection_criterion_sort (peer_info_t *a, peer_info_t *b);
-
-
-/* Initialize selection_criterion field in peer_info structure*/
-int sn_selection_criterion_init (peer_info_t *peer) {
-
-    if(peer != NULL) {
-        sn_selection_criterion_default(&(peer->selection_criterion));
-    }
-
-    return 0; /* OK */
-}
-
-
-/* Set selection_criterion field to default value according to selected strategy. */
-int sn_selection_criterion_default (SN_SELECTION_CRITERION_DATA_TYPE *selection_criterion) {
-
-    *selection_criterion = (SN_SELECTION_CRITERION_DATA_TYPE)(UINT64_MAX >> 1) - 1;
-
-    return 0; /* OK */
+/* Return the selection_criterion value according to selected strategy. */
+uint64_t sn_selection_criterion_default () {
+    return (uint64_t)(UINT64_MAX >> 1) - 1;
 }
 
 
 /* Set selection_criterion field to 'bad' value (worse than default) according to selected strategy. */
-int sn_selection_criterion_bad (SN_SELECTION_CRITERION_DATA_TYPE *selection_criterion) {
-
-    *selection_criterion = (SN_SELECTION_CRITERION_DATA_TYPE)(UINT64_MAX >> 1);
-
-    return 0; /* OK */
+uint64_t sn_selection_criterion_bad () {
+    return (uint64_t)(UINT64_MAX >> 1);
 }
 
 /* Set selection_criterion field to 'good' value (better than default) according to selected strategy. */
-int sn_selection_criterion_good (SN_SELECTION_CRITERION_DATA_TYPE *selection_criterion) {
-
-    *selection_criterion = (SN_SELECTION_CRITERION_DATA_TYPE)(UINT64_MAX >> 1) - 2;
-
-    return 0; /* OK */
+uint64_t sn_selection_criterion_good () {
+    return (uint64_t)(UINT64_MAX >> 1) - 2;
 }
+
+/* Return the value of sn_selection_criterion_common_data field. */
+static uint64_t sn_selection_criterion_common_read (struct n3n_runtime_data *eee) {
+    return eee->sn_selection_criterion_common_data;
+}
+
 
 
 /* Take data from PEER_INFO payload and transform them into a selection_criterion.
  * This function is highly dependant of the chosen selection criterion.
  */
-int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t *peer, SN_SELECTION_CRITERION_DATA_TYPE *data) {
+int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t *peer, uint64_t data) {
 
-    SN_SELECTION_CRITERION_DATA_TYPE common_data;
+    uint64_t common_data;
     int sum = 0;
 
     common_data = sn_selection_criterion_common_read(eee);
@@ -87,7 +69,7 @@ int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t 
     switch(eee->conf.sn_selection_strategy) {
 
         case SN_SELECTION_STRATEGY_LOAD: {
-            peer->selection_criterion = (SN_SELECTION_CRITERION_DATA_TYPE)(be32toh(*data) + common_data);
+            peer->selection_criterion = (uint64_t)(be32toh(data) + common_data);
 
             /* Mitigation of the real supernode load in order to see less oscillations.
              * Edges jump from a supernode to another back and forth due to purging.
@@ -101,7 +83,7 @@ int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t 
         }
 
         case SN_SELECTION_STRATEGY_RTT: {
-            peer->selection_criterion = (SN_SELECTION_CRITERION_DATA_TYPE)((uint32_t)time_stamp() >> 22) - common_data;
+            peer->selection_criterion = (uint64_t)((uint32_t)time_stamp() >> 22) - common_data;
             break;
         }
 
@@ -142,7 +124,7 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
                 return 0;
             }
 
-            SN_SELECTION_CRITERION_DATA_TYPE tmp = 0;
+            uint64_t tmp = 0;
 
             tmp = HASH_COUNT(eee->pending_peers);
             if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -153,7 +135,7 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
         }
 
         case SN_SELECTION_STRATEGY_RTT: {
-            eee->sn_selection_criterion_common_data = (SN_SELECTION_CRITERION_DATA_TYPE)((uint32_t)time_stamp() >> 22);
+            eee->sn_selection_criterion_common_data = (uint64_t)((uint32_t)time_stamp() >> 22);
             break;
         }
 
@@ -174,13 +156,6 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee) {
     }
 
     return 0; /* OK */
-}
-
-
-/* Return the value of sn_selection_criterion_common_data field. */
-static SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_read (struct n3n_runtime_data *eee) {
-
-    return eee->sn_selection_criterion_common_data;
 }
 
 
@@ -211,9 +186,9 @@ int sn_selection_sort (peer_info_t **peer_list) {
 /* Function that gathers requested data on a supernode.
  * it remains unaffected by selection strategy because it refers to edge behaviour only
  */
-SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_gather_data (struct n3n_runtime_data *sss) {
+uint64_t sn_selection_criterion_gather_data (struct n3n_runtime_data *sss) {
 
-    SN_SELECTION_CRITERION_DATA_TYPE data = 0, tmp = 0;
+    uint64_t data = 0, tmp = 0;
     struct sn_community *comm, *tmp_comm;
 
     HASH_ITER(hh, sss->communities, comm, tmp_comm) {
@@ -239,7 +214,7 @@ extern char * sn_selection_criterion_str (struct n3n_runtime_data *eee, selectio
     if(NULL == out) {
         return NULL;
     }
-    memset(out, 0, SN_SELECTION_CRITERION_BUF_SIZE);
+    out[0] = 0;
 
     // keep off the super-big values (used for "bad" or "good" or "undetermined" supernodes,
     // easier to sort to the end of the list).

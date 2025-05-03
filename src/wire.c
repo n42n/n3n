@@ -690,14 +690,13 @@ int fill_sockaddr (struct sockaddr * addr,
 
 
 // fills struct sockaddr's data into n2n_sock
-int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa, int type) {
+int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa) {
     // Ensure the return struct is fully initialised
     // TODO: could be optimised
     memset(sock, 0, sizeof(n2n_sock_t));
 
     sock->family = sa->sa_family;
-    // TODO: re enable this when it doesnt break things
-    // sock->type = type;  // SOCK_DGRAM or SOCK_STREAM
+    // sock->type = 0; // Field is still used by encode/decode sock above
 
     switch(sock->family) {
         case AF_INET: {

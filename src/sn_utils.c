@@ -22,8 +22,10 @@
 #include <connslot/connslot.h>
 #include <errno.h>              // for errno, EAFNOSUPPORT
 #include <n3n/ethernet.h>       // for is_null_mac
+#include <n3n/initfuncs.h>      // for n3n_deinitfuncs
 #include <n3n/logging.h>        // for traceEvent
 #include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr, memrnd
+#include <n3n/resolve.h>        // for RESOLVE_LIST_*
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
 #include <n3n/supernode.h>      // for load_allowed_sn_community, calculate_...
 #include <stdbool.h>
@@ -573,7 +575,7 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
 
         setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value));
         value = 1;
-#ifdef LINUX
+#ifdef __linux__
         setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
 #endif
 
@@ -592,7 +594,7 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
         value = 1; /* value should still be set to 1 */
         setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&value, sizeof(value));
-#ifdef LINUX
+#ifdef __linux__
         value = 0;
         setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
 #endif
@@ -919,17 +921,24 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
 
 /** Initialise the supernode */
 void sn_init (struct n3n_runtime_data *sss) {
+    // Show the user what has been configured
+    resolve_log_hostnames(RESOLVE_LIST_SUPERNODE);
+    resolve_log_hostnames(RESOLVE_LIST_PEER);
+
     // TODO:
     // - is sss->supernodes even used in supernode?
     // - should sss->federation->edges be used instead?
     // - which works better in a merged edge/supernode environment?
-    if(resolve_supernode_str_to_peer_info(&sss->supernodes)) {
+    if(resolve_hostnames_str_to_peer_info(
+           RESOLVE_LIST_SUPERNODE,
+           &sss->supernodes)) {
         traceEvent(
             TRACE_ERROR,
-            "resolve_supernode_str_to_peer_info returned errors"
+            "resolve_hostnames_str_to_peer_info returned errors"
         );
     }
 
+    // TODO: thread should probably be created before the above resolve!
     if(resolve_create_thread(&(sss->resolve_parameter), sss->federation->edges) == 0) {
         traceEvent(TRACE_INFO, "successfully created resolver thread");
     }
@@ -1002,6 +1011,8 @@ void sn_term (struct n3n_runtime_data *sss) {
 
     free(sss->conf.community_file);
 
+    free(sss->conf.mgmt_password);
+
 #ifndef _WIN32
     char unixsock[1024];
     snprintf(unixsock, sizeof(unixsock), "%s/mgmt", sss->conf.sessiondir);
@@ -1016,6 +1027,8 @@ void sn_term (struct n3n_runtime_data *sss) {
     free(sss->conf.sessiondir);
 
     slots_free(sss->mgmt_slots);
+
+    n3n_deinitfuncs();
 
 #ifdef _WIN32
     destroyWin32();
@@ -1663,13 +1676,13 @@ static int sort_communities (struct n3n_runtime_data *sss,
 /** Examine a datagram and determine what to do with it.
  *
  */
-static int process_udp (struct n3n_runtime_data * sss,
+static int process_pdu (struct n3n_runtime_data * sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
                         size_t udp_size,
-                        time_t now,
-                        int type) {
+                        time_t now
+) {
 
     n2n_common_t cmn;        /* common fields in the packet header */
     size_t rem;
@@ -1690,7 +1703,7 @@ static int process_udp (struct n3n_runtime_data * sss,
     int skip_add;
     time_t any_time = 0;
 
-    fill_n2nsock(&sender, sender_sock, SOCK_DGRAM);
+    fill_n2nsock(&sender, sender_sock);
     orig_sender = &sender;
 
     traceEvent(TRACE_DEBUG, "processing incoming UDP packet [len: %lu][sender: %s]",
@@ -2454,6 +2467,12 @@ static int process_udp (struct n3n_runtime_data * sss,
 
             } else {
                 traceEvent(TRACE_INFO, "Rx REGISTER_SUPER_ACK with wrong or old cookie");
+                traceEvent(
+                    TRACE_DEBUG,
+                    "got %u, expected %u",
+                    ack.cookie,
+                    scan->last_cookie
+                );
             }
             return 0;
         }
@@ -2483,7 +2502,7 @@ static int process_udp (struct n3n_runtime_data * sss,
                        nak.srcMac,
                        stamp,
                        TIME_STAMP_NO_JITTER)) {
-                    traceEvent(TRACE_DEBUG, "process_udp dropped REGISTER_SUPER_NAK due to time stamp error");
+                    traceEvent(TRACE_DEBUG, "process_pdu dropped REGISTER_SUPER_NAK due to time stamp error");
                     return -1;
                 }
             }
@@ -2867,15 +2886,14 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                 // we have a datagram to process...
                 if(bread > 0) {
                     // ...and the datagram has data (not just a header)
-                    process_udp(
+                    process_pdu(
                         sss,
                         sender_sock,
                         ss_size,
                         sss->sock,
                         pktbuf,
                         bread,
-                        now,
-                        SOCK_DGRAM
+                        now
                     );
                 }
             }
@@ -2932,15 +2950,14 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                             }
                         } else {
                             // full packet read, handle it
-                            process_udp(
+                            process_pdu(
                                 sss,
                                 &(conn->sock),
                                 conn->sock_len,
                                 conn->socket_fd,
                                 conn->buffer + sizeof(uint16_t),
                                 conn->position - sizeof(uint16_t),
-                                now,
-                                SOCK_STREAM
+                                now
                             );
 
                             // reset, await new prepended length

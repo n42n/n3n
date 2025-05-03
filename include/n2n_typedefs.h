@@ -185,11 +185,6 @@ typedef u_short sa_family_t;
 typedef char n2n_version_t[N2N_VERSION_STRING_SIZE];
 
 
-#define SN_SELECTION_STRATEGY_LOAD       1
-#define SN_SELECTION_STRATEGY_RTT        2
-#define SN_SELECTION_STRATEGY_MAC        3
-
-
 typedef struct n2n_ip_subnet {
     in_addr_t net_addr;             /* Host order IP address. */
     uint8_t net_bitlen;             /* Subnet prefix. */
@@ -524,7 +519,7 @@ struct n3n_runtime_data {
     n2n_trans_op_t transop;                                              /**< The transop to use when encoding */
     n2n_trans_op_t transop_lzo;                                          /**< The transop for LZO  compression */
     n2n_trans_op_t transop_zstd;                                         /**< The transop for ZSTD compression */
-    SN_SELECTION_CRITERION_DATA_TYPE sn_selection_criterion_common_data;
+    uint64_t sn_selection_criterion_common_data;
 
     /* Sockets */
     /* supernode socket is in        eee->curr_sn->sock (of type n2n_sock_t) */

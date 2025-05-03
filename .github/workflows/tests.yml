@@ -66,8 +66,7 @@ jobs:
       fail-fast: true
       matrix:
         os:
-          - ubuntu-20.04
-          - ubuntu-22.04
+          - ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -252,7 +251,7 @@ jobs:
     name: Package for Debian/Ubuntu
     needs:
       - test_linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: true
       matrix:
@@ -674,7 +673,7 @@ jobs:
         id: get_tagtype
         run: |
           TYPE=$(git cat-file -t $GITHUB_REF)
-          echo "::set-output name=TAGTYPE::$TYPE"
+          echo "TAGTYPE=$TYPE" >> $GITHUB_OUTPUT
           echo ==========
           echo REF=$GITHUB_REF
           echo TAGTYPE=$TYPE

@@ -9,10 +9,12 @@
 #include <errno.h>              // for errno
 #include <getopt.h>
 #include <n3n/conffile.h>
+#include <n3n/ethernet.h>       // for n2n_mac_t
 #include <n3n/logging.h>        // for setTraceLevel
 #include <n3n/network_traffic_filter.h>
 #include <n3n/peer_info.h>      // for n3n_peer_add_by_hostname
 #include <n3n/transform.h>      // for n3n_transform_lookup_
+#include <sn_selection.h>       // for SN_SELECTION_STRATEGY_RTT, ...
 #include <stdbool.h>            // for true, false
 #include <stdint.h>             // for uint32_t
 #include <stdio.h>              // for printf
@@ -23,8 +25,6 @@
 
 #include "peer_info.h"          // for struct peer_info
 #include "resolve.h"            // for resolve_supernode_str_get
-#include "n2n_typedefs.h"
-#include "n3n/ethernet.h"
 #include "uthash.h"
 
 #ifdef _WIN32
@@ -58,6 +58,20 @@ void n3n_config_register_section (char *name, char *help, struct n3n_conf_option
     section->help = help;
     section->options = options;
     registered_sections = section;
+}
+
+void n3n_deinitfuncs_config () {
+    // TODO:
+    // - ideally, each caller to the n3n_config_register_section() function
+    //   would be able to call a matching deregister(), but we are cheating
+    //   and simply do a mass free here
+
+    struct n3n_conf_section *p = registered_sections;
+    while(p) {
+        struct n3n_conf_section *new_p = p->next;
+        free(p);
+        p = new_p;
+    }
 }
 
 static struct n3n_conf_option *lookup_section (char *section) {
@@ -186,10 +200,6 @@ try_uint32:
                 return 0;
             }
             return -1;
-        }
-        case n3n_conf_peer: {
-            peer_info_t **peer = (peer_info_t **)valvoid;
-            return n3n_peer_add_by_hostname(peer, value);
         }
         case n3n_conf_privatekey: {
             n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
@@ -410,8 +420,9 @@ try_uint32:
             *val[0] |= 0x02;
             return 0;
         }
-        case n3n_conf_supernode_str: {
-            resolve_supernode_str_add(value);
+        case n3n_conf_hostname_str: {
+            int listnr = p->offset;
+            resolve_hostnames_str_add(listnr, value);
             return 0;
         }
     }
@@ -516,10 +527,6 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             uint8_t *val = (uint8_t *)valvoid;
             return n3n_compression_id2str(*val);
         }
-        case n3n_conf_peer: {
-            // This is a multi-value item, so needs special handling to dump
-            return NULL;
-        }
         case n3n_conf_privatekey: {
             // This uses a one-way hash, so cannot be dumped
             return NULL;
@@ -612,7 +619,7 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             macaddr_str(buf, *val);
             return buf;
         }
-        case n3n_conf_supernode_str: {
+        case n3n_conf_hostname_str: {
             // This is a multi-value item, so needs special handling to dump
             return NULL;
         }
@@ -653,9 +660,6 @@ static int option_storagesize (struct n3n_conf_option *option) {
             uint8_t *val = (uint8_t *)valvoid;
             return sizeof(*val);
         }
-        case n3n_conf_peer: {
-            return -1;
-        }
         case n3n_conf_privatekey: {
             n2n_private_public_key_t **val = (n2n_private_public_key_t **)valvoid;
             return sizeof(*val);
@@ -694,7 +698,7 @@ static int option_storagesize (struct n3n_conf_option *option) {
             n2n_mac_t *val = (n2n_mac_t *)valvoid;
             return sizeof(*val);
         }
-        case n3n_conf_supernode_str: {
+        case n3n_conf_hostname_str: {
             return -1;
         }
     }
@@ -742,33 +746,14 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
     if(level >= 1) {
         // show both name and value
 
-        if(option->type == n3n_conf_peer) {
+        if(option->type == n3n_conf_hostname_str) {
             // special case for this multi-value item
             // TODO: this breaks layering, but I cannot think of a simple
             // alternative
             fprintf(f, "#%s=\n", option->name);
-            void *valvoid = (char *)conf + option->offset;
-            struct peer_info **peers = (struct peer_info **)valvoid;
-            struct peer_info *scan, *tmp;
-            HASH_ITER(hh, *peers, scan, tmp) {
-                fprintf(
-                    f,
-                    "%s=%s\n",
-                    option->name,
-                    peer_info_get_hostname(scan)
-                );
-            }
-            fprintf(f, "\n");
-            return;
-        }
-
-        if(option->type == n3n_conf_supernode_str) {
-            // special case for this multi-value item
-            // TODO: this breaks layering, but I cannot think of a simple
-            // alternative
-            fprintf(f, "#%s=\n", option->name);
+            int listnr = option->offset;
             int index = 0;
-            char *p = (char *)resolve_supernode_str_get(index);
+            char *p = (char *)resolve_hostnames_str_get(listnr, index);
             while(p) {
                 fprintf(
                     f,
@@ -777,7 +762,7 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
                     p
                 );
                 index++;
-                p = (char *)resolve_supernode_str_get(index);
+                p = (char *)resolve_hostnames_str_get(listnr, index);
             }
             fprintf(f, "\n");
             return;
@@ -840,11 +825,7 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
     while(section) {
         option = section->options;
         while(option->name) {
-            if(option->type == n3n_conf_peer) {
-                option++;
-                continue;
-            }
-            if(option->type == n3n_conf_supernode_str) {
+            if(option->type == n3n_conf_hostname_str) {
                 option++;
                 continue;
             }

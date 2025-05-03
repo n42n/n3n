@@ -18,11 +18,11 @@
  */
 
 
+#include <n3n/hexdump.h>  // for fhexdump
 #include <stdint.h>   // for uint8_t
 #include <stdio.h>    // for printf, fprintf, stdout, stderr
 #include <string.h>   // for memset
 #include "auth.h"     // for ascii_to_bin, bin_to_ascii, generate_private_key
-#include "hexdump.h"  // for fhexdump
 #include "n2n.h"      // for n2n_private_public_key_t
 
 

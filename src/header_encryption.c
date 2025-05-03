@@ -167,6 +167,9 @@ void packet_header_change_dynamic_key (uint8_t *key_dynamic,
                                        struct speck_context_t **ctx_dynamic,
                                        struct speck_context_t **ctx_iv_dynamic) {
 
+    speck_deinit((speck_context_t*)*ctx_dynamic);
+    speck_deinit((speck_context_t*)*ctx_iv_dynamic);
+
     uint8_t key[16];
     pearson_hash_128(key, key_dynamic, N2N_AUTH_CHALLENGE_SIZE);
 
