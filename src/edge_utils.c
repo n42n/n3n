@@ -2427,7 +2427,11 @@ void process_pdu (struct n3n_runtime_data *eee,
             // TODO:
             // stats.errors.community.supernode ++;
         } else {
-            traceEvent(TRACE_INFO, "ignoring packet with unknown community");
+            traceEvent(
+                TRACE_INFO,
+                "ignoring packet with unknown community (%s)",
+                cmn.community
+            );
             // TODO:
             // stats.errors.community.other ++;
         }
