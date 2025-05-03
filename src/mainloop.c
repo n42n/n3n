@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <connslot/connslot.h>  // for slots_fdset
 #include <errno.h>              // for errno
-#include <malloc.h>             // for mallinfo2, malloc_info
 #include <n2n_typedefs.h>       // for n3n_runtime_data
 #include <n3n/edge.h>           // for edge_read_proto3_udp
 #include <n3n/logging.h>        // for traceEvent
@@ -20,6 +19,10 @@
 #ifndef _WIN32
 #include <sys/select.h>         // for select, FD_ZERO,
 #include <unistd.h>             // for close
+#endif
+
+#ifdef LINUX
+#include <malloc.h>             // for mallinfo2, malloc_info
 #endif
 
 #include "edge_utils.h"         // for edge_read_from_tap
@@ -531,7 +534,9 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
     }
 }
 
+#ifdef LINUX
 static time_t last_mallinfo;
+#endif
 
 int mainloop_runonce (struct n3n_runtime_data *eee) {
     fd_set rd;
@@ -575,6 +580,7 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
 
     fdlist_check_ready(&rd, &wr, now, eee);
 
+#ifdef LINUX
     if(getTraceLevel() >= TRACE_DEBUG) {
         if((now & ~0x3f) > last_mallinfo) {
             last_mallinfo = now;
@@ -595,6 +601,7 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
 #endif
         }
     }
+#endif
 
     return ready;
 }
