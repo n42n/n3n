@@ -29,7 +29,9 @@ LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_LOCAL)
 LDLIBS+=$(LDLIBS_EXTRA)
 
-all: $(APPS) $(EXAMPLES)
+all: $(APPS)
+
+examples: $(EXAMPLES)
 
 # TODO: a better path for this lib, as it would need to change to use this
 # makefile outside the build environment

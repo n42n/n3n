@@ -264,6 +264,10 @@ apps: $(SUBDIR_LIBS)
 	$(MAKE) -C apps
 SUBDIR_CLEAN+=apps
 
+.PHONY: examples
+examples: $(SUBDIR_LIBS)
+	$(MAKE) -C apps examples
+
 src/win32/edge.rc: src/win32/edge.manifest
 src/win32/edge_rc.o: src/win32/edge.rc
 	$(WINDRES) $< -O coff -o $@
