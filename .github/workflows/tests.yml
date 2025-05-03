@@ -673,7 +673,7 @@ jobs:
         id: get_tagtype
         run: |
           TYPE=$(git cat-file -t $GITHUB_REF)
-          echo "::set-output name=TAGTYPE::$TYPE"
+          echo "TAGTYPE=$TYPE" >> $GITHUB_OUTPUT
           echo ==========
           echo REF=$GITHUB_REF
           echo TAGTYPE=$TYPE
