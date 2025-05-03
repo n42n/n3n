@@ -575,7 +575,7 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
 
         setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value));
         value = 1;
-#ifdef LINUX
+#ifdef __linux__
         setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
 #endif
 
@@ -594,7 +594,7 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
         value = 1; /* value should still be set to 1 */
         setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&value, sizeof(value));
-#ifdef LINUX
+#ifdef __linux__
         value = 0;
         setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
 #endif

@@ -21,7 +21,7 @@
 #include <unistd.h>             // for close
 #endif
 
-#ifdef LINUX
+#ifdef __linux__
 #include <malloc.h>             // for mallinfo2, malloc_info
 #endif
 
@@ -534,7 +534,7 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
     }
 }
 
-#ifdef LINUX
+#ifdef __linux__
 static time_t last_mallinfo;
 #endif
 
@@ -580,7 +580,7 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
 
     fdlist_check_ready(&rd, &wr, now, eee);
 
-#ifdef LINUX
+#ifdef __linux__
     if(getTraceLevel() >= TRACE_DEBUG) {
         if((now & ~0x3f) > last_mallinfo) {
             last_mallinfo = now;
