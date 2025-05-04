@@ -21,8 +21,10 @@
 #include <unistd.h>             // for close
 #endif
 
-#ifdef __linux__
+#ifdef DEBUG_MALLOC
+#ifdef __GLIBC__
 #include <malloc.h>             // for mallinfo2, malloc_info
+#endif
 #endif
 
 #include "edge_utils.h"         // for edge_read_from_tap
@@ -134,7 +136,8 @@ static void metrics_callback (strbuf_t **reply, const struct n3n_metrics_module 
     }
 }
 
-#ifdef __linux__
+#ifdef DEBUG_MALLOC
+#ifdef __GLIBC__
 static struct mallinfo2 metrics_mi;
 
 static void metrics_mallinfo2 (strbuf_t **reply, const struct n3n_metrics_module *module) {
@@ -184,6 +187,7 @@ static struct n3n_metrics_module metrics_module_mallinfo2 = {
     .cb = &metrics_mallinfo2,
     .type = n3n_metrics_type_cb,
 };
+#endif
 #endif
 
 static struct n3n_metrics_module metrics_module_dynamic = {
@@ -586,8 +590,10 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
     }
 }
 
-#ifdef __linux__
+#ifdef DEBUG_MALLOC
+#ifdef __GLIBC__
 static time_t last_mallinfo;
+#endif
 #endif
 
 int mainloop_runonce (struct n3n_runtime_data *eee) {
@@ -632,7 +638,8 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
 
     fdlist_check_ready(&rd, &wr, now, eee);
 
-#ifdef __linux__
+#ifdef DEBUG_MALLOC
+#ifdef __GLIBC__
     if(getTraceLevel() >= TRACE_DEBUG) {
         if((now & ~0x3f) > last_mallinfo) {
             last_mallinfo = now;
@@ -646,13 +653,12 @@ int mainloop_runonce (struct n3n_runtime_data *eee) {
                 mi.keepcost
             );
 
-#ifdef DEBUG_MALLOC
             fprintf(stderr,"===malloc_info start===\n");
             malloc_info(0, stderr);
             fprintf(stderr,"===malloc_info end===\n");
-#endif
         }
     }
+#endif
 #endif
 
     return ready;
@@ -740,8 +746,10 @@ void n3n_initfuncs_mainloop () {
     connlist_init();
     fdlist_zero();
     n3n_metrics_register(&metrics_module_dynamic);
-#ifdef __linux__
+#ifdef DEBUG_MALLOC
+#ifdef __GLIBC__
     n3n_metrics_register(&metrics_module_mallinfo2);
+#endif
 #endif
     n3n_metrics_register(&metrics_module_static);
 }
