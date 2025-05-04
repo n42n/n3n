@@ -2994,7 +2994,7 @@ void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
     return;
 }
 
-void print_edge_stats (const struct n3n_runtime_data *eee) {
+static void print_edge_stats (const struct n3n_runtime_data *eee) {
 
     const struct n2n_edge_stats *s = &eee->stats;
 
@@ -3178,6 +3178,7 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
 
 /** Deinitialise the edge and deallocate any owned memory. */
 void edge_term (struct n3n_runtime_data * eee) {
+    print_edge_stats(eee);
 
     edge_term_conf(&eee->conf);
 

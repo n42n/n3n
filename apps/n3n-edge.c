@@ -1074,7 +1074,6 @@ int main (int argc, char* argv[]) {
 
     traceEvent(TRACE_NORMAL, "edge started");
     rc = run_edge_loop(eee);
-    print_edge_stats(eee);
 
 #ifdef HAVE_LIBCAP
     /* Before completing the cleanup, regain the capabilities as some
