@@ -3005,6 +3005,34 @@ static void print_edge_stats (const struct n3n_runtime_data *eee) {
     traceEvent(TRACE_NORMAL, "      TX Supernode: %u pkts (%u broadcast)", s->tx_sup, s->tx_sup_broadcast);
     traceEvent(TRACE_NORMAL, "      RX Supernode: %u pkts (%u broadcast)", s->rx_sup, s->rx_sup_broadcast);
     traceEvent(TRACE_NORMAL, "**********************************");
+
+    traceEvent(TRACE_INFO, "data structures tracked:");
+    traceEvent(
+        TRACE_INFO,
+        "  traffic filter rules: %i",
+        HASH_COUNT(eee->conf.network_traffic_filter_rules)
+    );
+    traceEvent(
+        TRACE_INFO,
+        "  bridge known hosts: %i",
+        HASH_COUNT(eee->known_hosts)
+    );
+    traceEvent(
+        TRACE_INFO,
+        "  pending peers: %i",
+        HASH_COUNT(eee->pending_peers)
+    );
+    traceEvent(
+        TRACE_INFO,
+        "  known peers: %i",
+        HASH_COUNT(eee->known_peers)
+    );
+    traceEvent(
+        TRACE_INFO,
+        "  supernodes: %i",
+        HASH_COUNT(eee->supernodes)
+    );
+    traceEvent(TRACE_INFO, "**********************************");
 }
 
 
