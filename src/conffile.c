@@ -1043,7 +1043,7 @@ int n3n_config_load_file (void *conf, char *name) {
             // Skip lines that are empty
             continue;
         }
-        if(*line == '#') {
+        if(*line == '#' || *line == ';') {
             // Skip lines starting with a comment
             continue;
         }
