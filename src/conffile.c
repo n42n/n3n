@@ -1090,6 +1090,14 @@ int n3n_config_load_file (void *conf, char *name) {
             if(*line == '=') {
                 break;
             }
+
+            printf(
+                "Error:%s:%i: unexpected char '%c'\n",
+                filename,
+                linenr,
+                *line
+            );
+            goto out;
         }
         if(!*line) {
             printf("Error:%s:%i: unexpected end of line\n", filename, linenr);
