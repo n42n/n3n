@@ -29,7 +29,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/n3n/Default
   SECTION:=net
   CATEGORY:=Network
-  TITLE:=N2N Peer-to-peer VPN
+  TITLE:=N3N Peer-to-peer VPN
   URL:=http://github.com/n42n/n3n
   SUBMENU:=VPN
 endef
@@ -46,11 +46,11 @@ define Package/n3n-supernode
 endef
 
 define Package/n3n-edge/description
-The client node for the N2N infrastructure
+The client node for the N3N infrastructure
 endef
 
 define Package/n3n-supernode/description
-The supernode for the N2N infrastructure
+The supernode for the N3N infrastructure
 endef
 
 define Build/Configure
