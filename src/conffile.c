@@ -1231,7 +1231,7 @@ static struct n3n_subcmd_result subcmd_lookup (struct n3n_subcmd_def *top, int a
                 continue;
             case n3n_subcmd_type_fn:
                 if(p->session_arg) {
-                    r.sessionname = argv[1];
+                    r.sessionname = strdup(argv[1]);
                 } else {
                     r.sessionname = NULL;
                 }
