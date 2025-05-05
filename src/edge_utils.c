@@ -565,6 +565,19 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
     memcpy(&eee->conf, conf, sizeof(*conf));
 
+#ifdef _WIN32
+    // TODO: more investigations in interface naming/renaming on windows
+#else
+    if(eee->conf.tuntap_dev_name[0] == 0) {
+        snprintf(
+            eee->conf.tuntap_dev_name,
+            sizeof(eee->conf.tuntap_dev_name),
+            "%s",
+            conf->sessionname
+        );
+    }
+#endif
+
     // Show the user what has been configured
     resolve_log_hostnames(RESOLVE_LIST_SUPERNODE);
 
@@ -3390,17 +3403,8 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
     conf->allow_p2p = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
 
-#ifdef _WIN32
-    // TODO: more investigations in interface naming/renaming on windows
+    // Ensure we can notice if the config has set a dev name
     conf->tuntap_dev_name[0] = '\0';
-#else
-    snprintf(
-        conf->tuntap_dev_name,
-        sizeof(conf->tuntap_dev_name),
-        "%s",
-        conf->sessionname
-    );
-#endif
 
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
     conf->tuntap_v4.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
