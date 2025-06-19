@@ -3221,7 +3221,8 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
     free(conf->mgmt_password);
     free(conf->public_key);
     free(conf->sessiondir);
-    free(conf->sessionname);
+    // FIXME: sometimes this points at illegal-to-free memory
+    // free(conf->sessionname);
     free(conf->shared_secret);
 }
 
