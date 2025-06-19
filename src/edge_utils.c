@@ -334,6 +334,13 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
         return -2;
     }
 
+    if(!eee->curr_sn) {
+        // We dont have a current supernode, so we cannot use it to find our
+        // local address
+        // TODO: fall back to a different sample dest address?
+        return -5;
+    }
+
     // connecting the UDP socket makes getsockname read the local address it
     // uses to connect (to the sn in this case);  we cannot do it with the
     // real (eee->sock) socket because socket does not accept any conenction
