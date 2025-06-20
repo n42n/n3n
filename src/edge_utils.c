@@ -3167,6 +3167,25 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             now
         );
 
+        if(eee->resolution_request) {
+            // This currently gets signaled in update_supernode_reg when a
+            // supernode is not responding
+            //
+            // TODO: update this once we have the new async resolving
+            if(resolve_hostnames_str_to_peer_info(
+                   RESOLVE_LIST_SUPERNODE,
+                   &eee->supernodes)) {
+                traceEvent(
+                    TRACE_WARNING,
+                    "resolve_hostnames_str_to_peer_info returned errors"
+                );
+            } else {
+                // No errors, so clear the request
+                eee->resolution_request = false;
+            }
+        }
+
+
     } /* while */
 
     send_unregister_super(eee);
