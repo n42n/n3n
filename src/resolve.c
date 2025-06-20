@@ -491,9 +491,9 @@ static int resolve_hostnames_str_to_peer_info_one (
     // WARN: this function could block for a name resolution
     int rv = supernode2sock(&sock, s);
 
-    if(rv < 0) {
-        /* just warn, since it might resolve next time */
-        traceEvent(TRACE_WARNING, "could not resolve %s", s);
+    if(rv < -2) {
+        /* we accept resolver failure as it might resolve later */
+        traceEvent(TRACE_WARNING, "invalid supernode parameter.");
         return 1;
     }
 
