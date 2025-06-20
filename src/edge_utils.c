@@ -334,6 +334,13 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
         return -2;
     }
 
+    if(!eee->curr_sn) {
+        // We dont have a current supernode, so we cannot use it to find our
+        // local address
+        // TODO: fall back to a different sample dest address?
+        return -5;
+    }
+
     // connecting the UDP socket makes getsockname read the local address it
     // uses to connect (to the sn in this case);  we cannot do it with the
     // real (eee->sock) socket because socket does not accept any conenction
@@ -565,6 +572,19 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
 
     memcpy(&eee->conf, conf, sizeof(*conf));
 
+#ifdef _WIN32
+    // TODO: more investigations in interface naming/renaming on windows
+#else
+    if(eee->conf.tuntap_dev_name[0] == 0) {
+        snprintf(
+            eee->conf.tuntap_dev_name,
+            sizeof(eee->conf.tuntap_dev_name),
+            "%s",
+            conf->sessionname
+        );
+    }
+#endif
+
     // Show the user what has been configured
     resolve_log_hostnames(RESOLVE_LIST_SUPERNODE);
 
@@ -572,7 +592,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
            RESOLVE_LIST_SUPERNODE,
            &eee->supernodes)) {
         traceEvent(
-            TRACE_ERROR,
+            TRACE_WARNING,
             "resolve_hostnames_str_to_peer_info returned errors"
         );
     }
@@ -1400,6 +1420,10 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     n2n_UNREGISTER_SUPER_t unreg;
     n2n_sock_str_t sockbuf;
 
+    if(!eee->curr_sn) {
+        return;
+    }
+
     // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&unreg, 0, sizeof(unreg));
@@ -1653,7 +1677,9 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
 
     if(0 == eee->sup_attempts) {
         /* Give up on that supernode and try the next one. */
-        eee->curr_sn->selection_criterion = sn_selection_criterion_bad();
+        if(eee->curr_sn) {
+            eee->curr_sn->selection_criterion = sn_selection_criterion_bad();
+        }
         sn_selection_sort(&(eee->supernodes));
         eee->curr_sn = eee->supernodes;
         traceEvent(
@@ -3141,6 +3167,25 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
             now
         );
 
+        if(eee->resolution_request) {
+            // This currently gets signaled in update_supernode_reg when a
+            // supernode is not responding
+            //
+            // TODO: update this once we have the new async resolving
+            if(resolve_hostnames_str_to_peer_info(
+                   RESOLVE_LIST_SUPERNODE,
+                   &eee->supernodes)) {
+                traceEvent(
+                    TRACE_WARNING,
+                    "resolve_hostnames_str_to_peer_info returned errors"
+                );
+            } else {
+                // No errors, so clear the request
+                eee->resolution_request = false;
+            }
+        }
+
+
     } /* while */
 
     send_unregister_super(eee);
@@ -3201,6 +3246,8 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
     free(conf->mgmt_password);
     free(conf->public_key);
     free(conf->sessiondir);
+    // FIXME: sometimes this points at illegal-to-free memory
+    // free(conf->sessionname);
     free(conf->shared_secret);
 }
 
@@ -3390,17 +3437,8 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
     conf->allow_p2p = true;
     conf->register_interval = REGISTER_SUPER_INTERVAL_DFL;
 
-#ifdef _WIN32
-    // TODO: more investigations in interface naming/renaming on windows
+    // Ensure we can notice if the config has set a dev name
     conf->tuntap_dev_name[0] = '\0';
-#else
-    snprintf(
-        conf->tuntap_dev_name,
-        sizeof(conf->tuntap_dev_name),
-        "%s",
-        conf->sessionname
-    );
-#endif
 
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
     conf->tuntap_v4.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;

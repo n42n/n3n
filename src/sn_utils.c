@@ -1025,6 +1025,7 @@ void sn_term (struct n3n_runtime_data *sss) {
     // paths were chown/chmod by the administrator
 
     free(sss->conf.sessiondir);
+    free(sss->conf.sessionname);
 
     slots_free(sss->mgmt_slots);
 

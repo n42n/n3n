@@ -136,6 +136,9 @@ struct peer_info* peer_info_validate (struct peer_info **list, struct peer_info 
 }
 
 inline char *peer_info_get_hostname (struct peer_info *p) {
+    if(!p) {
+        return NULL;
+    }
     return p->hostname;
 }
 

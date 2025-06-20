@@ -1043,7 +1043,7 @@ int n3n_config_load_file (void *conf, char *name) {
             // Skip lines that are empty
             continue;
         }
-        if(*line == '#') {
+        if(*line == '#' || *line == ';') {
             // Skip lines starting with a comment
             continue;
         }
@@ -1090,6 +1090,14 @@ int n3n_config_load_file (void *conf, char *name) {
             if(*line == '=') {
                 break;
             }
+
+            printf(
+                "Error:%s:%i: unexpected char '%c'\n",
+                filename,
+                linenr,
+                *line
+            );
+            goto out;
         }
         if(!*line) {
             printf("Error:%s:%i: unexpected end of line\n", filename, linenr);
@@ -1222,8 +1230,8 @@ static struct n3n_subcmd_result subcmd_lookup (struct n3n_subcmd_def *top, int a
                 p = top;
                 continue;
             case n3n_subcmd_type_fn:
-                if(p->session_arg) {
-                    r.sessionname = argv[1];
+                if(p->session_arg && argv[1]) {
+                    r.sessionname = strdup(argv[1]);
                 } else {
                     r.sessionname = NULL;
                 }

@@ -123,6 +123,11 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
     struct addrinfo * ainfo = NULL;
     struct sockaddr_in * saddr;
 
+    if(!addrIn) {
+        traceEvent(TRACE_DEBUG, "supernode2sock got NULL addrIn");
+        return -6;
+    }
+
     size_t length = strlen(addrIn);
     if(length > sizeof(addr)-1) {
         traceEvent(
@@ -487,6 +492,11 @@ static int resolve_hostnames_str_to_peer_info_one (
     memset(&sock, 0, sizeof(sock));
 
     traceEvent(TRACE_DEBUG, "resolving %s", s);
+
+    if(!s) {
+        // With no hostname, cannot do anything
+        return 1;
+    }
 
     // WARN: this function could block for a name resolution
     int rv = supernode2sock(&sock, s);
