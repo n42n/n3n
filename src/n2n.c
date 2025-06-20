@@ -215,7 +215,9 @@ extern int str2mac (uint8_t * outmac /* 6 bytes */, const char * s) {
 extern char * sock_to_cstr (n2n_sock_str_t out,
                             const n2n_sock_t * sock) {
 
-
+    if(!sock) {
+        return NULL;
+    }
     if(NULL == out) {
         return NULL;
     }

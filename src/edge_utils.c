@@ -592,7 +592,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
            RESOLVE_LIST_SUPERNODE,
            &eee->supernodes)) {
         traceEvent(
-            TRACE_ERROR,
+            TRACE_WARNING,
             "resolve_hostnames_str_to_peer_info returned errors"
         );
     }
@@ -1420,6 +1420,10 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     n2n_UNREGISTER_SUPER_t unreg;
     n2n_sock_str_t sockbuf;
 
+    if(!eee->curr_sn) {
+        return;
+    }
+
     // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
     memset(&unreg, 0, sizeof(unreg));
@@ -1673,7 +1677,9 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
 
     if(0 == eee->sup_attempts) {
         /* Give up on that supernode and try the next one. */
-        eee->curr_sn->selection_criterion = sn_selection_criterion_bad();
+        if(eee->curr_sn) {
+            eee->curr_sn->selection_criterion = sn_selection_criterion_bad();
+        }
         sn_selection_sort(&(eee->supernodes));
         eee->curr_sn = eee->supernodes;
         traceEvent(
