@@ -18,6 +18,9 @@
  *
  */
 
+#ifdef __LINUX__
+#define _GNU_SOURCE                  // for enabling dladdr
+#endif
 
 #include <config.h>                  // for HAVE_LIBCRYPTO
 #include <ctype.h>                   // for isspace
@@ -27,6 +30,7 @@
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/edge.h>                // for edge_init_conf_defaults
 #include <n3n/ethernet.h>            // for macaddr_str, macstr_t
+#include <n3n/hexdump.h>             // for fhexdump
 #include <n3n/initfuncs.h>           // for n3n_initfuncs()
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/mainloop.h>            // for mainloop_register_fd
@@ -66,6 +70,11 @@
 #include <pwd.h>                     // for getpwnam, passwd
 #include <sys/select.h>              // for select, FD_ISSET, FD_SET, FD_ZERO
 #include <sys/socket.h>              // for AF_INET
+#endif
+
+#ifdef __LINUX__
+#include <dlfcn.h>                   // for dladdr
+#include <ucontext.h>                // for ucontext_t
 #endif
 
 /* *************************************************** */
@@ -636,6 +645,78 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
 
 /* ************************************** */
 
+#ifdef __MUSL__
+/*
+ * Lookup what info we can about the address
+ */
+void print_addrinfo (void *addr) {
+
+    printf(" %p\n", addr);
+    fflush(stdout);
+
+#if 0
+    // This kind of dirty grubbing around is better suited for a debugger,
+    // or turned on only in specific debug cases
+
+    Dl_info info;
+    if(dladdr(addr, &info) == 0) {
+        printf(" %p in ??\n", addr);
+        return;
+    }
+
+    if(!info.dli_sname) {
+        info.dli_sname = "??";
+    }
+
+    printf(
+        " %p in %s (%p) from %s (%p)\n",
+        addr,
+        info.dli_sname,
+        info.dli_saddr,
+        info.dli_fname,
+        info.dli_fbase
+    );
+#endif
+}
+
+/*
+ * Attempt to show some useful debugging information to the user.
+ *
+ * On a GNU libc system, using backtrace(3) would be better.
+ *
+ * Yes, I am calling lots of forbidden functions from a signal handler.  Since
+ * we are a dieing process, I'm throwing caution to the wind.
+ */
+void handle_sigsegv (int sig, siginfo_t *info, void *unused)
+{
+    if(sig != SIGSEGV) {
+        fprintf(stderr, "Unexpected signal %i\n", sig);
+        return;
+    }
+
+    ucontext_t *u = (ucontext_t *)unused;
+
+    // Just in case someone is redirecting their stdout, send a notice on the
+    // stderr as well
+    fprintf(stderr, "SIGSEGV handler start\n");
+    printf("SIGSEGV: si_code=%i, si_addr=%p\n", info->si_code, info->si_addr);
+
+    printf("ucontext:\n");
+    fhexdump(0, u, sizeof(*u), stdout);
+
+    printf("call_stack:\n");
+    print_addrinfo(__builtin_return_address(0));
+    print_addrinfo(__builtin_return_address(1));
+    print_addrinfo(__builtin_return_address(2));
+    print_addrinfo(__builtin_return_address(3));
+    print_addrinfo(__builtin_return_address(4));
+
+    printf("SIGSEGV handler finish\n\n");
+    fflush(stdout);
+    signal(SIGSEGV, SIG_DFL);
+}
+#endif
+
 #ifndef _WIN32
 static void daemonize () {
     int childpid;
@@ -752,6 +833,17 @@ int main (int argc, char* argv[]) {
 
 #ifdef HAVE_LIBCAP
     cap_t caps;
+#endif
+
+#ifdef __MUSL__
+    struct sigaction sa;
+
+    memset(&sa, 0, sizeof(struct sigaction));
+    sa.sa_sigaction = handle_sigsegv;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_SIGINFO;
+
+    sigaction(SIGSEGV, &sa, NULL);
 #endif
 
     // Do this early to register all internals
