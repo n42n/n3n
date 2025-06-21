@@ -644,7 +644,7 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
 /*
  * Lookup what info we can about the address
  */
-void print_addrinfo(void *addr) {
+void print_addrinfo (void *addr) {
 
     printf(" %p\n", addr);
     fflush(stdout);
@@ -682,7 +682,7 @@ void print_addrinfo(void *addr) {
  * Yes, I am calling lots of forbidden functions from a signal handler.  Since
  * we are a dieing process, I'm throwing caution to the wind.
  */
-void handle_sigsegv(int sig, siginfo_t *info, void *unused)
+void handle_sigsegv (int sig, siginfo_t *info, void *unused)
 {
     if(sig != SIGSEGV) {
         fprintf(stderr, "Unexpected signal %i\n", sig);
