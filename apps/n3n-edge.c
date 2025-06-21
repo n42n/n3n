@@ -18,7 +18,9 @@
  *
  */
 
+#ifdef __LINUX__
 #define _GNU_SOURCE                  // for enabling dladdr
+#endif
 
 #include <config.h>                  // for HAVE_LIBCRYPTO
 #include <ctype.h>                   // for isspace
@@ -64,11 +66,14 @@
 #ifdef _WIN32
 #include "../src/win32/defs.h"  // FIXME: untangle the include path
 #else
-#include <dlfcn.h>                   // for dladdr
 #include <netinet/in.h>              // for INADDR_ANY, INADDR_NONE, ntohl
 #include <pwd.h>                     // for getpwnam, passwd
 #include <sys/select.h>              // for select, FD_ISSET, FD_SET, FD_ZERO
 #include <sys/socket.h>              // for AF_INET
+#endif
+
+#ifdef __LINUX__
+#include <dlfcn.h>                   // for dladdr
 #include <ucontext.h>                // for ucontext_t
 #endif
 
