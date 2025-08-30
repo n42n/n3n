@@ -7,7 +7,7 @@
 
 #include <n2n.h>        // for time_stamp
 #include <n2n_define.h> // for TIME_STAMP_FRAME
-#include <n2n_wire.h>   // for fill_n2nsock
+#include <n2n_wire.h>   // for fill_n3nsock
 #include <n3n/ethernet.h> // for for n2n_mac_t
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/metrics.h> // for traceEvent
@@ -243,12 +243,12 @@ int find_and_remove_peer (struct peer_info **head, const n2n_mac_t mac) {
 
 /* ************************************** */
 
-struct peer_info* find_peer_by_sock (const n2n_sock_t *sock, struct peer_info *peer_list) {
+struct peer_info* find_peer_by_sock (const n3n_sock_t *sock, struct peer_info *peer_list) {
 
     struct peer_info *scan, *tmp, *ret = NULL;
 
     HASH_ITER(hh, peer_list, scan, tmp) {
-        if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) == 0) {
+        if(memcmp(&(scan->sock), sock, sizeof(n3n_sock_t)) == 0) {
             ret = scan;
             break;
         }
@@ -259,7 +259,7 @@ struct peer_info* find_peer_by_sock (const n2n_sock_t *sock, struct peer_info *p
 
 /* *********************************************** */
 
-struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n_sock_t *sock, const n2n_mac_t mac, int *skip_add) {
+struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n3n_sock_t *sock, const n2n_mac_t mac, int *skip_add) {
 
     struct peer_info *scan, *tmp, *peer = NULL;
 
@@ -273,7 +273,7 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
 
     /* zero MAC, search by socket */
     HASH_ITER(hh, *sn_list, scan, tmp) {
-        if(memcmp(&(scan->sock), sock, sizeof(n2n_sock_t)) != 0) {
+        if(memcmp(&(scan->sock), sock, sizeof(n3n_sock_t)) != 0) {
             continue;
         }
 
@@ -303,7 +303,7 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n2n
     }
 
     peer->selection_criterion = sn_selection_criterion_default();
-    memcpy(&(peer->sock), sock, sizeof(n2n_sock_t));
+    memcpy(&(peer->sock), sock, sizeof(n3n_sock_t));
     HASH_ADD_PEER(*sn_list, peer);
     *skip_add = SN_ADD_ADDED;
 
@@ -316,7 +316,7 @@ struct peer_info* peer_upsert_by_sockaddr (
     size_t addrlen
 ) {
     struct n2n_sock sock;
-    if(fill_n2nsock(&sock, addr) != 0) {
+    if(fill_n3nsock(&sock, addr) != 0) {
         return NULL;
     }
 
@@ -350,7 +350,7 @@ struct peer_info* peer_upsert_by_sockaddr (
         }
 
         peer->selection_criterion = sn_selection_criterion_default();
-        memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
+        memcpy(&(peer->sock), &sock, sizeof(n3n_sock_t));
 
         HASH_ADD_PEER(*list, peer);
     }

@@ -113,7 +113,7 @@ static struct hostname_list_item *hostname_lists[3];
 /** Resolve the supernode IP address.
  *
  */
-int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
+int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
 
     char addr[64];  // FIXME: hardcoded max len for resolving
     char *supernode_host;
@@ -214,7 +214,7 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
     }
 
     // TODO:
-    // - switch to using fill_n2nsock()
+    // - switch to using fill_n3nsock()
 
     /* It is definitely and IPv4 address -> sockaddr_in */
     saddr = (struct sockaddr_in *)ainfo->ai_addr;
@@ -303,7 +303,7 @@ int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn
                 if(entry) {
                     entry->org_ip = sn->hostname;
                     entry->org_sock = &(sn->sock);
-                    memcpy(&(entry->sock), &(sn->sock), sizeof(n2n_sock_t));
+                    memcpy(&(entry->sock), &(sn->sock), sizeof(n3n_sock_t));
                     HASH_ADD(hh, (*param)->list, org_ip, sizeof(char*), entry);
                 } else
                     traceEvent(
@@ -362,7 +362,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
                 // unselectively copy all socks (even those with error code, that would be the old one because
                 // sockets do not get overwritten in case of error in resolve_thread) from list to supernode list
                 HASH_ITER(hh, param->list, entry, tmp_entry) {
-                    memcpy(entry->org_sock, &entry->sock, sizeof(n2n_sock_t));
+                    memcpy(entry->org_sock, &entry->sock, sizeof(n3n_sock_t));
                     traceEvent(TRACE_INFO, "resolve_check renews ip address of supernode '%s' to %s",
                                entry->org_ip, sock_to_cstr(sock_buf, &(entry->sock)));
                 }
@@ -392,7 +392,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
 }
 
 
-int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
+int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn) {
     return 0;
 }
 
@@ -411,7 +411,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
     return requires_resolution;
 }
 
-int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
+int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn) {
     return supernode2sock(sn, addrIn);
 }
 #endif
@@ -488,7 +488,7 @@ static int resolve_hostnames_str_to_peer_info_one (
     const char *s
 ) {
 
-    n2n_sock_t sock;
+    n3n_sock_t sock;
     memset(&sock, 0, sizeof(sock));
 
     traceEvent(TRACE_DEBUG, "resolving %s", s);
@@ -526,7 +526,7 @@ static int resolve_hostnames_str_to_peer_info_one (
         peer->hostname = strdup(s);
     }
 
-    memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
+    memcpy(&(peer->sock), &sock, sizeof(n3n_sock_t));
 
     // If a new peer was added, it has already been init, but we want to reset
     // the state of any old peer object

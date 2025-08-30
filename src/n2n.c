@@ -213,7 +213,7 @@ extern int str2mac (uint8_t * outmac /* 6 bytes */, const char * s) {
 
 // TODO: move to a strings helper source file
 extern char * sock_to_cstr (n2n_sock_str_t out,
-                            const n2n_sock_t * sock) {
+                            const n3n_sock_t * sock) {
 
     if(!sock) {
         return NULL;
@@ -268,8 +268,8 @@ char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
 
 
 /* @return 1 if the two sockets are equivalent. */
-int sock_equal (const n2n_sock_t * a,
-                const n2n_sock_t * b) {
+int sock_equal (const n3n_sock_t * a,
+                const n3n_sock_t * b) {
 
     if(a->port != b->port) {
         return(0);

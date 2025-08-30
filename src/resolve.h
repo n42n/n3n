@@ -9,7 +9,7 @@
 #ifndef _RESOLVE_H_
 #define _RESOLVE_H_
 
-#include <n2n_typedefs.h>   // for n2n_sock_t
+#include <n2n_typedefs.h>   // for n3n_sock_t
 #include <n3n/resolve.h>    // for n2n_resolve_parameter_t
 #include <stdbool.h>
 #include <time.h>
@@ -23,8 +23,8 @@ struct peer_info;
 #ifdef HAVE_LIBPTHREAD
 struct n3n_resolve_ip_sock {
     char          *org_ip;            /* pointer to original ip/named address string (used read only) */
-    n2n_sock_t sock;                  /* resolved socket */
-    n2n_sock_t    *org_sock;          /* pointer to original socket where 'sock' gets copied to from time to time */
+    n3n_sock_t sock;                  /* resolved socket */
+    n3n_sock_t    *org_sock;          /* pointer to original socket where 'sock' gets copied to from time to time */
     int error_code;                   /* result of last resolution attempt */
 
     UT_hash_handle hh;                /* makes this structure hashable */
@@ -48,10 +48,10 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool resolution_request, tim
 void resolve_cancel_thread (n3n_resolve_parameter_t *param);
 
 // Internal resolver function, will turn static once supernode.c doesnt use it
-int supernode2sock (n2n_sock_t * sn, const char *addrIn);
+int supernode2sock (n3n_sock_t * sn, const char *addrIn);
 
 // called from edge_utils, runs supernode2sock only ifndef HAVE_LIBPTHREAD
-int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn);
+int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn);
 
 const char *resolve_hostnames_str_get (int, int);
 void resolve_log_hostnames (int);

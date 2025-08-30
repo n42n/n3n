@@ -85,7 +85,7 @@
 
 // TODO: most of these forward defs can be removed by re-ordering the code
 
-static void send_register (struct n3n_runtime_data *eee, const n2n_sock_t *remote_peer, const n2n_mac_t peer_mac, n2n_cookie_t cookie);
+static void send_register (struct n3n_runtime_data *eee, const n3n_sock_t *remote_peer, const n2n_mac_t peer_mac, n2n_cookie_t cookie);
 
 static void check_peer_registration_needed (struct n3n_runtime_data *eee,
                                             uint8_t from_supernode,
@@ -94,7 +94,7 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
                                             const n2n_cookie_t cookie,
                                             const n2n_ip_subnet_t *dev_addr,
                                             const n2n_desc_t *dev_desc,
-                                            const n2n_sock_t *peer);
+                                            const n3n_sock_t *peer);
 
 static int edge_init_sockets (struct n3n_runtime_data *eee);
 
@@ -104,7 +104,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
                                           const n2n_mac_t mac,
                                           const n2n_ip_subnet_t *dev_addr,
                                           const n2n_desc_t *dev_desc,
-                                          const n2n_sock_t *peer,
+                                          const n3n_sock_t *peer,
                                           time_t when);
 
 /* ************************************** */
@@ -299,7 +299,7 @@ void reset_sup_attempts (struct n3n_runtime_data *eee) {
 // detect local IP address by probing a connection to the supernode
 // TODO: should try to refactor this function to be more accurate and handle
 // error cases better
-static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runtime_data* eee) {
+static int detect_local_ip_address (n3n_sock_t* out_sock, const struct n3n_runtime_data* eee) {
 
     struct sockaddr_in local_sock;
     struct sockaddr_in sn_sock;
@@ -386,7 +386,7 @@ void supernode_connect (struct n3n_runtime_data *eee) {
 
     int sockopt;
     struct sockaddr_in sn_sock;
-    n2n_sock_t local_sock;
+    n3n_sock_t local_sock;
     n2n_sock_str_t sockbuf;
 
     if(eee->conf.connect_tcp) {
@@ -527,7 +527,7 @@ void supernode_connect (struct n3n_runtime_data *eee) {
     }
 
     // ... overwrite IP address, too (whole socket struct here)
-    memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
+    memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n3n_sock_t));
     traceEvent(TRACE_INFO, "determined local socket [%s]",
                sock_to_cstr(sockbuf, &local_sock));
 }
@@ -730,7 +730,7 @@ static uint8_t localhost_v6[IPV6_SIZE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
 /* Exclude localhost as it may be received when an edge node runs
  * in the same supernode host.
  */
-static int is_valid_peer_sock (const n2n_sock_t *sock) {
+static int is_valid_peer_sock (const n3n_sock_t *sock) {
 
     switch(sock->family) {
         case AF_INET: {
@@ -791,7 +791,7 @@ static void register_with_new_peer (struct n3n_runtime_data *eee,
                                     const n2n_mac_t mac,
                                     const n2n_ip_subnet_t *dev_addr,
                                     const n2n_desc_t *dev_desc,
-                                    const n2n_sock_t *peer) {
+                                    const n3n_sock_t *peer) {
 
     /* REVISIT: purge of pending_peers not yet done. */
     struct peer_info *scan;
@@ -834,7 +834,7 @@ static void register_with_new_peer (struct n3n_runtime_data *eee,
                  */
                 int curTTL = 0;
                 socklen_t lenTTL = sizeof(int);
-                n2n_sock_t sock = scan->sock;
+                n3n_sock_t sock = scan->sock;
                 int alter = 16; /* TODO: set by command line or more reliable prediction method */
 
                 getsockopt(eee->sock, IPPROTO_IP, IP_TTL, (void *) (char *) &curTTL, &lenTTL);
@@ -877,7 +877,7 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
                                             const n2n_cookie_t cookie,
                                             const n2n_ip_subnet_t *dev_addr,
                                             const n2n_desc_t *dev_desc,
-                                            const n2n_sock_t *peer) {
+                                            const n3n_sock_t *peer) {
 
     struct peer_info *scan;
 
@@ -928,7 +928,7 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
 static void peer_set_p2p_confirmed (struct n3n_runtime_data * eee,
                                     const n2n_mac_t mac,
                                     const n2n_cookie_t cookie,
-                                    const n2n_sock_t * peer,
+                                    const n3n_sock_t * peer,
                                     time_t now) {
 
     struct peer_info *scan, *scan_tmp;
@@ -1068,7 +1068,7 @@ static int handle_remote_auth (struct n3n_runtime_data *eee, struct peer_info *p
 /* ************************************** */
 
 
-int is_empty_ip_address (const n2n_sock_t * sock) {
+int is_empty_ip_address (const n3n_sock_t * sock) {
 
     const uint8_t * ptr = NULL;
     size_t len = 0;
@@ -1103,7 +1103,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
                                           const n2n_mac_t mac,
                                           const n2n_ip_subnet_t *dev_addr,
                                           const n2n_desc_t *dev_desc,
-                                          const n2n_sock_t *peer,
+                                          const n3n_sock_t *peer,
                                           time_t when) {
 
     struct peer_info *scan;
@@ -1149,7 +1149,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 /** Send a datagram to a socket file descriptor */
 static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
                        size_t len, struct sockaddr_in *dest,
-                       const n2n_sock_t * n2ndest) {
+                       const n3n_sock_t * n2ndest) {
 
     ssize_t sent = 0;
 
@@ -1201,9 +1201,9 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
 }
 
 
-/** Send a datagram to a socket defined by a n2n_sock_t */
+/** Send a datagram to a socket defined by a n3n_sock_t */
 static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
-                         size_t len, const n2n_sock_t * dest) {
+                         size_t len, const n3n_sock_t * dest) {
 
     struct sockaddr_in peer_addr;
 
@@ -1216,7 +1216,7 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         return;
 
     // TODO:
-    // - also check n2n_sock_t type == SOCK_STREAM as a TCP indicator?
+    // - also check n3n_sock_t type == SOCK_STREAM as a TCP indicator?
 
     // if the connection is tcp, i.e. not the regular sock...
     if(eee->conf.connect_tcp) {
@@ -1375,7 +1375,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
         cmn.flags = 0;
     } else {
         cmn.flags = N2N_FLAGS_SOCKET;
-        memcpy(&(reg.sock), &(eee->conf.preferred_sock), sizeof(n2n_sock_t));
+        memcpy(&(reg.sock), &(eee->conf.preferred_sock), sizeof(n3n_sock_t));
     }
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
@@ -1506,7 +1506,7 @@ static void sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
 
 /** Send a REGISTER packet to another edge. */
 static void send_register (struct n3n_runtime_data * eee,
-                           const n2n_sock_t * remote_peer,
+                           const n3n_sock_t * remote_peer,
                            const n2n_mac_t peer_mac,
                            const n2n_cookie_t cookie) {
 
@@ -1559,7 +1559,7 @@ static void send_register (struct n3n_runtime_data * eee,
 
 /** Send a REGISTER_ACK packet to a peer edge. */
 static void send_register_ack (struct n3n_runtime_data * eee,
-                               const n2n_sock_t * remote_peer,
+                               const n3n_sock_t * remote_peer,
                                const n2n_REGISTER_t * reg) {
 
     uint8_t pktbuf[N2N_PKT_BUF_SIZE];
@@ -1765,7 +1765,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
 static int handle_PACKET (struct n3n_runtime_data * eee,
                           const uint8_t from_supernode,
                           const n2n_PACKET_t * pkt,
-                          const n2n_sock_t * orig_sender,
+                          const n3n_sock_t * orig_sender,
                           uint8_t * payload,
                           size_t psize) {
 
@@ -2006,7 +2006,7 @@ static int check_query_peer_info (struct n3n_runtime_data *eee, time_t now, n2n_
 /* @return 1 if destination is a peer, 0 if destination is supernode */
 static int find_peer_destination (struct n3n_runtime_data * eee,
                                   n2n_mac_t mac_address,
-                                  n2n_sock_t * destination) {
+                                  n3n_sock_t * destination) {
 
     struct peer_info *scan;
     macstr_t mac_buf;
@@ -2036,7 +2036,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
             /* NOTE: registration will be performed upon the receival of the next response packet */
         } else {
             /* Valid known peer found */
-            memcpy(destination, &scan->sock, sizeof(n2n_sock_t));
+            memcpy(destination, &scan->sock, sizeof(n3n_sock_t));
             retval = 1;
         }
     }
@@ -2068,7 +2068,7 @@ static int send_packet (struct n3n_runtime_data * eee,
     int is_p2p;
     /*ssize_t s; */
     n2n_sock_str_t sockbuf;
-    n2n_sock_t destination;
+    n3n_sock_t destination;
     macstr_t mac_buf;
     struct peer_info *peer, *tmp_peer;
 
@@ -2349,8 +2349,8 @@ void process_pdu (struct n3n_runtime_data *eee,
     uint8_t from_supernode;
     uint8_t via_multicast;
     struct peer_info *sn = NULL;
-    n2n_sock_t sender;
-    n2n_sock_t *          orig_sender = NULL;
+    n3n_sock_t sender;
+    n3n_sock_t *          orig_sender = NULL;
     uint32_t header_enc = 0;
     uint64_t stamp = 0;
     int skip_add = 0;
@@ -2365,7 +2365,7 @@ void process_pdu (struct n3n_runtime_data *eee,
     else {
         // REVISIT: type conversion back and forth, choose a consistent approach throughout whole code,
         //          i.e. stick with more general sockaddr as long as possible and narrow only if required
-        fill_n2nsock(&sender, sender_sock);
+        fill_n3nsock(&sender, sender_sock);
     }
     /* The packet may not have an orig_sender socket spec. So default to last
      * hop as sender. */
@@ -2686,7 +2686,7 @@ void process_pdu (struct n3n_runtime_data *eee,
 
             // from here on, 'sn' gets used differently
             for(i = 0; i < ra.num_sn; i++) {
-                n2n_sock_t payload_sock;
+                n3n_sock_t payload_sock;
 
                 skip_add = SN_ADD;
 

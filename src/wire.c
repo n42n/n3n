@@ -265,7 +265,7 @@ int decode_common (n2n_common_t * out,
 
 static int encode_sock (uint8_t * base,
                         size_t * idx,
-                        const n2n_sock_t * sock) {
+                        const n3n_sock_t * sock) {
 
     int retval = 0;
     uint16_t f;
@@ -301,7 +301,7 @@ static int encode_sock (uint8_t * base,
 }
 
 
-static int decode_sock (n2n_sock_t * sock,
+static int decode_sock (n3n_sock_t * sock,
                         const uint8_t * base,
                         size_t * rem,
                         size_t * idx) {
@@ -339,7 +339,7 @@ static int decode_sock (n2n_sock_t * sock,
 // REVISIT: best to be removed with 4.0
 int encode_sock_payload (uint8_t * base,
                          size_t * idx,
-                         const n2n_sock_t * sock) {
+                         const n3n_sock_t * sock) {
 
     int retval = 0;
 
@@ -356,7 +356,7 @@ int encode_sock_payload (uint8_t * base,
 
 // bugfix for https://github.com/ntop/n2n/issues/1029
 // REVISIT: best to be removed with 4.0
-int decode_sock_payload (n2n_sock_t * sock,
+int decode_sock_payload (n3n_sock_t * sock,
                          const uint8_t * base,
                          size_t * rem,
                          size_t * idx) {
@@ -662,7 +662,7 @@ int decode_REGISTER_SUPER_NAK (n2n_REGISTER_SUPER_NAK_t *nak,
 
 int fill_sockaddr (struct sockaddr * addr,
                    size_t addrlen,
-                   const n2n_sock_t * sock) {
+                   const n3n_sock_t * sock) {
 
     int retval = -1;
 
@@ -690,10 +690,10 @@ int fill_sockaddr (struct sockaddr * addr,
 
 
 // fills struct sockaddr's data into n2n_sock
-int fill_n2nsock (n2n_sock_t* sock, const struct sockaddr* sa) {
+int fill_n3nsock (n3n_sock_t* sock, const struct sockaddr* sa) {
     // Ensure the return struct is fully initialised
     // TODO: could be optimised
-    memset(sock, 0, sizeof(n2n_sock_t));
+    memset(sock, 0, sizeof(n3n_sock_t));
 
     sock->family = sa->sa_family;
     // sock->type = 0; // Field is still used by encode/decode sock above
