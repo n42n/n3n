@@ -122,12 +122,12 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
     char *supernode_port = NULL;
     char supernode_default_port[6];
     int nameerr;
-    struct addrinfo aihints;
+    struct addrinfo aihints = {.ai_flags = 0, .ai_family = AF_UNSPEC, .ai_socktype = SOCK_DGRAM, .ai_protocol = 0};
     struct addrinfo * ainfo = NULL;
 
-    memset(&aihints, 0, sizeof(aihints));
-    aihints.ai_family = AF_UNSPEC;     /* allow IPv4 or IPv6 */
-    aihints.ai_socktype = SOCK_DGRAM;  /* default to UDP */
+//    memset(&aihints, 0, sizeof(aihints));
+//    aihints.ai_family = AF_UNSPEC;     /* allow IPv4 or IPv6 */
+//    aihints.ai_socktype = SOCK_DGRAM;  /* default to UDP */
 
     // default to invalid output
     sn->family = AF_INVALID;
