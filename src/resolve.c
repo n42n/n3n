@@ -118,15 +118,16 @@ static struct hostname_list_item *hostname_lists[3];
 int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
 
     char addr[64];  // FIXME: hardcoded max len for resolving
-    char *supernode_host;
-    char *supernode_port;
+    char *supernode_host = NULL;
+    char *supernode_port = NULL;
+    char supernode_default_port[6];
     int nameerr;
-    // TODO: replace the aihints with the following to be protocol-agnostic for IPv6 (AF_UNSPEC)
-    //       and specify DGRAM sockets as some default (maybe some udp:// or tcp:// prefix could
-    //       be parsed from input string)
-    // const struct addrinfo aihints = { .ai_flags = 0, .ai_family = AF_UNSPEC, .ai_socktype = SOCK_DGRAM, .ai_protocol = 0 };
-    const struct addrinfo aihints = {0, PF_INET, 0, 0, 0, NULL, NULL, NULL};
+    struct addrinfo aihints;
     struct addrinfo * ainfo = NULL;
+
+    memset(&aihints, 0, sizeof(aihints));
+    aihints.ai_family = AF_UNSPEC;     /* allow IPv4 or IPv6 */
+    aihints.ai_socktype = SOCK_DGRAM;  /* default to UDP */
 
     // default to invalid output
     sn->family = AF_INVALID;
@@ -136,23 +137,53 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
         return -6;
     }
 
-    size_t length = strlen(addrIn);
-    if(length > sizeof(addr)-1) {
+    // check for prefixes "tcp://" or optionally "udp://" (default)
+    const char *spec_start = addrIn;
+    if(strncmp(spec_start, "tcp://", 6) == 0) {
+        aihints.ai_socktype = SOCK_STREAM;
+        spec_start += 6;
+        traceEvent(TRACE_DEBUG, "supernode2sock found TCP protocol specified");
+    } else if(strncmp(spec_start, "udp://", 6) == 0) {
+        // already the default, just skip the prefix
+        spec_start += 6;
+    }
+
+    // we will be working on a copy in *addr (without prefix, if any),
+    // make sure it fits
+    size_t length = strlen(spec_start);
+    if(length > sizeof(addr) - 1) {
         traceEvent(
             TRACE_WARNING,
             "size of supernode argument too long: %zu; maximum size is %d",
             length,
-            sizeof(addr)-1
+            sizeof(addr) - 1
         );
         return -5;
     }
+    strncpy(addr, spec_start, sizeof(addr) - 1);
+    addr[sizeof(addr) - 1] = '\0'; /* ensure null termination */
 
-    strncpy(addr, addrIn, sizeof(addr)-1);
-    addr[sizeof(addr)-1] = '\0'; /* Ensure null termination */
-    // TODO: re-consider to include anything but the last colon for IPv6 compatibility
-    supernode_host = strtok(addr, ":");
+    // parse the host and port
+    supernode_host = addr;
 
-    if(!supernode_host) {
+    char *last_colon = strrchr(supernode_host, ':');
+    char *closing_bracket = strrchr(supernode_host, ']');
+    // a colon ':' is the port separator iff it's the last one and it appears
+    // after any IPv6 address' closing bracket ']'
+    if(last_colon && (last_colon > closing_bracket)) {
+        *last_colon = '\0'; /* terminate the host_part at the colon */
+        supernode_port = last_colon + 1;
+    }
+
+    // handle IPv6 address' brackets '[' ... ']' around the host part
+    if((*supernode_host == '[') && closing_bracket) {
+        *closing_bracket = '\0'; /* terminate the host_part at the bracket */
+        supernode_host++;
+    }
+
+    // TODO: we could let getaddrinfo() handle this case which would lead to some
+    // more descriptive error message; this code block might not be neccessary anymore
+    if(*supernode_host == '\0') {
         traceEvent(
             TRACE_WARNING,
             "malformed supernode parameter (should be <host:port>) %s",
@@ -161,19 +192,20 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
         return -4;
     }
 
-    // TODO: make sure it's the last colon and not part of an IPv6 address
-    supernode_port = strtok(NULL, ":");
-
-    if(!supernode_port) {
-        // TODO: use some #define for port number string
-        supernode_port = "7654";
-
+    // use default port if none was found
+    if(!supernode_port || *supernode_port == '\0') {
+        snprintf(supernode_default_port, sizeof(supernode_default_port), "%d", N2N_SN_LPORT_DEFAULT);
+        supernode_port = supernode_default_port;
         traceEvent(
             TRACE_INFO,
-            "no port specified, assuming default 7654"
-        );
+            "no port specified, assuming default %s",
+            supernode_port);
     }
 
+    // TODO: the following line is fuse and needs to be removed for IPv6 support
+    aihints.ai_family = AF_INET; /* enforce IPv4 */
+
+    // resolve
     struct timeval time1;
     struct timeval time2;
 
@@ -212,7 +244,7 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
     // TODO: remove this block when IPv6 is supported
     /* ainfo s the head of a linked list if non-NULL. */
     if(PF_INET != ainfo->ai_family) {
-        /* Should only return IPv4 addresses due to aihints. */
+        /* should only return IPv4 addresses due to fused aihints. */
         traceEvent(
             TRACE_WARNING,
             "supernode2sock fails to resolve supernode IPv4 address for %s",
@@ -222,21 +254,37 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
         return -1;
     }
 
-    // fill into internal socket data type
-    if (fill_n3nsock(sn, ainfo->ai_addr) != 0) {
-        // the address family was not AF_INET or AF_INET6
-        traceEvent(TRACE_WARNING, "supernode2sock: received an unsupported address family for %s", supernode_host);
+    // loop through the results to find suitable output
+    for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
+        // TODO: this block is another fuse to ensure IPv4 and only one result,
+        //       needs rework for desired output format when IPv6 support
+        if(p->ai_family == AF_INET) {
+            if(fill_n3nsock(sn, p->ai_addr) == 0) {
+                // Successfully filled the n3n_sock_t
+                traceEvent(TRACE_INFO, "supernode2sock successfully resolved supernode IPv4 address for '%s'", supernode_host);
+                break;
+            } else {
+                traceEvent(TRACE_WARNING, "supernode2sock: received an unsupported address family for %s", supernode_host);
+                freeaddrinfo(ainfo);
+                return -1;
+            }
+        }
+    }
+
+    // TODO: adapt when IPv6 support
+    // if we got this far and haven't got a valid socket...
+    if(sn->family == AF_INVALID) {
+        // ... there is no valid IPv4 address
+        traceEvent(TRACE_WARNING, "supernode2sock: Host '%s' resolved, but no usable IPv4 address was found.", supernode_host);
         freeaddrinfo(ainfo);
         return -1;
     }
-    // add port
-
-    traceEvent(TRACE_INFO, "supernode2sock successfully resolves supernode IPv4 address for %s", supernode_host);
 
     freeaddrinfo(ainfo); /* free everything allocated by getaddrinfo(). */
 
     return 0;
 }
+
 
 #ifdef HAVE_LIBPTHREAD
 
