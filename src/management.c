@@ -170,7 +170,7 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
     struct peer_info *peer = (struct peer_info *)data1;
 
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     uint32_t age = time(NULL) - peer->time_alloc;
 
     /*
@@ -594,8 +594,8 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
 
 static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, const char *mode, const char *community) {
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
-    n2n_sock_str_t sockbuf2;
+    n3n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf2;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
 
     sb_reprintf(reply,
@@ -732,7 +732,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
 
 static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     ipstr_t ip_address;
 
@@ -764,7 +764,7 @@ static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *co
 static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     selection_criterion_str_t sel_buf;
 
     jsonrpc_result_head(id, conn);

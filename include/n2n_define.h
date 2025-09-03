@@ -155,7 +155,8 @@ enum n3n_event_topic {
 #define N2N_LOCAL_REG_COOKIE       0x01000000
 #define N2N_DESC_SIZE              16
 #define N2N_PKT_BUF_SIZE           2048
-#define N2N_SOCKBUF_SIZE           64  /* string representation of INET or INET6 sockets */
+#define N3N_SOCKBUF_SIZE           128  /* string representation of INET or INET6 sockets */
+#define N3N_PORTBUF_SIZE           8    /* string representation of a port 0 - 65535 */
 
 #define N2N_MULTICAST_PORT         1968
 #define N2N_MULTICAST_GROUP        "224.0.0.68"

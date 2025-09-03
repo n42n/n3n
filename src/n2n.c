@@ -51,11 +51,18 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
 
     SOCKET sock_fd;
     int sockopt;
+    int family;
 
-    if((int)(sock_fd = socket(PF_INET, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
-        traceEvent(TRACE_ERROR, "Unable to create socket [%s][%d]\n",
-                   strerror(errno), sock_fd);
-        return(-1);
+// !!!
+//    family = AF_INET;
+//    if(local_address) {
+        family = local_address->sa_family;
+//    }
+
+    if((int)(sock_fd = socket(family, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
+        traceEvent(TRACE_ERROR, "Unable to create socket for family %d [%s][%d]\n",
+                   family, strerror(errno), sock_fd);
+        return -1;
     }
 
 #ifndef _WIN32
@@ -212,7 +219,7 @@ extern int str2mac (uint8_t * outmac /* 6 bytes */, const char * s) {
 }
 
 // TODO: move to a strings helper source file
-extern char * sock_to_cstr (n2n_sock_str_t out,
+extern char * sock_to_cstr (n3n_sock_str_t out,
                             const n3n_sock_t * sock) {
 
     if(!sock) {
@@ -221,7 +228,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
     if(NULL == out) {
         return NULL;
     }
-    memset(out, 0, N2N_SOCKBUF_SIZE);
+    memset(out, 0, N3N_SOCKBUF_SIZE);
 
     bool is_tcp = (sock->type == SOCK_STREAM);
 
@@ -229,10 +236,10 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
         char tmp[INET6_ADDRSTRLEN+1];
 
         tmp[0] = '\0';
-        inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(n2n_sock_str_t));
+        inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(n3n_sock_str_t));
         snprintf(
             out,
-            N2N_SOCKBUF_SIZE,
+            N3N_SOCKBUF_SIZE,
             "%s[%s]:%hu",
             is_tcp ? "TCP/" : "",
             tmp[0] ? tmp : "",
@@ -243,7 +250,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
 
     const uint8_t * a = sock->addr.v4;
 
-    snprintf(out, N2N_SOCKBUF_SIZE, "%s%hu.%hu.%hu.%hu:%hu",
+    snprintf(out, N3N_SOCKBUF_SIZE, "%s%hu.%hu.%hu.%hu:%hu",
              is_tcp ? "TCP/" : "",
              (unsigned short)(a[0] & 0xff),
              (unsigned short)(a[1] & 0xff),
@@ -264,6 +271,64 @@ char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
              ipaddr->net_bitlen);
 
     return buf;
+}
+
+
+// TODO: move to a strings helper source file
+// handling protocol prefixes and splitting host:port parts
+int parse_address_spec(n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) {
+
+    // work_buffer is of same type as the input as it will only hodl substring
+    n3n_sock_str_t work_buffer;
+
+    // initialize output
+    memset(out, 0, sizeof(n3n_parsed_address_t));
+
+    // check for prefixes "tcp://" or optionally "udp://" (default)
+    out->socktype = SOCK_DGRAM;
+    const char *spec_start = spec_in;
+    if(strncmp(spec_start, "tcp://", 6) == 0) {
+        out->socktype = SOCK_STREAM;
+        spec_start += 6;
+    } else if(strncmp(spec_start, "udp://", 6) == 0) {
+        spec_start += 6;
+    }
+
+    // just to be on the safe side
+    size_t length = strlen(spec_start);
+    if(length >= sizeof(work_buffer)) {
+        // should not happen if input is valid n3n_sock_str_t
+        return -1;
+    }
+    memcpy(work_buffer, spec_start, length + 1); /* +1 for null terminator */
+
+    // parse the host and port from the local work_buffer
+    char *host_part = work_buffer;
+    char *port_part = NULL;
+
+    char *last_colon = strrchr(host_part, ':');
+    char *closing_bracket = strrchr(host_part, ']');
+    // a colon ':' is the port separator iff it's the last one and it appears
+    // after any IPv6 address' closing bracket ']'
+    if(last_colon && (last_colon > closing_bracket)) {
+        *last_colon = '\0'; /* terminate the host_part at the colon */
+        port_part = last_colon + 1;
+    }
+
+    // handle IPv6 address' brackets '[' ... ']' around the host part
+    if((*host_part == '[') && closing_bracket) {
+        *closing_bracket = '\0'; /* terminate the host_part at the bracket */
+        host_part++;
+    }
+
+    // safely copy the results from the temporary parts into the output struct
+    snprintf(out->host, sizeof(out->host), "%s", host_part);
+    // copy the port if it exists
+    if (port_part) {
+        snprintf(out->port, sizeof(out->port), "%s", port_part);
+    }
+
+    return 0;
 }
 
 

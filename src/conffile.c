@@ -26,6 +26,7 @@
 #include "peer_info.h"          // for struct peer_info
 #include "resolve.h"            // for resolve_supernode_str_get
 #include "uthash.h"
+#include "n3n/strings.h"        // for parse_address_spec
 
 #ifdef _WIN32
 #include "win32/defs.h"
@@ -34,7 +35,8 @@
 #else
 #include <arpa/inet.h>
 #include <grp.h>                // for getgrnam
-#include <netinet/in.h>  // for sockaddr_in
+#include <netinet/in.h>         // for sockaddr_in
+#include <netdb.h>              // for getaddrinfo, struct addrinfo, AI_PASSIVE
 #include <pwd.h>
 #include <sys/socket.h>
 #endif
@@ -229,8 +231,8 @@ try_uint32:
             return 0;
         }
         case n3n_conf_sockaddr: {
-            // TODO: this currently only supports IPv4
-            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            // provide enough space for any family's sock
+            struct sockaddr_storage **val = (struct sockaddr_storage **)valvoid;
             if(*val) {
                 free(*val);
             }
@@ -238,45 +240,47 @@ try_uint32:
             if(!*val) {
                 return -1;
             }
-            struct sockaddr_in *sa = *val;
+            memset(*val, 0, sizeof(**val));
 
-            memset(sa, 0, sizeof(*sa));
-            sa->sin_family = AF_INET;
+            n3n_parsed_address_t parsed_addr;
+            struct addrinfo aihints = {0};
+            struct addrinfo * ainfo = NULL;
+            int nameerr;
 
-            in_addr_t bind_address = INADDR_ANY;
-            int local_port = 0;
+            if(parse_address_spec(&parsed_addr, value) != 0) {
+                free(*val);
+                return -1;
+            }
 
-            char* colon = strpbrk(value, ":");
-            if(colon) { /*ip address:port */
-                *colon = 0;
-                bind_address = ntohl(inet_addr(value));
-                local_port = atoi(++colon);
-
-                if(bind_address == INADDR_NONE) {
-                    // traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                    bind_address = INADDR_ANY;
-                }
-                // if(local_port == 0) {
-                //     traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
-                // }
-            } else { /* ip address or port only */
-                char* dot = strpbrk(value, ".");
-                if(dot) { /* ip address only */
-                    bind_address = ntohl(inet_addr(value));
-                    if(bind_address == INADDR_NONE) {
-                        // traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                        bind_address = INADDR_ANY;
-                    }
-                } else { /* port only */
-                    local_port = atoi(value);
-                    // if(local_port == 0) {
-                    //     traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
-                    // }
+            // specific rules for bind
+            // missing host is valid meaning any address
+            char *host_to_resolve = (parsed_addr.host[0] == '\0') ? NULL : parsed_addr.host;
+            // missing port is valid meaning OS assigned port
+            char *port_to_resolve = (parsed_addr.port[0] == '\0') ? NULL : parsed_addr.port;
+            // the 'host only' case needs special treatment
+            if (host_to_resolve && !port_to_resolve) {
+                // make sure the purely numeric port didn't go into host
+                if (strspn(host_to_resolve, "0123456789") == strlen(host_to_resolve)) {
+                    // and correct if required
+                    port_to_resolve = host_to_resolve;
+                    host_to_resolve = NULL;
                 }
             }
 
-            sa->sin_port = htons(local_port);
-            sa->sin_addr.s_addr = htonl(bind_address);
+            aihints.ai_family = AF_UNSPEC;
+// !!!            aihints.ai_family = AF_INET;
+            aihints.ai_socktype = parsed_addr.socktype;
+            aihints.ai_flags = AI_PASSIVE; /* for bind() */
+
+            nameerr = getaddrinfo(host_to_resolve, port_to_resolve, &aihints, &ainfo);
+
+            if(nameerr != 0) {
+                free(*val);
+                return -1;
+            }
+            // return the first element of ainfo (there could be more)
+            memcpy(*val, ainfo->ai_addr, ainfo->ai_addrlen);
+            freeaddrinfo(ainfo);
             return 0;
         }
         case n3n_conf_n2n_sock_addr: {
@@ -543,18 +547,31 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             return buf;
         }
         case n3n_conf_sockaddr: {
-            // TODO: this currently only supports IPv4
-            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            struct sockaddr_storage **val = (struct sockaddr_storage **)valvoid;
             if(!*val) {
                 return NULL;
             }
-            struct sockaddr_in *sa = *val;
+            struct sockaddr *sa_ptr = (struct sockaddr *)*val;
 
-            if(inet_ntop(AF_INET, &sa->sin_addr.s_addr, buf, buflen) == NULL) {
+            if(sa_ptr->sa_family == AF_INET) {
+                struct sockaddr_in *sa = (struct sockaddr_in *)sa_ptr;
+                if(inet_ntop(AF_INET, &sa->sin_addr, buf, buflen) == NULL) {
+                    return NULL;
+                }
+                ssize_t used = strlen(buf);
+                snprintf(buf + used, buflen - used, ":%u", ntohs(sa->sin_port));
+            } else if(sa_ptr->sa_family == AF_INET6) {
+                struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)sa_ptr;
+                // add brackets
+                buf[0] = '[';
+                if(inet_ntop(AF_INET6, &sa6->sin6_addr, buf + 1, buflen - 1) == NULL) {
+                    return NULL;
+                }
+                ssize_t used = strlen(buf);
+                snprintf(buf + used, buflen - used, "]:%u", ntohs(sa6->sin6_port));
+            } else {
                 return NULL;
             }
-            ssize_t used = strlen(buf);
-            snprintf(buf + used, buflen - used, ":%i", htons(sa->sin_port));
             return buf;
         }
         case n3n_conf_n2n_sock_addr: {

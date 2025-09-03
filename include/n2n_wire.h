@@ -132,9 +132,9 @@ int decode_REGISTER_SUPER_NAK (n2n_REGISTER_SUPER_NAK_t * nak,
                                size_t * rem,
                                size_t * idx);
 
-int fill_sockaddr (struct sockaddr * addr,
-                   size_t addrlen,
-                   const n3n_sock_t * sock);
+socklen_t fill_sockaddr (struct sockaddr * addr,
+                         socklen_t addrlen,
+                         const n3n_sock_t * sock);
 
 int fill_n3nsock (n3n_sock_t* sock, const struct sockaddr* sa);
 

@@ -660,11 +660,11 @@ int decode_REGISTER_SUPER_NAK (n2n_REGISTER_SUPER_NAK_t *nak,
 }
 
 
-int fill_sockaddr (struct sockaddr * addr,
-                   size_t addrlen,
-                   const n3n_sock_t * sock) {
+// returns lenght of filled sockaddr (depends on protocol)
+socklen_t fill_sockaddr (struct sockaddr * addr,
+                         socklen_t addrlen,
+                         const n3n_sock_t * sock) {
 
-    int retval = -1;
 
     if(AF_INET == sock->family) {
         if(addrlen >= sizeof(struct sockaddr_in)) {
@@ -672,20 +672,21 @@ int fill_sockaddr (struct sockaddr * addr,
             si->sin_family = sock->family;
             si->sin_port = htons(sock->port);
             memcpy(&(si->sin_addr.s_addr), sock->addr.v4, IPV4_SIZE);
-            retval = 0;
+            return sizeof(struct sockaddr_in);
         }
     }
-    if(AF_INET6 == sock->family) {
+    else if(AF_INET6 == sock->family) {
         if(addrlen >= sizeof(struct sockaddr_in6)) {
             struct sockaddr_in6 * si = (struct sockaddr_in6 *)addr;
             si->sin6_family = sock->family;
             si->sin6_port = htons(sock->port);
             memcpy(&(si->sin6_addr.s6_addr), sock->addr.v6, IPV6_SIZE);
-            retval = 0;
+            return sizeof(struct sockaddr_in6);
         }
     }
 
-    return retval;
+    // zero length
+    return 0;
 }
 
 

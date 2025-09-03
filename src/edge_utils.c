@@ -387,7 +387,7 @@ void supernode_connect (struct n3n_runtime_data *eee) {
     int sockopt;
     struct sockaddr_in sn_sock;
     n3n_sock_t local_sock;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(eee->conf.connect_tcp) {
         // It might be already closed, but we can simply ignore errors and
@@ -796,7 +796,7 @@ static void register_with_new_peer (struct n3n_runtime_data *eee,
     /* REVISIT: purge of pending_peers not yet done. */
     struct peer_info *scan;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_FIND_PEER(eee->pending_peers, mac, scan);
 
@@ -933,7 +933,7 @@ static void peer_set_p2p_confirmed (struct n3n_runtime_data * eee,
 
     struct peer_info *scan, *scan_tmp;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_FIND_PEER(eee->pending_peers, mac, scan);
     if(scan == NULL) {
@@ -1107,8 +1107,8 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
                                           time_t when) {
 
     struct peer_info *scan;
-    n2n_sock_str_t sockbuf1;
-    n2n_sock_str_t sockbuf2; /* don't clobber sockbuf1 if writing two addresses to trace */
+    n3n_sock_str_t sockbuf1;
+    n3n_sock_str_t sockbuf2; /* don't clobber sockbuf1 if writing two addresses to trace */
     macstr_t mac_buf;
 
     if(is_empty_ip_address(peer))
@@ -1148,13 +1148,13 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /** Send a datagram to a socket file descriptor */
 static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
-                       size_t len, struct sockaddr_in *dest,
+                       size_t len, struct sockaddr *dest, socklen_t dest_len,
                        const n3n_sock_t * n2ndest) {
 
     ssize_t sent = 0;
 
     sent = sendto(eee->sock, buf, len, 0 /*flags*/,
-                  (struct sockaddr *)dest, sizeof(struct sockaddr_in));
+                  dest, dest_len);
 
     if(sent != -1) {
         // sendto success
@@ -1189,7 +1189,7 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
     // - remove n2ndest param, as the only reason it is here is to
     //   stringify for errors.
     //   Better would be to stringify the dest sockaddr_t
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     traceEvent(level, "sendto(%s) failed (%d) %s",
                sock_to_cstr(sockbuf, n2ndest),
                errno, errstr);
@@ -1205,7 +1205,9 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
 static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
                          size_t len, const n3n_sock_t * dest) {
 
-    struct sockaddr_in peer_addr;
+    // provides enough space for all protocol families per which it varies
+    struct sockaddr_storage peer_addr_storage = {0};
+    socklen_t peer_addr_len = 0;
 
     if(!dest->family)
         // invalid socket
@@ -1227,12 +1229,15 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         return;
     }
 
-    peer_addr.sin_port = 0;
-
     // network order socket
-    fill_sockaddr((struct sockaddr *) &peer_addr, sizeof(peer_addr), dest);
+    peer_addr_len = fill_sockaddr((struct sockaddr *) &peer_addr_storage, sizeof(peer_addr_storage), dest);
 
-    sendto_fd(eee, buf, len, &peer_addr, dest);
+    if(peer_addr_len == 0) {
+        traceEvent(TRACE_WARNING, "failed to prepare sockaddr for family %d", dest->family);
+        return;
+    }
+
+    sendto_fd(eee, buf, len, (struct sockaddr *) &peer_addr_storage, peer_addr_len, dest);
 }
 
 
@@ -1363,7 +1368,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_REGISTER_SUPER_t reg;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
@@ -1418,7 +1423,7 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_UNREGISTER_SUPER_t unreg;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(!eee->curr_sn) {
         return;
@@ -1515,7 +1520,7 @@ static void send_register (struct n3n_runtime_data * eee,
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_REGISTER_t reg;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(!eee->conf.allow_p2p) {
         traceEvent(TRACE_DEBUG, "skipping register as P2P is disabled");
@@ -1567,7 +1572,7 @@ static void send_register_ack (struct n3n_runtime_data * eee,
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_REGISTER_ACK_t ack;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(!eee->conf.allow_p2p) {
         traceEvent(TRACE_DEBUG, "skipping register ACK as P2P is disabled");
@@ -1775,7 +1780,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
     ether_hdr_t *             eh;
     ipstr_t ip_buf;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     now = time(NULL);
 
@@ -2010,7 +2015,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
 
     struct peer_info *scan;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     int retval = 0;
     time_t now = time(NULL);
 
@@ -2067,7 +2072,7 @@ static int send_packet (struct n3n_runtime_data * eee,
 
     int is_p2p;
     /*ssize_t s; */
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     n3n_sock_t destination;
     macstr_t mac_buf;
     struct peer_info *peer, *tmp_peer;
@@ -2338,8 +2343,8 @@ void process_pdu (struct n3n_runtime_data *eee,
 ) {
 
     n2n_common_t cmn;          /* common fields in the packet header */
-    n2n_sock_str_t sockbuf1;
-    n2n_sock_str_t sockbuf2;        /* don't clobber sockbuf1 if writing two addresses to trace */
+    n3n_sock_str_t sockbuf1;
+    n3n_sock_str_t sockbuf2;        /* don't clobber sockbuf1 if writing two addresses to trace */
     macstr_t mac_buf1;
     macstr_t mac_buf2;
     uint8_t hash_buf[16];
@@ -2699,7 +2704,7 @@ void process_pdu (struct n3n_runtime_data *eee,
                 sn = add_sn_to_list_by_mac_or_sock(&(eee->supernodes), &payload_sock, payload->mac, &skip_add);
 
                 if(skip_add == SN_ADD_ADDED) {
-                    n2n_sock_str_t sockbuf;
+                    n3n_sock_str_t sockbuf;
                     sn->last_seen = 0; /* as opposed to payload handling in supernode */
                     sn->hostname = NULL;
                     traceEvent(

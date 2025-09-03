@@ -219,7 +219,7 @@ void send_re_register_super (struct n3n_runtime_data *sss) {
     n2n_common_t cmn;
     uint8_t rereg_buf[N2N_SN_PKTBUF_SIZE];
     size_t encx = 0;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_ITER(hh, sss->communities, comm, tmp_comm) {
         if(comm->is_federation) {
@@ -614,7 +614,7 @@ static ssize_t sendto_peer (struct n3n_runtime_data *sss,
                             const uint8_t *pktbuf,
                             size_t pktsize) {
 
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(AF_INET == peer->sock.family) {
 
@@ -653,7 +653,7 @@ static void try_broadcast (struct n3n_runtime_data * sss,
 
     struct peer_info        *scan, *tmp;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     traceEvent(TRACE_DEBUG, "try_broadcast");
 
@@ -735,7 +735,7 @@ static void try_forward (struct n3n_runtime_data * sss,
     struct peer_info *             scan;
     node_supernode_association_t   *assoc;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_FIND_PEER(comm->edges, dstMac, scan);
 
@@ -1227,7 +1227,7 @@ static int update_edge (struct n3n_runtime_data *sss,
                         time_t now) {
 
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     struct peer_info *scan, *iter, *tmp;
 
     traceEvent(TRACE_DEBUG, "update_edge for %s [%s]",
@@ -1542,7 +1542,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             /* ssize_t sent; */
             n2n_common_t cmn;
             n2n_REGISTER_SUPER_t reg;
-            n2n_sock_str_t sockbuf;
+            n3n_sock_str_t sockbuf;
 
             memset(&cmn, 0, sizeof(cmn));
             memset(&reg, 0, sizeof(reg));
@@ -1695,7 +1695,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
     n3n_sock_t          *orig_sender;
     macstr_t mac_buf;
     macstr_t mac_buf2;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     uint8_t hash_buf[16] = {0};             /* always size of 16 (max) despite the actual value of N2N_REG_SUP_HASH_CHECK_LEN (<= 16) */
 
     struct sn_community *comm, *tmp;
@@ -2380,8 +2380,8 @@ static int process_pdu (struct n3n_runtime_data * sss,
         case MSG_TYPE_REGISTER_SUPER_ACK: {
             n2n_REGISTER_SUPER_ACK_t ack;
             struct peer_info                 *scan, *tmp;
-            n2n_sock_str_t sockbuf1;
-            n2n_sock_str_t sockbuf2;
+            n3n_sock_str_t sockbuf1;
+            n3n_sock_str_t sockbuf2;
             macstr_t mac_buf1;
             int i;
             uint8_t dec_tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
@@ -2483,7 +2483,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
             uint8_t nakbuf[N2N_SN_PKTBUF_SIZE];
             size_t encx = 0;
             struct peer_info          *peer;
-            n2n_sock_str_t sockbuf;
+            n3n_sock_str_t sockbuf;
             macstr_t mac_buf;
 
             memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
@@ -2804,7 +2804,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
         max_sock = sss->sock;
 
 #ifdef N2N_HAVE_TCP
-        n2n_sock_str_t sockbuf;
+        n3n_sock_str_t sockbuf;
         FD_SET(sss->tcp_sock, &readers);
 
         // add the tcp connections' sockets
