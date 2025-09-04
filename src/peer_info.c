@@ -273,7 +273,7 @@ struct peer_info* add_sn_to_list_by_mac_or_sock (struct peer_info **sn_list, n3n
 
     /* zero MAC, search by socket */
     HASH_ITER(hh, *sn_list, scan, tmp) {
-        if(memcmp(&(scan->sock), sock, sizeof(n3n_sock_t)) != 0) {
+        if(sock_equal(&(scan->sock), sock) == 0) {
             continue;
         }
 

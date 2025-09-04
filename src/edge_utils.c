@@ -2367,7 +2367,7 @@ void process_pdu (struct n3n_runtime_data *eee,
     uint8_t via_multicast;
     struct peer_info *sn = NULL;
     n3n_sock_t sender;
-    n3n_sock_t *          orig_sender = NULL;
+    n3n_sock_t *orig_sender = NULL;
     uint32_t header_enc = 0;
     uint64_t stamp = 0;
     int skip_add = 0;

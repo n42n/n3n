@@ -356,29 +356,33 @@ int sock_equal (const n3n_sock_t * a,
                 const n3n_sock_t * b) {
 
     if(a->port != b->port) {
-        return(0);
+        return 0;
     }
 
-    if(a->family != b->family) {
-        return(0);
+    if(a->family == AF_INET && b->family == AF_INET) {
+        return(memcmp(a->addr.v4, b->addr.v4, IPV4_SIZE) == 0);
     }
 
-    switch(a->family) {
-        case AF_INET:
-            if(memcmp(a->addr.v4, b->addr.v4, IPV4_SIZE)) {
-                return(0);
-            }
-            break;
-
-        default:
-            if(memcmp(a->addr.v6, b->addr.v6, IPV6_SIZE)) {
-                return(0);
-            }
-            break;
+    if(a->family == AF_INET6 && b->family == AF_INET6) {
+        return(memcmp(a->addr.v6, b->addr.v6, IPV6_SIZE) == 0);
     }
 
-    /* equal */
-    return(1);
+    if(a->family == AF_INET6 && b->family == AF_INET) {
+        // is 'a' IPv4-mapped address?
+        if(IN6_IS_ADDR_V4MAPPED(a->addr.v6)) {
+            // compare the last 4
+            return(memcmp(a->addr.v6 + 12, b->addr.v4, IPV4_SIZE) == 0);
+        }
+    }
+    // reverse case
+    if(a->family == AF_INET && b->family == AF_INET6) {
+        if(IN6_IS_ADDR_V4MAPPED(b->addr.v6)) {
+            return(memcmp(a->addr.v4, b->addr.v6 + 12, IPV4_SIZE) == 0);
+        }
+    }
+
+    // not equal
+    return 0;
 }
 
 
