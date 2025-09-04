@@ -112,7 +112,6 @@ static struct hostname_list_item *hostname_lists[3];
 /** Resolve the supernode IP address.
  *
  */
-// TODO: consider returning a list of n3n_sock_t in case a name resolves to IPv4 and IPv6 addresses
 int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
 
     n3n_parsed_address_t parsed_addr;
@@ -201,7 +200,7 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
     /* ainfo is the head of a linked list if non-NULL. */
     // loop through the results to find suitable output
     for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
-        // TODO: this block needs rework for desired output format
+        // TODO: this block might need rework to find best working option
 // !!!
 //        if(p->ai_family == AF_INET) {
             if(fill_n3nsock(sn, p->ai_addr) == 0) {

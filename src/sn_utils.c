@@ -522,7 +522,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
  */
 static ssize_t sendto_fd (struct n3n_runtime_data *sss,
                           SOCKET socket_fd,
-                          const struct sockaddr *socket,
+                          const struct sockaddr *socket, socklen_t socket_len,
                           const uint8_t *pktbuf,
                           size_t pktsize) {
 
@@ -530,7 +530,7 @@ static ssize_t sendto_fd (struct n3n_runtime_data *sss,
     n2n_tcp_connection_t *conn;
 
     sent = sendto(socket_fd, (void *)pktbuf, pktsize, 0 /* flags */,
-                  socket, sizeof(struct sockaddr_in));
+                  socket, socket_len);
 
     if((sent <= 0) && (errno)) {
         char * c = strerror(errno);
@@ -570,6 +570,20 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
     int value = 0;
 #endif
 
+    // TODO: do we really have to check this every time?
+    //       maye try a struct containing the socket and its length
+    //       would require broader changes
+    socklen_t socket_len;
+    if(socket->sa_family == AF_INET) {
+        socket_len = sizeof(struct sockaddr_in);
+    } else if(socket->sa_family == AF_INET6) {
+        socket_len = sizeof(struct sockaddr_in6);
+    } else {
+        // unknown or unsupported family we cannot send
+        traceEvent(TRACE_ERROR, "found unknown address family %d", socket->sa_family);
+        return -1;
+    }
+
     // if the connection is tcp, i.e. not the regular sock...
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
 
@@ -581,14 +595,14 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
 
         // prepend packet length...
         uint16_t pktsize16 = htobe16(pktsize);
-        sent = sendto_fd(sss, socket_fd, socket, (uint8_t*)&pktsize16, sizeof(pktsize16));
+        sent = sendto_fd(sss, socket_fd, socket, socket_len, (uint8_t*)&pktsize16, sizeof(pktsize16));
 
         if(sent <= 0)
             return -1;
         // ...before sending the actual data
     }
 
-    sent = sendto_fd(sss, socket_fd, socket, pktbuf, pktsize);
+    sent = sendto_fd(sss, socket_fd, socket, socket_len, pktbuf, pktsize);
 
     // if the connection is tcp, i.e. not the regular sock...
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
@@ -891,10 +905,11 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     sss->conf.sn_mac_addr[0] &= ~0x01; /* Clear multicast bit */
     sss->conf.sn_mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
-    struct sockaddr_in *sa = (struct sockaddr_in *)conf->bind_address;
-    sa->sin_family = AF_INET;
-    sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
-    sa->sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in6 *sa = (struct sockaddr_in6 *)conf->bind_address;
+    // make sure to later set socket option IPV6_ONLY to 'no'
+    sa->sin6_family = AF_INET6;
+    sa->sin6_port = htons(N2N_SN_LPORT_DEFAULT);
+    sa->sin6_addr = in6addr_any;
 
     sss->sock = -1;
     conf->sn_min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);

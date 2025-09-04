@@ -243,44 +243,61 @@ try_uint32:
             memset(*val, 0, sizeof(**val));
 
             n3n_parsed_address_t parsed_addr;
-            struct addrinfo aihints = {0};
-            struct addrinfo * ainfo = NULL;
-            int nameerr;
 
             if(parse_address_spec(&parsed_addr, value) != 0) {
                 free(*val);
                 return -1;
             }
 
-            // specific rules for bind
-            // missing host is valid meaning any address
-            char *host_to_resolve = (parsed_addr.host[0] == '\0') ? NULL : parsed_addr.host;
-            // missing port is valid meaning OS assigned port
-            char *port_to_resolve = (parsed_addr.port[0] == '\0') ? NULL : parsed_addr.port;
             // the 'host only' case needs special treatment
-            if (host_to_resolve && !port_to_resolve) {
+            if(parsed_addr.host[0] != '\0' && parsed_addr.port[0] == '\0') {
                 // make sure the purely numeric port didn't go into host
-                if (strspn(host_to_resolve, "0123456789") == strlen(host_to_resolve)) {
-                    // and correct if required
-                    port_to_resolve = host_to_resolve;
-                    host_to_resolve = NULL;
+                if(strspn(parsed_addr.host, "0123456789") == strlen(parsed_addr.host)) {
+                    // and fits into port
+                    if(strlen(parsed_addr.host) < sizeof(parsed_addr.port)) {
+                    // and then correct if required
+                        snprintf(parsed_addr.port, sizeof(parsed_addr.port), "%s", parsed_addr.host);
+                        parsed_addr.host[0] = '\0';
+                    }
                 }
             }
-
-            aihints.ai_family = AF_UNSPEC;
-// !!!            aihints.ai_family = AF_INET;
-            aihints.ai_socktype = parsed_addr.socktype;
-            aihints.ai_flags = AI_PASSIVE; /* for bind() */
-
-            nameerr = getaddrinfo(host_to_resolve, port_to_resolve, &aihints, &ainfo);
-
-            if(nameerr != 0) {
+            // missing or empty port string results in port 0 (OS will choose)
+            uint16_t port = 0;
+            if(parsed_addr.port[0] != '\0') {
+                port = (uint16_t)atoi(parsed_addr.port);
+            }
+           // now, handle the different options
+           // specific, numeric IPv6 address
+            if(inet_pton(AF_INET6, parsed_addr.host, &((struct sockaddr_in6 *)*val)->sin6_addr) == 1) {
+                struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)*val;
+                sa6->sin6_family = AF_INET6;
+                sa6->sin6_port = htons(port);
+            }
+            // specific, numeric IPv4 address
+            else if(inet_pton(AF_INET, parsed_addr.host, &((struct sockaddr_in *)*val)->sin_addr) == 1) {
+                struct sockaddr_in *sa = (struct sockaddr_in *)*val;
+                sa->sin_family = AF_INET;
+                sa->sin_port = htons(port);
+            }
+            // IPv6 wildcard address
+            else if(strcmp(parsed_addr.host, "::") == 0) {
+                 struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)*val;
+                 sa6->sin6_family = AF_INET6;
+                 sa6->sin6_port = htons(port);
+                 sa6->sin6_addr = in6addr_any;
+            }
+            // no host, e.g., just a port, default to the IPv6 wildcard (IPV6_ONLY will be turned off)
+            else if(parsed_addr.host[0] == '\0') {
+                struct sockaddr_in6 *sa = (struct sockaddr_in6 *)*val;
+                sa->sin6_family = AF_INET6;
+                sa->sin6_port = htons(port);
+                sa->sin6_addr = in6addr_any;
+            }
+            // invalid (not a literal), we do not perfrom DNS lookups here
+            else {
                 free(*val);
                 return -1;
             }
-            // return the first element of ainfo (there could be more)
-            memcpy(*val, ainfo->ai_addr, ainfo->ai_addrlen);
-            freeaddrinfo(ainfo);
             return 0;
         }
         case n3n_conf_n2n_sock_addr: {

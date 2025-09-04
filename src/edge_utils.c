@@ -385,7 +385,8 @@ static int detect_local_ip_address (n3n_sock_t* out_sock, const struct n3n_runti
 void supernode_connect (struct n3n_runtime_data *eee) {
 
     int sockopt;
-    struct sockaddr_in sn_sock;
+    struct sockaddr_storage sn_sock_storage;
+    socklen_t sn_sock_len;
     n3n_sock_t local_sock;
     n3n_sock_str_t sockbuf;
 
@@ -401,9 +402,19 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         return;
     }
 
+    // determine the correct address length
+    socklen_t bind_addr_len = 0;
+    if(eee->conf.bind_address) {
+        if(eee->conf.bind_address->sa_family == AF_INET) {
+            bind_addr_len = sizeof(struct sockaddr_in);
+        } else if(eee->conf.bind_address->sa_family == AF_INET6) {
+            bind_addr_len = sizeof(struct sockaddr_in6);
+        }
+    }
+
     eee->sock = open_socket(
         eee->conf.bind_address,
-        sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
+        bind_addr_len,
         eee->conf.connect_tcp
     );
 
@@ -432,12 +443,13 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         fcntl(eee->sock, F_SETFL, O_NONBLOCK);
 #endif
 
-        fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
+        sn_sock_len = fill_sockaddr((struct sockaddr*)&sn_sock_storage, sizeof(sn_sock_storage), &eee->curr_sn->sock);
+        // TODO: optionally catch sn_sock_len == 0
 
         int result = connect(
             eee->sock,
-            (struct sockaddr*)&(sn_sock),
-            sizeof(struct sockaddr)
+            (struct sockaddr*)&(sn_sock_storage),
+            sn_sock_len
         );
 
 #ifndef _WIN32

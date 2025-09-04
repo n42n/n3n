@@ -104,6 +104,25 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
         );
     }
 #endif
+    // also allow IPv4 on IPv6 sockets
+    if(family == AF_INET6) {
+        sockopt = 0;
+        result = setsockopt(
+            sock_fd,
+            IPPROTO_IPV6,
+            IPV6_V6ONLY,
+            (char *)&sockopt,
+            sizeof(sockopt)
+        );
+        if(result == -1) {
+            traceEvent(
+                TRACE_ERROR,
+                "IPV6_V6ONLY fd=%i, error=%s\n",
+                sock_fd,
+                strerror(errno)
+            );
+        }
+    }
 
     if(!local_address) {
         // skip binding if we dont have the right details
