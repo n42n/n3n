@@ -2181,6 +2181,10 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 p->last_seen = now;
                 // communication with other supernodes happens via standard udp port
                 p->socket_fd = sss->sock;
+                if(skip_add == SN_ADD_ADDED) {
+                    sock_to_cstr(sockbuf, &(p->sock));
+                    p->hostname = strdup(sockbuf);
+                }
             }
 
             /* Skip random numbers of supernodes before payload assembling, calculating an appropriate random_number.
@@ -2469,6 +2473,9 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
                     if(skip_add == SN_ADD_ADDED) {
                         tmp->last_seen = now - LAST_SEEN_SN_NEW;
+                        n3n_sock_str_t sockbuf;
+                        sock_to_cstr(sockbuf1, &(tmp->sock));
+                        tmp->hostname = strdup(sockbuf1);
                     }
 
                     // shift to next payload entry

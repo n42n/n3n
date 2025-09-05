@@ -2716,13 +2716,13 @@ void process_pdu (struct n3n_runtime_data *eee,
                 sn = add_sn_to_list_by_mac_or_sock(&(eee->supernodes), &payload_sock, payload->mac, &skip_add);
 
                 if(skip_add == SN_ADD_ADDED) {
-                    n3n_sock_str_t sockbuf;
                     sn->last_seen = 0; /* as opposed to payload handling in supernode */
-                    sn->hostname = NULL;
+                    sock_to_cstr(sockbuf1, &(sn->sock));
+                    sn->hostname = strdup(sockbuf1);
                     traceEvent(
                         TRACE_NORMAL,
                         "supernode '%s' added to the list of supernodes.",
-                        sock_to_cstr(sockbuf, &(sn->sock))
+                        sockbuf1
                     );
                 }
                 // shift to next payload entry
