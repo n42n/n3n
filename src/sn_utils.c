@@ -628,26 +628,32 @@ static ssize_t sendto_peer (struct n3n_runtime_data *sss,
                             const uint8_t *pktbuf,
                             size_t pktsize) {
 
+    struct sockaddr_storage socket_storage;
+    socklen_t socket_len;
     n3n_sock_str_t sockbuf;
 
-    if(AF_INET == peer->sock.family) {
+    // TODO: we do not work on the return value, do not even pass it on
+    //       and even worse, do another length check further down the chain in sendto_sock/fd
+    //       the n3n_sock_t definitely needs a makeover (to hold the original sockaddr
+    //       for immediate use and its length in memory) or, if we want to keep n3n_sock_t
+    //       for compatibility reasons as it is used in network protocol, an internal sister.
+    //       can't pull the length check up here easily because of other callers of sendto_sock
+    socket_len = fill_sockaddr((struct sockaddr *)&socket_storage,
+                               sizeof(socket_storage), &(peer->sock));
 
-        // network order socket
-        struct sockaddr_in socket;
-        fill_sockaddr((struct sockaddr *)&socket, sizeof(socket), &(peer->sock));
-
-        traceEvent(TRACE_DEBUG, "sent %lu bytes to [%s]",
-                   pktsize,
-                   sock_to_cstr(sockbuf, &(peer->sock)));
-
-        return sendto_sock(sss,
-                           (peer->socket_fd >= 0) ? peer->socket_fd : sss->sock,
-                           (const struct sockaddr*)&socket, pktbuf, pktsize);
-    } else {
-        /* AF_INET6 not implemented */
+    if(socket_len == 0) {
+        // fill_sockaddr failed, e.g., unsupported family
         errno = EAFNOSUPPORT;
         return -1;
     }
+
+    traceEvent(TRACE_DEBUG, "sent %lu bytes to [%s]",
+               pktsize,
+               sock_to_cstr(sockbuf, &(peer->sock)));
+
+    return sendto_sock(sss,
+                       (peer->socket_fd >= 0) ? peer->socket_fd : sss->sock,
+                       (const struct sockaddr*)&socket_storage, pktbuf, pktsize);
 }
 
 
