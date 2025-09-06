@@ -134,8 +134,8 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
         return -5;
     }
 
-    // specific rules for supernode
-    // a host part must be present
+    // a specific rules for supernode
+    // host part must be present
     if(parsed_addr.host[0] == '\0') {
         traceEvent(
             TRACE_WARNING,
@@ -157,9 +157,11 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
             port_to_resolve);
     }
 
-    aihints.ai_socktype = parsed_addr.socktype;
+    aihints.ai_socktype = SOCK_DGRAM;
     aihints.ai_family = AF_UNSPEC;
-// !!!    hints.ai_family = AF_INET; /* enforce IPv4 */
+    // TODO: this (and further down below) would be the place to enforce
+    //       IPv4 only for external use if ever required, maybe by config option
+    //       hints.ai_family = AF_INET; /* enforce IPv4 */
 
     // resolve
     struct timeval time1;
@@ -198,11 +200,11 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
     }
 
     /* ainfo is the head of a linked list if non-NULL. */
-    // loop through the results to find suitable output
+    // loop through the results to find suitable one
     for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
         // TODO: this block might need rework to find best working option
-// !!!
-//        if(p->ai_family == AF_INET) {
+        //       should be AF_INET for IPv4 only, if required, see also above
+        if(p->ai_family == AF_INET6) {
             if(fill_n3nsock(sn, p->ai_addr) == 0) {
                 // Successfully filled the n3n_sock_t
                 traceEvent(TRACE_INFO, "supernode2sock successfully resolved supernode IPv4 address for '%s'", parsed_addr.host);
@@ -212,10 +214,9 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
                 freeaddrinfo(ainfo);
                 return -1;
             }
-//        }
+        }
     }
 
-    // TODO: adapt when IPv6 support
     // if we got this far and haven't got a valid socket...
     if(sn->family == AF_INVALID) {
         // ... there is no valid address

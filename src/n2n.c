@@ -339,24 +339,30 @@ char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
 
 
 // TODO: move to a strings helper source file
-// handling protocol prefixes and splitting host:port parts
+// splitting host:port parts
 int parse_address_spec(n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) {
 
     // work_buffer is of same type as the input as it will only hodl substring
     n3n_sock_str_t work_buffer;
+    const char *spec_start = spec_in;
 
     // initialize output
     memset(out, 0, sizeof(n3n_parsed_address_t));
 
+    /* no protocol prefix parsing for 'tcp://' and 'udp://' as we strive to
+     * to handle protocol discovery automatically, e.g. via DNS SRV records,
+     * rather than relying on manual user input
     // check for prefixes "tcp://" or optionally "udp://" (default)
     out->socktype = SOCK_DGRAM;
-    const char *spec_start = spec_in;
     if(strncmp(spec_start, "tcp://", 6) == 0) {
         out->socktype = SOCK_STREAM;
         spec_start += 6;
     } else if(strncmp(spec_start, "udp://", 6) == 0) {
         spec_start += 6;
     }
+    */
+    // caller is responsible to set socktype
+    out->socktype = 0;
 
     // just to be on the safe side
     size_t length = strlen(spec_start);
