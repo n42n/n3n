@@ -2041,7 +2041,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
 
     if(is_multi_broadcast(mac_address)) {
         traceEvent(TRACE_DEBUG, "multicast or broadcast destination peer, using supernode");
-        memcpy(destination, &(eee->curr_sn->sock), sizeof(struct sockaddr_in));
+        memcpy(destination, &(eee->curr_sn->sock), sizeof(n3n_sock_t));
         return(0);
     }
 
