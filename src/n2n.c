@@ -139,6 +139,51 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
 }
 
 
+// TO: instead of this 'output control' for every packet, move towards
+//     ingress control so incoming sockets get checked befored being stored
+//     and can be used with confidence (and no further checks)
+socklen_t prepare_sockaddr_for_send(struct sockaddr_storage *out_sa,
+                                    int sending_family,
+                                    const struct sockaddr *src_sa) {
+
+    // easy case first
+    if(sending_family == src_sa->sa_family) {
+        if(src_sa->sa_family == AF_INET) {
+            //
+            *(struct sockaddr_in *)out_sa = *(const struct sockaddr_in *)src_sa;
+            return sizeof(struct sockaddr_in);
+        } else if(src_sa->sa_family == AF_INET6) {
+            *(struct sockaddr_in6 *)out_sa = *(const struct sockaddr_in6 *)src_sa;
+            return sizeof(struct sockaddr_in6);
+        }
+    }
+
+// !!!
+    // assumption: every IPv6 socket is opened dual-stack
+    if(sending_family == AF_INET6 && src_sa->sa_family == AF_INET) {
+        struct sockaddr_in6 sa6 = {0};
+        const struct sockaddr_in *sa4 = (const struct sockaddr_in *)src_sa;
+
+        sa6.sin6_family = AF_INET6;
+        sa6.sin6_port = sa4->sin_port;
+
+        // construct the ::ffff:x.x.x.x mapped address
+        sa6.sin6_addr.s6_addr[10] = 0xff;
+        sa6.sin6_addr.s6_addr[11] = 0xff;
+        *(uint32_t *)&sa6.sin6_addr.s6_addr[12] = sa4->sin_addr.s_addr;
+
+        *(struct sockaddr_in6 *)out_sa = sa6;
+
+        return sizeof(struct sockaddr_in6);
+    }
+
+    // anything else is an error
+    traceEvent(TRACE_WARNING, "cannot prepare sockaddr: sending family (%d) is incompatible with destination family (%d)",
+               sending_family, src_sa->sa_family);
+
+    return 0;
+}
+
 /* *********************************************** */
 
 

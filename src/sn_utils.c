@@ -574,11 +574,11 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
     //       maye try a struct containing the socket and its length
     //       would require broader changes
     socklen_t socket_len;
-    if(socket->sa_family == AF_INET) {
-        socket_len = sizeof(struct sockaddr_in);
-    } else if(socket->sa_family == AF_INET6) {
-        socket_len = sizeof(struct sockaddr_in6);
-    } else {
+    struct sockaddr_storage dest_addr = {0};
+// !!!
+// this assumes we operate on a IPv6 dual stock socket
+    socket_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, socket);
+    if(socket_len == 0) {
         // unknown or unsupported family we cannot send
         traceEvent(TRACE_ERROR, "found unknown address family %d", socket->sa_family);
         return -1;
@@ -595,14 +595,14 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
 
         // prepend packet length...
         uint16_t pktsize16 = htobe16(pktsize);
-        sent = sendto_fd(sss, socket_fd, socket, socket_len, (uint8_t*)&pktsize16, sizeof(pktsize16));
+        sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, (uint8_t*)&pktsize16, sizeof(pktsize16));
 
         if(sent <= 0)
             return -1;
         // ...before sending the actual data
     }
 
-    sent = sendto_fd(sss, socket_fd, socket, socket_len, pktbuf, pktsize);
+    sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, pktbuf, pktsize);
 
     // if the connection is tcp, i.e. not the regular sock...
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
@@ -2473,7 +2473,6 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
                     if(skip_add == SN_ADD_ADDED) {
                         tmp->last_seen = now - LAST_SEEN_SN_NEW;
-                        n3n_sock_str_t sockbuf;
                         sock_to_cstr(sockbuf1, &(tmp->sock));
                         tmp->hostname = strdup(sockbuf1);
                     }

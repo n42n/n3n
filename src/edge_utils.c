@@ -1219,6 +1219,7 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
 
     // provides enough space for all protocol families per which it varies
     struct sockaddr_storage peer_addr_storage = {0};
+    struct sockaddr_storage dest_addr = {0};
     socklen_t peer_addr_len = 0;
 
     if(!dest->family)
@@ -1243,13 +1244,20 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
 
     // network order socket
     peer_addr_len = fill_sockaddr((struct sockaddr *) &peer_addr_storage, sizeof(peer_addr_storage), dest);
-
     if(peer_addr_len == 0) {
         traceEvent(TRACE_WARNING, "failed to prepare sockaddr for family %d", dest->family);
         return;
     }
+// !!!
+    // this assumes we operate on a IPv6 dual stock socket
+    peer_addr_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, (const struct sockaddr *)&peer_addr_storage);
+    if(peer_addr_len == 0) {
+        // unknown or unsupported family we cannot send (unlikely after previous check though)
+        traceEvent(TRACE_DEBUG, "found unknown address family %d", peer_addr_storage.ss_family);
+        return;
+    }
 
-    sendto_fd(eee, buf, len, (struct sockaddr *) &peer_addr_storage, peer_addr_len, dest);
+    sendto_fd(eee, buf, len, (struct sockaddr *) &dest_addr, peer_addr_len, dest);
 }
 
 

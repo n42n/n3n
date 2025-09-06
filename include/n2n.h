@@ -113,9 +113,12 @@ int is_empty_ip_address (const n3n_sock_t * sock);
 int memxor (uint8_t *destination, const uint8_t *source, size_t len);
 
 /* Sockets */
-SOCKET open_socket(struct sockaddr *, socklen_t, int type);
+SOCKET open_socket (struct sockaddr *, socklen_t, int type);
 int sock_equal (const n3n_sock_t * a,
                 const n3n_sock_t * b);
+socklen_t prepare_sockaddr_for_send (struct sockaddr_storage *out_sa,
+                                     int sending_family,
+                                     const struct sockaddr *src_sa);
 
 /* Header encryption */
 uint64_t time_stamp (void);
