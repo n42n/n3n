@@ -160,6 +160,7 @@ enum n3n_event_topic {
 
 #define N2N_MULTICAST_PORT         1968
 #define N2N_MULTICAST_GROUP        "224.0.0.68"
+#define N3N_MULTICAST_GROUP_V6     "ff05::6e:336e" /* ff05::n3n */
 
 #ifdef _WIN32
 #define N2N_IFNAMSIZ               64

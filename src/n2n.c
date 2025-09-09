@@ -158,7 +158,6 @@ socklen_t prepare_sockaddr_for_send(struct sockaddr_storage *out_sa,
         }
     }
 
-// !!!
     // assumption: every IPv6 socket is opened dual-stack
     if(sending_family == AF_INET6 && src_sa->sa_family == AF_INET) {
         struct sockaddr_in6 sa6 = {0};
@@ -175,6 +174,22 @@ socklen_t prepare_sockaddr_for_send(struct sockaddr_storage *out_sa,
         *(struct sockaddr_in6 *)out_sa = sa6;
 
         return sizeof(struct sockaddr_in6);
+    }
+
+    // special case...
+    if(sending_family == AF_INET && src_sa->sa_family == AF_INET6) {
+        const struct sockaddr_in6 *sa6 = (const struct sockaddr_in6 *)src_sa;
+        // ... where the IPv6 address actually is a mapped IPv4 address and hence usuable
+        if(IN6_IS_ADDR_V4MAPPED(&sa6->sin6_addr)) {
+            struct sockaddr_in sa4 = {0};
+
+            sa4.sin_family = AF_INET;
+            sa4.sin_port = sa6->sin6_port;
+            *(uint32_t *)&sa4.sin_addr.s_addr = *(const uint32_t *)&sa6->sin6_addr.s6_addr[12];
+            *(struct sockaddr_in *)out_sa = sa4;
+
+            return sizeof(struct sockaddr_in);
+        }
     }
 
     // anything else is an error

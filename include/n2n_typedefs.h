@@ -517,7 +517,8 @@ struct n3n_runtime_data {
     uint8_t sn_wait;                                                     /**< Whether we are waiting for a supernode response. */
     uint8_t sn_pong;                                                     /**< Whether we have seen a PONG since last time reset. */
     bool resolution_request;                                             /**< Flag an immediate DNS resolution request */
-    bool multicast_joined;                                               /**< 1 if the group has been joined.*/
+    bool multicast_joined_v4;                                            /**< 1 if the IPV4 group has been joined.*/
+    bool multicast_joined_v6;                                            /**< 1 if the IPV6 group has been joined.*/
     int close_socket_counter;                                            /**< counter for close-event before re-opening */
     size_t sup_attempts;                                                 /**< Number of remaining attempts to this supernode. */
     tuntap_dev device;                                                   /**< All about the TUNTAP device */
@@ -532,8 +533,10 @@ struct n3n_runtime_data {
     int sock;
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    int udp_multicast_sock;                                              /**< socket for local multicast registrations. */
-    n3n_sock_t multicast_peer;                                           /**< Multicast peer group (for local edges) */
+    int udp_multicast_sock_v4;                                           /**< socket for local IPv4 multicast registrations. */
+    int udp_multicast_sock_v6;                                           /**< socket for local IPv6 multicast registrations. */
+    n3n_sock_t multicast_peer_v4;                                        /**< IPv4 multicast peer group (for local edges) */
+    n3n_sock_t multicast_peer_v6;                                        /**< IPv6 multicast peer group (for local edges) */
 #endif
 
     /* Peers */

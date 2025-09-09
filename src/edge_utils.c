@@ -708,7 +708,8 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     // if called in-between, see "Supernode not responding" in update_supernode_reg(...)
     eee->sock = -1;
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    eee->udp_multicast_sock = -1;
+    eee->udp_multicast_sock_v4 = -1;
+    eee->udp_multicast_sock_v6 = -1;
 #endif
     if(edge_init_sockets(eee) < 0) {
         traceEvent(TRACE_ERROR, "socket setup failed");
@@ -770,12 +771,18 @@ static int is_valid_peer_sock (const n3n_sock_t *sock) {
  */
 static void register_with_local_peers (struct n3n_runtime_data * eee) {
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if((eee->multicast_joined && eee->conf.allow_p2p)
-       && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
-        /* send registration to the local multicast group */
-        traceEvent(TRACE_DEBUG, "registering with multicast group %s:%u",
-                   N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
-        send_register(eee, &(eee->multicast_peer), NULL, N2N_MCAST_REG_COOKIE);
+    if(eee->conf.allow_p2p) {
+        if(eee->multicast_joined_v4 && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
+            /* send registration to the local multicast group */
+            traceEvent(TRACE_DEBUG, "registering with IPv4 multicast group %s:%u",
+                       N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
+            send_register(eee, &(eee->multicast_peer_v4), NULL, N2N_MCAST_REG_COOKIE);
+        }
+        if (eee->multicast_joined_v6) {
+            traceEvent(TRACE_DEBUG, "registering with IPv6 multicast group %s:%u",
+                       N3N_MULTICAST_GROUP_V6, N2N_MULTICAST_PORT);
+            send_register(eee, &(eee->multicast_peer_v6), NULL, N2N_MCAST_REG_COOKIE);
+        }
     }
 #else
     traceEvent(TRACE_DEBUG, "multicast peers discovery is disabled, skipping");
@@ -1270,7 +1277,7 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     if((eee->conf.allow_p2p)
        && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
-        if(!eee->multicast_joined) {
+        if(!eee->multicast_joined_v4) {
             struct ip_mreq mreq;
             mreq.imr_multiaddr.s_addr = inet_addr(N2N_MULTICAST_GROUP);
 #ifdef _WIN32
@@ -1281,18 +1288,34 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
 #else
             mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 #endif
-
-            if(setsockopt(eee->udp_multicast_sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0) {
+            if(setsockopt(eee->udp_multicast_sock_v4, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0) {
                 traceEvent(TRACE_WARNING, "failed to bind to local multicast group %s:%u [errno %u]",
                            N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT, errno);
-
 #ifdef _WIN32
                 traceEvent(TRACE_WARNING, "WSAGetLastError(): %u", WSAGetLastError());
 #endif
             } else {
                 traceEvent(TRACE_NORMAL, "successfully joined multicast group %s:%u",
                            N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
-                eee->multicast_joined = true;
+                eee->multicast_joined_v4 = true;
+            }
+        }
+
+        // IPv6
+        if(eee->udp_multicast_sock_v6 >= 0 && !eee->multicast_joined_v6) {
+            struct ipv6_mreq mreq6;
+            inet_pton(AF_INET6, N3N_MULTICAST_GROUP_V6, &mreq6.ipv6mr_multiaddr);
+            mreq6.ipv6mr_interface = 0; /* 'best' interface */
+            if(setsockopt(eee->udp_multicast_sock_v6, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *)&mreq6, sizeof(mreq6)) < 0) {
+                traceEvent(TRACE_WARNING, "failed to join IPv6 multicast group %s [errno %u]",
+                           N3N_MULTICAST_GROUP_V6, errno);
+#ifdef _WIN32
+                traceEvent(TRACE_WARNING, "WSAGetLastError(): %u", WSAGetLastError());
+#endif
+            } else {
+                traceEvent(TRACE_NORMAL, "successfully joined IPv6 multicast group %s",
+                           N3N_MULTICAST_GROUP_V6);
+                eee->multicast_joined_v6 = true;
             }
         }
     }
@@ -2399,7 +2422,8 @@ void process_pdu (struct n3n_runtime_data *eee,
 #ifdef SKIP_MULTICAST_PEERS_DISCOVERY
     via_multicast = 0;
 #else
-    via_multicast = (in_sock == eee->udp_multicast_sock);
+    via_multicast = ((in_sock == eee->udp_multicast_sock_v4)
+                  || (in_sock == eee->udp_multicast_sock_v6));
 #endif
 
     traceEvent(TRACE_DEBUG, "Rx VPN packet of size %d from [%s]",
@@ -3291,10 +3315,15 @@ void edge_term (struct n3n_runtime_data * eee) {
     }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if(eee->udp_multicast_sock >= 0) {
-        closesocket(eee->udp_multicast_sock);
-        mainloop_unregister_fd(eee->udp_multicast_sock);
-        eee->udp_multicast_sock = -1;
+    if(eee->udp_multicast_sock_v4 >= 0) {
+        closesocket(eee->udp_multicast_sock_v4);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v4);
+        eee->udp_multicast_sock_v4 = -1;
+    }
+    if(eee->udp_multicast_sock_v6 >= 0) {
+        closesocket(eee->udp_multicast_sock_v6);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v6);
+        eee->udp_multicast_sock_v6 = -1;
     }
 #endif
 
@@ -3389,47 +3418,76 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     //    && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID))
     // So, perhaps we should do that here?
 
-    if(eee->udp_multicast_sock >= 0) {
-        closesocket(eee->udp_multicast_sock);
-        mainloop_unregister_fd(eee->udp_multicast_sock);
-        eee->udp_multicast_sock = -1;
+    if(eee->udp_multicast_sock_v4 >= 0) {
+        closesocket(eee->udp_multicast_sock_v4);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v4);
+        eee->udp_multicast_sock_v4 = -1;
     }
 
     /* Populate the multicast group for local edge */
-    eee->multicast_peer.family     = AF_INET;
-    eee->multicast_peer.port       = N2N_MULTICAST_PORT;
-    eee->multicast_peer.addr.v4[0] = 224; /* N2N_MULTICAST_GROUP */
-    eee->multicast_peer.addr.v4[1] = 0;
-    eee->multicast_peer.addr.v4[2] = 0;
-    eee->multicast_peer.addr.v4[3] = 68;
+    eee->multicast_peer_v4.family     = AF_INET;
+    eee->multicast_peer_v4.port       = N2N_MULTICAST_PORT;
+    inet_pton(AF_INET, N2N_MULTICAST_GROUP, &eee->multicast_peer_v4.addr.v4);
 
-    struct sockaddr_in local_address;
-    memset(&local_address, 0, sizeof(local_address));
-    local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(N2N_MULTICAST_PORT);
-    local_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in local_address_v4;
+    memset(&local_address_v4, 0, sizeof(local_address_v4));
+    local_address_v4.sin_family = AF_INET;
+    local_address_v4.sin_port = htons(N2N_MULTICAST_PORT);
+    local_address_v4.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    eee->udp_multicast_sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
+    eee->udp_multicast_sock_v4 = open_socket(
+        (struct sockaddr *)&local_address_v4,
+        sizeof(local_address_v4),
         0 /* UDP */
     );
-    if(eee->udp_multicast_sock < 0) {
-        return(-3);
+    if(eee->udp_multicast_sock_v4 >= 0) {
+        u_int enable_reuse = 1;
+        /* allow multiple sockets to use the same PORT number */
+        setsockopt(eee->udp_multicast_sock_v4, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
+#ifdef SO_REUSEPORT /* no SO_REUSEPORT in Windows / old linux versions */
+        setsockopt(eee->udp_multicast_sock_v4, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
+#endif
+        mainloop_register_fd(eee->udp_multicast_sock_v4, fd_info_proto_v3udp);
+    } else {
+        traceEvent(TRACE_WARNING, "failed to create IPv4 multicast socket.");
     }
 
-    u_int enable_reuse = 1;
+    // IPv6
+    if(eee->udp_multicast_sock_v6 >= 0) {
+        closesocket(eee->udp_multicast_sock_v6);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v6);
+        eee->udp_multicast_sock_v6 = -1;
+    }
+    eee->multicast_peer_v6.family = AF_INET6;
+    eee->multicast_peer_v6.port = N2N_MULTICAST_PORT;
+    inet_pton(AF_INET6, N3N_MULTICAST_GROUP_V6, &eee->multicast_peer_v6.addr.v6);
 
-    /* allow multiple sockets to use the same PORT number */
-    setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
-#ifdef SO_REUSEPORT /* no SO_REUSEPORT in Windows / old linux versions */
-    setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
+    struct sockaddr_in6 local_address_v6 = {0};
+    local_address_v6.sin6_family = AF_INET6;
+    local_address_v6.sin6_port = htons(N2N_MULTICAST_PORT);
+    local_address_v6.sin6_addr = in6addr_any;
+
+    eee->udp_multicast_sock_v6 = open_socket(
+        (struct sockaddr *)&local_address_v6,
+        sizeof(local_address_v6),
+        0 /* UDP */
+    );
+    if(eee->udp_multicast_sock_v6 >= 0) {
+        u_int enable_reuse = 1;
+        setsockopt(eee->udp_multicast_sock_v6, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
+#ifdef SO_REUSEPORT
+        setsockopt(eee->udp_multicast_sock_v6, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
 #endif
+        // not required but best practice
+        int off = 0;
+        setsockopt(eee->udp_multicast_sock_v6, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&off, sizeof(off));
+        mainloop_register_fd(eee->udp_multicast_sock_v6, fd_info_proto_v3udp);
+    } else {
+        traceEvent(TRACE_WARNING, "failed to create IPv6 multicast socket.");
+    }
+#endif /* SKIP_MULTICAST_PEERS_DISCOVERY */
 
-    mainloop_register_fd(eee->udp_multicast_sock, fd_info_proto_v3udp);
-#endif
-
-    return(0);
+    return 0;
 }
 
 
