@@ -202,18 +202,14 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
     /* ainfo is the head of a linked list if non-NULL. */
     // loop through the results to find suitable one
     for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
-        // TODO: this block might need rework to find best working option
-        //       should be AF_INET for IPv4 only, if required, see also above
-        if(p->ai_family == AF_INET6) {
-            if(fill_n3nsock(sn, p->ai_addr) == 0) {
-                // Successfully filled the n3n_sock_t
-                traceEvent(TRACE_INFO, "supernode2sock successfully resolved supernode IPv4 address for '%s'", parsed_addr.host);
-                break;
-            } else {
-                traceEvent(TRACE_WARNING, "supernode2sock: received an unsupported address family for %s", parsed_addr.host);
-                freeaddrinfo(ainfo);
-                return -1;
-            }
+        if(fill_n3nsock(sn, p->ai_addr) == 0) {
+            // Successfully filled the n3n_sock_t
+            traceEvent(TRACE_INFO, "supernode2sock successfully resolved supernode IPv4 address for '%s'", parsed_addr.host);
+            break;
+        } else {
+            traceEvent(TRACE_WARNING, "supernode2sock: received an unsupported address family for %s", parsed_addr.host);
+            freeaddrinfo(ainfo);
+            return -1;
         }
     }
 

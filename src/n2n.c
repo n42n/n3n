@@ -53,11 +53,7 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
     int sockopt;
     int family;
 
-// !!!
-//    family = AF_INET;
-//    if(local_address) {
-        family = local_address->sa_family;
-//    }
+    family = local_address->sa_family;
 
     if((int)(sock_fd = socket(family, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
         traceEvent(TRACE_ERROR, "Unable to create socket for family %d [%s][%d]\n",
@@ -393,11 +389,21 @@ int parse_address_spec(n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) 
 
     char *last_colon = strrchr(host_part, ':');
     char *closing_bracket = strrchr(host_part, ']');
-    // a colon ':' is the port separator iff it's the last one and it appears
-    // after any IPv6 address' closing bracket ']'
-    if(last_colon && (last_colon > closing_bracket)) {
-        *last_colon = '\0'; /* terminate the host_part at the colon */
-        port_part = last_colon + 1;
+
+    // a colon is ONLY a port separator if brackets are present OR if it's the ONLY colon
+    if(last_colon) {
+        if(closing_bracket) {
+            if(last_colon > closing_bracket) {
+                *last_colon = '\0';
+                port_part = last_colon + 1;
+            }
+        } else {
+            char *first_colon = strchr(host_part, ':');
+            if(first_colon == last_colon) {
+                *last_colon = '\0';
+                port_part = last_colon + 1;
+            }
+        }
     }
 
     // handle IPv6 address' brackets '[' ... ']' around the host part

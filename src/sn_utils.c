@@ -575,8 +575,8 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
     //       would require broader changes
     socklen_t socket_len;
     struct sockaddr_storage dest_addr = {0};
-// !!!
-// this assumes we operate on a IPv6 dual stock socket
+
+    // this assumes we operate on a IPv6 dual stock socket
     socket_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, socket);
     if(socket_len == 0) {
         // unknown or unsupported family we cannot send

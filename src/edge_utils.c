@@ -1255,7 +1255,7 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         traceEvent(TRACE_WARNING, "failed to prepare sockaddr for family %d", dest->family);
         return;
     }
-// !!!
+
     // this assumes we operate on a IPv6 dual stock socket
     peer_addr_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, (const struct sockaddr *)&peer_addr_storage);
     if(peer_addr_len == 0) {
