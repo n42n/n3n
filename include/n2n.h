@@ -79,7 +79,10 @@
 #endif
 #endif /* #ifndef _WIN32 */
 
-
+// !!! is this required for BSD (and maybe even MacOS) to use some modern features?!
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
 
 
 /* ************************************** */
