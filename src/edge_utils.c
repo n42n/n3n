@@ -1305,7 +1305,6 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
             }
         }
 
-#ifndef __APPLE__
         // IPv6
         if(eee->udp_multicast_sock_v6 >= 0 && !eee->multicast_joined_v6) {
             struct ipv6_mreq mreq6;
@@ -1323,7 +1322,6 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
                 eee->multicast_joined_v6 = true;
             }
         }
-#endif
     }
 #endif
 }
