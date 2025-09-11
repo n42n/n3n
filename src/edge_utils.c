@@ -1319,8 +1319,8 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
                 eee->multicast_joined_v6 = true;
             }
         }
-    }
 #endif
+    }
 #endif
 }
 
