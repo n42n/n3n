@@ -76,10 +76,6 @@
 #include <sys/socket.h>              // for setsockopt, AF_INET, connect
 #endif
 
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-#include <netinet/icmp6.h>           // for IPV6_ADD_MEMBERSHIP
-#endif
-
 #ifndef _WIN32
 // Another wonderful gift from the world of POSIX compliance is not worth much
 #define closesocket(a) close(a)
@@ -1305,6 +1301,7 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
             }
         }
 
+#ifndef __APPLE__
         // IPv6
         if(eee->udp_multicast_sock_v6 >= 0 && !eee->multicast_joined_v6) {
             struct ipv6_mreq mreq6;
@@ -1323,6 +1320,7 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
             }
         }
     }
+#endif
 #endif
 }
 
