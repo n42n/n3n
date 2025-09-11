@@ -81,6 +81,10 @@
 #define closesocket(a) close(a)
 #endif
 
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#include <netinet6/in6.h>
+#endif
+
 /* ************************************** */
 
 // TODO: most of these forward defs can be removed by re-ordering the code
