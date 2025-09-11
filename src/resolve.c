@@ -201,22 +201,39 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
 
     /* ainfo is the head of a linked list if non-NULL. */
     // loop through the results to find suitable one
+    // for comaptibility reasons, we will prefer any IPv4 result
+    int found = 0;
     for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
-        if(fill_n3nsock(sn, p->ai_addr) == 0) {
-            // Successfully filled the n3n_sock_t
-            traceEvent(TRACE_INFO, "supernode2sock successfully resolved supernode IPv4 address for '%s'", parsed_addr.host);
-            break;
-        } else {
-            traceEvent(TRACE_WARNING, "supernode2sock: received an unsupported address family for %s", parsed_addr.host);
-            freeaddrinfo(ainfo);
-            return -1;
+        if(p->ai_family == AF_INET) {
+            if(fill_n3nsock(sn, p->ai_addr) == 0) {
+                // successfully filled the n3n_sock_t
+                traceEvent(TRACE_INFO, "supernode2sock successfully resolved preferred IPv4 address for '%s'", parsed_addr.host);
+                found = 1;
+                break;
+            } else {
+                traceEvent(TRACE_DEBUG, "supernode2sock couldn't resolve no IPv4 address for %s", parsed_addr.host);
+            }
+        }
+    }
+
+    // look for IPv6 only in case no IPv4 found
+    if(!found) {
+        for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
+            if(p->ai_family == AF_INET6) {
+                if(fill_n3nsock(sn, p->ai_addr) == 0) {
+                    // successfully filled the n3n_sock_t
+                    traceEvent(TRACE_INFO, "supernode2sock resolved IPv6 address for '%s'", parsed_addr.host);
+                    found = 1;
+                    break;
+                }
+            }
         }
     }
 
     // if we got this far and haven't got a valid socket...
-    if(sn->family == AF_INVALID) {
+    if((sn->family == AF_INVALID) || !found) {
         // ... there is no valid address
-        traceEvent(TRACE_WARNING, "supernode2sock: Host '%s' resolved, but no usable address was found.", parsed_addr.host);
+        traceEvent(TRACE_WARNING, "supernode2sock resolved host '%s', but no usable address was found.", parsed_addr.host);
         freeaddrinfo(ainfo);
         return -1;
     }
