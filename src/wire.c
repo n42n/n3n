@@ -689,24 +689,34 @@ socklen_t fill_sockaddr (struct sockaddr * addr,
 }
 
 
-// fills struct sockaddr's data into n2n_sock
+// fills struct sockaddr's data into n3n_sock
 int fill_n3nsock (n3n_sock_t* sock, const struct sockaddr* sa) {
     // Ensure the return struct is fully initialised
     // TODO: could be optimised
     memset(sock, 0, sizeof(n3n_sock_t));
 
-    sock->family = sa->sa_family;
     // sock->type = 0; // Field is still used by encode/decode sock above
 
-    switch(sock->family) {
+    switch(sa->sa_family) {
         case AF_INET: {
+            sock->family = AF_INET;
             sock->port = ntohs(((struct sockaddr_in*)sa)->sin_port);
             memcpy(sock->addr.v4, &((struct sockaddr_in*)sa)->sin_addr.s_addr, sizeof(struct in_addr));
             break;
         }
         case AF_INET6: {
-            sock->port = ntohs(((struct sockaddr_in6*)sa)->sin6_port);
-            memcpy(sock->addr.v6, &((struct sockaddr_in6*)sa)->sin6_addr.s6_addr, sizeof(struct in6_addr));
+            if(IN6_IS_ADDR_V4MAPPED(&((const struct sockaddr_in6*)sa)->sin6_addr)) {
+                // IPv4 mapped address
+                sock->family = AF_INET;
+                sock->port = ntohs(((struct sockaddr_in6*)sa)->sin6_port);
+                // just the last four
+                memcpy(sock->addr.v4, &((const struct sockaddr_in6*)sa)->sin6_addr.s6_addr[12], 4);
+            } else {
+                // IPv6
+                sock->family = AF_INET6;
+                sock->port = ntohs(((struct sockaddr_in6*)sa)->sin6_port);
+                memcpy(sock->addr.v6, &((const struct sockaddr_in6*)sa)->sin6_addr.s6_addr, sizeof(struct in6_addr));
+            }
             break;
         }
         default:
