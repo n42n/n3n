@@ -45,7 +45,7 @@ typedef char n3n_sock_str_t[N3N_SOCKBUF_SIZE];     /* tracing string buffer */
 typedef struct n3n_parsed_address_t {
     char host[N3N_SOCKBUF_SIZE];
     char port[N3N_PORTBUF_SIZE];
-    int  socktype;
+    int socktype;
 } n3n_parsed_address_t;
 
 #if defined(_MSC_VER) || defined(__MINGW32__)

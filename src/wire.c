@@ -674,8 +674,7 @@ socklen_t fill_sockaddr (struct sockaddr * addr,
             memcpy(&(si->sin_addr.s_addr), sock->addr.v4, IPV4_SIZE);
             return sizeof(struct sockaddr_in);
         }
-    }
-    else if(AF_INET6 == sock->family) {
+    } else if(AF_INET6 == sock->family) {
         if(addrlen >= sizeof(struct sockaddr_in6)) {
             struct sockaddr_in6 * si = (struct sockaddr_in6 *)addr;
             si->sin6_family = sock->family;

@@ -255,7 +255,7 @@ try_uint32:
                 if(strspn(parsed_addr.host, "0123456789") == strlen(parsed_addr.host)) {
                     // and fits into port
                     if(strlen(parsed_addr.host) < sizeof(parsed_addr.port)) {
-                    // and then correct if required
+                        // and then correct if required
                         snprintf(parsed_addr.port, sizeof(parsed_addr.port), "%s", parsed_addr.host);
                         parsed_addr.host[0] = '\0';
                     }
@@ -266,8 +266,8 @@ try_uint32:
             if(parsed_addr.port[0] != '\0') {
                 port = (uint16_t)atoi(parsed_addr.port);
             }
-           // now, handle the different options
-           // specific, numeric IPv6 address
+            // now, handle the different options
+            // specific, numeric IPv6 address
             if(inet_pton(AF_INET6, parsed_addr.host, &((struct sockaddr_in6 *)*val)->sin6_addr) == 1) {
                 struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)*val;
                 sa6->sin6_family = AF_INET6;
@@ -281,10 +281,10 @@ try_uint32:
             }
             // IPv6 wildcard address
             else if(strcmp(parsed_addr.host, "::") == 0) {
-                 struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)*val;
-                 sa6->sin6_family = AF_INET6;
-                 sa6->sin6_port = htons(port);
-                 sa6->sin6_addr = in6addr_any;
+                struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)*val;
+                sa6->sin6_family = AF_INET6;
+                sa6->sin6_port = htons(port);
+                sa6->sin6_addr = in6addr_any;
             }
             // no host, e.g., just a port, default to the IPv6 wildcard (IPV6_ONLY will be turned off)
             else if(parsed_addr.host[0] == '\0') {

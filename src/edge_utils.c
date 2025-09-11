@@ -778,7 +778,7 @@ static void register_with_local_peers (struct n3n_runtime_data * eee) {
                        N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
             send_register(eee, &(eee->multicast_peer_v4), NULL, N2N_MCAST_REG_COOKIE);
         }
-        if (eee->multicast_joined_v6) {
+        if(eee->multicast_joined_v6) {
             traceEvent(TRACE_DEBUG, "registering with IPv6 multicast group %s:%u",
                        N3N_MULTICAST_GROUP_V6, N2N_MULTICAST_PORT);
             send_register(eee, &(eee->multicast_peer_v6), NULL, N2N_MCAST_REG_COOKIE);
@@ -2422,8 +2422,8 @@ void process_pdu (struct n3n_runtime_data *eee,
 #ifdef SKIP_MULTICAST_PEERS_DISCOVERY
     via_multicast = 0;
 #else
-    via_multicast = ((in_sock == eee->udp_multicast_sock_v4)
-                  || (in_sock == eee->udp_multicast_sock_v6));
+    via_multicast = ((in_sock == eee->udp_multicast_sock_v4) ||
+                     (in_sock == eee->udp_multicast_sock_v6));
 #endif
 
     traceEvent(TRACE_DEBUG, "Rx VPN packet of size %d from [%s]",

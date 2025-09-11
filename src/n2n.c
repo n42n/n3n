@@ -138,9 +138,9 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
 // TO: instead of this 'output control' for every packet, move towards
 //     ingress control so incoming sockets get checked befored being stored
 //     and can be used with confidence (and no further checks)
-socklen_t prepare_sockaddr_for_send(struct sockaddr_storage *out_sa,
-                                    int sending_family,
-                                    const struct sockaddr *src_sa) {
+socklen_t prepare_sockaddr_for_send (struct sockaddr_storage *out_sa,
+                                     int sending_family,
+                                     const struct sockaddr *src_sa) {
 
     // easy case first
     if(sending_family == src_sa->sa_family) {
@@ -351,7 +351,7 @@ char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
 
 // TODO: move to a strings helper source file
 // splitting host:port parts
-int parse_address_spec(n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) {
+int parse_address_spec (n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) {
 
     // work_buffer is of same type as the input as it will only hodl substring
     n3n_sock_str_t work_buffer;
@@ -360,18 +360,6 @@ int parse_address_spec(n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) 
     // initialize output
     memset(out, 0, sizeof(n3n_parsed_address_t));
 
-    /* no protocol prefix parsing for 'tcp://' and 'udp://' as we strive to
-     * to handle protocol discovery automatically, e.g. via DNS SRV records,
-     * rather than relying on manual user input
-    // check for prefixes "tcp://" or optionally "udp://" (default)
-    out->socktype = SOCK_DGRAM;
-    if(strncmp(spec_start, "tcp://", 6) == 0) {
-        out->socktype = SOCK_STREAM;
-        spec_start += 6;
-    } else if(strncmp(spec_start, "udp://", 6) == 0) {
-        spec_start += 6;
-    }
-    */
     // caller is responsible to set socktype
     out->socktype = 0;
 
@@ -415,7 +403,7 @@ int parse_address_spec(n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) 
     // safely copy the results from the temporary parts into the output struct
     snprintf(out->host, sizeof(out->host), "%s", host_part);
     // copy the port if it exists
-    if (port_part) {
+    if(port_part) {
         snprintf(out->port, sizeof(out->port), "%s", port_part);
     }
 

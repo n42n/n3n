@@ -17,7 +17,7 @@ char * ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr);
 char* sock_to_cstr (n3n_sock_str_t out,
                     const n3n_sock_t * sock);
 
-int parse_address_spec(n3n_parsed_address_t *out, const n3n_sock_str_t spec_in);
+int parse_address_spec (n3n_parsed_address_t *out, const n3n_sock_str_t spec_in);
 
 #endif
 
