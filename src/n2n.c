@@ -429,14 +429,14 @@ int sock_equal (const n3n_sock_t * a,
 
     if(a->family == AF_INET6 && b->family == AF_INET) {
         // is 'a' IPv4-mapped address?
-        if(IN6_IS_ADDR_V4MAPPED(a->addr.v6)) {
+        if(IN6_IS_ADDR_V4MAPPED((const struct in6_addr *)a->addr.v6)) {
             // compare the last 4
             return(memcmp(a->addr.v6 + 12, b->addr.v4, IPV4_SIZE) == 0);
         }
     }
     // reverse case
     if(a->family == AF_INET && b->family == AF_INET6) {
-        if(IN6_IS_ADDR_V4MAPPED(b->addr.v6)) {
+        if(IN6_IS_ADDR_V4MAPPED((const struct in6_addr *)b->addr.v6)) {
             return(memcmp(a->addr.v4, b->addr.v6 + 12, IPV4_SIZE) == 0);
         }
     }
