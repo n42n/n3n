@@ -81,8 +81,8 @@
 #define closesocket(a) close(a)
 #endif
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
-#include <netinet6/in6.h>
+#ifndef IPV6_ADD_MEMBERSHIP
+#define IPV6_ADD_MEMBERSHIP 12       // the standard value for this option
 #endif
 
 /* ************************************** */
