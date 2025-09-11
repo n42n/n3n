@@ -69,11 +69,15 @@
 #include "win32/edge_utils_win32.h"
 #else
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop
-#include <netinet/in.h>              // for sockaddr_in, ntohl, IPPROTO_IP
+#include <netinet/in.h>              // for sockaddr_in, ntohl, IPPROTO_IP, IPV6_ADD_MEMBERSHIP
 #include <netinet/tcp.h>             // for TCP_NODELAY
 #include <pwd.h>
 #include <sys/select.h>              // for select, FD_SET, FD_ISSET, FD_ZERO
 #include <sys/socket.h>              // for setsockopt, AF_INET, connect
+#endif
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#include <netinet/icmp6.h>           // for IPV6_ADD_MEMBERSHIP
 #endif
 
 #ifndef _WIN32
