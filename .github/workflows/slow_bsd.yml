@@ -120,8 +120,8 @@ jobs:
           memory: 5G
           cpu_count: 4
           run: |
-            sudo env PKG_PATH=http://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/amd64/10.1/All/ \
-            pkg_add \
+            sudo env PKG_PATH=https://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/10.1/All/ \
+            pkg_add -u -v \
               autoconf \
               automake \
               git \
