@@ -360,9 +360,9 @@ filter_rule_pair_cache_t* get_or_create_filter_rule_cache (network_traffic_filte
 }
 
 /* for [-Wmissing-declarations] */
-n2n_verdict filter_packet_from_peer (network_traffic_filter_t *filter, struct n3n_runtime_data *eee, const n2n_sock_t *peer, uint8_t *payload, uint16_t payload_size);
+n2n_verdict filter_packet_from_peer (network_traffic_filter_t *filter, struct n3n_runtime_data *eee, const n3n_sock_t *peer, uint8_t *payload, uint16_t payload_size);
 
-n2n_verdict filter_packet_from_peer (network_traffic_filter_t *filter, struct n3n_runtime_data *eee, const n2n_sock_t *peer, uint8_t *payload, uint16_t payload_size) {
+n2n_verdict filter_packet_from_peer (network_traffic_filter_t *filter, struct n3n_runtime_data *eee, const n3n_sock_t *peer, uint8_t *payload, uint16_t payload_size) {
 
     filter_rule_pair_cache_t *cur_pkt_rule = 0;
     packet_address_proto_info_t pkt_info;

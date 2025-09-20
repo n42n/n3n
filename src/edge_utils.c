@@ -69,7 +69,7 @@
 #include "win32/edge_utils_win32.h"
 #else
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop
-#include <netinet/in.h>              // for sockaddr_in, ntohl, IPPROTO_IP
+#include <netinet/in.h>              // for sockaddr_in, ntohl, IPPROTO_IP, IPV6_ADD_MEMBERSHIP
 #include <netinet/tcp.h>             // for TCP_NODELAY
 #include <pwd.h>
 #include <sys/select.h>              // for select, FD_SET, FD_ISSET, FD_ZERO
@@ -81,11 +81,15 @@
 #define closesocket(a) close(a)
 #endif
 
+#ifndef IPV6_ADD_MEMBERSHIP
+#define IPV6_ADD_MEMBERSHIP 12       // the standard value for this option
+#endif
+
 /* ************************************** */
 
 // TODO: most of these forward defs can be removed by re-ordering the code
 
-static void send_register (struct n3n_runtime_data *eee, const n2n_sock_t *remote_peer, const n2n_mac_t peer_mac, n2n_cookie_t cookie);
+static void send_register (struct n3n_runtime_data *eee, const n3n_sock_t *remote_peer, const n2n_mac_t peer_mac, n2n_cookie_t cookie);
 
 static void check_peer_registration_needed (struct n3n_runtime_data *eee,
                                             uint8_t from_supernode,
@@ -94,7 +98,7 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
                                             const n2n_cookie_t cookie,
                                             const n2n_ip_subnet_t *dev_addr,
                                             const n2n_desc_t *dev_desc,
-                                            const n2n_sock_t *peer);
+                                            const n3n_sock_t *peer);
 
 static int edge_init_sockets (struct n3n_runtime_data *eee);
 
@@ -104,7 +108,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
                                           const n2n_mac_t mac,
                                           const n2n_ip_subnet_t *dev_addr,
                                           const n2n_desc_t *dev_desc,
-                                          const n2n_sock_t *peer,
+                                          const n3n_sock_t *peer,
                                           time_t when);
 
 /* ************************************** */
@@ -299,7 +303,7 @@ void reset_sup_attempts (struct n3n_runtime_data *eee) {
 // detect local IP address by probing a connection to the supernode
 // TODO: should try to refactor this function to be more accurate and handle
 // error cases better
-static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runtime_data* eee) {
+static int detect_local_ip_address (n3n_sock_t* out_sock, const struct n3n_runtime_data* eee) {
 
     struct sockaddr_in local_sock;
     struct sockaddr_in sn_sock;
@@ -385,9 +389,10 @@ static int detect_local_ip_address (n2n_sock_t* out_sock, const struct n3n_runti
 void supernode_connect (struct n3n_runtime_data *eee) {
 
     int sockopt;
-    struct sockaddr_in sn_sock;
-    n2n_sock_t local_sock;
-    n2n_sock_str_t sockbuf;
+    struct sockaddr_storage sn_sock_storage;
+    socklen_t sn_sock_len;
+    n3n_sock_t local_sock;
+    n3n_sock_str_t sockbuf;
 
     if(eee->conf.connect_tcp) {
         // It might be already closed, but we can simply ignore errors and
@@ -401,9 +406,19 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         return;
     }
 
+    // determine the correct address length
+    socklen_t bind_addr_len = 0;
+    if(eee->conf.bind_address) {
+        if(eee->conf.bind_address->sa_family == AF_INET) {
+            bind_addr_len = sizeof(struct sockaddr_in);
+        } else if(eee->conf.bind_address->sa_family == AF_INET6) {
+            bind_addr_len = sizeof(struct sockaddr_in6);
+        }
+    }
+
     eee->sock = open_socket(
         eee->conf.bind_address,
-        sizeof(struct sockaddr_in), // FIXME this forces only IPv4 bindings
+        bind_addr_len,
         eee->conf.connect_tcp
     );
 
@@ -432,12 +447,13 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         fcntl(eee->sock, F_SETFL, O_NONBLOCK);
 #endif
 
-        fill_sockaddr((struct sockaddr*)&sn_sock, sizeof(sn_sock), &eee->curr_sn->sock);
+        sn_sock_len = fill_sockaddr((struct sockaddr*)&sn_sock_storage, sizeof(sn_sock_storage), &eee->curr_sn->sock);
+        // TODO: optionally catch sn_sock_len == 0
 
         int result = connect(
             eee->sock,
-            (struct sockaddr*)&(sn_sock),
-            sizeof(struct sockaddr)
+            (struct sockaddr*)&(sn_sock_storage),
+            sn_sock_len
         );
 
 #ifndef _WIN32
@@ -527,7 +543,7 @@ void supernode_connect (struct n3n_runtime_data *eee) {
     }
 
     // ... overwrite IP address, too (whole socket struct here)
-    memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n2n_sock_t));
+    memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n3n_sock_t));
     traceEvent(TRACE_INFO, "determined local socket [%s]",
                sock_to_cstr(sockbuf, &local_sock));
 }
@@ -696,7 +712,8 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     // if called in-between, see "Supernode not responding" in update_supernode_reg(...)
     eee->sock = -1;
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    eee->udp_multicast_sock = -1;
+    eee->udp_multicast_sock_v4 = -1;
+    eee->udp_multicast_sock_v6 = -1;
 #endif
     if(edge_init_sockets(eee) < 0) {
         traceEvent(TRACE_ERROR, "socket setup failed");
@@ -730,7 +747,7 @@ static uint8_t localhost_v6[IPV6_SIZE] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
 /* Exclude localhost as it may be received when an edge node runs
  * in the same supernode host.
  */
-static int is_valid_peer_sock (const n2n_sock_t *sock) {
+static int is_valid_peer_sock (const n3n_sock_t *sock) {
 
     switch(sock->family) {
         case AF_INET: {
@@ -758,12 +775,18 @@ static int is_valid_peer_sock (const n2n_sock_t *sock) {
  */
 static void register_with_local_peers (struct n3n_runtime_data * eee) {
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if((eee->multicast_joined && eee->conf.allow_p2p)
-       && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
-        /* send registration to the local multicast group */
-        traceEvent(TRACE_DEBUG, "registering with multicast group %s:%u",
-                   N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
-        send_register(eee, &(eee->multicast_peer), NULL, N2N_MCAST_REG_COOKIE);
+    if(eee->conf.allow_p2p) {
+        if(eee->multicast_joined_v4 && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
+            /* send registration to the local multicast group */
+            traceEvent(TRACE_DEBUG, "registering with IPv4 multicast group %s:%u",
+                       N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
+            send_register(eee, &(eee->multicast_peer_v4), NULL, N2N_MCAST_REG_COOKIE);
+        }
+        if(eee->multicast_joined_v6) {
+            traceEvent(TRACE_DEBUG, "registering with IPv6 multicast group %s:%u",
+                       N3N_MULTICAST_GROUP_V6, N2N_MULTICAST_PORT);
+            send_register(eee, &(eee->multicast_peer_v6), NULL, N2N_MCAST_REG_COOKIE);
+        }
     }
 #else
     traceEvent(TRACE_DEBUG, "multicast peers discovery is disabled, skipping");
@@ -791,12 +814,12 @@ static void register_with_new_peer (struct n3n_runtime_data *eee,
                                     const n2n_mac_t mac,
                                     const n2n_ip_subnet_t *dev_addr,
                                     const n2n_desc_t *dev_desc,
-                                    const n2n_sock_t *peer) {
+                                    const n3n_sock_t *peer) {
 
     /* REVISIT: purge of pending_peers not yet done. */
     struct peer_info *scan;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_FIND_PEER(eee->pending_peers, mac, scan);
 
@@ -834,7 +857,7 @@ static void register_with_new_peer (struct n3n_runtime_data *eee,
                  */
                 int curTTL = 0;
                 socklen_t lenTTL = sizeof(int);
-                n2n_sock_t sock = scan->sock;
+                n3n_sock_t sock = scan->sock;
                 int alter = 16; /* TODO: set by command line or more reliable prediction method */
 
                 getsockopt(eee->sock, IPPROTO_IP, IP_TTL, (void *) (char *) &curTTL, &lenTTL);
@@ -877,7 +900,7 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
                                             const n2n_cookie_t cookie,
                                             const n2n_ip_subnet_t *dev_addr,
                                             const n2n_desc_t *dev_desc,
-                                            const n2n_sock_t *peer) {
+                                            const n3n_sock_t *peer) {
 
     struct peer_info *scan;
 
@@ -928,12 +951,12 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
 static void peer_set_p2p_confirmed (struct n3n_runtime_data * eee,
                                     const n2n_mac_t mac,
                                     const n2n_cookie_t cookie,
-                                    const n2n_sock_t * peer,
+                                    const n3n_sock_t * peer,
                                     time_t now) {
 
     struct peer_info *scan, *scan_tmp;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_FIND_PEER(eee->pending_peers, mac, scan);
     if(scan == NULL) {
@@ -1068,7 +1091,7 @@ static int handle_remote_auth (struct n3n_runtime_data *eee, struct peer_info *p
 /* ************************************** */
 
 
-int is_empty_ip_address (const n2n_sock_t * sock) {
+int is_empty_ip_address (const n3n_sock_t * sock) {
 
     const uint8_t * ptr = NULL;
     size_t len = 0;
@@ -1103,12 +1126,12 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
                                           const n2n_mac_t mac,
                                           const n2n_ip_subnet_t *dev_addr,
                                           const n2n_desc_t *dev_desc,
-                                          const n2n_sock_t *peer,
+                                          const n3n_sock_t *peer,
                                           time_t when) {
 
     struct peer_info *scan;
-    n2n_sock_str_t sockbuf1;
-    n2n_sock_str_t sockbuf2; /* don't clobber sockbuf1 if writing two addresses to trace */
+    n3n_sock_str_t sockbuf1;
+    n3n_sock_str_t sockbuf2; /* don't clobber sockbuf1 if writing two addresses to trace */
     macstr_t mac_buf;
 
     if(is_empty_ip_address(peer))
@@ -1148,13 +1171,13 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /** Send a datagram to a socket file descriptor */
 static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
-                       size_t len, struct sockaddr_in *dest,
-                       const n2n_sock_t * n2ndest) {
+                       size_t len, struct sockaddr *dest, socklen_t dest_len,
+                       const n3n_sock_t * n2ndest) {
 
     ssize_t sent = 0;
 
     sent = sendto(eee->sock, buf, len, 0 /*flags*/,
-                  (struct sockaddr *)dest, sizeof(struct sockaddr_in));
+                  dest, dest_len);
 
     if(sent != -1) {
         // sendto success
@@ -1189,7 +1212,7 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
     // - remove n2ndest param, as the only reason it is here is to
     //   stringify for errors.
     //   Better would be to stringify the dest sockaddr_t
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     traceEvent(level, "sendto(%s) failed (%d) %s",
                sock_to_cstr(sockbuf, n2ndest),
                errno, errstr);
@@ -1201,11 +1224,14 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
 }
 
 
-/** Send a datagram to a socket defined by a n2n_sock_t */
+/** Send a datagram to a socket defined by a n3n_sock_t */
 static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
-                         size_t len, const n2n_sock_t * dest) {
+                         size_t len, const n3n_sock_t * dest) {
 
-    struct sockaddr_in peer_addr;
+    // provides enough space for all protocol families per which it varies
+    struct sockaddr_storage peer_addr_storage = {0};
+    struct sockaddr_storage dest_addr = {0};
+    socklen_t peer_addr_len = 0;
 
     if(!dest->family)
         // invalid socket
@@ -1216,7 +1242,7 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         return;
 
     // TODO:
-    // - also check n2n_sock_t type == SOCK_STREAM as a TCP indicator?
+    // - also check n3n_sock_t type == SOCK_STREAM as a TCP indicator?
 
     // if the connection is tcp, i.e. not the regular sock...
     if(eee->conf.connect_tcp) {
@@ -1227,12 +1253,22 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         return;
     }
 
-    peer_addr.sin_port = 0;
-
     // network order socket
-    fill_sockaddr((struct sockaddr *) &peer_addr, sizeof(peer_addr), dest);
+    peer_addr_len = fill_sockaddr((struct sockaddr *) &peer_addr_storage, sizeof(peer_addr_storage), dest);
+    if(peer_addr_len == 0) {
+        traceEvent(TRACE_WARNING, "failed to prepare sockaddr for family %d", dest->family);
+        return;
+    }
 
-    sendto_fd(eee, buf, len, &peer_addr, dest);
+    // this assumes we operate on a IPv6 dual stock socket
+    peer_addr_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, (const struct sockaddr *)&peer_addr_storage);
+    if(peer_addr_len == 0) {
+        // unknown or unsupported family we cannot send (unlikely after previous check though)
+        traceEvent(TRACE_DEBUG, "found unknown address family %d", peer_addr_storage.ss_family);
+        return;
+    }
+
+    sendto_fd(eee, buf, len, (struct sockaddr *) &dest_addr, peer_addr_len, dest);
 }
 
 
@@ -1245,7 +1281,7 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     if((eee->conf.allow_p2p)
        && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID)) {
-        if(!eee->multicast_joined) {
+        if(!eee->multicast_joined_v4) {
             struct ip_mreq mreq;
             mreq.imr_multiaddr.s_addr = inet_addr(N2N_MULTICAST_GROUP);
 #ifdef _WIN32
@@ -1256,18 +1292,34 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
 #else
             mreq.imr_interface.s_addr = htonl(INADDR_ANY);
 #endif
-
-            if(setsockopt(eee->udp_multicast_sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0) {
+            if(setsockopt(eee->udp_multicast_sock_v4, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0) {
                 traceEvent(TRACE_WARNING, "failed to bind to local multicast group %s:%u [errno %u]",
                            N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT, errno);
-
 #ifdef _WIN32
                 traceEvent(TRACE_WARNING, "WSAGetLastError(): %u", WSAGetLastError());
 #endif
             } else {
                 traceEvent(TRACE_NORMAL, "successfully joined multicast group %s:%u",
                            N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT);
-                eee->multicast_joined = true;
+                eee->multicast_joined_v4 = true;
+            }
+        }
+
+        // IPv6
+        if(eee->udp_multicast_sock_v6 >= 0 && !eee->multicast_joined_v6) {
+            struct ipv6_mreq mreq6;
+            inet_pton(AF_INET6, N3N_MULTICAST_GROUP_V6, &mreq6.ipv6mr_multiaddr);
+            mreq6.ipv6mr_interface = 0; /* 'best' interface */
+            if(setsockopt(eee->udp_multicast_sock_v6, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *)&mreq6, sizeof(mreq6)) < 0) {
+                traceEvent(TRACE_WARNING, "failed to join IPv6 multicast group %s [errno %u]",
+                           N3N_MULTICAST_GROUP_V6, errno);
+#ifdef _WIN32
+                traceEvent(TRACE_WARNING, "WSAGetLastError(): %u", WSAGetLastError());
+#endif
+            } else {
+                traceEvent(TRACE_NORMAL, "successfully joined IPv6 multicast group %s",
+                           N3N_MULTICAST_GROUP_V6);
+                eee->multicast_joined_v6 = true;
             }
         }
     }
@@ -1363,7 +1415,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_REGISTER_SUPER_t reg;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     // FIXME: fix encode_* functions to not need memsets
     memset(&cmn, 0, sizeof(cmn));
@@ -1375,7 +1427,7 @@ void send_register_super (struct n3n_runtime_data *eee) {
         cmn.flags = 0;
     } else {
         cmn.flags = N2N_FLAGS_SOCKET;
-        memcpy(&(reg.sock), &(eee->conf.preferred_sock), sizeof(n2n_sock_t));
+        memcpy(&(reg.sock), &(eee->conf.preferred_sock), sizeof(n3n_sock_t));
     }
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
@@ -1418,7 +1470,7 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_UNREGISTER_SUPER_t unreg;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(!eee->curr_sn) {
         return;
@@ -1506,7 +1558,7 @@ static void sort_supernodes (struct n3n_runtime_data *eee, time_t now) {
 
 /** Send a REGISTER packet to another edge. */
 static void send_register (struct n3n_runtime_data * eee,
-                           const n2n_sock_t * remote_peer,
+                           const n3n_sock_t * remote_peer,
                            const n2n_mac_t peer_mac,
                            const n2n_cookie_t cookie) {
 
@@ -1515,7 +1567,7 @@ static void send_register (struct n3n_runtime_data * eee,
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_REGISTER_t reg;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(!eee->conf.allow_p2p) {
         traceEvent(TRACE_DEBUG, "skipping register as P2P is disabled");
@@ -1559,7 +1611,7 @@ static void send_register (struct n3n_runtime_data * eee,
 
 /** Send a REGISTER_ACK packet to a peer edge. */
 static void send_register_ack (struct n3n_runtime_data * eee,
-                               const n2n_sock_t * remote_peer,
+                               const n3n_sock_t * remote_peer,
                                const n2n_REGISTER_t * reg) {
 
     uint8_t pktbuf[N2N_PKT_BUF_SIZE];
@@ -1567,7 +1619,7 @@ static void send_register_ack (struct n3n_runtime_data * eee,
     /* ssize_t sent; */
     n2n_common_t cmn;
     n2n_REGISTER_ACK_t ack;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     if(!eee->conf.allow_p2p) {
         traceEvent(TRACE_DEBUG, "skipping register ACK as P2P is disabled");
@@ -1765,7 +1817,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
 static int handle_PACKET (struct n3n_runtime_data * eee,
                           const uint8_t from_supernode,
                           const n2n_PACKET_t * pkt,
-                          const n2n_sock_t * orig_sender,
+                          const n3n_sock_t * orig_sender,
                           uint8_t * payload,
                           size_t psize) {
 
@@ -1775,7 +1827,7 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
     ether_hdr_t *             eh;
     ipstr_t ip_buf;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     now = time(NULL);
 
@@ -2006,17 +2058,17 @@ static int check_query_peer_info (struct n3n_runtime_data *eee, time_t now, n2n_
 /* @return 1 if destination is a peer, 0 if destination is supernode */
 static int find_peer_destination (struct n3n_runtime_data * eee,
                                   n2n_mac_t mac_address,
-                                  n2n_sock_t * destination) {
+                                  n3n_sock_t * destination) {
 
     struct peer_info *scan;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     int retval = 0;
     time_t now = time(NULL);
 
     if(is_multi_broadcast(mac_address)) {
         traceEvent(TRACE_DEBUG, "multicast or broadcast destination peer, using supernode");
-        memcpy(destination, &(eee->curr_sn->sock), sizeof(struct sockaddr_in));
+        memcpy(destination, &(eee->curr_sn->sock), sizeof(n3n_sock_t));
         return(0);
     }
 
@@ -2036,7 +2088,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
             /* NOTE: registration will be performed upon the receival of the next response packet */
         } else {
             /* Valid known peer found */
-            memcpy(destination, &scan->sock, sizeof(n2n_sock_t));
+            memcpy(destination, &scan->sock, sizeof(n3n_sock_t));
             retval = 1;
         }
     }
@@ -2067,8 +2119,8 @@ static int send_packet (struct n3n_runtime_data * eee,
 
     int is_p2p;
     /*ssize_t s; */
-    n2n_sock_str_t sockbuf;
-    n2n_sock_t destination;
+    n3n_sock_str_t sockbuf;
+    n3n_sock_t destination;
     macstr_t mac_buf;
     struct peer_info *peer, *tmp_peer;
 
@@ -2338,8 +2390,8 @@ void process_pdu (struct n3n_runtime_data *eee,
 ) {
 
     n2n_common_t cmn;          /* common fields in the packet header */
-    n2n_sock_str_t sockbuf1;
-    n2n_sock_str_t sockbuf2;        /* don't clobber sockbuf1 if writing two addresses to trace */
+    n3n_sock_str_t sockbuf1;
+    n3n_sock_str_t sockbuf2;        /* don't clobber sockbuf1 if writing two addresses to trace */
     macstr_t mac_buf1;
     macstr_t mac_buf2;
     uint8_t hash_buf[16];
@@ -2349,8 +2401,8 @@ void process_pdu (struct n3n_runtime_data *eee,
     uint8_t from_supernode;
     uint8_t via_multicast;
     struct peer_info *sn = NULL;
-    n2n_sock_t sender;
-    n2n_sock_t *          orig_sender = NULL;
+    n3n_sock_t sender;
+    n3n_sock_t *orig_sender = NULL;
     uint32_t header_enc = 0;
     uint64_t stamp = 0;
     int skip_add = 0;
@@ -2365,7 +2417,7 @@ void process_pdu (struct n3n_runtime_data *eee,
     else {
         // REVISIT: type conversion back and forth, choose a consistent approach throughout whole code,
         //          i.e. stick with more general sockaddr as long as possible and narrow only if required
-        fill_n2nsock(&sender, sender_sock);
+        fill_n3nsock(&sender, sender_sock);
     }
     /* The packet may not have an orig_sender socket spec. So default to last
      * hop as sender. */
@@ -2374,7 +2426,8 @@ void process_pdu (struct n3n_runtime_data *eee,
 #ifdef SKIP_MULTICAST_PEERS_DISCOVERY
     via_multicast = 0;
 #else
-    via_multicast = (in_sock == eee->udp_multicast_sock);
+    via_multicast = ((in_sock == eee->udp_multicast_sock_v4) ||
+                     (in_sock == eee->udp_multicast_sock_v6));
 #endif
 
     traceEvent(TRACE_DEBUG, "Rx VPN packet of size %d from [%s]",
@@ -2686,7 +2739,7 @@ void process_pdu (struct n3n_runtime_data *eee,
 
             // from here on, 'sn' gets used differently
             for(i = 0; i < ra.num_sn; i++) {
-                n2n_sock_t payload_sock;
+                n3n_sock_t payload_sock;
 
                 skip_add = SN_ADD;
 
@@ -2699,13 +2752,13 @@ void process_pdu (struct n3n_runtime_data *eee,
                 sn = add_sn_to_list_by_mac_or_sock(&(eee->supernodes), &payload_sock, payload->mac, &skip_add);
 
                 if(skip_add == SN_ADD_ADDED) {
-                    n2n_sock_str_t sockbuf;
                     sn->last_seen = 0; /* as opposed to payload handling in supernode */
-                    sn->hostname = NULL;
+                    sock_to_cstr(sockbuf1, &(sn->sock));
+                    sn->hostname = strdup(sockbuf1);
                     traceEvent(
                         TRACE_NORMAL,
                         "supernode '%s' added to the list of supernodes.",
-                        sock_to_cstr(sockbuf, &(sn->sock))
+                        sockbuf1
                     );
                 }
                 // shift to next payload entry
@@ -3266,10 +3319,15 @@ void edge_term (struct n3n_runtime_data * eee) {
     }
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    if(eee->udp_multicast_sock >= 0) {
-        closesocket(eee->udp_multicast_sock);
-        mainloop_unregister_fd(eee->udp_multicast_sock);
-        eee->udp_multicast_sock = -1;
+    if(eee->udp_multicast_sock_v4 >= 0) {
+        closesocket(eee->udp_multicast_sock_v4);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v4);
+        eee->udp_multicast_sock_v4 = -1;
+    }
+    if(eee->udp_multicast_sock_v6 >= 0) {
+        closesocket(eee->udp_multicast_sock_v6);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v6);
+        eee->udp_multicast_sock_v6 = -1;
     }
 #endif
 
@@ -3364,47 +3422,76 @@ static int edge_init_sockets (struct n3n_runtime_data *eee) {
     //    && (eee->conf.preferred_sock.family == (uint8_t)AF_INVALID))
     // So, perhaps we should do that here?
 
-    if(eee->udp_multicast_sock >= 0) {
-        closesocket(eee->udp_multicast_sock);
-        mainloop_unregister_fd(eee->udp_multicast_sock);
-        eee->udp_multicast_sock = -1;
+    if(eee->udp_multicast_sock_v4 >= 0) {
+        closesocket(eee->udp_multicast_sock_v4);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v4);
+        eee->udp_multicast_sock_v4 = -1;
     }
 
     /* Populate the multicast group for local edge */
-    eee->multicast_peer.family     = AF_INET;
-    eee->multicast_peer.port       = N2N_MULTICAST_PORT;
-    eee->multicast_peer.addr.v4[0] = 224; /* N2N_MULTICAST_GROUP */
-    eee->multicast_peer.addr.v4[1] = 0;
-    eee->multicast_peer.addr.v4[2] = 0;
-    eee->multicast_peer.addr.v4[3] = 68;
+    eee->multicast_peer_v4.family     = AF_INET;
+    eee->multicast_peer_v4.port       = N2N_MULTICAST_PORT;
+    inet_pton(AF_INET, N2N_MULTICAST_GROUP, &eee->multicast_peer_v4.addr.v4);
 
-    struct sockaddr_in local_address;
-    memset(&local_address, 0, sizeof(local_address));
-    local_address.sin_family = AF_INET;
-    local_address.sin_port = htons(N2N_MULTICAST_PORT);
-    local_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in local_address_v4;
+    memset(&local_address_v4, 0, sizeof(local_address_v4));
+    local_address_v4.sin_family = AF_INET;
+    local_address_v4.sin_port = htons(N2N_MULTICAST_PORT);
+    local_address_v4.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    eee->udp_multicast_sock = open_socket(
-        (struct sockaddr *)&local_address,
-        sizeof(local_address),
+    eee->udp_multicast_sock_v4 = open_socket(
+        (struct sockaddr *)&local_address_v4,
+        sizeof(local_address_v4),
         0 /* UDP */
     );
-    if(eee->udp_multicast_sock < 0) {
-        return(-3);
+    if(eee->udp_multicast_sock_v4 >= 0) {
+        u_int enable_reuse = 1;
+        /* allow multiple sockets to use the same PORT number */
+        setsockopt(eee->udp_multicast_sock_v4, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
+#ifdef SO_REUSEPORT /* no SO_REUSEPORT in Windows / old linux versions */
+        setsockopt(eee->udp_multicast_sock_v4, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
+#endif
+        mainloop_register_fd(eee->udp_multicast_sock_v4, fd_info_proto_v3udp);
+    } else {
+        traceEvent(TRACE_WARNING, "failed to create IPv4 multicast socket.");
     }
 
-    u_int enable_reuse = 1;
+    // IPv6
+    if(eee->udp_multicast_sock_v6 >= 0) {
+        closesocket(eee->udp_multicast_sock_v6);
+        mainloop_unregister_fd(eee->udp_multicast_sock_v6);
+        eee->udp_multicast_sock_v6 = -1;
+    }
+    eee->multicast_peer_v6.family = AF_INET6;
+    eee->multicast_peer_v6.port = N2N_MULTICAST_PORT;
+    inet_pton(AF_INET6, N3N_MULTICAST_GROUP_V6, &eee->multicast_peer_v6.addr.v6);
 
-    /* allow multiple sockets to use the same PORT number */
-    setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
-#ifdef SO_REUSEPORT /* no SO_REUSEPORT in Windows / old linux versions */
-    setsockopt(eee->udp_multicast_sock, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
+    struct sockaddr_in6 local_address_v6 = {0};
+    local_address_v6.sin6_family = AF_INET6;
+    local_address_v6.sin6_port = htons(N2N_MULTICAST_PORT);
+    local_address_v6.sin6_addr = in6addr_any;
+
+    eee->udp_multicast_sock_v6 = open_socket(
+        (struct sockaddr *)&local_address_v6,
+        sizeof(local_address_v6),
+        0 /* UDP */
+    );
+    if(eee->udp_multicast_sock_v6 >= 0) {
+        u_int enable_reuse = 1;
+        setsockopt(eee->udp_multicast_sock_v6, SOL_SOCKET, SO_REUSEADDR, (char *)&enable_reuse, sizeof(enable_reuse));
+#ifdef SO_REUSEPORT
+        setsockopt(eee->udp_multicast_sock_v6, SOL_SOCKET, SO_REUSEPORT, &enable_reuse, sizeof(enable_reuse));
 #endif
+        // not required but best practice
+        int off = 0;
+        setsockopt(eee->udp_multicast_sock_v6, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&off, sizeof(off));
+        mainloop_register_fd(eee->udp_multicast_sock_v6, fd_info_proto_v3udp);
+    } else {
+        traceEvent(TRACE_WARNING, "failed to create IPv6 multicast socket.");
+    }
+#endif /* SKIP_MULTICAST_PEERS_DISCOVERY */
 
-    mainloop_register_fd(eee->udp_multicast_sock, fd_info_proto_v3udp);
-#endif
-
-    return(0);
+    return 0;
 }
 
 

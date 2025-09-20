@@ -129,7 +129,7 @@ void test_REGISTER_SUPER (n2n_common_t *common) {
     n2n_REGISTER_SUPER_t reg;
     memset( &reg, 0, sizeof(reg) );
     init_mac( reg.edgeMac, 0x20,0x21,0x22,0x23,0x24,0x25);
-    // n2n_sock_t sock
+    // n3n_sock_t sock
     init_ip_subnet(&reg.dev_addr);
     strcpy( (char *)reg.dev_desc, "Dummy_Dev_Desc" );
     init_auth(&reg.auth);
