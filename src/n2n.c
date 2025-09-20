@@ -53,7 +53,13 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
     int sockopt;
     int family;
 
-    family = local_address->sa_family;
+
+    if(local_address) {
+        family = local_address->sa_family;
+    } else {
+        // If no bind details provided, assume IPv4.
+        family = AF_INET;
+    }
 
     if((int)(sock_fd = socket(family, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
         traceEvent(TRACE_ERROR, "Unable to create socket for family %d [%s][%d]\n",
