@@ -256,7 +256,8 @@ try_uint32:
                     // and fits into port
                     if(strlen(parsed_addr.host) < sizeof(parsed_addr.port)) {
                         // and then correct if required
-                        snprintf(parsed_addr.port, sizeof(parsed_addr.port), "%s", parsed_addr.host);
+                        strncpy(parsed_addr.port, parsed_addr.host, sizeof(parsed_addr.port));
+                        parsed_addr.port[sizeof(parsed_addr.port)-1] = 0;
                         parsed_addr.host[0] = '\0';
                     }
                 }
