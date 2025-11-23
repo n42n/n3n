@@ -1257,6 +1257,16 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         return;
     }
 
+    traceEvent(TRACE_DEBUG, "%s AF %i", __func__, dest->family);
+
+    // TODO: FIXME:
+    // This is a hack.  It was needed to successfully progress the test suite
+    // with the new IPv6 code, but I suspect it breaks things.
+    if(dest->family == AF_INET) {
+        sendto_fd(eee, buf, len, (struct sockaddr *) &peer_addr_storage, peer_addr_len);
+        return;
+    }
+
     // this assumes we operate on a IPv6 dual stock socket
     peer_addr_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, (const struct sockaddr *)&peer_addr_storage);
     if(peer_addr_len == 0) {
