@@ -449,12 +449,37 @@ void supernode_connect (struct n3n_runtime_data *eee) {
 #endif
 
         sn_sock_len = fill_sockaddr((struct sockaddr*)&sn_sock_storage, sizeof(sn_sock_storage), &eee->curr_sn->sock);
-        // TODO: optionally catch sn_sock_len == 0
+        if(sn_sock_len == 0) {
+            traceEvent(
+                TRACE_WARNING,
+                "failed to prepare sockaddr for family %d",
+                eee->curr_sn->sock.family
+            );
+            return;
+        }
+
+        // TODO: FIXME:
+        // - this feels like a hack
+        // - this assumes we operate on a IPv6 dual stock socket
+        struct sockaddr_storage dest_addr = {0};
+        socklen_t peer_addr_len = prepare_sockaddr_for_send(
+            &dest_addr,
+            AF_INET6,
+            (const struct sockaddr *)&sn_sock_storage
+        );
+        if(peer_addr_len == 0) {
+            traceEvent(
+                TRACE_DEBUG,
+                "found unknown address family %d",
+                sn_sock_storage.ss_family
+            );
+            return;
+        }
 
         int result = connect(
             eee->sock,
-            (struct sockaddr*)&(sn_sock_storage),
-            sn_sock_len
+            (struct sockaddr*)&(dest_addr),
+            peer_addr_len
         );
 
 #ifndef _WIN32
