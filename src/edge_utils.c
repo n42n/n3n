@@ -322,6 +322,7 @@ static int detect_local_ip_address (n3n_sock_t* out_sock, const struct n3n_runti
 
     // TODO this whole function doesnt work with IPv6
     if(local_sock.sin_family != AF_INET) {
+        traceEvent(TRACE_ERROR, "This function does only supports IPv4");
         return -1;
     }
 
