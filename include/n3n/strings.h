@@ -17,6 +17,8 @@ char * ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr);
 char* sock_to_cstr (n3n_sock_str_t out,
                     const n3n_sock_t * sock);
 
+const char *sockaddr_to_str (char *s, size_t len, const struct sockaddr *sa);
+
 typedef struct n3n_parsed_address_t {
     char host[N3N_SOCKBUF_SIZE];
     char port[N3N_PORTBUF_SIZE];

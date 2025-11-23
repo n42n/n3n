@@ -1171,8 +1171,7 @@ static void check_known_peer_sock_change (struct n3n_runtime_data *eee,
 
 /** Send a datagram to a socket file descriptor */
 static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
-                       size_t len, struct sockaddr *dest, socklen_t dest_len,
-                       const n3n_sock_t * n2ndest) {
+                       size_t len, struct sockaddr *dest, socklen_t dest_len) {
 
     ssize_t sent = 0;
 
@@ -1208,13 +1207,10 @@ static void sendto_fd (struct n3n_runtime_data *eee, const void *buf,
     traceEvent(level, "WSAGetLastError(): %u", WSAGetLastError());
 #endif
 
-    // TODO:
-    // - remove n2ndest param, as the only reason it is here is to
-    //   stringify for errors.
-    //   Better would be to stringify the dest sockaddr_t
     n3n_sock_str_t sockbuf;
-    traceEvent(level, "sendto(%s) failed (%d) %s",
-               sock_to_cstr(sockbuf, n2ndest),
+    traceEvent(level, "%s(%s) failed (%d) %s",
+               __func__,
+               sockaddr_to_str(sockbuf, sizeof(sockbuf), dest),
                errno, errstr);
 
     /*
@@ -1268,7 +1264,7 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
         return;
     }
 
-    sendto_fd(eee, buf, len, (struct sockaddr *) &dest_addr, peer_addr_len, dest);
+    sendto_fd(eee, buf, len, (struct sockaddr *) &dest_addr, peer_addr_len);
 }
 
 

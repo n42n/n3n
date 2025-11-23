@@ -354,6 +354,29 @@ char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
     return buf;
 }
 
+// TODO: move to a strings helper source file
+const char *sockaddr_to_str (char *s, size_t len, const struct sockaddr *sa) {
+    if(sa->sa_family == AF_INET) {
+        return inet_ntop(
+            AF_INET,
+            &(((struct sockaddr_in *)sa)->sin_addr),
+            s,
+            len
+        );
+    }
+
+    if(sa->sa_family == AF_INET6) {
+        return inet_ntop(
+            AF_INET6,
+            &(((struct sockaddr_in6 *)sa)->sin6_addr),
+            s,
+            len
+        );
+    }
+
+    snprintf(s, len, "AF(%i)", sa->sa_family);
+    return s;
+}
 
 // TODO: move to a strings helper source file
 // splitting host:port parts
