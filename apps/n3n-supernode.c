@@ -505,7 +505,7 @@ int main (int argc, char * argv[]) {
         exit(1);
     }
 
-    if(ntohl(sss_node.conf.sn_min_auto_ip_net.net_addr) > ntohl(sss_node.conf.sn_max_auto_ip_net.net_bitlen)) {
+    if(ntohl(sss_node.conf.sn_min_auto_ip_net.net_addr) > ntohl(sss_node.conf.sn_max_auto_ip_net.net_addr)) {
         traceEvent(TRACE_ERROR, "auto IP min cannot be > max");
         exit(1);
     }
