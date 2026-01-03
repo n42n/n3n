@@ -40,8 +40,7 @@ typedef char n2n_community_t[N2N_COMMUNITY_SIZE];
 typedef uint8_t n2n_private_public_key_t[N2N_PRIVATE_PUBLIC_KEY_SIZE];
 typedef uint32_t n2n_cookie_t;
 typedef uint8_t n2n_desc_t[N2N_DESC_SIZE];
-typedef char n2n_sock_str_t[N2N_SOCKBUF_SIZE];     /* tracing string buffer */
-
+typedef char n3n_sock_str_t[N3N_SOCKBUF_SIZE];     /* tracing string buffer */
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include "getopt.h"
@@ -199,7 +198,7 @@ typedef struct n2n_sock {
         uint8_t v6[IPV6_SIZE];        /* byte sequence */
         uint8_t v4[IPV4_SIZE];        /* byte sequence */
     } addr;
-} n2n_sock_t;
+} n3n_sock_t;
 
 typedef enum {
     n2n_auth_none =          0,
@@ -234,7 +233,7 @@ typedef struct n2n_REGISTER {
     n2n_cookie_t cookie;            /**< Link REGISTER and REGISTER_ACK */
     n2n_mac_t srcMac;               /**< MAC of registering party */
     n2n_mac_t dstMac;               /**< MAC of target edge */
-    n2n_sock_t sock;                /**< Supernode's view of edge socket OR edge's preferred local socket */
+    n3n_sock_t sock;                /**< Supernode's view of edge socket OR edge's preferred local socket */
     n2n_ip_subnet_t dev_addr;       /**< IP address of the tuntap adapter. */
     n2n_desc_t dev_desc;            /**< Hint description correlated with the edge */
 } n2n_REGISTER_t;
@@ -243,13 +242,13 @@ typedef struct n2n_REGISTER_ACK {
     n2n_cookie_t cookie;       /**< Return cookie from REGISTER */
     n2n_mac_t srcMac;          /**< MAC of acknowledging party (supernode or edge) */
     n2n_mac_t dstMac;          /**< Reflected MAC of registering edge from REGISTER */
-    n2n_sock_t sock;           /**< Supernode's view of edge socket (IP Addr, port) */
+    n3n_sock_t sock;           /**< Supernode's view of edge socket (IP Addr, port) */
 } n2n_REGISTER_ACK_t;
 
 typedef struct n2n_PACKET {
     n2n_mac_t srcMac;
     n2n_mac_t dstMac;
-    n2n_sock_t sock;
+    n3n_sock_t sock;
     uint8_t transform;
     uint8_t compression;
 } n2n_PACKET_t;
@@ -258,7 +257,7 @@ typedef struct n2n_PACKET {
 typedef struct n2n_REGISTER_SUPER {
     n2n_cookie_t cookie;            /**< Link REGISTER_SUPER and REGISTER_SUPER_ACK */
     n2n_mac_t edgeMac;              /**< MAC to register with edge sending socket */
-    n2n_sock_t sock;                /**< Sending socket associated with edgeMac */
+    n3n_sock_t sock;                /**< Sending socket associated with edgeMac */
     n2n_ip_subnet_t dev_addr;       /**< IP address of the tuntap adapter. */
     n2n_desc_t dev_desc;            /**< Hint description correlated with the edge */
     n2n_auth_t auth;                /**< Authentication scheme and tokens */
@@ -272,12 +271,12 @@ typedef struct n2n_REGISTER_SUPER_ACK {
     n2n_mac_t srcMac;               /**< MAC of answering supernode */
     n2n_ip_subnet_t dev_addr;       /**< Assign an IP address to the tuntap adapter of edge. */
     uint16_t lifetime;              /**< How long the registration will live */
-    n2n_sock_t sock;                /**< Sending sockets associated with edge */
+    n3n_sock_t sock;                /**< Sending sockets associated with edge */
     n2n_auth_t auth;                /**< Authentication scheme and tokens */
 
     /** The packet format provides additional supernode definitions here.
      * uint8_t count, then for each count there is one
-     * n2n_sock_t.
+     * n3n_sock_t.
      */
     uint8_t num_sn;                 /**< Number of supernodes that were send
                                      * even if we cannot store them all. */
@@ -315,8 +314,8 @@ typedef struct n2n_PEER_INFO {
     uint16_t aflags;
     n2n_mac_t srcMac;
     n2n_mac_t mac;
-    n2n_sock_t sock;
-    n2n_sock_t preferred_sock;
+    n3n_sock_t sock;
+    n3n_sock_t preferred_sock;
     uint32_t load;
     n2n_version_t version;
     time_t uptime;
@@ -326,7 +325,7 @@ typedef struct n2n_PEER_INFO {
 typedef struct n2n_QUERY_PEER {
     uint16_t aflags;
     n2n_mac_t srcMac;
-    n2n_sock_t sock;
+    n3n_sock_t sock;
     n2n_mac_t targetMac;
 
 } n2n_QUERY_PEER_t;
@@ -354,7 +353,7 @@ struct n3n_runtime_data;
 // application, but that might not be needed.
 struct network_traffic_filter {
     n2n_verdict (*filter_packet_from_peer)(network_traffic_filter_t* filter, struct n3n_runtime_data *eee,
-                                           const n2n_sock_t *peer, uint8_t *payload, uint16_t payload_size);
+                                           const n3n_sock_t *peer, uint8_t *payload, uint16_t payload_size);
 
     n2n_verdict (*filter_packet_from_tap)(network_traffic_filter_t* filter, struct n3n_runtime_data *eee, uint8_t *payload, uint16_t payload_size);
 
@@ -431,8 +430,11 @@ typedef struct n2n_edge_conf {
     char                     *encrypt_key;
     uint32_t register_interval;                      /**< Interval for supernode registration, also used for UDP NAT hole punching. */
     uint32_t register_ttl;                           /**< TTL for registration packet when UDP NAT hole punching through supernode. */
-    struct sockaddr *bind_address;                   /**< The address to bind to if provided */
-    n2n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
+    union {
+        struct sockaddr *bind_address;               /**< The address to bind to if provided */
+        struct sockaddr_storage *sas;
+    };
+    n3n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
     uint32_t mgmt_port;     // TODO: ports are actually uint16_t
     uint32_t mgmt_sock_perms;
     uint32_t metric;                                /**< Network interface metric (Windows only). */
@@ -512,7 +514,8 @@ struct n3n_runtime_data {
     uint8_t sn_wait;                                                     /**< Whether we are waiting for a supernode response. */
     uint8_t sn_pong;                                                     /**< Whether we have seen a PONG since last time reset. */
     bool resolution_request;                                             /**< Flag an immediate DNS resolution request */
-    bool multicast_joined;                                               /**< 1 if the group has been joined.*/
+    bool multicast_joined_v4;                                            /**< 1 if the IPV4 group has been joined.*/
+    bool multicast_joined_v6;                                            /**< 1 if the IPV6 group has been joined.*/
     int close_socket_counter;                                            /**< counter for close-event before re-opening */
     size_t sup_attempts;                                                 /**< Number of remaining attempts to this supernode. */
     tuntap_dev device;                                                   /**< All about the TUNTAP device */
@@ -522,13 +525,15 @@ struct n3n_runtime_data {
     uint64_t sn_selection_criterion_common_data;
 
     /* Sockets */
-    /* supernode socket is in        eee->curr_sn->sock (of type n2n_sock_t) */
+    /* supernode socket is in        eee->curr_sn->sock (of type n3n_sock_t) */
     slots_t *mgmt_slots;
     int sock;
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
-    int udp_multicast_sock;                                              /**< socket for local multicast registrations. */
-    n2n_sock_t multicast_peer;                                           /**< Multicast peer group (for local edges) */
+    int udp_multicast_sock_v4;                                           /**< socket for local IPv4 multicast registrations. */
+    int udp_multicast_sock_v6;                                           /**< socket for local IPv6 multicast registrations. */
+    n3n_sock_t multicast_peer_v4;                                        /**< IPv4 multicast peer group (for local edges) */
+    n3n_sock_t multicast_peer_v6;                                        /**< IPv6 multicast peer group (for local edges) */
 #endif
 
     /* Peers */

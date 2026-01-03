@@ -8,7 +8,7 @@
 #ifndef _PEER_INFO_H_
 #define _PEER_INFO_H_
 
-#include <n2n_typedefs.h>   // for n2n_mac_t, n2n_ip_subnet_t, n2n_desc_t, n2n_sock_t
+#include <n2n_typedefs.h>   // for n2n_mac_t, n2n_ip_subnet_t, n2n_desc_t, n3n_sock_t
 #include <n3n/peer_info.h>
 #include <stdint.h>
 #include <time.h>
@@ -31,9 +31,9 @@ struct peer_info {
     uint8_t local;
     n2n_ip_subnet_t dev_addr;
     n2n_desc_t dev_desc;
-    n2n_sock_t sock;
+    n3n_sock_t sock;
     SOCKET socket_fd;
-    n2n_sock_t preferred_sock;
+    n3n_sock_t preferred_sock;
     n2n_cookie_t last_cookie;
     n2n_auth_t auth;
     int timeout;
@@ -75,7 +75,7 @@ size_t purge_expired_nodes (struct peer_info **peer_list,
 
 struct peer_info* add_sn_to_list_by_mac_or_sock (
     struct peer_info **sn_list,
-    n2n_sock_t *sock,
+    n3n_sock_t *sock,
     const n2n_mac_t mac,
     int *skip_add
 );
@@ -86,7 +86,7 @@ struct peer_info* peer_upsert_by_sockaddr (
 );
 
 int find_and_remove_peer (struct peer_info **, const n2n_mac_t);
-struct peer_info* find_peer_by_sock (const n2n_sock_t *, struct peer_info *);
+struct peer_info* find_peer_by_sock (const n3n_sock_t *, struct peer_info *);
 
 int find_peer_time_stamp_and_verify (
     struct peer_info *peers1,

@@ -26,6 +26,7 @@
 #include "peer_info.h"          // for struct peer_info
 #include "resolve.h"            // for resolve_supernode_str_get
 #include "uthash.h"
+#include "n3n/strings.h"        // for parse_address_spec
 
 #ifdef _WIN32
 #include "win32/defs.h"
@@ -34,7 +35,8 @@
 #else
 #include <arpa/inet.h>
 #include <grp.h>                // for getgrnam
-#include <netinet/in.h>  // for sockaddr_in
+#include <netinet/in.h>         // for sockaddr_in
+#include <netdb.h>              // for getaddrinfo, struct addrinfo, AI_PASSIVE
 #include <pwd.h>
 #include <sys/socket.h>
 #endif
@@ -229,8 +231,8 @@ try_uint32:
             return 0;
         }
         case n3n_conf_sockaddr: {
-            // TODO: this currently only supports IPv4
-            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            // provide enough space for any family's sock
+            struct sockaddr_storage **val = (struct sockaddr_storage **)valvoid;
             if(*val) {
                 free(*val);
             }
@@ -238,45 +240,65 @@ try_uint32:
             if(!*val) {
                 return -1;
             }
-            struct sockaddr_in *sa = *val;
+            memset(*val, 0, sizeof(**val));
 
-            memset(sa, 0, sizeof(*sa));
-            sa->sin_family = AF_INET;
+            n3n_parsed_address_t parsed_addr;
 
-            in_addr_t bind_address = INADDR_ANY;
-            int local_port = 0;
-
-            char* colon = strpbrk(value, ":");
-            if(colon) { /*ip address:port */
-                *colon = 0;
-                bind_address = ntohl(inet_addr(value));
-                local_port = atoi(++colon);
-
-                if(bind_address == INADDR_NONE) {
-                    // traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                    bind_address = INADDR_ANY;
-                }
-                // if(local_port == 0) {
-                //     traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
-                // }
-            } else { /* ip address or port only */
-                char* dot = strpbrk(value, ".");
-                if(dot) { /* ip address only */
-                    bind_address = ntohl(inet_addr(value));
-                    if(bind_address == INADDR_NONE) {
-                        // traceEvent(TRACE_WARNING, "bad address to bind to, binding to any IP address");
-                        bind_address = INADDR_ANY;
-                    }
-                } else { /* port only */
-                    local_port = atoi(value);
-                    // if(local_port == 0) {
-                    //     traceEvent(TRACE_WARNING, "bad local port format, using OS assigned port");
-                    // }
-                }
+            if(parse_address_spec(&parsed_addr, value) != 0) {
+                free(*val);
+                return -1;
             }
 
-            sa->sin_port = htons(local_port);
-            sa->sin_addr.s_addr = htonl(bind_address);
+            // the 'host only' case needs special treatment
+            if(parsed_addr.host[0] != '\0' && parsed_addr.port[0] == '\0') {
+                // make sure the purely numeric port didn't go into host
+                if(strspn(parsed_addr.host, "0123456789") == strlen(parsed_addr.host)) {
+                    // and fits into port
+                    if(strlen(parsed_addr.host) < sizeof(parsed_addr.port)) {
+                        // and then correct if required
+                        strncpy(parsed_addr.port, parsed_addr.host, sizeof(parsed_addr.port));
+                        parsed_addr.port[sizeof(parsed_addr.port)-1] = 0;
+                        parsed_addr.host[0] = '\0';
+                    }
+                }
+            }
+            // missing or empty port string results in port 0 (OS will choose)
+            uint16_t port = 0;
+            if(parsed_addr.port[0] != '\0') {
+                port = (uint16_t)atoi(parsed_addr.port);
+            }
+            // now, handle the different options
+            // specific, numeric IPv6 address
+            if(inet_pton(AF_INET6, parsed_addr.host, &((struct sockaddr_in6 *)*val)->sin6_addr) == 1) {
+                struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)*val;
+                sa6->sin6_family = AF_INET6;
+                sa6->sin6_port = htons(port);
+            }
+            // specific, numeric IPv4 address
+            else if(inet_pton(AF_INET, parsed_addr.host, &((struct sockaddr_in *)*val)->sin_addr) == 1) {
+                struct sockaddr_in *sa = (struct sockaddr_in *)*val;
+                sa->sin_family = AF_INET;
+                sa->sin_port = htons(port);
+            }
+            // IPv6 wildcard address
+            else if(strcmp(parsed_addr.host, "::") == 0) {
+                struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)*val;
+                sa6->sin6_family = AF_INET6;
+                sa6->sin6_port = htons(port);
+                sa6->sin6_addr = in6addr_any;
+            }
+            // no host, e.g., just a port, default to the IPv6 wildcard (IPV6_ONLY will be turned off)
+            else if(parsed_addr.host[0] == '\0') {
+                struct sockaddr_in6 *sa = (struct sockaddr_in6 *)*val;
+                sa->sin6_family = AF_INET6;
+                sa->sin6_port = htons(port);
+                sa->sin6_addr = in6addr_any;
+            }
+            // invalid (not a literal), we do not perfrom DNS lookups here
+            else {
+                free(*val);
+                return -1;
+            }
             return 0;
         }
         case n3n_conf_n2n_sock_addr: {
@@ -543,18 +565,31 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             return buf;
         }
         case n3n_conf_sockaddr: {
-            // TODO: this currently only supports IPv4
-            struct sockaddr_in **val = (struct sockaddr_in **)valvoid;
+            struct sockaddr_storage **val = (struct sockaddr_storage **)valvoid;
             if(!*val) {
                 return NULL;
             }
-            struct sockaddr_in *sa = *val;
+            struct sockaddr *sa_ptr = (struct sockaddr *)*val;
 
-            if(inet_ntop(AF_INET, &sa->sin_addr.s_addr, buf, buflen) == NULL) {
+            if(sa_ptr->sa_family == AF_INET) {
+                struct sockaddr_in *sa = (struct sockaddr_in *)sa_ptr;
+                if(inet_ntop(AF_INET, &sa->sin_addr, buf, buflen) == NULL) {
+                    return NULL;
+                }
+                ssize_t used = strlen(buf);
+                snprintf(buf + used, buflen - used, ":%u", ntohs(sa->sin_port));
+            } else if(sa_ptr->sa_family == AF_INET6) {
+                struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)sa_ptr;
+                // add brackets
+                buf[0] = '[';
+                if(inet_ntop(AF_INET6, &sa6->sin6_addr, buf + 1, buflen - 1) == NULL) {
+                    return NULL;
+                }
+                ssize_t used = strlen(buf);
+                snprintf(buf + used, buflen - used, "]:%u", ntohs(sa6->sin6_port));
+            } else {
                 return NULL;
             }
-            ssize_t used = strlen(buf);
-            snprintf(buf + used, buflen - used, ":%i", htons(sa->sin_port));
             return buf;
         }
         case n3n_conf_n2n_sock_addr: {

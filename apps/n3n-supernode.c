@@ -540,9 +540,19 @@ int main (int argc, char * argv[]) {
 
     struct sockaddr_in *sa = (struct sockaddr_in *)sss_node.conf.bind_address;
 
+    socklen_t bind_addr_len = 0;
+    // also valid for the TCP part lateron
+    if(sss_node.conf.bind_address) {
+        if(sss_node.conf.bind_address->sa_family == AF_INET) {
+            bind_addr_len = sizeof(struct sockaddr_in);
+        } else if(sss_node.conf.bind_address->sa_family == AF_INET6) {
+            bind_addr_len = sizeof(struct sockaddr_in6);
+        }
+    }
+
     sss_node.sock = open_socket(
         sss_node.conf.bind_address,
-        sizeof(*sss_node.conf.bind_address),
+        bind_addr_len,
         0 /* UDP */
     );
 
@@ -556,7 +566,7 @@ int main (int argc, char * argv[]) {
 #ifdef N2N_HAVE_TCP
     sss_node.tcp_sock = open_socket(
         sss_node.conf.bind_address,
-        sizeof(*sss_node.conf.bind_address),
+        bind_addr_len,
         1 /* TCP */
     );
     if(-1 == sss_node.tcp_sock) {

@@ -86,7 +86,7 @@ static int update_edge (struct n3n_runtime_data *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
-                        const n2n_sock_t *sender_sock,
+                        const n3n_sock_t *sender_sock,
                         const SOCKET socket_fd,
                         n2n_auth_t *answer_auth,
                         int skip_add,
@@ -219,7 +219,7 @@ void send_re_register_super (struct n3n_runtime_data *sss) {
     n2n_common_t cmn;
     uint8_t rereg_buf[N2N_SN_PKTBUF_SIZE];
     size_t encx = 0;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_ITER(hh, sss->communities, comm, tmp_comm) {
         if(comm->is_federation) {
@@ -522,7 +522,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
  */
 static ssize_t sendto_fd (struct n3n_runtime_data *sss,
                           SOCKET socket_fd,
-                          const struct sockaddr *socket,
+                          const struct sockaddr *socket, socklen_t socket_len,
                           const uint8_t *pktbuf,
                           size_t pktsize) {
 
@@ -530,7 +530,7 @@ static ssize_t sendto_fd (struct n3n_runtime_data *sss,
     n2n_tcp_connection_t *conn;
 
     sent = sendto(socket_fd, (void *)pktbuf, pktsize, 0 /* flags */,
-                  socket, sizeof(struct sockaddr_in));
+                  socket, socket_len);
 
     if((sent <= 0) && (errno)) {
         char * c = strerror(errno);
@@ -570,6 +570,20 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
     int value = 0;
 #endif
 
+    // TODO: do we really have to check this every time?
+    //       maye try a struct containing the socket and its length
+    //       would require broader changes
+    socklen_t socket_len;
+    struct sockaddr_storage dest_addr = {0};
+
+    // this assumes we operate on a IPv6 dual stock socket
+    socket_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, socket);
+    if(socket_len == 0) {
+        // unknown or unsupported family we cannot send
+        traceEvent(TRACE_ERROR, "found unknown address family %d", socket->sa_family);
+        return -1;
+    }
+
     // if the connection is tcp, i.e. not the regular sock...
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
 
@@ -581,14 +595,14 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
 
         // prepend packet length...
         uint16_t pktsize16 = htobe16(pktsize);
-        sent = sendto_fd(sss, socket_fd, socket, (uint8_t*)&pktsize16, sizeof(pktsize16));
+        sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, (uint8_t*)&pktsize16, sizeof(pktsize16));
 
         if(sent <= 0)
             return -1;
         // ...before sending the actual data
     }
 
-    sent = sendto_fd(sss, socket_fd, socket, pktbuf, pktsize);
+    sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, pktbuf, pktsize);
 
     // if the connection is tcp, i.e. not the regular sock...
     if((socket_fd >= 0) && (socket_fd != sss->sock)) {
@@ -604,7 +618,7 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
 }
 
 
-/** Send a datagram to a peer whose destination socket is embodied in its sock field of type n2n_sock_t.
+/** Send a datagram to a peer whose destination socket is embodied in its sock field of type n3n_sock_t.
  *  It calls sendto_sock to do the final send.
  *
  *    @return -1 on error otherwise number of bytes sent
@@ -614,26 +628,32 @@ static ssize_t sendto_peer (struct n3n_runtime_data *sss,
                             const uint8_t *pktbuf,
                             size_t pktsize) {
 
-    n2n_sock_str_t sockbuf;
+    struct sockaddr_storage socket_storage;
+    socklen_t socket_len;
+    n3n_sock_str_t sockbuf;
 
-    if(AF_INET == peer->sock.family) {
+    // TODO: we do not work on the return value, do not even pass it on
+    //       and even worse, do another length check further down the chain in sendto_sock/fd
+    //       the n3n_sock_t definitely needs a makeover (to hold the original sockaddr
+    //       for immediate use and its length in memory) or, if we want to keep n3n_sock_t
+    //       for compatibility reasons as it is used in network protocol, an internal sister.
+    //       can't pull the length check up here easily because of other callers of sendto_sock
+    socket_len = fill_sockaddr((struct sockaddr *)&socket_storage,
+                               sizeof(socket_storage), &(peer->sock));
 
-        // network order socket
-        struct sockaddr_in socket;
-        fill_sockaddr((struct sockaddr *)&socket, sizeof(socket), &(peer->sock));
-
-        traceEvent(TRACE_DEBUG, "sent %lu bytes to [%s]",
-                   pktsize,
-                   sock_to_cstr(sockbuf, &(peer->sock)));
-
-        return sendto_sock(sss,
-                           (peer->socket_fd >= 0) ? peer->socket_fd : sss->sock,
-                           (const struct sockaddr*)&socket, pktbuf, pktsize);
-    } else {
-        /* AF_INET6 not implemented */
+    if(socket_len == 0) {
+        // fill_sockaddr failed, e.g., unsupported family
         errno = EAFNOSUPPORT;
         return -1;
     }
+
+    traceEvent(TRACE_DEBUG, "sent %lu bytes to [%s]",
+               pktsize,
+               sock_to_cstr(sockbuf, &(peer->sock)));
+
+    return sendto_sock(sss,
+                       (peer->socket_fd >= 0) ? peer->socket_fd : sss->sock,
+                       (const struct sockaddr*)&socket_storage, pktbuf, pktsize);
 }
 
 
@@ -653,7 +673,7 @@ static void try_broadcast (struct n3n_runtime_data * sss,
 
     struct peer_info        *scan, *tmp;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     traceEvent(TRACE_DEBUG, "try_broadcast");
 
@@ -735,7 +755,7 @@ static void try_forward (struct n3n_runtime_data * sss,
     struct peer_info *             scan;
     node_supernode_association_t   *assoc;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     HASH_FIND_PEER(comm->edges, dstMac, scan);
 
@@ -838,8 +858,8 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     strncpy(conf->version, VERSION, sizeof(n2n_version_t));
     conf->version[sizeof(n2n_version_t) - 1] = '\0';
 
-    conf->bind_address = malloc(sizeof(*conf->bind_address));
-    memset(conf->bind_address, 0, sizeof(*conf->bind_address));
+    conf->bind_address = malloc(sizeof(*conf->sas));
+    memset(conf->bind_address, 0, sizeof(*conf->sas));
 
 #ifdef _WIN32
     // Cannot rely on having unix domain sockets on windows
@@ -891,10 +911,11 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     sss->conf.sn_mac_addr[0] &= ~0x01; /* Clear multicast bit */
     sss->conf.sn_mac_addr[0] |= 0x02;    /* Set locally-assigned bit */
 
-    struct sockaddr_in *sa = (struct sockaddr_in *)conf->bind_address;
-    sa->sin_family = AF_INET;
-    sa->sin_port = htons(N2N_SN_LPORT_DEFAULT);
-    sa->sin_addr.s_addr = htonl(INADDR_ANY);
+    struct sockaddr_in6 *sa = (struct sockaddr_in6 *)conf->bind_address;
+    // make sure to later set socket option IPV6_ONLY to 'no'
+    sa->sin6_family = AF_INET6;
+    sa->sin6_port = htons(N2N_SN_LPORT_DEFAULT);
+    sa->sin6_addr = in6addr_any;
 
     sss->sock = -1;
     conf->sn_min_auto_ip_net.net_addr = inet_addr(N2N_SN_MIN_AUTO_IP_NET_DEFAULT);
@@ -1220,14 +1241,14 @@ static int update_edge (struct n3n_runtime_data *sss,
                         const n2n_common_t* cmn,
                         const n2n_REGISTER_SUPER_t* reg,
                         struct sn_community *comm,
-                        const n2n_sock_t *sender_sock,
+                        const n3n_sock_t *sender_sock,
                         const SOCKET socket_fd,
                         n2n_auth_t *answer_auth,
                         int skip_add,
                         time_t now) {
 
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     struct peer_info *scan, *iter, *tmp;
 
     traceEvent(TRACE_DEBUG, "update_edge for %s [%s]",
@@ -1264,12 +1285,12 @@ static int update_edge (struct n3n_runtime_data *sss,
                 scan->dev_addr.net_addr = reg->dev_addr.net_addr;
                 scan->dev_addr.net_bitlen = reg->dev_addr.net_bitlen;
                 memcpy((char*)scan->dev_desc, reg->dev_desc, N2N_DESC_SIZE);
-                memcpy(&(scan->sock), sender_sock, sizeof(n2n_sock_t));
+                memcpy(&(scan->sock), sender_sock, sizeof(n3n_sock_t));
                 scan->socket_fd = socket_fd;
                 scan->last_cookie = reg->cookie;
                 // eventually, store edge's preferred local socket from REGISTER_SUPER
                 if(cmn->flags & N2N_FLAGS_SOCKET)
-                    memcpy(&scan->preferred_sock, &reg->sock, sizeof(n2n_sock_t));
+                    memcpy(&scan->preferred_sock, &reg->sock, sizeof(n3n_sock_t));
                 else
                     scan->preferred_sock.family = AF_INVALID;
 
@@ -1303,12 +1324,12 @@ static int update_edge (struct n3n_runtime_data *sss,
                 scan->dev_addr.net_addr = reg->dev_addr.net_addr;
                 scan->dev_addr.net_bitlen = reg->dev_addr.net_bitlen;
                 memcpy((char*)scan->dev_desc, reg->dev_desc, N2N_DESC_SIZE);
-                memcpy(&(scan->sock), sender_sock, sizeof(n2n_sock_t));
+                memcpy(&(scan->sock), sender_sock, sizeof(n3n_sock_t));
                 scan->socket_fd = socket_fd;
                 scan->last_cookie = reg->cookie;
                 // eventually, update edge's preferred local socket from REGISTER_SUPER
                 if(cmn->flags & N2N_FLAGS_SOCKET)
-                    memcpy(&scan->preferred_sock, &reg->sock, sizeof(n2n_sock_t));
+                    memcpy(&scan->preferred_sock, &reg->sock, sizeof(n3n_sock_t));
                 else
                     scan->preferred_sock.family = AF_INVALID;
 
@@ -1542,7 +1563,7 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             /* ssize_t sent; */
             n2n_common_t cmn;
             n2n_REGISTER_SUPER_t reg;
-            n2n_sock_str_t sockbuf;
+            n3n_sock_str_t sockbuf;
 
             memset(&cmn, 0, sizeof(cmn));
             memset(&reg, 0, sizeof(reg));
@@ -1691,11 +1712,11 @@ static int process_pdu (struct n3n_runtime_data * sss,
     size_t msg_type;
     bool from_supernode;
     struct peer_info *sn = NULL;
-    n2n_sock_t sender;
-    n2n_sock_t          *orig_sender;
+    n3n_sock_t sender;
+    n3n_sock_t          *orig_sender;
     macstr_t mac_buf;
     macstr_t mac_buf2;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     uint8_t hash_buf[16] = {0};             /* always size of 16 (max) despite the actual value of N2N_REG_SUP_HASH_CHECK_LEN (<= 16) */
 
     struct sn_community *comm, *tmp;
@@ -1704,7 +1725,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
     int skip_add;
     time_t any_time = 0;
 
-    fill_n2nsock(&sender, sender_sock);
+    fill_n3nsock(&sender, sender_sock);
     orig_sender = &sender;
 
     traceEvent(TRACE_DEBUG, "processing incoming UDP packet [len: %lu][sender: %s]",
@@ -2160,6 +2181,10 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 p->last_seen = now;
                 // communication with other supernodes happens via standard udp port
                 p->socket_fd = sss->sock;
+                if(skip_add == SN_ADD_ADDED) {
+                    sock_to_cstr(sockbuf, &(p->sock));
+                    p->hostname = strdup(sockbuf);
+                }
             }
 
             /* Skip random numbers of supernodes before payload assembling, calculating an appropriate random_number.
@@ -2176,7 +2201,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 }
                 if(peer->sock.family == (uint8_t)AF_INVALID)
                     continue; /* do not add unresolved supernodes to payload */
-                if(memcmp(&(peer->sock), &(ack.sock), sizeof(n2n_sock_t)) == 0) continue; /* a supernode doesn't add itself to the payload */
+                if(memcmp(&(peer->sock), &(ack.sock), sizeof(n3n_sock_t)) == 0) continue; /* a supernode doesn't add itself to the payload */
                 if((now - peer->last_seen) >= LAST_SEEN_SN_NEW) continue;  /* skip long-time-not-seen supernodes.
                                                                             * We need to allow for a little extra time because supernodes sometimes exceed
                                                                             * their SN_ACTIVE time before they get re-registred to. */
@@ -2380,13 +2405,13 @@ static int process_pdu (struct n3n_runtime_data * sss,
         case MSG_TYPE_REGISTER_SUPER_ACK: {
             n2n_REGISTER_SUPER_ACK_t ack;
             struct peer_info                 *scan, *tmp;
-            n2n_sock_str_t sockbuf1;
-            n2n_sock_str_t sockbuf2;
+            n3n_sock_str_t sockbuf1;
+            n3n_sock_str_t sockbuf2;
             macstr_t mac_buf1;
             int i;
             uint8_t dec_tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
             n2n_REGISTER_SUPER_ACK_payload_t *payload;
-            n2n_sock_t payload_sock;
+            n3n_sock_t payload_sock;
 
             memset(&ack, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
 
@@ -2448,6 +2473,8 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
                     if(skip_add == SN_ADD_ADDED) {
                         tmp->last_seen = now - LAST_SEEN_SN_NEW;
+                        sock_to_cstr(sockbuf1, &(tmp->sock));
+                        tmp->hostname = strdup(sockbuf1);
                     }
 
                     // shift to next payload entry
@@ -2483,7 +2510,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
             uint8_t nakbuf[N2N_SN_PKTBUF_SIZE];
             size_t encx = 0;
             struct peer_info          *peer;
-            n2n_sock_str_t sockbuf;
+            n3n_sock_str_t sockbuf;
             macstr_t mac_buf;
 
             memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
@@ -2804,7 +2831,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
         max_sock = sss->sock;
 
 #ifdef N2N_HAVE_TCP
-        n2n_sock_str_t sockbuf;
+        n3n_sock_str_t sockbuf;
         FD_SET(sss->tcp_sock, &readers);
 
         // add the tcp connections' sockets
@@ -2929,7 +2956,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                     );
 
                     if(bread <= 0) {
-                        traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
+                        traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n3n_sock_t*)sender_sock));
                         traceEvent(TRACE_DEBUG, "recvfrom() returns %d and sees errno %d (%s)", bread, errno, strerror(errno));
 #ifdef _WIN32
                         traceEvent(TRACE_DEBUG, "WSAGetLastError(): %u", WSAGetLastError());
@@ -2944,7 +2971,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                             // the prepended length has been read, preparing for the packet
                             conn->expected += be16toh(*(uint16_t*)(conn->buffer));
                             if(conn->expected > N2N_SN_PKTBUF_SIZE) {
-                                traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock));
+                                traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n3n_sock_t*)sender_sock));
                                 traceEvent(TRACE_DEBUG, "too many bytes in tcp packet expected");
                                 close_tcp_connection(sss, conn);
                                 continue;
@@ -3007,7 +3034,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                             traceEvent(
                                 TRACE_INFO,
                                 "accepted incoming TCP connection from [%s]",
-                                sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
+                                sock_to_cstr(sockbuf, (n3n_sock_t*)sender_sock)
                             );
                         }
                     }
@@ -3016,7 +3043,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                     traceEvent(
                         TRACE_DEBUG,
                         "denied incoming TCP connection from [%s] due to max connections limit hit",
-                        sock_to_cstr(sockbuf, (n2n_sock_t*)sender_sock)
+                        sock_to_cstr(sockbuf, (n3n_sock_t*)sender_sock)
                     );
                 }
             }

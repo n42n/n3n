@@ -10,7 +10,7 @@
 #include <n3n/logging.h>
 #include <n3n/metrics.h>
 #include <n3n/resolve.h>     // for n3n_resolve_parameter_t
-#include <n3n/strings.h>     // for sock_to_cstr
+#include <n3n/strings.h>     // for sock_to_cstr, parse_address_spec
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -19,9 +19,10 @@
 
 #include "config.h"          // for HAVE_LIBPTHREAD
 #include "resolve.h"
-#include "n2n.h"             // for sock_equal
+#include "n2n.h"             // for sock_equal, parse_address_spec
 #include "n2n_define.h"
 #include "n2n_typedefs.h"
+#include "n2n_wire.h"        // for fill_n3nsock
 
 struct peer_info;
 
@@ -86,14 +87,12 @@ enum request_pkt_type {
     request_pkt_type_result,   // contains a non error result
 };
 
-#define REQUEST_PKT_MAX_HOSTNAME    64
-
 struct request_pkt {
     enum request_pkt_type type;
     uint64_t id;               // Opaque data from requestor
     union {
         int error;
-        char hostname[REQUEST_PKT_MAX_HOSTNAME];
+        n3n_sock_str_t hostname;
         struct sockaddr_storage sa[15];
     };
 };
@@ -113,64 +112,63 @@ static struct hostname_list_item *hostname_lists[3];
 /** Resolve the supernode IP address.
  *
  */
-int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
+int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
 
-    char addr[64];  // FIXME: hardcoded max len for resolving
-    char *supernode_host;
-    char *supernode_port;
+    n3n_parsed_address_t parsed_addr;
+    char supernode_default_port[N3N_PORTBUF_SIZE];
     int nameerr;
-    const struct addrinfo aihints = {0, PF_INET, 0, 0, 0, NULL, NULL, NULL};
+    struct addrinfo aihints = {0};
     struct addrinfo * ainfo = NULL;
-    struct sockaddr_in * saddr;
+
+    // default to invalid output
+    sn->family = AF_INVALID;
 
     if(!addrIn) {
         traceEvent(TRACE_DEBUG, "supernode2sock got NULL addrIn");
         return -6;
     }
 
-    size_t length = strlen(addrIn);
-    if(length > sizeof(addr)-1) {
-        traceEvent(
-            TRACE_WARNING,
-            "size of supernode argument too long: %zu; maximum size is %d",
-            length,
-            sizeof(addr)-1
-        );
+    // parse
+    if(parse_address_spec(&parsed_addr, addrIn) != 0) {
+        traceEvent(TRACE_WARNING, "failed to parse supernode spec: %s", addrIn);
         return -5;
     }
 
-    sn->family = AF_INVALID;
-
-    strncpy(addr, addrIn, sizeof(addr)-1);
-    supernode_host = strtok(addr, ":");
-
-    if(!supernode_host) {
+    // a specific rules for supernode
+    // host part must be present
+    if(parsed_addr.host[0] == '\0') {
         traceEvent(
             TRACE_WARNING,
-            "malformed supernode parameter (should be <host:port>) %s",
+            "malformed supernode parameter (missing host) '%s'",
             addrIn
         );
         return -4;
     }
 
-    supernode_port = strtok(NULL, ":");
-
-    if(!supernode_port) {
-        sn->port = 7654;
-
+    // a port part is optional, use the default port if it's missing
+    // TODO: check DNS SRV before defaulting
+    char *port_to_resolve = parsed_addr.port;
+    if(port_to_resolve[0] == '\0') {
+        snprintf(supernode_default_port, sizeof(supernode_default_port), "%d", N2N_SN_LPORT_DEFAULT);
+        port_to_resolve = supernode_default_port;
         traceEvent(
             TRACE_INFO,
-            "no port specified, assuming default 7654"
-        );
-    } else {
-        sn->port = atoi(supernode_port);
+            "no port specified, assuming default %s",
+            port_to_resolve);
     }
 
+    aihints.ai_socktype = SOCK_DGRAM;
+    aihints.ai_family = AF_UNSPEC;
+    // TODO: this (and further down below) would be the place to enforce
+    //       IPv4 only for external use if ever required, maybe by config option
+    //       hints.ai_family = AF_INET; /* enforce IPv4 */
+
+    // resolve
     struct timeval time1;
     struct timeval time2;
 
     gettimeofday(&time1, NULL);
-    nameerr = getaddrinfo(supernode_host, NULL, &aihints, &ainfo);
+    nameerr = getaddrinfo(parsed_addr.host, port_to_resolve, &aihints, &ainfo);
     gettimeofday(&time2, NULL);
 
     struct timeval elapsed;
@@ -188,7 +186,7 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
         traceEvent(
             TRACE_WARNING,
             "supernode2sock fails to resolve supernode host %s, %d: %s",
-            supernode_host,
+            parsed_addr.host,
             nameerr,
             gai_strerror(nameerr)
         );
@@ -196,36 +194,55 @@ int supernode2sock (n2n_sock_t *sn, const char *addrIn) {
     }
 
     if(!ainfo) {
-        // shouldnt happen - if nameerr is zero, ainfo should not be null
+        // shouldnt happen - if nameerr is zero, ainfo should not be NULL
         traceEvent(TRACE_WARNING, "supernode2sock unexpected error");
         return -1;
     }
 
-    /* ainfo s the head of a linked list if non-NULL. */
-    if(PF_INET != ainfo->ai_family) {
-        /* Should only return IPv4 addresses due to aihints. */
-        traceEvent(
-            TRACE_WARNING,
-            "supernode2sock fails to resolve supernode IPv4 address for %s",
-            supernode_host
-        );
+    /* ainfo is the head of a linked list if non-NULL. */
+    // loop through the results to find suitable one
+    // for comaptibility reasons, we will prefer any IPv4 result
+    int found = 0;
+    for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
+        if(p->ai_family == AF_INET) {
+            if(fill_n3nsock(sn, p->ai_addr) == 0) {
+                // successfully filled the n3n_sock_t
+                traceEvent(TRACE_INFO, "supernode2sock successfully resolved preferred IPv4 address for '%s'", parsed_addr.host);
+                found = 1;
+                break;
+            } else {
+                traceEvent(TRACE_DEBUG, "supernode2sock couldn't resolve no IPv4 address for %s", parsed_addr.host);
+            }
+        }
+    }
+
+    // look for IPv6 only in case no IPv4 found
+    if(!found) {
+        for(struct addrinfo *p = ainfo; p != NULL; p = p->ai_next) {
+            if(p->ai_family == AF_INET6) {
+                if(fill_n3nsock(sn, p->ai_addr) == 0) {
+                    // successfully filled the n3n_sock_t
+                    traceEvent(TRACE_INFO, "supernode2sock resolved IPv6 address for '%s'", parsed_addr.host);
+                    found = 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    // if we got this far and haven't got a valid socket...
+    if((sn->family == AF_INVALID) || !found) {
+        // ... there is no valid address
+        traceEvent(TRACE_WARNING, "supernode2sock resolved host '%s', but no usable address was found.", parsed_addr.host);
         freeaddrinfo(ainfo);
         return -1;
     }
-
-    // TODO:
-    // - switch to using fill_n2nsock()
-
-    /* It is definitely and IPv4 address -> sockaddr_in */
-    saddr = (struct sockaddr_in *)ainfo->ai_addr;
-    memcpy(sn->addr.v4, &(saddr->sin_addr.s_addr), IPV4_SIZE);
-    sn->family = AF_INET;
-    traceEvent(TRACE_INFO, "supernode2sock successfully resolves supernode IPv4 address for %s", supernode_host);
 
     freeaddrinfo(ainfo); /* free everything allocated by getaddrinfo(). */
 
     return 0;
 }
+
 
 #ifdef HAVE_LIBPTHREAD
 
@@ -303,7 +320,7 @@ int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn
                 if(entry) {
                     entry->org_ip = sn->hostname;
                     entry->org_sock = &(sn->sock);
-                    memcpy(&(entry->sock), &(sn->sock), sizeof(n2n_sock_t));
+                    memcpy(&(entry->sock), &(sn->sock), sizeof(n3n_sock_t));
                     HASH_ADD(hh, (*param)->list, org_ip, sizeof(char*), entry);
                 } else
                     traceEvent(
@@ -344,7 +361,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
 
     struct n3n_resolve_ip_sock *entry;
     struct n3n_resolve_ip_sock *tmp_entry;
-    n2n_sock_str_t sock_buf;
+    n3n_sock_str_t sock_buf;
 
     if(NULL == param)
         return ret;
@@ -362,7 +379,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
                 // unselectively copy all socks (even those with error code, that would be the old one because
                 // sockets do not get overwritten in case of error in resolve_thread) from list to supernode list
                 HASH_ITER(hh, param->list, entry, tmp_entry) {
-                    memcpy(entry->org_sock, &entry->sock, sizeof(n2n_sock_t));
+                    memcpy(entry->org_sock, &entry->sock, sizeof(n3n_sock_t));
                     traceEvent(TRACE_INFO, "resolve_check renews ip address of supernode '%s' to %s",
                                entry->org_ip, sock_to_cstr(sock_buf, &(entry->sock)));
                 }
@@ -392,7 +409,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
 }
 
 
-int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
+int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn) {
     return 0;
 }
 
@@ -411,7 +428,7 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
     return requires_resolution;
 }
 
-int maybe_supernode2sock (n2n_sock_t * sn, const char *addrIn) {
+int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn) {
     return supernode2sock(sn, addrIn);
 }
 #endif
@@ -488,7 +505,7 @@ static int resolve_hostnames_str_to_peer_info_one (
     const char *s
 ) {
 
-    n2n_sock_t sock;
+    n3n_sock_t sock;
     memset(&sock, 0, sizeof(sock));
 
     traceEvent(TRACE_DEBUG, "resolving %s", s);
@@ -526,7 +543,7 @@ static int resolve_hostnames_str_to_peer_info_one (
         peer->hostname = strdup(s);
     }
 
-    memcpy(&(peer->sock), &sock, sizeof(n2n_sock_t));
+    memcpy(&(peer->sock), &sock, sizeof(n3n_sock_t));
 
     // If a new peer was added, it has already been init, but we want to reset
     // the state of any old peer object
@@ -694,10 +711,10 @@ static int request_pkt_send (uint64_t id, char *hostname) {
     strncpy(
         (char *)&request_pkt.hostname,
         hostname,
-        REQUEST_PKT_MAX_HOSTNAME - 1
+        N3N_SOCKBUF_SIZE - 1
     );
     // request_pkt.hostname[sizeof(&request_pkt.hostname)] = 0;
-    request_pkt.hostname[REQUEST_PKT_MAX_HOSTNAME - 1] = 0;
+    request_pkt.hostname[N3N_SOCKBUF_SIZE - 1] = 0;
 
     // Mark it for processing by the resolve thread
     request_pkt.type = request_pkt_type_request;

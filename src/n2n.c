@@ -51,11 +51,20 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
 
     SOCKET sock_fd;
     int sockopt;
+    int family;
 
-    if((int)(sock_fd = socket(PF_INET, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
-        traceEvent(TRACE_ERROR, "Unable to create socket [%s][%d]\n",
-                   strerror(errno), sock_fd);
-        return(-1);
+
+    if(local_address) {
+        family = local_address->sa_family;
+    } else {
+        // If no bind details provided, assume IPv4.
+        family = AF_INET;
+    }
+
+    if((int)(sock_fd = socket(family, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
+        traceEvent(TRACE_ERROR, "Unable to create socket for family %d [%s][%d]\n",
+                   family, strerror(errno), sock_fd);
+        return -1;
     }
 
 #ifndef _WIN32
@@ -97,6 +106,25 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
         );
     }
 #endif
+    // also allow IPv4 on IPv6 sockets
+    if(family == AF_INET6) {
+        sockopt = 0;
+        result = setsockopt(
+            sock_fd,
+            IPPROTO_IPV6,
+            IPV6_V6ONLY,
+            (char *)&sockopt,
+            sizeof(sockopt)
+        );
+        if(result == -1) {
+            traceEvent(
+                TRACE_ERROR,
+                "IPV6_V6ONLY fd=%i, error=%s\n",
+                sock_fd,
+                strerror(errno)
+            );
+        }
+    }
 
     if(!local_address) {
         // skip binding if we dont have the right details
@@ -112,6 +140,66 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
     return(sock_fd);
 }
 
+
+// TO: instead of this 'output control' for every packet, move towards
+//     ingress control so incoming sockets get checked befored being stored
+//     and can be used with confidence (and no further checks)
+socklen_t prepare_sockaddr_for_send (struct sockaddr_storage *out_sa,
+                                     int sending_family,
+                                     const struct sockaddr *src_sa) {
+
+    // easy case first
+    if(sending_family == src_sa->sa_family) {
+        if(src_sa->sa_family == AF_INET) {
+            //
+            *(struct sockaddr_in *)out_sa = *(const struct sockaddr_in *)src_sa;
+            return sizeof(struct sockaddr_in);
+        } else if(src_sa->sa_family == AF_INET6) {
+            *(struct sockaddr_in6 *)out_sa = *(const struct sockaddr_in6 *)src_sa;
+            return sizeof(struct sockaddr_in6);
+        }
+    }
+
+    // assumption: every IPv6 socket is opened dual-stack
+    if(sending_family == AF_INET6 && src_sa->sa_family == AF_INET) {
+        struct sockaddr_in6 sa6 = {0};
+        const struct sockaddr_in *sa4 = (const struct sockaddr_in *)src_sa;
+
+        sa6.sin6_family = AF_INET6;
+        sa6.sin6_port = sa4->sin_port;
+
+        // construct the ::ffff:x.x.x.x mapped address
+        sa6.sin6_addr.s6_addr[10] = 0xff;
+        sa6.sin6_addr.s6_addr[11] = 0xff;
+        *(uint32_t *)&sa6.sin6_addr.s6_addr[12] = sa4->sin_addr.s_addr;
+
+        *(struct sockaddr_in6 *)out_sa = sa6;
+
+        return sizeof(struct sockaddr_in6);
+    }
+
+    // special case...
+    if(sending_family == AF_INET && src_sa->sa_family == AF_INET6) {
+        const struct sockaddr_in6 *sa6 = (const struct sockaddr_in6 *)src_sa;
+        // ... where the IPv6 address actually is a mapped IPv4 address and hence usuable
+        if(IN6_IS_ADDR_V4MAPPED(&sa6->sin6_addr)) {
+            struct sockaddr_in sa4 = {0};
+
+            sa4.sin_family = AF_INET;
+            sa4.sin_port = sa6->sin6_port;
+            *(uint32_t *)&sa4.sin_addr.s_addr = *(const uint32_t *)&sa6->sin6_addr.s6_addr[12];
+            *(struct sockaddr_in *)out_sa = sa4;
+
+            return sizeof(struct sockaddr_in);
+        }
+    }
+
+    // anything else is an error
+    traceEvent(TRACE_WARNING, "cannot prepare sockaddr: sending family (%d) is incompatible with destination family (%d)",
+               sending_family, src_sa->sa_family);
+
+    return 0;
+}
 
 /* *********************************************** */
 
@@ -212,8 +300,8 @@ extern int str2mac (uint8_t * outmac /* 6 bytes */, const char * s) {
 }
 
 // TODO: move to a strings helper source file
-extern char * sock_to_cstr (n2n_sock_str_t out,
-                            const n2n_sock_t * sock) {
+extern char * sock_to_cstr (n3n_sock_str_t out,
+                            const n3n_sock_t * sock) {
 
     if(!sock) {
         return NULL;
@@ -221,7 +309,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
     if(NULL == out) {
         return NULL;
     }
-    memset(out, 0, N2N_SOCKBUF_SIZE);
+    memset(out, 0, N3N_SOCKBUF_SIZE);
 
     bool is_tcp = (sock->type == SOCK_STREAM);
 
@@ -229,10 +317,10 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
         char tmp[INET6_ADDRSTRLEN+1];
 
         tmp[0] = '\0';
-        inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(n2n_sock_str_t));
+        inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(n3n_sock_str_t));
         snprintf(
             out,
-            N2N_SOCKBUF_SIZE,
+            N3N_SOCKBUF_SIZE,
             "%s[%s]:%hu",
             is_tcp ? "TCP/" : "",
             tmp[0] ? tmp : "",
@@ -243,7 +331,7 @@ extern char * sock_to_cstr (n2n_sock_str_t out,
 
     const uint8_t * a = sock->addr.v4;
 
-    snprintf(out, N2N_SOCKBUF_SIZE, "%s%hu.%hu.%hu.%hu:%hu",
+    snprintf(out, N3N_SOCKBUF_SIZE, "%s%hu.%hu.%hu.%hu:%hu",
              is_tcp ? "TCP/" : "",
              (unsigned short)(a[0] & 0xff),
              (unsigned short)(a[1] & 0xff),
@@ -266,35 +354,124 @@ char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
     return buf;
 }
 
+// TODO: move to a strings helper source file
+const char *sockaddr_to_str (char *s, size_t len, const struct sockaddr *sa) {
+    if(sa->sa_family == AF_INET) {
+        return inet_ntop(
+            AF_INET,
+            &(((struct sockaddr_in *)sa)->sin_addr),
+            s,
+            len
+        );
+    }
+
+    if(sa->sa_family == AF_INET6) {
+        return inet_ntop(
+            AF_INET6,
+            &(((struct sockaddr_in6 *)sa)->sin6_addr),
+            s,
+            len
+        );
+    }
+
+    snprintf(s, len, "AF(%i)", sa->sa_family);
+    return s;
+}
+
+// TODO: move to a strings helper source file
+// splitting host:port parts
+int parse_address_spec (n3n_parsed_address_t *out, const n3n_sock_str_t spec_in) {
+
+    // work_buffer is of same type as the input as it will only hodl substring
+    n3n_sock_str_t work_buffer;
+    const char *spec_start = spec_in;
+
+    // initialize output
+    memset(out, 0, sizeof(n3n_parsed_address_t));
+
+    // caller is responsible to set socktype
+    out->socktype = 0;
+
+    // just to be on the safe side
+    size_t length = strlen(spec_start);
+    if(length >= sizeof(work_buffer)) {
+        // should not happen if input is valid n3n_sock_str_t
+        return -1;
+    }
+    memcpy(work_buffer, spec_start, length + 1); /* +1 for null terminator */
+
+    // parse the host and port from the local work_buffer
+    char *host_part = work_buffer;
+    char *port_part = NULL;
+
+    char *last_colon = strrchr(host_part, ':');
+    char *closing_bracket = strrchr(host_part, ']');
+
+    // a colon is ONLY a port separator if brackets are present OR if it's the ONLY colon
+    if(last_colon) {
+        if(closing_bracket) {
+            if(last_colon > closing_bracket) {
+                *last_colon = '\0';
+                port_part = last_colon + 1;
+            }
+        } else {
+            char *first_colon = strchr(host_part, ':');
+            if(first_colon == last_colon) {
+                *last_colon = '\0';
+                port_part = last_colon + 1;
+            }
+        }
+    }
+
+    // handle IPv6 address' brackets '[' ... ']' around the host part
+    if((*host_part == '[') && closing_bracket) {
+        *closing_bracket = '\0'; /* terminate the host_part at the bracket */
+        host_part++;
+    }
+
+    // safely copy the results from the temporary parts into the output struct
+    snprintf(out->host, sizeof(out->host), "%s", host_part);
+    // copy the port if it exists
+    if(port_part) {
+        snprintf(out->port, sizeof(out->port), "%s", port_part);
+    }
+
+    return 0;
+}
+
 
 /* @return 1 if the two sockets are equivalent. */
-int sock_equal (const n2n_sock_t * a,
-                const n2n_sock_t * b) {
+int sock_equal (const n3n_sock_t * a,
+                const n3n_sock_t * b) {
 
     if(a->port != b->port) {
-        return(0);
+        return 0;
     }
 
-    if(a->family != b->family) {
-        return(0);
+    if(a->family == AF_INET && b->family == AF_INET) {
+        return(memcmp(a->addr.v4, b->addr.v4, IPV4_SIZE) == 0);
     }
 
-    switch(a->family) {
-        case AF_INET:
-            if(memcmp(a->addr.v4, b->addr.v4, IPV4_SIZE)) {
-                return(0);
-            }
-            break;
-
-        default:
-            if(memcmp(a->addr.v6, b->addr.v6, IPV6_SIZE)) {
-                return(0);
-            }
-            break;
+    if(a->family == AF_INET6 && b->family == AF_INET6) {
+        return(memcmp(a->addr.v6, b->addr.v6, IPV6_SIZE) == 0);
     }
 
-    /* equal */
-    return(1);
+    if(a->family == AF_INET6 && b->family == AF_INET) {
+        // is 'a' IPv4-mapped address?
+        if(IN6_IS_ADDR_V4MAPPED((const struct in6_addr *)a->addr.v6)) {
+            // compare the last 4
+            return(memcmp(a->addr.v6 + 12, b->addr.v4, IPV4_SIZE) == 0);
+        }
+    }
+    // reverse case
+    if(a->family == AF_INET && b->family == AF_INET6) {
+        if(IN6_IS_ADDR_V4MAPPED((const struct in6_addr *)b->addr.v6)) {
+            return(memcmp(a->addr.v4, b->addr.v6 + 12, IPV4_SIZE) == 0);
+        }
+    }
+
+    // not equal
+    return 0;
 }
 
 

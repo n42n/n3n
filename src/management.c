@@ -13,7 +13,7 @@
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/mainloop.h>       // for mainloop_unregister_fd
 #include <n3n/metrics.h> // for n3n_metrics_render
-#include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr
+#include <n3n/strings.h> // for ip_subnet_to_str, sock_to_cstr, sockaddr_to_str
 #include <n3n/supernode.h>      // for load_allowed_sn_community
 #include <sn_selection.h> // for sn_selection_criterion_str
 #include <stdbool.h>
@@ -35,7 +35,6 @@
 #ifdef _WIN32
 #include "win32/defs.h"
 #else
-#include <netdb.h>       // for getnameinfo, NI_NUMERICHOST, NI_NUMERICSERV
 #include <netinet/in.h>
 #include <sys/socket.h>  // for sendto, sockaddr
 #endif
@@ -170,7 +169,7 @@ static void event_peer (strbuf_t *buf, enum n3n_event_topic topic, int data0, co
     struct peer_info *peer = (struct peer_info *)data1;
 
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     uint32_t age = time(NULL) - peer->time_alloc;
 
     /*
@@ -488,31 +487,18 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
             }
             index++;
 
-
-            char buf[1000];
-            char port[10];
-            getnameinfo(
-                &assoc->sock,
-                assoc->sock_len,
-                buf,
-                sizeof(buf),
-                port,
-                sizeof(port),
-                NI_NUMERICHOST | NI_NUMERICSERV
-            );
-
+            char buf[50];
             macstr_t mac_buf;
             sb_reprintf(&conn->request,
                         "{"
                         "\"_type\":\"assoc\","  // Federated Supernode
                         "\"mac\":\"%s\","
                         "\"community\":\"%s\","
-                        "\"dest\":\"%s:%s\","
+                        "\"dest\":\"%s\","
                         "\"last_seen\":%u},",
                         macaddr_str(mac_buf, assoc->mac),
                         (community->is_federation) ? "-/-" : community->community,
-                        buf,
-                        port,
+                        sockaddr_to_str(buf, sizeof(buf), &assoc->sock),
                         (uint32_t)assoc->last_seen
             );
 
@@ -594,8 +580,8 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
 
 static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, const char *mode, const char *community) {
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
-    n2n_sock_str_t sockbuf2;
+    n3n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf2;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
 
     sb_reprintf(reply,
@@ -732,7 +718,7 @@ static void jsonrpc_get_edges (char *id, struct n3n_runtime_data *eee, conn_t *c
 
 static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
 
     ipstr_t ip_address;
 
@@ -764,7 +750,7 @@ static void jsonrpc_get_info (char *id, struct n3n_runtime_data *eee, conn_t *co
 static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn_t *conn, const char *params) {
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
-    n2n_sock_str_t sockbuf;
+    n3n_sock_str_t sockbuf;
     selection_criterion_str_t sel_buf;
 
     jsonrpc_result_head(id, conn);
@@ -945,24 +931,19 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
     sb_reprintf(&conn->request, "[");
     for( int topic=0; topic < nr_handlers; topic++ ) {
         int sub = mgmt_event_subscribers[topic];
-        char host[40];
-        char serv[6];
-        host[0] = '?';
-        host[1] = 0;
-        serv[0] = '?';
-        serv[1] = 0;
+
+        char buf[50];
+        buf[0] = '?';
+        buf[1] = ':';
+        buf[2] = '?';
+        buf[3] = 0;
 
         if(sub != -1) {
             struct sockaddr_storage sa;
             socklen_t sa_size = sizeof(sa);
 
             if(getpeername(sub, (struct sockaddr *)&sa, &sa_size) == 0) {
-                getnameinfo(
-                    (struct sockaddr *)&sa, sa_size,
-                    host, sizeof(host),
-                    serv, sizeof(serv),
-                    NI_NUMERICHOST|NI_NUMERICSERV
-                );
+                sockaddr_to_str(buf, sizeof(buf), (const struct sockaddr *)&sa);
             }
         }
 
@@ -970,10 +951,10 @@ static void jsonrpc_help_events (char *id, struct n3n_runtime_data *eee, conn_t 
             &conn->request,
             "{"
             "\"topic\":\"%s\","
-            "\"sockaddr\":\"%s:%s\","
+            "\"sockaddr\":\"%s\","
             "\"desc\":\"%s\"},",
             mgmt_events[topic].topic,
-            host, serv,
+            buf,
             mgmt_events[topic].desc
         );
     }
