@@ -1255,13 +1255,17 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
     struct sockaddr_storage dest_addr = {0};
     socklen_t peer_addr_len = 0;
 
-    if(!dest->family)
+    if(!dest->family) {
+        traceEvent(TRACE_ERROR, "bad dest->family");
         // invalid socket
         return;
+    }
 
-    if(eee->sock < 0)
+    if(eee->sock < 0) {
+        traceEvent(TRACE_ERROR, "bad eee->sock");
         // invalid socket file descriptor, e.g. TCP unconnected has fd of '-1'
         return;
+    }
 
     // TODO:
     // - also check n3n_sock_t type == SOCK_STREAM as a TCP indicator?
@@ -1416,7 +1420,9 @@ void send_query_peer (struct n3n_runtime_data * eee,
         // skip a random number of supernodes between top and remaining
         n_o_skip_sn = HASH_COUNT(eee->supernodes) - n_o_pings;
         n_o_skip_sn = (n_o_skip_sn < 0) ? 0 : n3n_rand_sqr(n_o_skip_sn);
+        traceEvent(TRACE_DEBUG, "n_o_skip_sn=%i", n_o_skip_sn);
         HASH_ITER(hh, eee->supernodes, peer, tmp) {
+            traceEvent(TRACE_DEBUG, "consider peer %p", peer);
             if(n_o_top_sn) {
                 n_o_top_sn--;
                 // fall through (send to top supernode)
@@ -1431,6 +1437,7 @@ void send_query_peer (struct n3n_runtime_data * eee,
                 // done with the remaining (do not send anymore)
                 break;
             }
+            traceEvent(TRACE_DEBUG, "send PING to this peer");
             sendto_sock(eee, pktbuf, idx, &(peer->sock));
         }
     }
