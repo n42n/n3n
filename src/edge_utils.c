@@ -560,11 +560,6 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     int rc = -1;
     uint8_t tmp_key[N2N_AUTH_CHALLENGE_SIZE];
 
-    if((rc = edge_verify_conf(conf)) != 0) {
-        traceEvent(TRACE_ERROR, "invalid configuration");
-        goto edge_init_error;
-    }
-
     if(!eee) {
         traceEvent(TRACE_ERROR, "cannot allocate memory");
         goto edge_init_error;
