@@ -69,11 +69,12 @@
 #include "win32/edge_utils_win32.h"
 #else
 #include <arpa/inet.h>               // for inet_ntoa, inet_addr, inet_ntop
+#include <netdb.h>                   // for EAFNOSUPPORT
 #include <netinet/in.h>              // for sockaddr_in, ntohl, IPPROTO_IP, IPV6_ADD_MEMBERSHIP
 #include <netinet/tcp.h>             // for TCP_NODELAY
 #include <pwd.h>
 #include <sys/select.h>              // for select, FD_SET, FD_ISSET, FD_ZERO
-#include <sys/socket.h>              // for setsockopt, AF_INET, connect
+#include <sys/socket.h>              // for setsockopt, AF_INET, connect, ge...
 #endif
 
 #ifndef _WIN32
@@ -476,6 +477,26 @@ void supernode_connect (struct n3n_runtime_data *eee) {
             return;
         }
 
+hack_retry:
+        char host[40] = "?\0";
+        char serv[6] = "?\0";
+
+        getnameinfo(
+            (struct sockaddr *)&dest_addr,
+            sizeof(dest_addr),
+            host, sizeof(host),
+            serv, sizeof(serv),
+            NI_NUMERICHOST|NI_NUMERICSERV
+        );
+
+        traceEvent(
+            TRACE_DEBUG,
+            "tcp_connect family=%d, sockaddr %s:%s",
+            dest_addr.ss_family,
+            host,
+            serv
+        );
+
         int result = connect(
             eee->sock,
             (struct sockaddr*)&(dest_addr),
@@ -483,26 +504,55 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         );
 
 #ifndef _WIN32
-        if((result == -1) && (errno != EINPROGRESS)) {
-            traceEvent(TRACE_INFO, "Error connecting TCP: %i", errno);
-            closesocket(eee->sock);
-            mainloop_unregister_fd(eee->sock);
-            eee->sock = -1;
-            return;
+        if(result == -1) {
+            if(errno == EINPROGRESS) {
+                // Do nothing
+            } else if(errno == EAFNOSUPPORT) {
+                // HACK!
+                // This should be simpler if we just had one socket for
+                // each address type
+                traceEvent(
+                    TRACE_INFO,
+                    "Dual stack socket failed, retrying original sn addr"
+                );
+                memcpy(&dest_addr, &sn_sock_storage, sizeof(dest_addr));
+                goto hack_retry;
+            } else {
+                traceEvent(TRACE_INFO, "Error connecting TCP: %i", errno);
+                closesocket(eee->sock);
+                mainloop_unregister_fd(eee->sock);
+                eee->sock = -1;
+                return;
+            }
         }
 #else
         // Oh Windows, this just seems needlessly incompatible
         int wsaerr = WSAGetLastError();
-        if((result == -1) && (wsaerr != WSAEWOULDBLOCK)) {
-            traceEvent(
-                TRACE_INFO,
-                "Error connecting TCP: WSAGetLastError %i",
-                wsaerr
-            );
-            closesocket(eee->sock);
-            mainloop_unregister_fd(eee->sock);
-            eee->sock = -1;
-            return;
+
+        if(result == -1) {
+            if(wsaerr == WSAEWOULDBLOCK) {
+                // Do nothing
+            } else if(wsaerr == WSAEAFNOSUPPORT) {
+                // HACK!
+                // This should be simpler if we just had one socket for
+                // each address type
+                traceEvent(
+                    TRACE_INFO,
+                    "Dual stack socket failed, retrying original sn addr"
+                );
+                memcpy(&dest_addr, &sn_sock_storage, sizeof(dest_addr));
+                goto hack_retry;
+            } else {
+                traceEvent(
+                    TRACE_INFO,
+                    "Error connecting TCP: WSAGetLastError %i",
+                    wsaerr
+                );
+                closesocket(eee->sock);
+                mainloop_unregister_fd(eee->sock);
+                eee->sock = -1;
+                return;
+            }
         }
 #endif
     }
