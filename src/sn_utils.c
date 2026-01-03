@@ -858,8 +858,8 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     strncpy(conf->version, VERSION, sizeof(n2n_version_t));
     conf->version[sizeof(n2n_version_t) - 1] = '\0';
 
-    conf->bind_address = malloc(sizeof(*conf->bind_address));
-    memset(conf->bind_address, 0, sizeof(*conf->bind_address));
+    conf->bind_address = malloc(sizeof(*conf->sas));
+    memset(conf->bind_address, 0, sizeof(*conf->sas));
 
 #ifdef _WIN32
     // Cannot rely on having unix domain sockets on windows

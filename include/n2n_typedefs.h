@@ -430,7 +430,10 @@ typedef struct n2n_edge_conf {
     char                     *encrypt_key;
     uint32_t register_interval;                      /**< Interval for supernode registration, also used for UDP NAT hole punching. */
     uint32_t register_ttl;                           /**< TTL for registration packet when UDP NAT hole punching through supernode. */
-    struct sockaddr *bind_address;                   /**< The address to bind to if provided */
+    union {
+        struct sockaddr *bind_address;               /**< The address to bind to if provided */
+        struct sockaddr_storage *sas;
+    };
     n3n_sock_t preferred_sock;                       /**< propagated local sock for better p2p in LAN (-e) */
     uint32_t mgmt_port;     // TODO: ports are actually uint16_t
     uint32_t mgmt_sock_perms;
