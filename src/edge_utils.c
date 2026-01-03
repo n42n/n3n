@@ -478,23 +478,15 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         }
 
 hack_retry:
-        char host[40] = "?\0";
-        char serv[6] = "?\0";
+        char buf[50];
 
-        getnameinfo(
-            (struct sockaddr *)&dest_addr,
-            sizeof(dest_addr),
-            host, sizeof(host),
-            serv, sizeof(serv),
-            NI_NUMERICHOST|NI_NUMERICSERV
-        );
+        sockaddr_to_str(buf, sizeof(buf), (const struct sockaddr *)&dest_addr);
 
         traceEvent(
             TRACE_DEBUG,
-            "tcp_connect family=%d, sockaddr %s:%s",
+            "tcp_connect family=%d, sockaddr %s",
             dest_addr.ss_family,
-            host,
-            serv
+            buf
         );
 
         int result = connect(
