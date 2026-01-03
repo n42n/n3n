@@ -477,9 +477,9 @@ void supernode_connect (struct n3n_runtime_data *eee) {
             return;
         }
 
-hack_retry:
         char buf[50];
 
+hack_retry:
         sockaddr_to_str(buf, sizeof(buf), (const struct sockaddr *)&dest_addr);
 
         traceEvent(
