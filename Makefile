@@ -306,7 +306,10 @@ test.builtin: apps		# needs apps
 lint: lint.python lint.ccode lint.shell lint.yaml
 
 lint.python:
-	flake8 scripts/n3nctl scripts/n3n-convert_old_conf
+	flake8 \
+		scripts/benchmark2graphdata.py \
+		scripts/n3n-convert_old_conf \
+		scripts/n3nctl \
 
 lint.ccode:
 	scripts/indent.sh -e '$(LINT_EXCLUDE)' $(LINT_CCODE)

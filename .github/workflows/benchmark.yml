@@ -1,0 +1,47 @@
+---
+name: Benchmark
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fix Checkout
+        run: |
+          git fetch --force --tags
+
+      - name: Build binary
+        run: |
+          ./autogen.sh
+          ./configure
+          make -j4 all
+
+      - name: Run benchmark
+        run: |
+          sudo ./apps/n3n-edge test fakebench | tee benchmark.csv
+          ./scripts/benchmark2graphdata.py <benchmark.csv >benchmark.json
+
+      - name: Download previous benchmark data
+        uses: actions/cache@v4
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-benchmark
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: customSmallerIsBetter
+          output-file-path: benchmark.json
+          external-data-json-path: ./cache/benchmark-data.json
+          # Workflow will fail when an alert happens
+          fail-on-alert: true
