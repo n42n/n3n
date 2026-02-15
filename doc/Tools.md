@@ -9,6 +9,11 @@ All tools can be found in the `tools` directory.
 
 ### `n3n-benchmark`
 
+This tool is deprecated as the function is now built-in to the n3n-edge with
+the `n3n-edge test benchmark` command.
+
+It is not built by default.
+
 This C tool has n3n's basic transforms (the ciphers, compression, hash)
 crunch a test packet and outputs the measured throughput. You might observe
 differences depending on compiler optimizations or enabled hardware support,

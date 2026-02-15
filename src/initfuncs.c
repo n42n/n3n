@@ -6,7 +6,10 @@
  */
 
 // prototype any internal (non-public) initfuncs (always sorted!)
+void n3n_initfuncs_benchmark ();
+void n3n_initfuncs_benchmark_pdu ();
 void n3n_initfuncs_conffile_defs ();
+void n3n_initfuncs_curve25519 ();
 void n3n_initfuncs_mainloop ();
 void n3n_initfuncs_metrics ();
 void n3n_initfuncs_pearson ();
@@ -34,7 +37,10 @@ void n3n_initfuncs () {
 #endif
 
     // (sorted list)
+    n3n_initfuncs_benchmark();
+    n3n_initfuncs_benchmark_pdu();
     n3n_initfuncs_conffile_defs();
+    n3n_initfuncs_curve25519();
     n3n_initfuncs_mainloop();
     n3n_initfuncs_metrics();
     n3n_initfuncs_pearson();

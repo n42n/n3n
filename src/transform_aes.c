@@ -19,6 +19,7 @@
  */
 
 
+#include <n3n/benchmark.h>
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/random.h>      // for n3n_rand
 #include <n3n/transform.h>   // for n3n_transform_register
@@ -253,6 +254,194 @@ int n2n_transop_aes_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     return setup_aes_key(priv, encrypt_key, encrypt_key_len);
 }
 
+struct bench_ctx {
+    transop_aes_t priv;
+    // for encryption, want to be able to test the largest expected MTU + IV
+    // for decryption, just need to worry about the MTU
+    uint8_t iv[AES_PREAMBLE_SIZE];
+    uint8_t outbuf[2048 + AES_PREAMBLE_SIZE];
+    ssize_t outbuf_size;
+};
+
+static void *bench_setup (void) {
+    struct bench_ctx *ctx = calloc(1, sizeof(struct bench_ctx));
+
+    const char *key = "just_a_test_key_for_benchmarks";
+    const ssize_t key_len = sizeof(key);
+    setup_aes_key(&ctx->priv, (unsigned char *)key, key_len);
+
+    // Set one constant IV to use for all benchmark testing
+    // chosen by a fair roll of the dice
+    uint8_t iv[] = {
+        0x86,0xfa,0xe8,0x7a,0x5b,0xbc,0xa9,0xb7,
+        0x6e,0xc7,0xdb,0xdf,0xff,0xfb,0x56,0x24,
+    };
+    memcpy(&ctx->iv, &iv, sizeof(iv));
+    return ctx;
+}
+
+static void bench_teardown (void *_ctx) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    aes_deinit(ctx->priv.ctx);
+    free(ctx);
+}
+
+static const ssize_t bench_encr_run (
+    void *_ctx,
+    const void *data_in,
+    const ssize_t data_in_size,
+    ssize_t *bytes_in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+
+    // TODO: refactor to call transop_encode_aes() directly
+
+    uint8_t assembly[N2N_PKT_BUF_SIZE];
+
+    // First, populate our static test "IV"
+    *(uint64_t *)(&assembly[0]) = *(uint64_t *)&ctx->iv[0];
+    *(uint64_t *)(&assembly[8]) = *(uint64_t *)&ctx->iv[8];
+
+    ssize_t idx = AES_PREAMBLE_SIZE;
+
+    // Copy the plaintext into place
+    memcpy(&assembly[idx], data_in, data_in_size);
+    idx += data_in_size;
+
+    ssize_t padded_len = (((idx - 1) / AES_BLOCK_SIZE) + 1) * AES_BLOCK_SIZE;
+    ssize_t padding = (padded_len - idx);
+
+    // Add padding
+    // TODO - confirm that outbuf is large enough for all possible input sizes
+    memset(&assembly[idx], 0, AES_BLOCK_SIZE);
+
+    aes_cbc_encrypt(
+        (unsigned char *)&ctx->outbuf,
+        assembly,
+        padded_len,
+        aes_null_iv,
+        ctx->priv.ctx
+    );
+
+    if(padding) {
+        uint8_t buf[AES_BLOCK_SIZE];
+
+        // exchange last two cipher blocks
+        memcpy(
+            buf,
+            &ctx->outbuf[padded_len - AES_BLOCK_SIZE],
+            AES_BLOCK_SIZE
+        );
+        memcpy(
+            &ctx->outbuf[padded_len - AES_BLOCK_SIZE],
+            &ctx->outbuf[padded_len - 2 * AES_BLOCK_SIZE],
+            AES_BLOCK_SIZE
+        );
+        memcpy(
+            &ctx->outbuf[padded_len - 2 * AES_BLOCK_SIZE],
+            buf,
+            AES_BLOCK_SIZE
+        );
+    }
+
+    *bytes_in = data_in_size;
+    ctx->outbuf_size = data_in_size + AES_PREAMBLE_SIZE;
+    return ctx->outbuf_size;
+}
+
+static const ssize_t bench_decr_run (
+    void *_ctx,
+    const void *data_in,
+    const ssize_t data_in_size,
+    ssize_t *bytes_in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+
+    uint8_t assembly[N2N_PKT_BUF_SIZE];
+    const unsigned char *bytes = (unsigned char *)data_in;
+
+    // TODO: refactor to call transop_decode_cc20() directly
+
+    uint8_t rest = data_in_size % AES_BLOCK_SIZE;
+    if(rest) { /* cipher text stealing */
+        uint8_t buf[AES_BLOCK_SIZE];
+        ssize_t penultimate_block =
+            ((data_in_size / AES_BLOCK_SIZE) - 1) * AES_BLOCK_SIZE;
+
+        // everything normal up to penultimate block
+        memcpy(assembly, bytes, penultimate_block);
+
+        // prepare new penultimate block in buf
+        aes_ecb_decrypt(buf, &bytes[penultimate_block], ctx->priv.ctx);
+        memcpy(buf, &bytes[data_in_size - rest], rest);
+
+        // former penultimate block becomes new ultimate block
+        memcpy(
+            &assembly[penultimate_block + AES_BLOCK_SIZE],
+            &bytes[penultimate_block],
+            AES_BLOCK_SIZE
+        );
+
+        // write new penultimate block from buf
+        memcpy(&assembly[penultimate_block], buf, AES_BLOCK_SIZE);
+
+        // regular cbc decryption of the re-arranged ciphertext
+        aes_cbc_decrypt(
+            assembly,
+            assembly,
+            data_in_size + AES_BLOCK_SIZE - rest,
+            aes_null_iv,
+            ctx->priv.ctx
+        );
+
+        // check for expected zero padding and give a warning otherwise
+        if(memcmp(&assembly[data_in_size], aes_null_iv, AES_BLOCK_SIZE - rest)) {
+            traceEvent(TRACE_WARNING, "transop_decode_aes payload decryption failed with unexpected cipher text stealing padding");
+            exit(1);
+        }
+    } else {
+        // regular cbc decryption on multiple block-sized payload
+        aes_cbc_decrypt(
+            assembly,
+            data_in,
+            data_in_size,
+            aes_null_iv,
+            ctx->priv.ctx
+        );
+    }
+    ctx->outbuf_size = data_in_size - AES_PREAMBLE_SIZE;
+    memcpy(ctx->outbuf, &assembly[AES_PREAMBLE_SIZE], ctx->outbuf_size);
+
+    *bytes_in = data_in_size;
+    return ctx->outbuf_size;
+}
+
+static const void *const bench_get_output (void *const _ctx) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    return &ctx->outbuf;
+}
+
+static struct bench_item bench_encr = {
+    .name = "aes_encr",
+    .setup = bench_setup,
+    .run = bench_encr_run,
+    .get_output = bench_get_output,
+    .teardown = bench_teardown,
+    .data_in = test_data_32x16,
+    .data_out = test_data_aes,
+};
+
+static struct bench_item bench_decr = {
+    .name = "aes_decr",
+    .setup = bench_setup,
+    .run = bench_decr_run,
+    .get_output = bench_get_output,
+    .teardown = bench_teardown,
+    .data_in = test_data_aes,
+    .data_out = test_data_32x16,
+};
+
+
 static struct n3n_transform transform = {
     .name = "AES",
     .id = N2N_TRANSFORM_ID_AES,
@@ -260,4 +449,6 @@ static struct n3n_transform transform = {
 
 void n3n_initfuncs_transform_aes () {
     n3n_transform_register(&transform);
+    n3n_benchmark_register(&bench_decr);
+    n3n_benchmark_register(&bench_encr);
 }

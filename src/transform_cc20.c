@@ -19,6 +19,7 @@
  */
 
 
+#include <n3n/benchmark.h>
 #include <n3n/logging.h>     // for traceEvent
 #include <n3n/random.h>      // for n3n_rand
 #include <n3n/transform.h>   // for n3n_transform_register
@@ -174,6 +175,116 @@ int n2n_transop_cc20_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     return setup_cc20_key(priv, encrypt_key, encrypt_key_len);
 }
 
+struct bench_ctx {
+    transop_cc20_t priv;
+    // for encryption, want to be able to test the largest expected MTU + IV
+    // for decryption, just need to worry about the MTU
+    uint8_t iv[CC20_PREAMBLE_SIZE];
+    uint8_t outbuf[2048 + CC20_PREAMBLE_SIZE];
+    ssize_t outbuf_size;
+};
+
+static void *bench_setup (void) {
+    struct bench_ctx *ctx = calloc(1, sizeof(struct bench_ctx));
+
+    const char *key = "just_a_test_key_for_benchmarks";
+    const ssize_t key_len = sizeof(key);
+    setup_cc20_key(&ctx->priv, (unsigned char *)key, key_len);
+
+    // Set one constant IV to use for all benchmark testing
+    // chosen by a fair roll of the dice
+    uint8_t iv[] = {
+        0x86,0xfa,0xe8,0x7a,0x5b,0xbc,0xa9,0xb7,
+        0x6e,0xc7,0xdb,0xdf,0xff,0xfb,0x56,0x24,
+    };
+    memcpy(&ctx->iv, &iv, sizeof(iv));
+    return ctx;
+}
+
+static void bench_teardown (void *_ctx) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    cc20_deinit(ctx->priv.ctx);
+    free(ctx);
+}
+
+static const ssize_t bench_encr_run (
+    void *_ctx,
+    const void *data_in,
+    const ssize_t data_in_size,
+    ssize_t *bytes_in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+
+    // TODO: refactor to call transop_encode_cc20() directly
+
+    // First, populate our static test IV
+    *(uint64_t *)(&ctx->outbuf[0]) = *(uint64_t *)&ctx->iv[0];
+    *(uint64_t *)(&ctx->outbuf[8]) = *(uint64_t *)&ctx->iv[8];
+
+    cc20_crypt(
+        &ctx->outbuf[CC20_PREAMBLE_SIZE],
+        data_in,
+        data_in_size,
+        (unsigned char *)&ctx->outbuf,   // IV
+        ctx->priv.ctx
+    );
+
+    *bytes_in = data_in_size;
+    ctx->outbuf_size = data_in_size + CC20_PREAMBLE_SIZE;
+    return ctx->outbuf_size;
+}
+
+static const ssize_t bench_decr_run (
+    void *_ctx,
+    const void *data_in,
+    const ssize_t data_in_size,
+    ssize_t *bytes_in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+
+    // TODO: refactor to call transop_decode_cc20() directly
+
+    ctx->outbuf_size = data_in_size - CC20_PREAMBLE_SIZE; // skip IV
+
+    const unsigned char *bytes = (unsigned char *)data_in;
+
+    cc20_crypt(
+        ctx->outbuf,
+        &bytes[CC20_PREAMBLE_SIZE], // skip IV
+        ctx->outbuf_size,
+        bytes,   // IV
+        ctx->priv.ctx
+    );
+
+    *bytes_in = data_in_size;
+    return ctx->outbuf_size;
+}
+
+static const void *const bench_get_output (void *const _ctx) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    return &ctx->outbuf;
+}
+
+static struct bench_item bench_encr = {
+    .name = "cc20_encr",
+    .setup = bench_setup,
+    .run = bench_encr_run,
+    .get_output = bench_get_output,
+    .teardown = bench_teardown,
+    .data_in = test_data_32x16,
+    .data_out = test_data_cc20,
+};
+
+static struct bench_item bench_decr = {
+    .name = "cc20_decr",
+    .setup = bench_setup,
+    .run = bench_decr_run,
+    .get_output = bench_get_output,
+    .teardown = bench_teardown,
+    .data_in = test_data_cc20,
+    .data_out = test_data_32x16,
+};
+
 static struct n3n_transform transform = {
     .name = "ChaCha20",
     .id = N2N_TRANSFORM_ID_CHACHA20,
@@ -181,4 +292,6 @@ static struct n3n_transform transform = {
 
 void n3n_initfuncs_transform_cc20 () {
     n3n_transform_register(&transform);
+    n3n_benchmark_register(&bench_decr);
+    n3n_benchmark_register(&bench_encr);
 }

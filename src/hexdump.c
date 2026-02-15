@@ -23,8 +23,8 @@
 #include <stdio.h>    // for fprintf, FILE
 
 
-void fhexdump (unsigned int display_addr, void *in, int size, FILE *stream) {
-    uint8_t *p = in;
+void fhexdump (unsigned int display_addr, const void *in, int size, FILE *stream) {
+    const uint8_t *p = in;
 
     while(size>0) {
         int i;

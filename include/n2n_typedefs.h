@@ -456,6 +456,7 @@ typedef struct n2n_edge_conf {
     devstr_t tuntap_dev_name;
     struct n2n_ip_subnet tuntap_v4;
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
+    uint32_t benchmark_seconds;
 
     // Supernode specific config
     n2n_mac_t sn_mac_addr;

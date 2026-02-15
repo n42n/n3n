@@ -43,7 +43,10 @@ This implementation prepends a 128 bit random value to the plain text. Its size 
 
 Twofish requires no padding as it employs a CBC/CTS scheme which can send out plaintext-length ciphertexts. The scheme however has a small flaw in handling messages shorter than one block, only low-level programmer might encounter this.
 
-On Intel CPUs, Twofish usually is the slowest of the ciphers present. However, on Raspberry Pi 3B+, Twofish was observed to be faster than AES-CTS. Your mileage may vary. Cipher speed's can be compared running the `tools/n3n-benchmark` tool.
+On Intel CPUs, Twofish usually is the slowest of the ciphers present. However,
+on Raspberry Pi 3B+, Twofish was observed to be faster than AES-CTS. Your
+mileage may vary. Cipher speed's can be compared running the
+`n3n-edge test benchmark` tool.
 
 ### AES
 

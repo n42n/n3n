@@ -1299,7 +1299,7 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
     }
 
     if(eee->sock < 0) {
-        traceEvent(TRACE_ERROR, "bad eee->sock");
+        traceEvent(TRACE_DEBUG, "bad eee->sock");
         // invalid socket file descriptor, e.g. TCP unconnected has fd of '-1'
         return;
     }
@@ -2043,10 +2043,20 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
     }
 #endif
 
-    if(eee->network_traffic_filter->filter_packet_from_peer(eee->network_traffic_filter, eee, orig_sender,
-                                                            eth_payload, eth_size) == N2N_DROP) {
-        traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)eth_size);
-        return(0);
+    if(eee->network_traffic_filter) {
+        if(eee->network_traffic_filter->filter_packet_from_peer(
+               eee->network_traffic_filter,
+               eee,
+               orig_sender,
+               eth_payload,
+               eth_size) == N2N_DROP) {
+            traceEvent(
+                TRACE_DEBUG,
+                "filtered packet of size %u",
+                (unsigned int)eth_size
+            );
+            return(0);
+        }
     }
 
     /* Write ethernet packet to tap device. */
@@ -3614,6 +3624,8 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
     conf->sn_selection_strategy = SN_SELECTION_STRATEGY_LOAD;
     conf->metric = 0;
     conf->mtu = DEFAULT_MTU;
+
+    conf->benchmark_seconds = 1;
 
 #ifndef _WIN32
     struct passwd *pw = NULL;

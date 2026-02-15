@@ -8,6 +8,6 @@
 
 #include <stdio.h>
 
-void fhexdump(unsigned int display_addr, void *in, int size, FILE *stream);
+void fhexdump (unsigned int display_addr, const void *in, int size, FILE *stream);
 
 #endif

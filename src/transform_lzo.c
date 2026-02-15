@@ -19,6 +19,8 @@
  */
 
 
+#include <n3n/benchmark.h>
+#include <n3n/hexdump.h>   // for fhexdump
 #include <n3n/logging.h> // for traceEvent
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>     // for uint8_t
@@ -137,12 +139,104 @@ int n2n_transop_lzo_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     return 0;
 }
 
+struct bench_ctx {
+    transop_lzo_t priv;
+    // for compression, want a outbuf (0x200 * 2) / 16 + 64 + 3 bytes
+    // for uncompression, want to be able to test the largest expected MTU
+    uint8_t outbuf[2048];
+    lzo_uint outbuf_size;
+};
+
+static void *bench_lzo_setup (void) {
+    return calloc(1, sizeof(struct bench_ctx));
+}
+
+static void bench_lzo_teardown (void *ctx) {
+    free(ctx);
+}
+
+static const ssize_t bench_lzo_comp_run (
+    void *_ctx,
+    const void *data_in,
+    const ssize_t data_in_size,
+    ssize_t *bytes_in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+
+    ctx->outbuf_size = 0;
+
+    int result = lzo1x_1_compress(
+        data_in,
+        data_in_size,
+        ctx->outbuf,
+        &ctx->outbuf_size,
+        ctx->priv.wrkmem
+    );
+
+    if(result != LZO_E_OK) {
+        traceEvent(TRACE_ERROR, "encode_lzo compression error");
+        ctx->outbuf_size = 0;
+    }
+
+    *bytes_in = data_in_size;
+    return ctx->outbuf_size;
+}
+
+static const ssize_t bench_lzo_uncomp_run (
+    void *_ctx,
+    const void *data_in,
+    const ssize_t data_in_size,
+    ssize_t *bytes_in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+
+    ctx->outbuf_size = sizeof(ctx->outbuf);
+
+    lzo1x_decompress(
+        data_in,
+        data_in_size,
+        ctx->outbuf,
+        &ctx->outbuf_size,
+        NULL
+    );
+
+    *bytes_in = data_in_size;
+    return ctx->outbuf_size;
+}
+
+static const void *const bench_lzo_get_output (void *const _ctx) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    return &ctx->outbuf;
+}
+
 static struct n3n_transform transform = {
     .name = "lzo",
     .id = N2N_COMPRESSION_ID_LZO,
     .is_compress = true,
 };
 
+static struct bench_item bench_lzo_comp = {
+    .name = "lzo_comp",
+    .setup = bench_lzo_setup,
+    .run = bench_lzo_comp_run,
+    .get_output = bench_lzo_get_output,
+    .teardown = bench_lzo_teardown,
+    .data_in = test_data_32x16,
+    .data_out = test_data_lzo,
+};
+
+static struct bench_item bench_lzo_uncomp = {
+    .name = "lzo_uncomp",
+    .setup = bench_lzo_setup,
+    .run = bench_lzo_uncomp_run,
+    .get_output = bench_lzo_get_output,
+    .teardown = bench_lzo_teardown,
+    .data_in = test_data_lzo,
+    .data_out = test_data_32x16,
+};
+
 void n3n_initfuncs_transform_lzo () {
     n3n_transform_register(&transform);
+    n3n_benchmark_register(&bench_lzo_comp);
+    n3n_benchmark_register(&bench_lzo_uncomp);
 }

@@ -187,10 +187,13 @@ socklen_t prepare_sockaddr_for_send (struct sockaddr_storage *out_sa,
 
             sa4.sin_family = AF_INET;
             sa4.sin_port = sa6->sin6_port;
-            *(uint32_t *)&sa4.sin_addr.s_addr = *(const uint32_t *)&sa6->sin6_addr.s6_addr[12];
-            *(struct sockaddr_in *)out_sa = sa4;
 
-            return sizeof(struct sockaddr_in);
+            // Extract the mapped IPv4
+            memcpy(&sa4.sin_addr.s_addr, &sa6->sin6_addr.s6_addr[12], 4);
+
+            // update the output sock
+            memcpy(out_sa, &sa4, sizeof(sa4));
+            return sizeof(sa4);
         }
     }
 

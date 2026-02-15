@@ -27,6 +27,7 @@
 #include <errno.h>                   // for errno
 #include <getopt.h>                  // for required_argument, no_argument
 #include <inttypes.h>                // for PRIu64
+#include <n3n/benchmark.h>           // for benchmark_run
 #include <n3n/conffile.h>            // for n3n_config_set_option
 #include <n3n/edge.h>                // for edge_init_conf_defaults
 #include <n3n/ethernet.h>            // for macaddr_str, macstr_t
@@ -337,16 +338,51 @@ static void cmd_test_config_roundtrip (int argc, char **argv, void *_conf) {
     exit(0);
 }
 
-static void cmd_test_hashing (int argc, char **argv, void *conf) {
+static void cmd_test_benchmark (int argc, char **argv, void *_conf) {
+    n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
+    int level=0;
+    if(argc == 2) {
+        if(strcmp("pretty", argv[1])==0) {
+            level=0;
+        } else if(strcmp("raw", argv[1])==0) {
+            level=1;
+        } else {
+            printf(
+                "benchmark:\n"
+                "\n"
+                "  usage: n3n-edge test benchmark [mode]\n"
+                "\n"
+                "The mode can be `raw` or `pretty` and defaults to pretty\n"
+            );
+            exit(1);
+        }
+    }
+
+    // TODO:
+    // - provide a way to run a partial set of benchmarks
+    // - provide a way to output in normalised or raw numbers
+
+    benchmark_run_all(level, conf->benchmark_seconds);
+    exit(0);
+}
+
+static void cmd_test_builtin (int argc, char **argv, void *conf) {
     int level=0;
     if(argv[1]) {
         level = atoi(argv[1]);
     }
-    int errors = test_hashing(level);
-    if(!errors) {
+    int errors = benchmark_check_all(level);
+    if(errors) {
+        printf("ERROR\n");
+    } else {
         printf("OK\n");
     }
     exit(errors);
+}
+
+static void cmd_test_hashing (int argc, char **argv, void *conf) {
+    fprintf(stderr, "Deprecated: use `n3n-edge test builtin` instead\n");
+    cmd_test_builtin(argc, argv, conf);
 }
 
 static void cmd_tools_keygen (int argc, char **argv, void *conf) {
@@ -539,13 +575,25 @@ static struct n3n_subcmd_def cmd_tools[] = {
 
 static struct n3n_subcmd_def cmd_test[] = {
     {
+        .name = "benchmark",
+        .help = "run internal benchmarks",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_test_benchmark,
+    },
+    {
+        .name = "builtin",
+        .help = "run built-in tests",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_test_builtin,
+    },
+    {
         .name = "config",
         .type = n3n_subcmd_type_nest,
         .nest = cmd_test_config,
     },
     {
         .name = "hashing",
-        .help = "test hashing functions",
+        .help = "Deprecated",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_hashing,
     },

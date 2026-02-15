@@ -9,8 +9,8 @@ There are multiple encryption options to choose from. Please have a look at
 choice. n3n edge nodes use AES encryption by default. Other ciphers can be
 chosen using the `community.cipher` option.
 
-A benchmark of the encryption methods is available when compiled from source
-with `tools/n3n-benchmark`.
+A built-in benchmark of the encryption methods is available with the
+`n3n-edge test benchmark` tool.
 
 The header which contains some metadata like the virtual MAC address of the
 edge nodes, their IP address, their real hostname and the community name

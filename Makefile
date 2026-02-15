@@ -100,6 +100,8 @@ OBJS=\
 	src/aes.o \
 	src/auth.o \
 	src/base64.o \
+	src/benchmark.o \
+	src/benchmark_pdu.o \
 	src/cc20.o \
 	src/conffile.o \
 	src/conffile_defs.o \
@@ -126,7 +128,6 @@ OBJS=\
 	src/sn_selection.o \
 	src/sn_utils.o \
 	src/speck.o \
-	src/test_hashing.o \
 	src/tf.o \
 	src/transform.o \
 	src/transform_aes.o \
@@ -143,11 +144,6 @@ OBJS=\
 	src/tuntap_osx.o \
 	src/wire.o \
 
-DEPS+=$(OBJS:%.o=%.d)
-
-CLEAN_FILES+=$(OBJS)
-CLEAN_FILES+=$(DEPS)
-
 # TODO: add performance testing and then try to avoid ignoring this warning
 CFLAGS_src/speck.c := -Wno-maybe-uninitialized
 
@@ -159,6 +155,12 @@ OBJS+=src/win32/getopt1.o
 OBJS+=src/win32/win32.o
 OBJS+=src/win32/wintap.o
 endif
+
+# Set the DEPS and CLEAN_FILES last - after setting the OBJS
+DEPS+=$(OBJS:%.o=%.d)
+
+CLEAN_FILES+=$(OBJS)
+CLEAN_FILES+=$(DEPS)
 
 src/management.o: src/management_index.html.h
 src/management.o: src/management_script.js.h

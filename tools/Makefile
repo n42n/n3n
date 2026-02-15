@@ -6,7 +6,8 @@ LDLIBS+=-ln3n
 LDLIBS+=$(LDLIBS_LOCAL)
 LDLIBS+=$(LDLIBS_EXTRA)
 
-TOOLS+=n3n-benchmark
+TOOLS_OPTIONAL+=n3n-benchmark
+
 TOOLS+=n3n-route
 TOOLS+=n3n-portfwd
 TOOLS+=n3n-decode
@@ -20,6 +21,8 @@ TESTS+=tests-auth
 
 .PHONY: all clean install
 all: $(TOOLS) $(TESTS)
+
+optional: $(TOOLS_OPTIONAL)
 
 %: %.c
 	@echo "  CC      $@"
