@@ -23,13 +23,13 @@
 #include <stdio.h>    // for fprintf, FILE
 
 
-void fhexdump (unsigned int display_addr, const void *in, int size, FILE *stream) {
+void fhexdump (uint64_t display_addr, const void *in, int size, FILE *stream) {
     const uint8_t *p = in;
 
     while(size>0) {
         int i;
 
-        fprintf(stream, "%03x: ", display_addr);
+        fprintf(stream, "%03lx: ", display_addr);
 
         for(i = 0; i < 16; i++) {
             if(i < size) {
