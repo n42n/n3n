@@ -576,13 +576,13 @@ static struct n3n_subcmd_def cmd_tools[] = {
 static struct n3n_subcmd_def cmd_test[] = {
     {
         .name = "benchmark",
-        .help = "run internal benchmarks",
+        .help = "[pretty|raw] - run internal benchmarks",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_benchmark,
     },
     {
         .name = "builtin",
-        .help = "run built-in tests",
+        .help = "[level] - run built-in tests",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_builtin,
     },
