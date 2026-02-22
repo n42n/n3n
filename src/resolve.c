@@ -190,6 +190,13 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
             nameerr,
             gai_strerror(nameerr)
         );
+        if(nameerr == EAI_SYSTEM) {
+            traceEvent(
+                TRACE_WARNING,
+                "getaddrinfo returned EAI_SYSTEM, errno: %i",
+                errno
+            );
+        }
         return -2;
     }
 
