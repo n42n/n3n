@@ -17,7 +17,7 @@
 
 #ifndef _WIN32
 #include <sys/ptrace.h>         // for ptrace
-#include <sys/types.h>          // for PTRACE_* on *BSD
+#include <sys/types.h>          // for PTRACE_*
 #endif
 
 #ifdef __linux__
@@ -613,6 +613,12 @@ static bool alarm_fired;
 #ifdef _WIN32
 void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     fprintf(stderr,"no ptrace support on windows\n");
+    return;
+}
+
+#elifdef DARWIN
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+    fprintf(stderr,"Macos only partially implements ptrace support\n");
     return;
 }
 
