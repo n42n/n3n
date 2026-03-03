@@ -611,6 +611,12 @@ int generic_check (
 
 static bool alarm_fired;
 
+#ifndef _WIN32
+static void handler (int nr) {
+    alarm_fired = true;
+}
+#endif
+
 #ifdef _WIN32
 void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     fprintf(stderr,"no ptrace support on windows\n");
@@ -624,10 +630,6 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
 }
 
 #elif defined(__linux__)
-static void handler (int nr) {
-    alarm_fired = true;
-}
-
 static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
     struct timeval tv1;
     struct timeval tv2;
