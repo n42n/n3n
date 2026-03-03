@@ -17,6 +17,7 @@
 
 #ifndef _WIN32
 #include <sys/ptrace.h>         // for ptrace
+#include <sys/types.h>          // for PTRACE_* on *BSD
 #endif
 
 #ifdef __linux__
