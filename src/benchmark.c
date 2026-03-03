@@ -709,12 +709,17 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
 
     for(p = registered_items; p; p = p->next) {
-        if(p->flags && BENCH_ITEM_CHECKONLY) {
+        if(p->flags & BENCH_ITEM_CHECKONLY) {
             continue;
         }
         if(filter) {
             // Allow filtering for only matching test names
             if(strcmp(p->name, filter)!=0) {
+                continue;
+            }
+        } else {
+            // Check if this test should be skipped
+            if(p->flags & BENCH_ITEM_NOPTRACE) {
                 continue;
             }
         }

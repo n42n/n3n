@@ -389,6 +389,7 @@ static const ssize_t bench_curve25519_run (
 
 static struct bench_item bench_curve25519 = {
     .name = "curve25519",
+    .flags = BENCH_ITEM_NOPTRACE,
     .setup = bench_curve25519_setup,
     .run = bench_curve25519_run,
     .teardown = bench_curve25519_teardown,

@@ -41,7 +41,6 @@ def main():
     reporton = [
         "aes_decr,",
         "aes_encr,",
-        "curve25519,",
         "pdu2tun,",
         "NOP,",
     ]
