@@ -623,7 +623,7 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     return;
 }
 
-#else
+#elifdef __linux__
 static void handler (int nr) {
     alarm_fired = true;
 }
@@ -755,6 +755,12 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
         printf("%" PRIu64 ",", p->loops);
         printf("%" PRIu64 "\n", p->instr);
     }
+}
+
+#else
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+    fprintf(stderr,"TODO: add ptrace based fakebench for this platform\n");
+    return;
 }
 #endif
 
