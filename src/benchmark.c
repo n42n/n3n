@@ -105,7 +105,11 @@ static void perf_measure_collect (struct bench_item *item) {
     ioctl(item->fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
 
     struct read_format data;
-    read(item->fd[0], &data, sizeof(data));
+    ssize_t count = read(item->fd[0], &data, sizeof(data));
+    if(count == -1) {
+        perror("read");
+        exit(1);
+    }
 
     for(int i = 0; i < data.nr; i++) {
         if(data.values[i].id == item->id[0]) {
