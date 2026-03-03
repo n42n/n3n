@@ -607,9 +607,9 @@ int generic_check (
 static bool alarm_fired;
 
 #ifdef _WIN32
-static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     fprintf(stderr,"no ptrace support on windows\n");
-    return 1;
+    return;
 }
 
 #else
