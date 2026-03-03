@@ -18,6 +18,7 @@
 #ifndef _WIN32
 #include <sys/ptrace.h>         // for ptrace
 #include <sys/types.h>          // for PTRACE_*
+#include <sys/wait.h>           // for wait, WIFSTOPPED
 #endif
 
 #ifdef __linux__
