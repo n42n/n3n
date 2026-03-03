@@ -62,10 +62,12 @@ static void bench_teardown (void *_ctx) {
     free(ctx);
 }
 
+#ifndef _WIN32
 static const void *const bench_get_output (void *const _ctx) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     return &ctx->outbuf;
 }
+#endif
 
 #ifdef _WIN32
 static int const bench_check_fake (void *const _ctx, const int level) {

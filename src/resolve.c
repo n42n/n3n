@@ -190,6 +190,17 @@ int supernode2sock (n3n_sock_t *sn, const char *addrIn) {
             nameerr,
             gai_strerror(nameerr)
         );
+#ifdef EAI_SYSTEM
+        // One day, I hope to stop writing plaintive missives to Windows about
+        // how incompatible they are
+        if(nameerr == EAI_SYSTEM) {
+            traceEvent(
+                TRACE_WARNING,
+                "getaddrinfo returned EAI_SYSTEM, errno: %i",
+                errno
+            );
+        }
+#endif
         return -2;
     }
 

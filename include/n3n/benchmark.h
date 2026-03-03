@@ -25,6 +25,7 @@ enum n3n_test_data {
 };
 
 #define BENCH_ITEM_CHECKONLY   0x1  // benchmark should be skipped
+#define BENCH_ITEM_NOPTRACE    0x2  // fakebench takes too long, skip item
 
 struct bench_item {
     struct bench_item *next;
@@ -62,6 +63,7 @@ struct bench_item {
 void n3n_benchmark_register (struct bench_item *);
 
 void benchmark_run_all (const int level, const int seconds);
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter_name);
 int benchmark_check_all (int level);
 
 #endif

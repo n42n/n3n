@@ -15,10 +15,18 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#ifndef _WIN32
+#include <sys/ptrace.h>         // for ptrace
+#include <sys/types.h>          // for PTRACE_*
+#include <sys/wait.h>           // for wait, WIFSTOPPED
+#endif
+
 #ifdef __linux__
 #include <linux/perf_event.h>
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
+#include <sys/user.h>           // for user_regs_struct
+#include <sys/wait.h>           // for wait
 
 #define LINUX_PERF  1
 #endif
@@ -98,7 +106,11 @@ static void perf_measure_collect (struct bench_item *item) {
     ioctl(item->fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
 
     struct read_format data;
-    read(item->fd[0], &data, sizeof(data));
+    ssize_t count = read(item->fd[0], &data, sizeof(data));
+    if(count == -1) {
+        perror("read");
+        exit(1);
+    }
 
     for(int i = 0; i < data.nr; i++) {
         if(data.values[i].id == item->id[0]) {
@@ -602,6 +614,155 @@ static bool alarm_fired;
 #ifndef _WIN32
 static void handler (int nr) {
     alarm_fired = true;
+}
+#endif
+
+#ifdef _WIN32
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+    fprintf(stderr,"no ptrace support on windows\n");
+    return;
+}
+
+#elif defined(DARWIN)
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+    fprintf(stderr,"Macos only partially implements ptrace support\n");
+    return;
+}
+
+#elif defined(__linux__)
+static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
+    struct timeval tv1;
+    struct timeval tv2;
+
+    void *ctx = item->setup();
+    const int input_size = benchmark_test_data[item->data_in].size;
+    const void *input_data = benchmark_test_data[item->data_in].data;
+
+    int loops = 0;
+    alarm_fired = false;
+
+    struct sigaction sa = {
+        .sa_handler = &handler,
+    };
+    sigaction(SIGALRM, &sa, NULL);
+
+    gettimeofday(&tv1, NULL);
+
+    uint64_t sentinal = 0;
+    pid_t pid = fork();
+
+    if(pid == 0) {
+        raise(SIGSTOP);
+
+        ssize_t count_in;
+        sentinal = 1;
+        while(!alarm_fired) {
+            item->run(
+                ctx,
+                input_data,
+                input_size,
+                &count_in
+            );
+            loops++;
+        }
+        sentinal = 2;
+
+        exit(0);
+    } else {
+        if(ptrace(PTRACE_ATTACH, pid, 0, 0)==-1) {
+            perror("ptrace_attach");
+            exit(1);
+        }
+
+        int status;
+        wait(&status);
+
+        alarm(seconds);
+        while(WIFSTOPPED(status)) {
+            if(alarm_fired) {
+                ptrace(PTRACE_POKEDATA, pid, &alarm_fired, true);
+                loops = ptrace(PTRACE_PEEKDATA, pid, &loops, 0);
+            }
+            uint64_t _sentinal = ptrace(PTRACE_PEEKDATA, pid, &sentinal, 0);
+            if(_sentinal == 1) {
+                item->instr++;
+#if 0
+                // For debugging how accurate the measured cycle counts are,
+                // output a trace of every instruction.
+                struct user_regs_struct regs;
+                ptrace(PTRACE_GETREGS, pid, 0, &regs);
+
+                uint64_t code = ptrace(PTRACE_PEEKTEXT, pid, regs.rip, 0);
+                fhexdump(regs.rip, &code, 8, stdout);
+#endif
+            }
+
+            if(ptrace(PTRACE_SINGLESTEP, pid, 0, 0)==-1) {
+                perror("ptrace_singlestep");
+                exit(1);
+            }
+            wait(&status);
+        }
+    }
+
+    gettimeofday(&tv2, NULL);
+
+    item->teardown(ctx);
+
+    timersub(&tv2, &tv1, &tv1);
+
+    item->loops = loops;
+    item->sec = tv1.tv_sec;
+    item->usec = tv1.tv_usec;
+}
+
+// Run all tests (or just those with the matching name) once and count how
+// many instructions are
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+    struct bench_item *p;
+
+    printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
+
+    for(p = registered_items; p; p = p->next) {
+        if(p->flags & BENCH_ITEM_CHECKONLY) {
+            continue;
+        }
+        if(filter) {
+            // Allow filtering for only matching test names
+            if(strcmp(p->name, filter)!=0) {
+                continue;
+            }
+        } else {
+            // Check if this test should be skipped
+            if(p->flags & BENCH_ITEM_NOPTRACE) {
+                continue;
+            }
+        }
+
+        char name[40];
+        snprintf(
+            &name[0],
+            sizeof(name),
+            "%s,%s",
+            p->name,
+            p->variant ? p->variant : ""
+        );
+
+        printf("%s,", name);
+        fflush(stdout);
+
+        run_one_item_ptrace(seconds, p);
+
+        printf("%i.%06i,", p->sec, p->usec);
+        printf("%" PRIu64 ",", p->loops);
+        printf("%" PRIu64 "\n", p->instr);
+    }
+}
+
+#else
+void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+    fprintf(stderr,"TODO: add ptrace based fakebench for this platform\n");
+    return;
 }
 #endif
 
