@@ -62,12 +62,14 @@ static void bench_teardown (void *_ctx) {
     free(ctx);
 }
 
-#ifdef _WIN32
+#ifndef _WIN32
 static const void *const bench_get_output (void *const _ctx) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     return &ctx->outbuf;
 }
+#endif
 
+#ifdef _WIN32
 static int const bench_check_fake (void *const _ctx, const int level) {
     // Since we cannot create a socketpair and read the PDU, we cannot run
     // checks on windows.
