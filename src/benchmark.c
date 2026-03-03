@@ -670,7 +670,7 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
             }
             uint64_t _sentinal = ptrace(PTRACE_PEEKDATA, pid, &sentinal, 0);
             if(_sentinal == 1) {
-                item->instr ++;
+                item->instr++;
 #if 0
                 // For debugging how accurate the measured cycle counts are,
                 // output a trace of every instruction.
