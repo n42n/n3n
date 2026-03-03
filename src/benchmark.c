@@ -15,10 +15,13 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#ifndef _WIN32
+#include <sys/ptrace.h>         // for ptrace
+#endif
+
 #ifdef __linux__
 #include <linux/perf_event.h>
 #include <sys/ioctl.h>
-#include <sys/ptrace.h>         // for ptrace
 #include <sys/syscall.h>
 #include <sys/user.h>           // for user_regs_struct
 #include <sys/wait.h>           // for wait
@@ -602,19 +605,17 @@ int generic_check (
 
 static bool alarm_fired;
 
-#ifndef _WIN32
-static void handler (int nr) {
-    alarm_fired = true;
-}
-#endif
-
 #ifdef _WIN32
-void benchmark_run_all_ptrace_instr (void) {
+static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
     fprintf(stderr,"no ptrace support on windows\n");
     return 1;
 }
 
 #else
+static void handler (int nr) {
+    alarm_fired = true;
+}
+
 static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
     struct timeval tv1;
     struct timeval tv2;
