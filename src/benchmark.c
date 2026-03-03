@@ -617,13 +617,13 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     return;
 }
 
-#elifdef DARWIN
+#elif defined(DARWIN)
 void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     fprintf(stderr,"Macos only partially implements ptrace support\n");
     return;
 }
 
-#elifdef __linux__
+#elif defined(__linux__)
 static void handler (int nr) {
     alarm_fired = true;
 }
