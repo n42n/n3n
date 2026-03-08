@@ -37,19 +37,21 @@ enum n3n_conf_type {
 };
 
 struct n3n_conf_option {
-    char *name;                 // The name used to configure this option
-    int length;                 // Max length for string copy types
-    int offset;                 // offset within the conf structure of value
-    char *desc;                 // Short description
-    char *help;                 // lengthy description
-    enum n3n_conf_type type;    // Which parser/validator to use
+    const char *name;           // The name used to configure this option
+    union {
+        const int length;       // Max length for string copy types
+    };
+    const int offset;           // offset within the conf structure of value
+    const char *desc;           // Short description
+    const char *help;           // lengthy description
+    const enum n3n_conf_type type;    // Which parser/validator to use
 };
 
 struct n3n_conf_section {
     struct n3n_conf_section *next;
-    char *name;                 // The name of this config section
-    char *help;                 // A description for this section
-    struct n3n_conf_option *options;
+    const char *name;                 // The name of this config section
+    const char *help;                 // A description for this section
+    const struct n3n_conf_option *options;
 };
 
 void n3n_config_register_section (char *, char *, struct n3n_conf_option[]);
