@@ -76,7 +76,7 @@ void n3n_deinitfuncs_config () {
     }
 }
 
-const char *str2id_by_id(const struct n3n_conf_str2id_data data[], const int id) {
+const char *str2id_by_id (const struct n3n_conf_str2id_data data[], const int id) {
     int i = 0;
     while(data[i].name) {
         if(data[i].id == id) {
@@ -87,7 +87,7 @@ const char *str2id_by_id(const struct n3n_conf_str2id_data data[], const int id)
     return NULL;
 }
 
-const int str2id_by_name(const struct n3n_conf_str2id_data data[], const char *name) {
+const int str2id_by_name (const struct n3n_conf_str2id_data data[], const char *name) {
     int i = 0;
     while(data[i].name) {
         if(strcmp(data[i].name, name)==0) {
