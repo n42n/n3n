@@ -51,7 +51,7 @@ struct n3n_conf_section {
     struct n3n_conf_section *next;
     const char *name;                 // The name of this config section
     const char *help;                 // A description for this section
-    const struct n3n_conf_option *options;
+    struct n3n_conf_option *options;
 };
 
 void n3n_config_register_section (char *, char *, struct n3n_conf_option[]);
