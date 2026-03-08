@@ -362,7 +362,7 @@ static void cmd_test_benchmark (int argc, char **argv, void *_conf) {
     // - provide a way to run a partial set of benchmarks
     // - provide a way to output in normalised or raw numbers
 
-    benchmark_run_all(level, conf->benchmark_seconds);
+    benchmark_run_all(level, conf->test_benchmark_seconds);
     exit(0);
 }
 
@@ -382,7 +382,7 @@ static void cmd_test_builtin (int argc, char **argv, void *conf) {
 
 static void cmd_test_fakebench (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    benchmark_run_all_ptrace_instr(conf->benchmark_seconds, argv[1]);
+    benchmark_run_all_ptrace_instr(conf->test_benchmark_seconds, argv[1]);
     exit(0);
 }
 
