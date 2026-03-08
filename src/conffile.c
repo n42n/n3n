@@ -76,6 +76,28 @@ void n3n_deinitfuncs_config () {
     }
 }
 
+const char *str2id_by_id(const struct n3n_conf_str2id_data data[], const int id) {
+    int i = 0;
+    while(data[i].name) {
+        if(data[i].id == id) {
+            return data[i].name;
+        }
+        i++;
+    }
+    return NULL;
+}
+
+const int str2id_by_name(const struct n3n_conf_str2id_data data[], const char *name) {
+    int i = 0;
+    while(data[i].name) {
+        if(strcmp(data[i].name, name)==0) {
+            return data[i].id;
+        }
+        i++;
+    }
+    return -1;
+}
+
 static struct n3n_conf_option *lookup_section (char *section) {
     struct n3n_conf_section *p = registered_sections;
     while(p) {
@@ -447,6 +469,14 @@ try_uint32:
             resolve_hostnames_str_add(listnr, value);
             return 0;
         }
+        case n3n_conf_str2id: {
+            int *val = (int *)valvoid;
+            *val = str2id_by_name(p->str2id_data, value);
+            if(*val == -1) {
+                return -1;
+            }
+            return 0;
+        }
     }
     return -1;
 }
@@ -658,6 +688,10 @@ static const char * stringify_option (void *conf, struct n3n_conf_option option,
             // This is a multi-value item, so needs special handling to dump
             return NULL;
         }
+        case n3n_conf_str2id: {
+            int *val = (int *)valvoid;
+            return str2id_by_id(option.str2id_data, *val);
+        }
     }
 
     return NULL;
@@ -735,6 +769,10 @@ static int option_storagesize (const struct n3n_conf_option option) {
         }
         case n3n_conf_hostname_str: {
             return -1;
+        }
+        case n3n_conf_str2id: {
+            int *val = (int *)valvoid;
+            return sizeof(*val);
         }
     }
     return -1;

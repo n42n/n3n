@@ -34,12 +34,19 @@ enum n3n_conf_type {
     n3n_conf_groupid,
     n3n_conf_macaddr,       // TODO: conf has another macaddr string type
     n3n_conf_hostname_str,
+    n3n_conf_str2id,        // TODO: refactor some other types to use this
+};
+
+struct n3n_conf_str2id_data {
+    const int id;
+    const char *name;
 };
 
 struct n3n_conf_option {
     const char *name;           // The name used to configure this option
     union {
         const int length;       // Max length for string copy types
+        struct n3n_conf_str2id_data *str2id_data;
     };
     const int offset;           // offset within the conf structure of value
     const char *desc;           // Short description

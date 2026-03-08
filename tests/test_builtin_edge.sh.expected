@@ -47,6 +47,7 @@ spoofing_protection=false
 
 [test]
 benchmark_seconds=0
+output_format=pretty
 
 [tuntap]
 address=0.0.0.0/0

@@ -3626,6 +3626,7 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
     conf->mtu = DEFAULT_MTU;
 
     conf->test_benchmark_seconds = 1;
+    conf->test_output_format = 0;
 
 #ifndef _WIN32
     struct passwd *pw = NULL;

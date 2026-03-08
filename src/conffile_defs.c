@@ -399,6 +399,18 @@ static struct n3n_conf_option section_supernode[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_str2id_data test_output_format_data[] = {
+    {
+        .id = 0,
+        .name = "pretty",
+    },
+    {
+        .id = 1,
+        .name = "raw",
+    },
+    {},
+};
+
 static struct n3n_conf_option section_test[] = {
     {
         .name = "benchmark_seconds",
@@ -409,6 +421,20 @@ static struct n3n_conf_option section_test[] = {
                 "benchmark tests to be adjusted.  Larger numbers will "
                 "produce more accurate results, but will obviously take more "
                 "time to complete. (Integer numbers of seconds only)",
+    },
+    {
+        .name = "output_format",
+        .type = n3n_conf_str2id,
+        .str2id_data = test_output_format_data,
+        .offset = offsetof(n2n_edge_conf_t, test_output_format),
+        .desc = "What format to show results of tests in",
+        .help = "The built-in tests can output their results in a number of "
+                "different formats.  The default is to output a 'pretty' "
+                "result - this is intended to be simplified and easily "
+                "readable.  The alternative is 'raw', which outputs the "
+                "unprocessed data, suitable for additional reporting or "
+                "debugging."
+                "FIXME - the integer number should be a string lookup.",
     },
     {.name = NULL},
 };

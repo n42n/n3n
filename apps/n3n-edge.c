@@ -340,38 +340,17 @@ static void cmd_test_config_roundtrip (int argc, char **argv, void *_conf) {
 
 static void cmd_test_benchmark (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    int level=0;
-    if(argc == 2) {
-        if(strcmp("pretty", argv[1])==0) {
-            level=0;
-        } else if(strcmp("raw", argv[1])==0) {
-            level=1;
-        } else {
-            printf(
-                "benchmark:\n"
-                "\n"
-                "  usage: n3n-edge test benchmark [mode]\n"
-                "\n"
-                "The mode can be `raw` or `pretty` and defaults to pretty\n"
-            );
-            exit(1);
-        }
-    }
 
     // TODO:
     // - provide a way to run a partial set of benchmarks
-    // - provide a way to output in normalised or raw numbers
 
-    benchmark_run_all(level, conf->test_benchmark_seconds);
+    benchmark_run_all(conf->test_output_format, conf->test_benchmark_seconds);
     exit(0);
 }
 
-static void cmd_test_builtin (int argc, char **argv, void *conf) {
-    int level=0;
-    if(argv[1]) {
-        level = atoi(argv[1]);
-    }
-    int errors = benchmark_check_all(level);
+static void cmd_test_builtin (int argc, char **argv, void *_conf) {
+    n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
+    int errors = benchmark_check_all(conf->test_output_format);
     if(errors) {
         printf("ERROR\n");
     } else {
@@ -582,15 +561,17 @@ static struct n3n_subcmd_def cmd_tools[] = {
 static struct n3n_subcmd_def cmd_test[] = {
     {
         .name = "benchmark",
-        .help = "[pretty|raw] - run internal benchmarks",
+        .help = "run internal benchmarks",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_benchmark,
+        .session_arg = true,
     },
     {
         .name = "builtin",
-        .help = "[level] - run built-in tests",
+        .help = "run built-in tests",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_builtin,
+        .session_arg = true,
     },
     {
         .name = "config",
@@ -608,6 +589,7 @@ static struct n3n_subcmd_def cmd_test[] = {
         .help = "[name] - count test instructions (when perf is unavailable)",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_fakebench,
+        .session_arg = true,
     },
     { .name = NULL }
 };
@@ -682,7 +664,8 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             exit(1);
         }
         if(r == -2) {
-            printf(
+            traceEvent(
+                TRACE_INFO,
                 "Warning: no config file found for session '%s'\n",
                 cmd.sessionname
             );
