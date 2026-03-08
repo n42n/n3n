@@ -273,7 +273,7 @@ static struct n3n_conf_option section_logging[] = {
         .offset = -1,
         .desc = "Set the logging verbosity",
         .help = "This is a number between 0 and 4, defaulting to 2 for "
-                "normal amounts of logging."
+                "normal amounts of logging. (0 is most logging, 4 is least)"
     },
     {.name = NULL},
 };
