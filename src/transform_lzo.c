@@ -217,6 +217,7 @@ static struct n3n_transform transform = {
 
 static struct bench_item bench_lzo_comp = {
     .name = "lzo_comp",
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_lzo_setup,
     .run = bench_lzo_comp_run,
     .get_output = bench_lzo_get_output,
@@ -227,6 +228,7 @@ static struct bench_item bench_lzo_comp = {
 
 static struct bench_item bench_lzo_uncomp = {
     .name = "lzo_uncomp",
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_lzo_setup,
     .run = bench_lzo_uncomp_run,
     .get_output = bench_lzo_get_output,

@@ -582,6 +582,7 @@ static const ssize_t bench_nop_run (
 
 static struct bench_item bench_nop = {
     .name = "NOP",
+    .ctx_size = 0,
     .setup = bench_nop_setup,
     .run = bench_nop_run,
     .teardown = bench_nop_teardown,

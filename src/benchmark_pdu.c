@@ -129,6 +129,7 @@ static const ssize_t bench_pdu2tun_run (
 
 static struct bench_item bench_pdu2tun = {
     .name = "pdu2tun",
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_pdu2tun_run,
 #ifndef _WIN32

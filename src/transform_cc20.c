@@ -267,6 +267,7 @@ static const void *const bench_get_output (void *const _ctx) {
 
 static struct bench_item bench_encr = {
     .name = "cc20_encr",
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_encr_run,
     .get_output = bench_get_output,
@@ -277,6 +278,7 @@ static struct bench_item bench_encr = {
 
 static struct bench_item bench_decr = {
     .name = "cc20_decr",
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_decr_run,
     .get_output = bench_get_output,
