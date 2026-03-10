@@ -608,6 +608,22 @@ int generic_check (
     return 0;
 }
 
+static void *item_setup (struct bench_item *item) {
+    void *ctx;
+    if(item->setup) {
+        ctx = item->setup();
+    } else {
+        ctx = NULL;
+    }
+
+    return ctx;
+}
+
+static void item_teardown (struct bench_item *item, void *ctx) {
+    if(item->teardown) {
+        item->teardown(ctx);
+    }
+}
 
 static bool alarm_fired;
 
@@ -634,7 +650,7 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
     struct timeval tv1;
     struct timeval tv2;
 
-    void *ctx = item->setup();
+    void *ctx = item_setup(item);
     const int input_size = benchmark_test_data[item->data_in].size;
     const void *input_data = benchmark_test_data[item->data_in].data;
 
@@ -707,7 +723,7 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
     gettimeofday(&tv2, NULL);
 
-    item->teardown(ctx);
+    item_teardown(item, ctx);
 
     timersub(&tv2, &tv1, &tv1);
 
@@ -772,7 +788,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
 
     perf_setup(item);
 
-    void *ctx = item->setup();
+    void *ctx = item_setup(item);
     const int input_size = benchmark_test_data[item->data_in].size;
     const void *input_data = benchmark_test_data[item->data_in].data;
 
@@ -816,7 +832,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
     perf_measure_collect(item);
     gettimeofday(&tv2, NULL);
 
-    item->teardown(ctx);
+    item_teardown(item, ctx);
 
 #ifdef _WIN32
     // Just do a half-arsed job on windows, which matches their ability to
@@ -919,7 +935,7 @@ int benchmark_check_all (int level) {
         }
         fprintf(stderr, ": ");
 
-        void *ctx = p->setup();
+        void *ctx = item_setup(p);
         const int input_size = benchmark_test_data[p->data_in].size;
         const void *input_data = benchmark_test_data[p->data_in].data;
 
@@ -974,7 +990,7 @@ int benchmark_check_all (int level) {
         if(level) {
             printf("\n");
         }
-        p->teardown(ctx);
+        item_teardown(p, ctx);
     }
 
     return result;
