@@ -741,12 +741,13 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
             int sig = WSTOPSIG(status);
             switch(sig) {
                 case SIGALRM:
+                    // Pass these through
                     break;
+                case 0:
                 case SIGTRAP:
                 case SIGSTOP:
+                    // Hide these from the child
                     sig = 0;
-                    /* fall through */
-                case 0:
                     break;
                 default:
                     printf("child got unexpected signal %i\n", sig);
