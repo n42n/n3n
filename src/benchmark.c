@@ -630,7 +630,6 @@ static void item_teardown (struct bench_item *item, void *ctx) {
 // These vars are shared between the harness and the traced pid when running a
 // ptrace benchmark
 struct pthread_shared {
-    int alarm_fired;
     int loops;
     int sentinal;
 };
@@ -677,9 +676,8 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
         exit(1);
     }
 
-    shm->alarm_fired = 0;
     shm->loops = 0;
-    shm->sentinal = 0;
+    shm->sentinal = -1;
 
     struct sigaction sa = {
         .sa_handler = &handler,
@@ -691,11 +689,20 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
     pid_t pid = fork();
 
     if(pid == 0) {
-        raise(SIGSTOP);
+        int wait_count = 10000;
+        // Spin on ether the parent is ready or we get bored of waiting
+        while(wait_count--) {
+            if(shm->sentinal==0) {
+                break;
+            }
+        }
+
+        alarm_fired = false;
+        alarm(seconds);
 
         ssize_t count_in;
         shm->sentinal = 1;
-        while(!shm->alarm_fired) {
+        while(!alarm_fired) {
             item->run(
                 ctx,
                 input_data,
@@ -713,14 +720,11 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
             exit(1);
         }
 
+        shm->sentinal = 0;
         int status;
         wait(&status);
 
-        alarm(seconds);
         while(WIFSTOPPED(status)) {
-            if(alarm_fired) {
-                shm->alarm_fired = 1;
-            }
             if(shm->sentinal == 1) {
                 item->instr++;
 #if 0
@@ -734,7 +738,22 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 #endif
             }
 
-            if(ptrace(PTRACE_SINGLESTEP, pid, 0, 0)==-1) {
+            int sig = WSTOPSIG(status);
+            switch(sig) {
+                case SIGALRM:
+                    break;
+                case SIGTRAP:
+                case SIGSTOP:
+                    sig = 0;
+                    /* fall through */
+                case 0:
+                    break;
+                default:
+                    printf("child got unexpected signal %i\n", sig);
+                    exit(1);
+            }
+
+            if(ptrace(PTRACE_SINGLESTEP, pid, 0, sig)==-1) {
                 perror("ptrace_singlestep");
                 exit(1);
             }
