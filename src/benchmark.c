@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>           // for mmap, MAP_SHARED, MAP_ANONYMOUS
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -626,6 +627,14 @@ static void item_teardown (struct bench_item *item, void *ctx) {
     }
 }
 
+// These vars are shared between the harness and the traced pid when running a
+// ptrace benchmark
+struct pthread_shared {
+    int alarm_fired;
+    int loops;
+    int sentinal;
+};
+
 static bool alarm_fired;
 
 #ifndef _WIN32
@@ -655,8 +664,22 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
     const int input_size = benchmark_test_data[item->data_in].size;
     const void *input_data = benchmark_test_data[item->data_in].data;
 
-    int loops = 0;
-    alarm_fired = false;
+    struct pthread_shared *shm = mmap(
+        NULL,
+        sizeof(struct pthread_shared),
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED | MAP_ANONYMOUS,
+        -1,
+        0
+    );
+    if(!shm) {
+        perror("mmap");
+        exit(1);
+    }
+
+    shm->alarm_fired = 0;
+    shm->loops = 0;
+    shm->sentinal = 0;
 
     struct sigaction sa = {
         .sa_handler = &handler,
@@ -665,24 +688,23 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
     gettimeofday(&tv1, NULL);
 
-    uint64_t sentinal = 0;
     pid_t pid = fork();
 
     if(pid == 0) {
         raise(SIGSTOP);
 
         ssize_t count_in;
-        sentinal = 1;
-        while(!alarm_fired) {
+        shm->sentinal = 1;
+        while(!shm->alarm_fired) {
             item->run(
                 ctx,
                 input_data,
                 input_size,
                 &count_in
             );
-            loops++;
+            shm->loops++;
         }
-        sentinal = 2;
+        shm->sentinal = 2;
 
         exit(0);
     } else {
@@ -697,11 +719,9 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
         alarm(seconds);
         while(WIFSTOPPED(status)) {
             if(alarm_fired) {
-                ptrace(PTRACE_POKEDATA, pid, &alarm_fired, true);
-                loops = ptrace(PTRACE_PEEKDATA, pid, &loops, 0);
+                shm->alarm_fired = 1;
             }
-            uint64_t _sentinal = ptrace(PTRACE_PEEKDATA, pid, &sentinal, 0);
-            if(_sentinal == 1) {
+            if(shm->sentinal == 1) {
                 item->instr++;
 #if 0
                 // For debugging how accurate the measured cycle counts are,
@@ -728,7 +748,7 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
     timersub(&tv2, &tv1, &tv1);
 
-    item->loops = loops;
+    item->loops = shm->loops;
     item->sec = tv1.tv_sec;
     item->usec = tv1.tv_usec;
 }
