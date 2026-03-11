@@ -562,14 +562,6 @@ const struct test_data benchmark_test_data[] = {
 };
 
 /* A do-nothing function to time the benchmark framework */
-static void *bench_nop_setup (void) {
-    return NULL;
-}
-
-static void bench_nop_teardown (void *ctx) {
-    return;
-}
-
 static const ssize_t bench_nop_run (
     void *ctx,
     const void *data_in,
@@ -583,9 +575,7 @@ static const ssize_t bench_nop_run (
 static struct bench_item bench_nop = {
     .name = "NOP",
     .ctx_size = 0,
-    .setup = bench_nop_setup,
     .run = bench_nop_run,
-    .teardown = bench_nop_teardown,
     .data_in = test_data_none,
     .data_out = test_data_none,
 };
