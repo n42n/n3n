@@ -28,7 +28,10 @@ struct bench_ctx {
     ssize_t outbuf_size;
 };
 
-static void *bench_setup (void) {
+static void *bench_setup (void *const _ctx) {
+    if(_ctx) {
+        free(_ctx);
+    }
     struct bench_ctx *ctx = calloc(1, sizeof(struct bench_ctx));
 
     edge_init_conf_defaults(&ctx->eee.conf,"edge");
@@ -129,7 +132,7 @@ static const ssize_t bench_pdu2tun_run (
 
 static struct bench_item bench_pdu2tun = {
     .name = "pdu2tun",
-    .ctx_size = sizeof(struct bench_ctx),
+    // .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_pdu2tun_run,
 #ifndef _WIN32

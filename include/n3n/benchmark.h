@@ -34,7 +34,7 @@ struct bench_item {
     const char *variant;                  // variant, eg name of optimisation
     int flags;
     const ssize_t ctx_size;               // NR bytes to allocate for context
-    void *(*const setup)(void);           // Any pre-run setup
+    void *(*const setup)(void *const ctx); // Any pre-run setup
     const ssize_t(*const run)(
         void *const ctx,
         const void *data_in,

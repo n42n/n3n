@@ -601,10 +601,17 @@ int generic_check (
 
 static void *item_setup (struct bench_item *item) {
     void *ctx;
-    if(item->setup) {
-        ctx = item->setup();
+    if(item->ctx_size) {
+        ctx = malloc(item->ctx_size);
+        if(!ctx) {
+            fprintf(stderr, "Malloc failure");
+            exit(1);
+        }
     } else {
         ctx = NULL;
+    }
+    if(item->setup) {
+        ctx = item->setup(ctx);
     }
 
     return ctx;
@@ -613,6 +620,9 @@ static void *item_setup (struct bench_item *item) {
 static void item_teardown (struct bench_item *item, void *ctx) {
     if(item->teardown) {
         item->teardown(ctx);
+    }
+    if(item->ctx_size) {
+        free(ctx);
     }
 }
 

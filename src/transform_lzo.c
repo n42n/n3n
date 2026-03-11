@@ -147,14 +147,6 @@ struct bench_ctx {
     lzo_uint outbuf_size;
 };
 
-static void *bench_lzo_setup (void) {
-    return calloc(1, sizeof(struct bench_ctx));
-}
-
-static void bench_lzo_teardown (void *ctx) {
-    free(ctx);
-}
-
 static const ssize_t bench_lzo_comp_run (
     void *_ctx,
     const void *data_in,
@@ -218,10 +210,8 @@ static struct n3n_transform transform = {
 static struct bench_item bench_lzo_comp = {
     .name = "lzo_comp",
     .ctx_size = sizeof(struct bench_ctx),
-    .setup = bench_lzo_setup,
     .run = bench_lzo_comp_run,
     .get_output = bench_lzo_get_output,
-    .teardown = bench_lzo_teardown,
     .data_in = test_data_32x16,
     .data_out = test_data_lzo,
 };
@@ -229,10 +219,8 @@ static struct bench_item bench_lzo_comp = {
 static struct bench_item bench_lzo_uncomp = {
     .name = "lzo_uncomp",
     .ctx_size = sizeof(struct bench_ctx),
-    .setup = bench_lzo_setup,
     .run = bench_lzo_uncomp_run,
     .get_output = bench_lzo_get_output,
-    .teardown = bench_lzo_teardown,
     .data_in = test_data_lzo,
     .data_out = test_data_32x16,
 };

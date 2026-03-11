@@ -249,8 +249,8 @@ struct bench_ctx {
     ssize_t outbuf_size;
 };
 
-static void *bench_setup (void) {
-    struct bench_ctx *ctx = calloc(1, sizeof(struct bench_ctx));
+static void *bench_setup (void *const _ctx) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
 
     const char *key = "just_a_test_key_for_benchmarks";
     const ssize_t key_len = sizeof(key);
@@ -269,7 +269,6 @@ static void *bench_setup (void) {
 static void bench_teardown (void *_ctx) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     tf_deinit(ctx->priv.ctx);
-    free(ctx);
 }
 
 static const ssize_t bench_encr_run (
