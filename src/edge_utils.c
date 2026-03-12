@@ -967,6 +967,10 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
 
     struct peer_info *scan;
 
+    if(!eee->known_peers) {
+        return;
+    }
+
     HASH_FIND_PEER(eee->known_peers, mac, scan);
 
     /* If we were not able to find it by MAC, we try to find it by socket. */

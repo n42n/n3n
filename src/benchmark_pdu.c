@@ -40,6 +40,9 @@ static void *bench_setup (void *const _ctx) {
     ctx->eee.last_sup = 1;
     ctx->eee.curr_sn = peer_info_malloc(null_mac);
     ctx->eee.curr_sn->sock.family = AF_INVALID;
+    ctx->eee.pending_peers = NULL;
+    ctx->eee.known_peers = NULL;
+    ctx->eee.network_traffic_filter = NULL;
 
     n2n_transop_null_init(&ctx->eee.conf, &ctx->eee.transop);
 
