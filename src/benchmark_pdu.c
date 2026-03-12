@@ -29,10 +29,7 @@ struct bench_ctx {
 };
 
 static void *bench_setup (void *const _ctx) {
-    if(_ctx) {
-        free(_ctx);
-    }
-    struct bench_ctx *ctx = calloc(1, sizeof(struct bench_ctx));
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
 
     edge_init_conf_defaults(&ctx->eee.conf,"edge");
     strcpy(ctx->eee.conf.community_name, "test");
@@ -65,7 +62,6 @@ static void bench_teardown (void *_ctx) {
     clear_peer_list(&ctx->eee.pending_peers);
     peer_info_free(ctx->eee.curr_sn);
     edge_term_conf(&ctx->eee.conf);
-    free(ctx);
 }
 
 #ifndef _WIN32
@@ -135,7 +131,7 @@ static const ssize_t bench_pdu2tun_run (
 
 static struct bench_item bench_pdu2tun = {
     .name = "pdu2tun",
-    // .ctx_size = sizeof(struct bench_ctx),
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_pdu2tun_run,
 #ifndef _WIN32
