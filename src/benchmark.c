@@ -627,6 +627,17 @@ static void item_teardown (struct bench_item *item, void *ctx) {
     }
 }
 
+static int item_fullname(struct bench_item *item, char *buf, ssize_t size) {
+    return snprintf(
+        buf,
+        size,
+        "%s,%s",
+        item->name,
+        item->variant ? item->variant : ""
+    );
+}
+
+
 // These vars are shared between the harness and the traced pid when running a
 // ptrace benchmark
 struct pthread_shared {
@@ -803,14 +814,7 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
         }
 
         char name[40];
-        snprintf(
-            &name[0],
-            sizeof(name),
-            "%s,%s",
-            p->name,
-            p->variant ? p->variant : ""
-        );
-
+        item_fullname(p, &name[0], sizeof(name));
         printf("%s,", name);
         fflush(stdout);
 
@@ -913,13 +917,7 @@ void benchmark_run_all (const int level, const int seconds) {
         }
 
         char name[40];
-        snprintf(
-            &name[0],
-            sizeof(name),
-            "%s,%s",
-            p->name,
-            p->variant ? p->variant : ""
-        );
+        item_fullname(p, &name[0], sizeof(name));
 
         if(level==0) {
             printf("%-20s", name);
@@ -976,11 +974,9 @@ int benchmark_check_all (int level) {
             continue;
         }
 
-        fprintf(stderr, "%s", p->name);
-        if(p->variant) {
-            fprintf(stderr, ",%s", p->variant);
-        }
-        fprintf(stderr, ": ");
+        char name[40];
+        item_fullname(p, &name[0], sizeof(name));
+        fprintf(stderr, "%s: ", name);
 
         void *ctx = item_setup(p);
         const int input_size = benchmark_test_data[p->data_in].size;
