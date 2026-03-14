@@ -68,6 +68,6 @@ void benchmark_run_all (const int level, const int seconds);
 void benchmark_run_all_ptrace_instr (const int seconds, const char *filter_name);
 int benchmark_check_all (int level);
 
-void benchmark_list(const int level);
+void benchmark_list (const int level);
 
 #endif

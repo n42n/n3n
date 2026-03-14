@@ -627,7 +627,7 @@ static void item_teardown (struct bench_item *item, void *ctx) {
     }
 }
 
-static int item_fullname(struct bench_item *item, char *buf, ssize_t size, int level) {
+static int item_fullname (struct bench_item *item, char *buf, ssize_t size, int level) {
     return snprintf(
         buf,
         size,
@@ -1044,7 +1044,7 @@ int benchmark_check_all (int level) {
     return result;
 }
 
-void benchmark_list(const int level) {
+void benchmark_list (const int level) {
     if(level==0) {
         // Pretty
         printf("\n");
