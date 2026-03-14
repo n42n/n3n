@@ -24,8 +24,9 @@ enum n3n_test_data {
     test_data_pdu_eth,
 };
 
-#define BENCH_ITEM_CHECKONLY   0x1  // benchmark should be skipped
-#define BENCH_ITEM_NOPTRACE    0x2  // fakebench takes too long, skip item
+#define BENCH_SKIP_CHECK    0x1  // Default to skip check
+#define BENCH_SKIP_BENCH    0x2  // Default to skip benchmark
+#define BENCH_SKIP_PTRACE   0x4  // Default to skip fakebench
 
 struct bench_item {
     struct bench_item *next;

@@ -381,7 +381,7 @@ static const ssize_t bench_curve25519_run (
 
 static struct bench_item bench_curve25519 = {
     .name = "curve25519",
-    .flags = BENCH_ITEM_NOPTRACE,
+    .flags = BENCH_SKIP_PTRACE,
     .ctx_size = 0,
     .run = bench_curve25519_run,
     .data_in = test_data_none,

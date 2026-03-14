@@ -798,9 +798,6 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
     printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
 
     for(p = registered_items; p; p = p->next) {
-        if(p->flags & BENCH_ITEM_CHECKONLY) {
-            continue;
-        }
         if(filter) {
             // Allow filtering for only matching test names
             if(strcmp(p->name, filter)!=0) {
@@ -808,7 +805,10 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
             }
         } else {
             // Check if this test should be skipped
-            if(p->flags & BENCH_ITEM_NOPTRACE) {
+            if(p->flags & BENCH_SKIP_BENCH) {
+                continue;
+            }
+            if(p->flags & BENCH_SKIP_PTRACE) {
                 continue;
             }
         }
@@ -912,7 +912,7 @@ void benchmark_run_all (const int level, const int seconds) {
     uint64_t cycles_total = 0;
 
     for(p = registered_items; p; p = p->next) {
-        if(p->flags && BENCH_ITEM_CHECKONLY) {
+        if(p->flags & BENCH_SKIP_BENCH) {
             continue;
         }
 
@@ -970,6 +970,10 @@ int benchmark_check_all (int level) {
     int result = 0;
 
     for(struct bench_item *p = registered_items; p; p = p->next) {
+        if(p->flags & BENCH_SKIP_CHECK) {
+            continue;
+        }
+
         if(p->data_out == test_data_none && !p->check) {
             continue;
         }

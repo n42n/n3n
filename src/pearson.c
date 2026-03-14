@@ -372,7 +372,7 @@ static const void *const bench_get_output (void *const ctx) {
 
 static struct bench_item bench_16 = {
     .name = "pearson_hash_16",
-    .flags = BENCH_ITEM_CHECKONLY,
+    .flags = BENCH_SKIP_BENCH,
     // largest result size plus one for the length
     .ctx_size = 32 + 1,
     .run = bench_16_run,
@@ -382,7 +382,7 @@ static struct bench_item bench_16 = {
 
 static struct bench_item bench_32 = {
     .name = "pearson_hash_32",
-    .flags = BENCH_ITEM_CHECKONLY,
+    .flags = BENCH_SKIP_BENCH,
     // largest result size plus one for the length
     .ctx_size = 32 + 1,
     .run = bench_32_run,
@@ -401,7 +401,7 @@ static struct bench_item bench_64 = {
 
 static struct bench_item bench_128 = {
     .name = "pearson_hash_128",
-    .flags = BENCH_ITEM_CHECKONLY,
+    .flags = BENCH_SKIP_BENCH,
     // largest result size plus one for the length
     .ctx_size = 32 + 1,
     .run = bench_128_run,
@@ -412,7 +412,7 @@ static struct bench_item bench_128 = {
 
 static struct bench_item bench_256 = {
     .name = "pearson_hash_256",
-    .flags = BENCH_ITEM_CHECKONLY,
+    .flags = BENCH_SKIP_BENCH,
     // largest result size plus one for the length
     .ctx_size = 32 + 1,
     .run = bench_256_run,
