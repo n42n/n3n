@@ -627,12 +627,13 @@ static void item_teardown (struct bench_item *item, void *ctx) {
     }
 }
 
-static int item_fullname(struct bench_item *item, char *buf, ssize_t size) {
+static int item_fullname(struct bench_item *item, char *buf, ssize_t size, int level) {
     return snprintf(
         buf,
         size,
-        "%s,%s",
+        "%s%s%s",
         item->name,
+        (level || item->variant) ? ",":"",
         item->variant ? item->variant : ""
     );
 }
@@ -814,7 +815,7 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
         }
 
         char name[40];
-        item_fullname(p, &name[0], sizeof(name));
+        item_fullname(p, &name[0], sizeof(name), 1);
         printf("%s,", name);
         fflush(stdout);
 
@@ -917,7 +918,7 @@ void benchmark_run_all (const int level, const int seconds) {
         }
 
         char name[40];
-        item_fullname(p, &name[0], sizeof(name));
+        item_fullname(p, &name[0], sizeof(name), level);
 
         if(level==0) {
             printf("%-20s", name);
@@ -979,7 +980,7 @@ int benchmark_check_all (int level) {
         }
 
         char name[40];
-        item_fullname(p, &name[0], sizeof(name));
+        item_fullname(p, &name[0], sizeof(name), level);
         fprintf(stderr, "%s: ", name);
 
         void *ctx = item_setup(p);
