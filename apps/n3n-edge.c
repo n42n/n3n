@@ -365,6 +365,12 @@ static void cmd_test_fakebench (int argc, char **argv, void *_conf) {
     exit(0);
 }
 
+static void cmd_test_list (int argc, char **argv, void *_conf) {
+    n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
+    benchmark_list(conf->test_output_format);
+    exit(0);
+}
+
 static void cmd_test_hashing (int argc, char **argv, void *conf) {
     fprintf(stderr, "Deprecated: use `n3n-edge test check` instead\n");
     cmd_test_check(argc, argv, conf);
@@ -583,6 +589,13 @@ static struct n3n_subcmd_def cmd_test[] = {
         .help = "Deprecated",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_hashing,
+    },
+    {
+        .name = "list",
+        .help = "Show the built-in tests",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_test_list,
+        .session_arg = true,
     },
     {
         .name = "fakebench",

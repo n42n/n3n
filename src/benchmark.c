@@ -1044,6 +1044,49 @@ int benchmark_check_all (int level) {
     return result;
 }
 
+void benchmark_list(const int level) {
+    if(level==0) {
+        // Pretty
+        printf("\n");
+        printf("/------ C = include in default check list\n");
+        printf("|/----- B = include in default benchmark list\n");
+        printf("||/---- F = include in default fakebench list\n");
+        printf("||| Name                 ctx_size in out\n");
+        printf("+++-====================-========-==-===\n");
+    } else {
+        // raw
+        printf("flags,name,variant,size,data_in,data_out\n");
+    }
+
+    for(struct bench_item *p = registered_items; p; p = p->next) {
+        char name[40];
+        item_fullname(p, &name[0], sizeof(name), level);
+
+        if(level==0) {
+            // Pretty
+            printf(
+                "%s%s%s %-20s %8i %2i %3i\n",
+                (p->flags & BENCH_SKIP_CHECK) ? "-":"C",
+                (p->flags & BENCH_SKIP_BENCH) ? "-":"B",
+                (p->flags & BENCH_SKIP_PTRACE) ? "-":"F",
+                name,
+                (int)p->ctx_size,
+                p->data_in,
+                p->data_out
+            );
+        } else {
+            printf(
+                "0x%02x,%s,%i,%i,%i\n",
+                p->flags,
+                name,
+                (int)p->ctx_size,
+                p->data_in,
+                p->data_out
+            );
+        }
+    }
+}
+
 void n3n_initfuncs_benchmark () {
     n3n_benchmark_register(&bench_nop);
 }
