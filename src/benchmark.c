@@ -575,6 +575,7 @@ static const ssize_t bench_nop_run (
 
 static struct bench_item bench_nop = {
     .name = "NOP",
+    .flags = BENCH_SKIP_CHECK,
     .ctx_size = 0,
     .run = bench_nop_run,
     .data_in = test_data_none,
@@ -638,6 +639,66 @@ static int item_fullname (struct bench_item *item, char *buf, ssize_t size, int 
     );
 }
 
+#define ACTION_CHECK    1
+#define ACTION_BENCH    2
+#define ACTION_PTRACE   3
+
+// Check if this item should be run or not
+static bool item_allowrun (struct bench_item *item, int action, int filterc, char **filterv) {
+    bool _default = false;
+
+    // Calculate what the default action would be
+    switch(action) {
+        case ACTION_CHECK:
+            if((item->flags & BENCH_SKIP_CHECK)) {
+                _default = false;
+            } else {
+                _default = true;
+            }
+            break;
+
+        case ACTION_BENCH:
+            if(item->flags & BENCH_SKIP_BENCH) {
+                _default = false;
+            } else {
+                _default = true;
+            }
+            break;
+
+        case ACTION_PTRACE:
+            if(item->flags & BENCH_SKIP_BENCH) {
+                _default = false;
+            } else if(item->flags & BENCH_SKIP_PTRACE) {
+                _default = false;
+            } else {
+                _default = true;
+            }
+    }
+
+    bool result = false;
+
+    if(filterc > 0) {
+        // Check all the filter strings
+        for(int i = 0; i < filterc; i++) {
+            if(!filterv[i]) {
+                continue;
+            }
+            if(strcmp("ALL", filterv[i])==0) {
+                result = true;
+            }
+            if(strcmp("DEFAULT", filterv[i])==0) {
+                result = _default;
+            }
+            if(strcmp(item->name, filterv[i])==0) {
+                result = true;
+            }
+        }
+    } else {
+        result = _default;
+    }
+
+    return result;
+}
 
 // These vars are shared between the harness and the traced pid when running a
 // ptrace benchmark
@@ -793,25 +854,14 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
 // Run all tests (or just those with the matching name) once and count how
 // many instructions are
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_all_ptrace_instr (const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
     printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
 
     for(p = registered_items; p; p = p->next) {
-        if(filter) {
-            // Allow filtering for only matching test names
-            if(strcmp(p->name, filter)!=0) {
-                continue;
-            }
-        } else {
-            // Check if this test should be skipped
-            if(p->flags & BENCH_SKIP_BENCH) {
-                continue;
-            }
-            if(p->flags & BENCH_SKIP_PTRACE) {
-                continue;
-            }
+        if(!item_allowrun(p, ACTION_PTRACE, filterc, filterv)) {
+            continue;
         }
 
         char name[40];
@@ -828,7 +878,7 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
 }
 
 #else
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_all_ptrace_instr (const int seconds, char *filter) {
     fprintf(stderr,"TODO: add ptrace based fakebench for this platform\n");
     return;
 }
@@ -900,7 +950,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
     item->usec = tv1.tv_usec;
 }
 
-void benchmark_run_all (const int level, const int seconds) {
+void benchmark_run_all (const int level, const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
     if(level==0) {
@@ -913,7 +963,7 @@ void benchmark_run_all (const int level, const int seconds) {
     uint64_t cycles_total = 0;
 
     for(p = registered_items; p; p = p->next) {
-        if(p->flags & BENCH_SKIP_BENCH) {
+        if(!item_allowrun(p, ACTION_BENCH, filterc, filterv)) {
             continue;
         }
 
@@ -967,15 +1017,11 @@ void benchmark_run_all (const int level, const int seconds) {
     }
 }
 
-int benchmark_check_all (int level) {
+int benchmark_check_all (int level, int filterc, char **filterv) {
     int result = 0;
 
     for(struct bench_item *p = registered_items; p; p = p->next) {
-        if(p->flags & BENCH_SKIP_CHECK) {
-            continue;
-        }
-
-        if(p->data_out == test_data_none && !p->check) {
+        if(!item_allowrun(p, ACTION_CHECK, filterc, filterv)) {
             continue;
         }
 
@@ -1026,8 +1072,8 @@ int benchmark_check_all (int level) {
 
         // Sanity check for bad data structures
         if(!checked) {
-            fprintf(stderr, "ERROR: neither check nor get_output available\n");
-            exit(1);
+            fprintf(stderr, "WARNING: neither check nor get_output available\n");
+            this_result += 1;
         }
 
         if(this_result) {

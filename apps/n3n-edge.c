@@ -344,13 +344,22 @@ static void cmd_test_benchmark (int argc, char **argv, void *_conf) {
     // TODO:
     // - provide a way to run a partial set of benchmarks
 
-    benchmark_run_all(conf->test_output_format, conf->test_benchmark_seconds);
+    benchmark_run_all(
+        conf->test_output_format,
+        conf->test_benchmark_seconds,
+        argc-1,
+        ++argv
+    );
     exit(0);
 }
 
 static void cmd_test_check (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    int errors = benchmark_check_all(conf->test_output_format);
+    int errors = benchmark_check_all(
+        conf->test_output_format,
+        argc-1,
+        ++argv
+    );
     if(errors) {
         printf("ERROR\n");
     } else {
@@ -361,7 +370,11 @@ static void cmd_test_check (int argc, char **argv, void *_conf) {
 
 static void cmd_test_fakebench (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    benchmark_run_all_ptrace_instr(conf->test_benchmark_seconds, argv[1]);
+    benchmark_run_all_ptrace_instr(
+        conf->test_benchmark_seconds,
+        argc-1,
+        ++argv
+    );
     exit(0);
 }
 
@@ -567,14 +580,14 @@ static struct n3n_subcmd_def cmd_tools[] = {
 static struct n3n_subcmd_def cmd_test[] = {
     {
         .name = "benchmark",
-        .help = "run built-in tests and benchmark results",
+        .help = "[name..] - run built-in tests and benchmark results",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_benchmark,
         .session_arg = true,
     },
     {
         .name = "check",
-        .help = "run built-in tests and check results",
+        .help = "[name..] - run built-in tests and check results",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_check,
         .session_arg = true,
@@ -599,7 +612,7 @@ static struct n3n_subcmd_def cmd_test[] = {
     },
     {
         .name = "fakebench",
-        .help = "[name] - run tests, counting instructions (when perf is unavailable)",
+        .help = "[name..] - run tests, counting instructions (when perf is unavailable)",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_fakebench,
         .session_arg = true,
