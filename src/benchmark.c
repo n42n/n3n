@@ -716,13 +716,13 @@ static void handler (int nr) {
 #endif
 
 #ifdef _WIN32
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, const char *filter) {
     fprintf(stderr,"no ptrace support on windows\n");
     return;
 }
 
 #elif defined(DARWIN)
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, const char *filter) {
     fprintf(stderr,"Macos only partially implements ptrace support\n");
     return;
 }
@@ -854,7 +854,7 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
 // Run all tests (or just those with the matching name) once and count how
 // many instructions are
-void benchmark_run_all_ptrace_instr (const int seconds, int filterc, char **filterv) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
     printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
@@ -878,7 +878,7 @@ void benchmark_run_all_ptrace_instr (const int seconds, int filterc, char **filt
 }
 
 #else
-void benchmark_run_all_ptrace_instr (const int seconds, char *filter) {
+void benchmark_run_ptrace (const int seconds, char *filter) {
     fprintf(stderr,"TODO: add ptrace based fakebench for this platform\n");
     return;
 }
@@ -950,7 +950,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
     item->usec = tv1.tv_usec;
 }
 
-void benchmark_run_all (const int level, const int seconds, int filterc, char **filterv) {
+void benchmark_run_bench (const int level, const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
     if(level==0) {
@@ -1017,7 +1017,7 @@ void benchmark_run_all (const int level, const int seconds, int filterc, char **
     }
 }
 
-int benchmark_check_all (int level, int filterc, char **filterv) {
+int benchmark_run_check (int level, int filterc, char **filterv) {
     int result = 0;
 
     for(struct bench_item *p = registered_items; p; p = p->next) {

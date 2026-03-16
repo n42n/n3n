@@ -64,9 +64,9 @@ struct bench_item {
 
 void n3n_benchmark_register (struct bench_item *);
 
-void benchmark_run_all (const int level, const int seconds, int filterc, char **filterv);
-void benchmark_run_all_ptrace_instr (const int seconds, int filterc, char **filterv);
-int benchmark_check_all (int level, int filterc, char **filterv);
+void benchmark_run_bench (const int level, const int seconds, int filterc, char **filterv);
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv);
+int benchmark_run_check (int level, int filterc, char **filterv);
 
 void benchmark_list (const int level);
 

@@ -344,7 +344,7 @@ static void cmd_test_benchmark (int argc, char **argv, void *_conf) {
     // TODO:
     // - provide a way to run a partial set of benchmarks
 
-    benchmark_run_all(
+    benchmark_run_bench(
         conf->test_output_format,
         conf->test_benchmark_seconds,
         argc-1,
@@ -355,7 +355,7 @@ static void cmd_test_benchmark (int argc, char **argv, void *_conf) {
 
 static void cmd_test_check (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    int errors = benchmark_check_all(
+    int errors = benchmark_run_check(
         conf->test_output_format,
         argc-1,
         ++argv
@@ -370,7 +370,7 @@ static void cmd_test_check (int argc, char **argv, void *_conf) {
 
 static void cmd_test_fakebench (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    benchmark_run_all_ptrace_instr(
+    benchmark_run_ptrace(
         conf->test_benchmark_seconds,
         argc-1,
         ++argv
