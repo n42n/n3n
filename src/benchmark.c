@@ -716,13 +716,13 @@ static void handler (int nr) {
 #endif
 
 #ifdef _WIN32
-void benchmark_run_ptrace (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     fprintf(stderr,"no ptrace support on windows\n");
     return;
 }
 
 #elif defined(DARWIN)
-void benchmark_run_ptrace (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     fprintf(stderr,"Macos only partially implements ptrace support\n");
     return;
 }
@@ -878,7 +878,7 @@ void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
 }
 
 #else
-void benchmark_run_ptrace (const int seconds, char *filter) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     fprintf(stderr,"TODO: add ptrace based fakebench for this platform\n");
     return;
 }
