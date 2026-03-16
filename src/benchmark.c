@@ -770,12 +770,16 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
             }
         }
 
-        alarm_fired = false;
-        alarm(seconds);
+        if(seconds > 0) {
+            alarm_fired = false;
+            alarm(seconds);
+        } else {
+            alarm_fired = true;
+        }
 
         ssize_t count_in;
         shm->sentinal = 1;
-        while(!alarm_fired) {
+        do {
             item->run(
                 ctx,
                 input_data,
@@ -783,7 +787,7 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
                 &count_in
             );
             shm->loops++;
-        }
+        } while(!alarm_fired);
         shm->sentinal = 2;
 
         exit(0);
@@ -902,13 +906,18 @@ static void run_one_item (const int seconds, struct bench_item *item) {
         .sa_handler = &handler,
     };
     sigaction(SIGALRM, &sa, NULL);
-    alarm(seconds);
+
+    if(seconds > 0) {
+        alarm(seconds);
+    } else {
+        alarm_fired = true;
+    }
 #endif
 
     gettimeofday(&tv1, NULL);
     perf_measure_start(item);
 
-    while(!alarm_fired) {
+    do {
         ssize_t count_in;
 
         ssize_t count_out = item->run(
@@ -927,7 +936,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
             alarm_fired = true;
         }
 #endif
-    }
+    } while(!alarm_fired);
 
     // TODO: per loop min/max/sumofsquares?
 

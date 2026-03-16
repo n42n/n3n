@@ -420,7 +420,8 @@ static struct n3n_conf_option section_test[] = {
         .help = "This allows the amount of time spent on running the built-in "
                 "benchmark tests to be adjusted.  Larger numbers will "
                 "produce more accurate results, but will obviously take more "
-                "time to complete. (Integer numbers of seconds only)",
+                "time to complete. (Integer numbers of seconds only). "
+                "A value of zero causes one loop to run",
     },
     {
         .name = "output_format",
