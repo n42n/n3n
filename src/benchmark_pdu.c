@@ -43,6 +43,9 @@ static void *bench_setup (void *const _ctx) {
 
     n2n_transop_null_init(&ctx->eee.conf, &ctx->eee.transop);
 
+    memset(ctx->eee.device.mac_addr, 0, N2N_MAC_SIZE);
+    ctx->eee.device.mac_addr[0] = 0x02;
+
 #ifndef _WIN32
     if(socketpair(AF_UNIX, SOCK_DGRAM, 0, ctx->sv) == -1) {
         perror("socketpair");
@@ -60,6 +63,7 @@ static void bench_teardown (void *_ctx) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
 
     clear_peer_list(&ctx->eee.pending_peers);
+    clear_peer_list(&ctx->eee.known_peers);
     peer_info_free(ctx->eee.curr_sn);
     edge_term_conf(&ctx->eee.conf);
 }
@@ -144,6 +148,38 @@ static struct bench_item bench_pdu2tun = {
     .data_out = test_data_pdu_eth,
 };
 
+static const ssize_t bench_tun2pdu_run (
+    void *_ctx,
+    const void *data_in,
+    const ssize_t data_in_size,
+    ssize_t *in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    n2n_mac_t destMac;
+
+    ctx->outbuf_size = edge_encode_packet(
+        &ctx->eee,
+        (uint8_t *)data_in, data_in_size,
+        ctx->outbuf, sizeof(ctx->outbuf),
+        destMac
+    );
+
+    *in = data_in_size;
+    return ctx->outbuf_size;
+}
+
+static struct bench_item bench_tun2pdu = {
+    .name = "tun2pdu",
+    .ctx_size = sizeof(struct bench_ctx),
+    .setup = bench_setup,
+    .run = bench_tun2pdu_run,
+    .get_output = bench_get_output,
+    .teardown = bench_teardown,
+    .data_in = test_data_pdu_eth,
+    .data_out = test_data_tun2pdu,
+};
+
 void n3n_initfuncs_benchmark_pdu () {
     n3n_benchmark_register(&bench_pdu2tun);
+    n3n_benchmark_register(&bench_tun2pdu);
 }

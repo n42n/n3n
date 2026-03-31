@@ -22,6 +22,7 @@ enum n3n_test_data {
     test_data_tf,
     test_data_pdu_v3,
     test_data_pdu_eth,
+    test_data_tun2pdu,
 };
 
 #define BENCH_SKIP_CHECK    0x1  // Default to skip check
