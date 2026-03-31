@@ -1497,8 +1497,9 @@ void send_register_super (struct n3n_runtime_data *eee) {
     n2n_REGISTER_SUPER_t reg;
     n3n_sock_str_t sockbuf;
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
+    /* reg.key_time is not set by this caller; zero it so encode_REGISTER_SUPER
+     * does not emit garbage for that field */
+    // TODO: refactor code to avoid needing memet
     memset(&reg, 0, sizeof(reg));
 
     cmn.ttl = N2N_DEFAULT_TTL;
@@ -1555,10 +1556,6 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     if(!eee->curr_sn) {
         return;
     }
-
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
-    memset(&unreg, 0, sizeof(unreg));
 
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_UNREGISTER_SUPER;
@@ -1654,8 +1651,9 @@ static void send_register (struct n3n_runtime_data * eee,
         return;
     }
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
+    /* reg.auth is not set by this caller; zero it so encode_REGISTER does not
+     * emit garbage for that field */
+    // TODO: refactor code to avoid needing memet
     memset(&reg, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_REGISTER;
@@ -1706,15 +1704,10 @@ static void send_register_ack (struct n3n_runtime_data * eee,
         return;
     }
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_REGISTER_ACK;
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
-
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&ack, 0, sizeof(ack));
     ack.cookie = reg->cookie;
     memcpy(ack.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
     memcpy(ack.dstMac, reg->srcMac, N2N_MAC_SIZE);
@@ -2293,7 +2286,7 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
 
     /* Once processed, send to destination in PACKET */
 
-    memcpy(out_destMac, tap_pkt, N2N_MAC_SIZE); /* dest MAC is first in ethernet header */
+    memcpy(out_destMac, eh.dhost, N2N_MAC_SIZE);
 #ifdef HAVE_BRIDGING_SUPPORT
     /* find the destMac behind which edge, and change dest to this edge */
     if((eee->conf.allow_routing) && (!is_multi_broadcast(out_destMac))) {
@@ -2305,15 +2298,11 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
     }
 #endif
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_PACKET;
     cmn.flags = 0; /* no options, not from supernode, no socket */
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&pkt, 0, sizeof(pkt));
     memcpy(pkt.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
     memcpy(pkt.dstMac, out_destMac, N2N_MAC_SIZE);
 
@@ -2788,8 +2777,6 @@ void process_pdu (struct n3n_runtime_data *eee,
                 return;
             }
 
-            // FIXME: fix decode_* functions to not need memsets
-            memset(&ra, 0, sizeof(ra));
             decode_REGISTER_SUPER_ACK(&ra, &cmn, udp_buf, &rem, &idx, tmpbuf);
 
             if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2910,8 +2897,6 @@ void process_pdu (struct n3n_runtime_data *eee,
                 return;
             }
 
-            // FIXME: fix decode_* functions to not need memsets
-            memset(&nak, 0, sizeof(nak));
             decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
 
             if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {

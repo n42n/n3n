@@ -1565,9 +1565,6 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             n2n_REGISTER_SUPER_t reg;
             n3n_sock_str_t sockbuf;
 
-            memset(&cmn, 0, sizeof(cmn));
-            memset(&reg, 0, sizeof(reg));
-
             cmn.ttl = N2N_DEFAULT_TTL;
             cmn.pc = MSG_TYPE_REGISTER_SUPER;
             cmn.flags = N2N_FLAGS_FROM_SUPERNODE;
@@ -2056,8 +2053,11 @@ static int process_pdu (struct n3n_runtime_data * sss,
             int ret_value;
             sn_user_t                              *user = NULL;
 
+            /* ack.dev_addr is only set when the edge needs an IP assigned
+             * (lines below); zero the whole struct so the encoded dev_addr
+             * is zero rather than garbage when that branch is not taken */
+            // TODO: refactor code to avoid needing memet
             memset(&ack, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
-            memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
 
             /* Edge/supernode requesting registration with us.    */
             sss->last_sn_reg=now;
@@ -2356,8 +2356,6 @@ static int process_pdu (struct n3n_runtime_data * sss,
             int auth;
 
 
-            memset(&unreg, 0, sizeof(n2n_UNREGISTER_SUPER_t));
-
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER with unknown community %s", cmn.community);
                 return -1;
@@ -2412,8 +2410,6 @@ static int process_pdu (struct n3n_runtime_data * sss,
             uint8_t dec_tmpbuf[REG_SUPER_ACK_PAYLOAD_SPACE];
             n2n_REGISTER_SUPER_ACK_payload_t *payload;
             n3n_sock_t payload_sock;
-
-            memset(&ack, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
 
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "REGISTER_SUPER_ACK with unknown community %s", cmn.community);
