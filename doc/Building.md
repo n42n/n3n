@@ -174,7 +174,7 @@ In order to run n3n on Windows, you will need the following:
 The `edge.exe` program reads the `%USERPROFILE%\n3n\edge.conf` file if no
 session name option is provided.
 
-The `supernode.exe` program reads the `%UERPROFILE%\n3n\supernode.conf` file if
+The `supernode.exe` program reads the `%USERPROFILE%\n3n\supernode.conf` file if
 no session name option is provided.
 
 Example [edge.conf](edge.conf.sample)

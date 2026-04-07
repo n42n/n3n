@@ -1,6 +1,9 @@
 
 # n3n
 
+[![Testing](https://github.com/n42n/n3n/actions/workflows/tests.yml/badge.svg)](https://github.com/n42n/n3n/actions/workflows/tests.yml)
+[![Latest Release](https://img.shields.io/github/v/release/n42n/n3n)](https://github.com/n42n/n3n/releases/latest)
+
 n3n is a lightweight Peer-to-Peer VPN that creates virtual networks.
 
 In order to start using n3n, two elements are required:
@@ -19,8 +22,16 @@ n3n tries to establish a direct peer-to-peer connection via udp between the
 edge nodes when possible. When this is not possible (usually due to special NAT
 devices), the supernode is also used to relay the packets.
 
+```
+    [edge-A] ──────────────────── [edge-B]
+          \      direct p2p        /
+           \                      /
+            └──── [supernode] ────┘
+                (discovery + relay)
+```
+
 n3n was originally based on an older n2n project and hopes to keep protocol
-compatiblilty with that.
+compatibility with that.
 
 Note that some distributions have very old versions of n2n packaged that are
 incompatible with the protocol used by n3n.  At the least, Debian has a n2n
@@ -54,9 +65,11 @@ For Debian, Ubuntu or similar dpkg based systems:
 
 - Start the service: `sudo systemctl start n3n-edge@mynetwork`
 
-- Check the connection: `sudo n3nctl -s mynetwork supernodes`
+- Use `n3nctl` (the n3n management CLI) to inspect the running daemon:
 
-- List other nodes found: `sudo n3nctl -s mynetwork edges`
+  - Check the connection: `sudo n3nctl -s mynetwork supernodes`
+
+  - List other nodes found: `sudo n3nctl -s mynetwork edges`
 
 **IMPORTANT:** It is strongly advised to choose a custom community name (the
 `community.name` option) and a secret encryption key (the `community.key`
@@ -82,6 +95,7 @@ You can contribute to n3n in various ways:
 - Improve the documentation
 - Provide pull requests with enhancements
 
+For dev setup and internals, see the [Hacking guide](doc/Hacking.md).
 
 ---
 
