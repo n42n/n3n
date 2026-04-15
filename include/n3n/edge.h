@@ -29,4 +29,8 @@ void send_register_super (struct n3n_runtime_data *eee);
 void send_query_peer (struct n3n_runtime_data *eee, const n2n_mac_t dst_mac);
 void supernode_connect (struct n3n_runtime_data *eee);
 
+/* TCP MSS clamping */
+uint16_t tcp_csum_update (uint16_t old_csum, uint16_t old_val, uint16_t new_val);
+void clamp_mss (struct n3n_runtime_data *eee, uint8_t *tap_pkt, size_t len);
+
 #endif
