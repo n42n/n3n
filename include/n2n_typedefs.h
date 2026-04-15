@@ -440,6 +440,7 @@ typedef struct n2n_edge_conf {
     uint32_t metric;                                /**< Network interface metric (Windows only). */
     n2n_auth_t auth;
     int mtu;
+    bool clamp_mss;                              /**< Clamp TCP MSS to MTU. */
     filter_rule_t            *network_traffic_filter_rules;
     char * mgmt_password;
     uint32_t userid;
