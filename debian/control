@@ -25,7 +25,6 @@ Depends:
  ${misc:Depends},
  ${python3:Depends},
  ${shlibs:Depends},
-Conflicts: n2n
 Description: Peer-to-Peer and Layer-2 VPN network daemon
  n3n is a layer-two peer-to-peer virtual private network (VPN) which allows
  users to exploit features typical of P2P applications at network instead of
