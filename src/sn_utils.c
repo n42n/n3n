@@ -2053,10 +2053,12 @@ static int process_pdu (struct n3n_runtime_data * sss,
             int ret_value;
             sn_user_t                              *user = NULL;
 
-            /* ack.dev_addr is only set when the edge needs an IP assigned
+            /*
+             * ack.dev_addr is only set when the edge needs an IP assigned
              * (lines below); zero the whole struct so the encoded dev_addr
-             * is zero rather than garbage when that branch is not taken */
-            // TODO: refactor code to avoid needing memet
+             * is zero rather than garbage when that branch is not taken
+             */
+            // TODO: refactor code to avoid needing memset
             memset(&ack, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
 
             /* Edge/supernode requesting registration with us.    */
