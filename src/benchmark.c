@@ -12,11 +12,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>           // for mmap, MAP_SHARED, MAP_ANONYMOUS
 #include <sys/time.h>
 #include <unistd.h>
 
 #ifndef _WIN32
+#include <sys/mman.h>           // for mmap, MAP_SHARED, MAP_ANONYMOUS
 #include <sys/ptrace.h>         // for ptrace
 #include <sys/types.h>          // for PTRACE_*
 #include <sys/wait.h>           // for wait, WIFSTOPPED
