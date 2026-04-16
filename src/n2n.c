@@ -320,7 +320,7 @@ extern char * sock_to_cstr (n3n_sock_str_t out,
         char tmp[INET6_ADDRSTRLEN+1];
 
         tmp[0] = '\0';
-        inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(n3n_sock_str_t));
+        inet_ntop(AF_INET6, sock->addr.v6, tmp, sizeof(tmp));
         snprintf(
             out,
             N3N_SOCKBUF_SIZE,
