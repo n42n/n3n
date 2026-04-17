@@ -212,6 +212,8 @@ as they will often use a different libc environment.
 
 There are also some example package build recipes included with the source.
 
-- Debian: `make dpkg`
+- Debian:  
+  - `sudo apt install devscripts debhelper dh-python`
+  - `make dpkg`
 - [RPM](../packages/rpm)
 - [OpenWRT](../packages/openwrt/README.md)
