@@ -2180,7 +2180,7 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
     }
 
     if(retval == 0) {
-        memcpy(destination, &(eee->curr_sn->sock), sizeof(struct sockaddr_in));
+        memcpy(destination, &(eee->curr_sn->sock), sizeof(n3n_sock_t));
         traceEvent(TRACE_DEBUG, "p2p peer %s not found, using supernode",
                    macaddr_str(mac_buf, mac_address));
 
