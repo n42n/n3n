@@ -1,4 +1,4 @@
-### test: ./apps/n3n-edge test builtin
+### test: ./apps/n3n-edge test check
 OK
 
 ### test: ./apps/n3n-edge test config roundtrip
@@ -47,6 +47,7 @@ spoofing_protection=false
 
 [test]
 benchmark_seconds=0
+output_format=pretty
 
 [tuntap]
 address=0.0.0.0/0

@@ -367,14 +367,6 @@ static const uint8_t test_data_k[] = {
     55, 55, 55, 55,  55, 55, 55, 55,  55, 55, 55, 55,  55, 55, 55, 55,
 };
 
-static void *bench_curve25519_setup (void) {
-    return NULL;
-}
-
-static void bench_curve25519_teardown (void *ctx) {
-    return;
-}
-
 static const ssize_t bench_curve25519_run (
     void *ctx,
     const void *data_in,
@@ -389,10 +381,9 @@ static const ssize_t bench_curve25519_run (
 
 static struct bench_item bench_curve25519 = {
     .name = "curve25519",
-    .flags = BENCH_ITEM_NOPTRACE,
-    .setup = bench_curve25519_setup,
+    .flags = BENCH_SKIP_CHECK | BENCH_SKIP_PTRACE,
+    .ctx_size = 0,
     .run = bench_curve25519_run,
-    .teardown = bench_curve25519_teardown,
     .data_in = test_data_none,
 };
 

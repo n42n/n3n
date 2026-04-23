@@ -231,6 +231,10 @@ int find_and_remove_peer (struct peer_info **head, const n2n_mac_t mac) {
 
     struct peer_info *peer;
 
+    if(!*head) {
+        return 0;
+    }
+
     HASH_FIND_PEER(*head, mac, peer);
     if(peer) {
         HASH_DEL(*head, peer);

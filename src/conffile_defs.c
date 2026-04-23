@@ -273,7 +273,7 @@ static struct n3n_conf_option section_logging[] = {
         .offset = -1,
         .desc = "Set the logging verbosity",
         .help = "This is a number between 0 and 4, defaulting to 2 for "
-                "normal amounts of logging."
+                "normal amounts of logging. (0 is most logging, 4 is least)"
     },
     {.name = NULL},
 };
@@ -399,16 +399,43 @@ static struct n3n_conf_option section_supernode[] = {
     {.name = NULL},
 };
 
+static struct n3n_conf_str2id_data test_output_format_data[] = {
+    {
+        .id = 0,
+        .name = "pretty",
+    },
+    {
+        .id = 1,
+        .name = "raw",
+    },
+    {},
+};
+
 static struct n3n_conf_option section_test[] = {
     {
         .name = "benchmark_seconds",
         .type = n3n_conf_uint32,
-        .offset = offsetof(n2n_edge_conf_t, benchmark_seconds),
+        .offset = offsetof(n2n_edge_conf_t, test_benchmark_seconds),
         .desc = "Duration of each benchmark test",
         .help = "This allows the amount of time spent on running the built-in "
                 "benchmark tests to be adjusted.  Larger numbers will "
                 "produce more accurate results, but will obviously take more "
-                "time to complete. (Integer numbers of seconds only)",
+                "time to complete. (Integer numbers of seconds only). "
+                "A value of zero causes one loop to run",
+    },
+    {
+        .name = "output_format",
+        .type = n3n_conf_str2id,
+        .str2id_data = test_output_format_data,
+        .offset = offsetof(n2n_edge_conf_t, test_output_format),
+        .desc = "What format to show results of tests in",
+        .help = "The built-in tests can output their results in a number of "
+                "different formats.  The default is to output a 'pretty' "
+                "result - this is intended to be simplified and easily "
+                "readable.  The alternative is 'raw', which outputs the "
+                "unprocessed data, suitable for additional reporting or "
+                "debugging."
+                "FIXME - the integer number should be a string lookup.",
     },
     {.name = NULL},
 };

@@ -967,6 +967,10 @@ static void check_peer_registration_needed (struct n3n_runtime_data *eee,
 
     struct peer_info *scan;
 
+    if(!eee->known_peers) {
+        return;
+    }
+
     HASH_FIND_PEER(eee->known_peers, mac, scan);
 
     /* If we were not able to find it by MAC, we try to find it by socket. */
@@ -1493,8 +1497,9 @@ void send_register_super (struct n3n_runtime_data *eee) {
     n2n_REGISTER_SUPER_t reg;
     n3n_sock_str_t sockbuf;
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
+    /* reg.key_time is not set by this caller; zero it so encode_REGISTER_SUPER
+     * does not emit garbage for that field */
+    // TODO: refactor code to avoid needing memet
     memset(&reg, 0, sizeof(reg));
 
     cmn.ttl = N2N_DEFAULT_TTL;
@@ -1551,10 +1556,6 @@ static void send_unregister_super (struct n3n_runtime_data *eee) {
     if(!eee->curr_sn) {
         return;
     }
-
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
-    memset(&unreg, 0, sizeof(unreg));
 
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_UNREGISTER_SUPER;
@@ -1650,8 +1651,9 @@ static void send_register (struct n3n_runtime_data * eee,
         return;
     }
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
+    /* reg.auth is not set by this caller; zero it so encode_REGISTER does not
+     * emit garbage for that field */
+    // TODO: refactor code to avoid needing memet
     memset(&reg, 0, sizeof(reg));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_REGISTER;
@@ -1702,15 +1704,10 @@ static void send_register_ack (struct n3n_runtime_data * eee,
         return;
     }
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_REGISTER_ACK;
     cmn.flags = 0;
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
-
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&ack, 0, sizeof(ack));
     ack.cookie = reg->cookie;
     memcpy(ack.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
     memcpy(ack.dstMac, reg->srcMac, N2N_MAC_SIZE);
@@ -2242,17 +2239,23 @@ static int send_packet (struct n3n_runtime_data * eee,
 /* ************************************** */
 
 /** A layer-2 packet was received at the tunnel and needs to be sent via UDP. */
-void edge_send_packet2net (struct n3n_runtime_data * eee,
-                           uint8_t *tap_pkt, size_t len) {
+/** Encode an ethernet frame into an n3n PDU.
+ *
+ * Returns the number of bytes written to pktbuf, or 0 if the packet was
+ * discarded by policy (e.g. routing rules).  out_destMac receives the n3n
+ * destination MAC that should be used to route the PDU.
+ */
+size_t edge_encode_packet (struct n3n_runtime_data *eee,
+                           uint8_t *tap_pkt, size_t len,
+                           uint8_t *pktbuf, size_t pktbuf_size,
+                           n2n_mac_t out_destMac) {
 
     ipstr_t ip_buf;
-    n2n_mac_t destMac;
     n2n_common_t cmn;
     n2n_PACKET_t pkt;
     uint8_t *enc_src = tap_pkt;
     size_t enc_len = len;
     uint8_t compression_buf[N2N_PKT_BUF_SIZE];
-    uint8_t pktbuf[N2N_PKT_BUF_SIZE];
     size_t idx = 0;
     n2n_transform_t tx_transop_idx = eee->transop.transform_id;
     ether_hdr_t eh;
@@ -2260,7 +2263,7 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
     /* tap_pkt is not aligned so we have to copy to aligned memory */
     memcpy(&eh, tap_pkt, sizeof(ether_hdr_t));
 
-    /* Discard IP packets that are not originated by this hosts */
+    /* Discard IP packets that are not originated by this host */
     if(!(eee->conf.allow_routing)) {
         if(ntohs(eh.type) == 0x0800) {
             /* This is an IP packet from the local source address - not forwarded. */
@@ -2271,7 +2274,7 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
                 /* This is a packet that needs to be routed */
                 traceEvent(TRACE_INFO, "discarding routed packet destined to [%s]",
                            intoa(ntohl(*src), ip_buf, sizeof(ip_buf)));
-                return;
+                return 0;
             } else {
                 /* This packet is originated by us */
                 /* traceEvent(TRACE_INFO, "Sending non-routed packet"); */
@@ -2283,29 +2286,25 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
 
     /* Once processed, send to destination in PACKET */
 
-    memcpy(destMac, tap_pkt, N2N_MAC_SIZE); /* dest MAC is first in ethernet header */
+    memcpy(out_destMac, eh.dhost, N2N_MAC_SIZE);
 #ifdef HAVE_BRIDGING_SUPPORT
     /* find the destMac behind which edge, and change dest to this edge */
-    if((eee->conf.allow_routing) && (!is_multi_broadcast(destMac))) {
+    if((eee->conf.allow_routing) && (!is_multi_broadcast(out_destMac))) {
         struct host_info *host = NULL;
-        HASH_FIND(hh, eee->known_hosts, destMac, sizeof(n2n_mac_t), host);
+        HASH_FIND(hh, eee->known_hosts, out_destMac, sizeof(n2n_mac_t), host);
         if(host) {
-            memcpy(destMac, host->edge_addr, N2N_MAC_SIZE);
+            memcpy(out_destMac, host->edge_addr, N2N_MAC_SIZE);
         }
     }
 #endif
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&cmn, 0, sizeof(cmn));
     cmn.ttl = N2N_DEFAULT_TTL;
     cmn.pc = MSG_TYPE_PACKET;
     cmn.flags = 0; /* no options, not from supernode, no socket */
     memcpy(cmn.community, eee->conf.community_name, N2N_COMMUNITY_SIZE);
 
-    // FIXME: fix encode_* functions to not need memsets
-    memset(&pkt, 0, sizeof(pkt));
     memcpy(pkt.srcMac, eee->device.mac_addr, N2N_MAC_SIZE);
-    memcpy(pkt.dstMac, destMac, N2N_MAC_SIZE);
+    memcpy(pkt.dstMac, out_destMac, N2N_MAC_SIZE);
 
     pkt.transform = tx_transop_idx;
 
@@ -2359,7 +2358,7 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
     uint16_t headerIdx = idx;
 
     idx += eee->transop.fwd(&eee->transop,
-                            pktbuf + idx, N2N_PKT_BUF_SIZE - idx,
+                            pktbuf + idx, pktbuf_size - idx,
                             enc_src, enc_len, pkt.dstMac);
 
     traceEvent(TRACE_DEBUG, "encode PACKET of %u bytes, %u bytes data, %u bytes overhead, transform %u",
@@ -2382,7 +2381,19 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
 
     eee->transop.tx_cnt++; /* stats */
 
-    send_packet(eee, destMac, pktbuf, idx); /* to peer or supernode */
+    return idx;
+}
+
+void edge_send_packet2net (struct n3n_runtime_data * eee,
+                           uint8_t *tap_pkt, size_t len) {
+
+    uint8_t pktbuf[N2N_PKT_BUF_SIZE];
+    n2n_mac_t destMac;
+
+    size_t idx = edge_encode_packet(eee, tap_pkt, len, pktbuf, sizeof(pktbuf), destMac);
+    if(idx) {
+        send_packet(eee, destMac, pktbuf, idx); /* to peer or supernode */
+    }
 }
 
 /* ************************************** */
@@ -2766,8 +2777,6 @@ void process_pdu (struct n3n_runtime_data *eee,
                 return;
             }
 
-            // FIXME: fix decode_* functions to not need memsets
-            memset(&ra, 0, sizeof(ra));
             decode_REGISTER_SUPER_ACK(&ra, &cmn, udp_buf, &rem, &idx, tmpbuf);
 
             if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2888,8 +2897,6 @@ void process_pdu (struct n3n_runtime_data *eee,
                 return;
             }
 
-            // FIXME: fix decode_* functions to not need memsets
-            memset(&nak, 0, sizeof(nak));
             decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
 
             if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -3625,7 +3632,8 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
     conf->metric = 0;
     conf->mtu = DEFAULT_MTU;
 
-    conf->benchmark_seconds = 1;
+    conf->test_benchmark_seconds = 1;
+    conf->test_output_format = 0;
 
 #ifndef _WIN32
     struct passwd *pw = NULL;

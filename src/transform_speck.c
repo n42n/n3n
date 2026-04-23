@@ -188,8 +188,8 @@ struct bench_ctx {
     ssize_t outbuf_size;
 };
 
-static void *bench_setup (void) {
-    struct bench_ctx *ctx = calloc(1, sizeof(struct bench_ctx));
+static void *bench_setup (void *const _ctx) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
 
     const char *key = "just_a_test_key_for_benchmarks";
     const ssize_t key_len = sizeof(key);
@@ -208,7 +208,6 @@ static void *bench_setup (void) {
 static void bench_teardown (void *_ctx) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     speck_deinit(ctx->priv.ctx);
-    free(ctx);
 }
 
 static const ssize_t bench_encr_run (
@@ -271,6 +270,7 @@ static const void *const bench_get_output (void *const _ctx) {
 
 static struct bench_item bench_encr = {
     .name = "speck_encr",
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_encr_run,
     .get_output = bench_get_output,
@@ -281,6 +281,7 @@ static struct bench_item bench_encr = {
 
 static struct bench_item bench_decr = {
     .name = "speck_decr",
+    .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_decr_run,
     .get_output = bench_get_output,

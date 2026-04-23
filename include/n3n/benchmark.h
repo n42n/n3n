@@ -22,10 +22,12 @@ enum n3n_test_data {
     test_data_tf,
     test_data_pdu_v3,
     test_data_pdu_eth,
+    test_data_tun2pdu,
 };
 
-#define BENCH_ITEM_CHECKONLY   0x1  // benchmark should be skipped
-#define BENCH_ITEM_NOPTRACE    0x2  // fakebench takes too long, skip item
+#define BENCH_SKIP_CHECK    0x1  // Default to skip check
+#define BENCH_SKIP_BENCH    0x2  // Default to skip benchmark
+#define BENCH_SKIP_PTRACE   0x4  // Default to skip fakebench
 
 struct bench_item {
     struct bench_item *next;
@@ -33,7 +35,8 @@ struct bench_item {
     const char *name;                     // What is this testing
     const char *variant;                  // variant, eg name of optimisation
     int flags;
-    void *(*const setup)(void);           // Any pre-run setup
+    const ssize_t ctx_size;               // NR bytes to allocate for context
+    void *(*const setup)(void *const ctx); // Any pre-run setup
     const ssize_t(*const run)(
         void *const ctx,
         const void *data_in,
@@ -62,8 +65,10 @@ struct bench_item {
 
 void n3n_benchmark_register (struct bench_item *);
 
-void benchmark_run_all (const int level, const int seconds);
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter_name);
-int benchmark_check_all (int level);
+void benchmark_run_bench (const int level, const int seconds, int filterc, char **filterv);
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv);
+int benchmark_run_check (int level, int filterc, char **filterv);
+
+void benchmark_list (const int level);
 
 #endif

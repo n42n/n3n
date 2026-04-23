@@ -18,6 +18,7 @@
  */
 
 
+#include <inttypes.h> // for PRIx64
 #include <n3n/hexdump.h>  // for fhexdump
 #include <stdint.h>   // for uint8_t
 #include <stdio.h>    // for fprintf, FILE
@@ -29,7 +30,7 @@ void fhexdump (uint64_t display_addr, const void *in, int size, FILE *stream) {
     while(size>0) {
         int i;
 
-        fprintf(stream, "%03lx: ", display_addr);
+        fprintf(stream, "%03" PRIx64 ": ", display_addr);
 
         for(i = 0; i < 16; i++) {
             if(i < size) {
