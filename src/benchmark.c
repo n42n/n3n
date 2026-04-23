@@ -872,10 +872,10 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
                     break;
                 default:
                     printf("child got unexpected signal %i\n", sig);
+#ifdef __x86_64__
                     struct user_regs_struct regs;
                     ptrace(PTRACE_GETREGS, pid, 0, &regs);
                     fhexdump(0, &regs, sizeof(regs), stdout);
-#ifdef __x86_64__
                     printf("ip: 0x%08llx\n", regs.rip);
 #endif
                     exit(1);
