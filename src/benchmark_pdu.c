@@ -173,7 +173,11 @@ static struct bench_item bench_tun2pdu = {
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_tun2pdu_run,
+#ifndef _WIN32
     .get_output = bench_get_output,
+#else
+    .check = bench_check_fake,
+#endif
     .teardown = bench_teardown,
     .data_in = test_data_pdu_eth,
     .data_out = test_data_tun2pdu,
