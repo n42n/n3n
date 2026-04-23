@@ -397,7 +397,7 @@ export DEBFULLNAME
 dpkg:
 	rm -f debian/changelog
 	dch --create --empty --package n3n -v ${VERSION}-1 --no-auto-nmu local package Auto Build
-	env -u CFLAGS dpkg-buildpackage -rfakeroot -d -us -uc --host-type ${CONFIG_HOST}
+	env -u CFLAGS dpkg-buildpackage -rfakeroot -us -uc --host-type ${CONFIG_HOST}
 
 .PHONY: install.bin
 install.bin: apps
