@@ -21,6 +21,7 @@
 
 #include <connslot/connslot.h>
 #include <errno.h>              // for errno, EAFNOSUPPORT
+#include <fcntl.h>              // for fcntl, F_GETFD
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/initfuncs.h>      // for n3n_deinitfuncs
 #include <n3n/logging.h>        // for traceEvent
@@ -125,6 +126,16 @@ uint8_t mask2bitlen (uint32_t mask) {
     return bitlen;
 }
 
+/* Check if a socket/fd is invalid (EBADF on Unix, bad socket on Windows) */
+static int is_ebadf_fd (int fd) {
+#ifndef _WIN32
+    return (fcntl(fd, F_GETFD) == -1 && errno == EBADF);
+#else
+    int opt;
+    int len = sizeof(opt);
+    return (getsockopt((SOCKET)fd, SOL_SOCKET, SO_TYPE, (char *)&opt, &len) == SOCKET_ERROR);
+#endif
+}
 
 void close_tcp_connection (struct n3n_runtime_data *sss, n2n_tcp_connection_t *conn) {
 
@@ -2809,6 +2820,7 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
     time_t last_purge_edges = 0;
     time_t last_sort_communities = 0;
     time_t last_re_reg_and_purge = 0;
+    int select_errors = 0;
 
     sss->start_time = time(NULL);
 
@@ -2836,6 +2848,10 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
 
         // add the tcp connections' sockets
         HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn) {
+            // skip inactive connections (already closed or pending cleanup)
+            if(conn->inactive) {
+                continue;
+            }
             //socket descriptor
             FD_SET(conn->socket_fd, &readers);
             if(conn->socket_fd > max_sock) {
@@ -2862,6 +2878,48 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
         rc = select(max_sock + 1, &readers, &writers, NULL, &wait_time);
 
         now = time(NULL);
+
+        if(rc < 0) {
+            int err =
+#ifdef _WIN32
+                WSAGetLastError();
+#else
+                errno;
+#endif
+
+            /* Ignore signal interruption */
+            if(err == EINTR
+#ifdef _WIN32
+               || err == WSAEINTR
+#endif
+            ) {
+                /* do nothing, just continue loop */
+            } else {
+                select_errors++;
+                traceEvent(TRACE_WARNING, "select error (errno=%d), count=%d", err, select_errors);
+
+                if(select_errors >= 5) {
+                    traceEvent(TRACE_ERROR, "select errors exceeded threshold, exiting loop");
+                    *sss->keep_running = false;
+                } else {
+                    /* Scan TCP connections for bad FDs */
+                    n2n_tcp_connection_t *conn, *tmp_conn;
+                    HASH_ITER(hh, sss->tcp_connections, conn, tmp_conn) {
+                        if(conn->inactive) {
+                            continue;
+                        }
+                        if(is_ebadf_fd(conn->socket_fd)) {
+                            traceEvent(TRACE_WARNING, "removing bad TCP connection fd %d", conn->socket_fd);
+                            close_tcp_connection(sss, conn);
+                            HASH_DEL(sss->tcp_connections, conn);
+                            free(conn);
+                        }
+                    }
+                }
+            }
+        } else {
+            select_errors = 0;
+        }
 
         if(rc == 0) {
             if(((now - before) < wait_time.tv_sec) && (*sss->keep_running)) {
