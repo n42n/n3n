@@ -2057,7 +2057,9 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
     }
 
     /* Clamp TCP MSS on incoming VPN packets before writing to TAP. */
-    clamp_mss(eee, eth_payload, eth_size);
+    if(eee->conf.clamp_mss) {
+        clamp_mss(eee, eth_payload, eth_size);
+    }
 
     /* Write ethernet packet to tap device. */
     traceEvent(TRACE_DEBUG, "sending data of size %u to TAP", (unsigned int)eth_size);
@@ -2218,10 +2220,12 @@ uint16_t tcp_csum_update (uint16_t old_csum, uint16_t old_val, uint16_t new_val)
  * Clamp the TCP MSS value in SYN/SYN-ACK packets to prevent fragmentation.
  * Supports IPv4/IPv6, VLAN/QinQ, IP-in-IP, and IPv6 extension headers.
  * Uses byte-shift reads for alignment safety on ARM/MIPS.
+ * Inspired by tinc's clamp_mss; expanded with full protocol support.
+ * TCP checksum update follows RFC 1624 incremental one's-complement method.
  */
 void clamp_mss (struct n3n_runtime_data *eee, uint8_t *tap_pkt, size_t len) {
 
-    if(!eee->conf.clamp_mss || eee->conf.mtu <= 0) {
+    if(eee->conf.mtu <= 0) {
         return;
     }
 
@@ -2434,7 +2438,9 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
                            n2n_mac_t out_destMac) {
 
     /* Clamp TCP MSS if enabled */
-    clamp_mss(eee, tap_pkt, len);
+    if(eee->conf.clamp_mss) {
+        clamp_mss(eee, tap_pkt, len);
+    }
 
     ipstr_t ip_buf;
     n2n_common_t cmn;

@@ -205,15 +205,6 @@ static struct n3n_conf_option section_connection[] = {
         .help = "Sets the Type of Service used for outgoing VPN packets. "
                 "e.g. 0x48 for SSH like priority.",
     },
-    {
-        .name = "clamp_mss",
-        .type = n3n_conf_bool,
-        .offset = offsetof(n2n_edge_conf_t, clamp_mss),
-        .desc = "clamp TCP MSS to MTU",
-        .help = "When enabled, the MSS value in TCP SYN packets is adjusted "
-                "to prevent fragmentation issues when the underlying MTU is "
-                "smaller than the standard 1500 bytes.",
-    },
     {.name = NULL},
 };
 
@@ -471,6 +462,15 @@ static struct n3n_conf_option section_tuntap[] = {
                 "address is statically configured; 'dhcp' - where no "
                 "address is set by the edge and an external process is "
                 "expected to set it.",
+    },
+    {
+        .name = "clamp_mss",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, clamp_mss),
+        .desc = "Clamp TCP MSS to MTU",
+        .help = "When enabled, the MSS value in TCP SYN packets is adjusted "
+                "to prevent fragmentation issues when the underlying MTU is "
+                "smaller than the standard 1500 bytes.",
     },
     {
         .name = "macaddr",

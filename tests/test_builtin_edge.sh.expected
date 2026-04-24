@@ -19,7 +19,6 @@ pmtu_discovery=false
 register_interval=0
 register_pkt_ttl=0
 tos=0
-clamp_mss=false
 
 [daemon]
 userid=0
@@ -53,6 +52,7 @@ output_format=pretty
 [tuntap]
 address=0.0.0.0/0
 address_mode=auto
+clamp_mss=false
 metric=0
 mtu=0
 
