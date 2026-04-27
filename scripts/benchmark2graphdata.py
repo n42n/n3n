@@ -42,6 +42,7 @@ def main():
         "aes_decr,",
         "aes_encr,",
         "pdu2tun,",
+        "tun2pdu,",
         "NOP,",
     ]
 

@@ -230,15 +230,6 @@ static const uint16_t expected_pearson_hash_16 = 0x8be;
 static const uint32_t expected_pearson_hash_32 = 0x2ea108be;
 static const uint64_t expected_pearson_hash_64 = 0xb2d98fa82ea108be;
 
-static void *bench_pearson_setup (void) {
-    // largest result size plus one for the length
-    return malloc(32 + 1);
-}
-
-static void bench_pearson_teardown (void *ctx) {
-    return free(ctx);
-}
-
 static const ssize_t bench_16_run (
     void *ctx,
     const void *data_in,
@@ -381,51 +372,51 @@ static const void *const bench_get_output (void *const ctx) {
 
 static struct bench_item bench_16 = {
     .name = "pearson_hash_16",
-    .flags = BENCH_ITEM_CHECKONLY,
-    .setup = bench_pearson_setup,
+    .flags = BENCH_SKIP_BENCH,
+    // largest result size plus one for the length
+    .ctx_size = 32 + 1,
     .run = bench_16_run,
     .check = bench_16_check,
-    .teardown = bench_pearson_teardown,
     .data_in = test_data_32x16,
 };
 
 static struct bench_item bench_32 = {
     .name = "pearson_hash_32",
-    .flags = BENCH_ITEM_CHECKONLY,
-    .setup = bench_pearson_setup,
+    .flags = BENCH_SKIP_BENCH,
+    // largest result size plus one for the length
+    .ctx_size = 32 + 1,
     .run = bench_32_run,
     .check = bench_32_check,
-    .teardown = bench_pearson_teardown,
     .data_in = test_data_32x16,
 };
 
 static struct bench_item bench_64 = {
     .name = "pearson_hash_64",
-    .setup = bench_pearson_setup,
+    // largest result size plus one for the length
+    .ctx_size = 32 + 1,
     .run = bench_64_run,
     .check = bench_64_check,
-    .teardown = bench_pearson_teardown,
     .data_in = test_data_32x16,
 };
 
 static struct bench_item bench_128 = {
     .name = "pearson_hash_128",
-    .flags = BENCH_ITEM_CHECKONLY,
-    .setup = bench_pearson_setup,
+    .flags = BENCH_SKIP_BENCH,
+    // largest result size plus one for the length
+    .ctx_size = 32 + 1,
     .run = bench_128_run,
     .get_output = bench_get_output,
-    .teardown = bench_pearson_teardown,
     .data_in = test_data_32x16,
     .data_out = test_data_pearson_128,
 };
 
 static struct bench_item bench_256 = {
     .name = "pearson_hash_256",
-    .flags = BENCH_ITEM_CHECKONLY,
-    .setup = bench_pearson_setup,
+    .flags = BENCH_SKIP_BENCH,
+    // largest result size plus one for the length
+    .ctx_size = 32 + 1,
     .run = bench_256_run,
     .get_output = bench_get_output,
-    .teardown = bench_pearson_teardown,
     .data_in = test_data_32x16,
     .data_out = test_data_pearson_256,
 };

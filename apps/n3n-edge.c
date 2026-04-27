@@ -340,38 +340,26 @@ static void cmd_test_config_roundtrip (int argc, char **argv, void *_conf) {
 
 static void cmd_test_benchmark (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    int level=0;
-    if(argc == 2) {
-        if(strcmp("pretty", argv[1])==0) {
-            level=0;
-        } else if(strcmp("raw", argv[1])==0) {
-            level=1;
-        } else {
-            printf(
-                "benchmark:\n"
-                "\n"
-                "  usage: n3n-edge test benchmark [mode]\n"
-                "\n"
-                "The mode can be `raw` or `pretty` and defaults to pretty\n"
-            );
-            exit(1);
-        }
-    }
 
     // TODO:
     // - provide a way to run a partial set of benchmarks
-    // - provide a way to output in normalised or raw numbers
 
-    benchmark_run_all(level, conf->benchmark_seconds);
+    benchmark_run_bench(
+        conf->test_output_format,
+        conf->test_benchmark_seconds,
+        argc-1,
+        ++argv
+    );
     exit(0);
 }
 
-static void cmd_test_builtin (int argc, char **argv, void *conf) {
-    int level=0;
-    if(argv[1]) {
-        level = atoi(argv[1]);
-    }
-    int errors = benchmark_check_all(level);
+static void cmd_test_check (int argc, char **argv, void *_conf) {
+    n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
+    int errors = benchmark_run_check(
+        conf->test_output_format,
+        argc-1,
+        ++argv
+    );
     if(errors) {
         printf("ERROR\n");
     } else {
@@ -382,13 +370,23 @@ static void cmd_test_builtin (int argc, char **argv, void *conf) {
 
 static void cmd_test_fakebench (int argc, char **argv, void *_conf) {
     n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
-    benchmark_run_all_ptrace_instr(conf->benchmark_seconds, argv[1]);
+    benchmark_run_ptrace(
+        conf->test_benchmark_seconds,
+        argc-1,
+        ++argv
+    );
+    exit(0);
+}
+
+static void cmd_test_list (int argc, char **argv, void *_conf) {
+    n2n_edge_conf_t *conf = (n2n_edge_conf_t *)_conf;
+    benchmark_list(conf->test_output_format);
     exit(0);
 }
 
 static void cmd_test_hashing (int argc, char **argv, void *conf) {
-    fprintf(stderr, "Deprecated: use `n3n-edge test builtin` instead\n");
-    cmd_test_builtin(argc, argv, conf);
+    fprintf(stderr, "Deprecated: use `n3n-edge test check` instead\n");
+    cmd_test_check(argc, argv, conf);
 }
 
 static void cmd_tools_keygen (int argc, char **argv, void *conf) {
@@ -582,15 +580,17 @@ static struct n3n_subcmd_def cmd_tools[] = {
 static struct n3n_subcmd_def cmd_test[] = {
     {
         .name = "benchmark",
-        .help = "[pretty|raw] - run internal benchmarks",
+        .help = "[name..] - run built-in tests and benchmark results",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_benchmark,
+        .session_arg = true,
     },
     {
-        .name = "builtin",
-        .help = "[level] - run built-in tests",
+        .name = "check",
+        .help = "[name..] - run built-in tests and check results",
         .type = n3n_subcmd_type_fn,
-        .fn = &cmd_test_builtin,
+        .fn = &cmd_test_check,
+        .session_arg = true,
     },
     {
         .name = "config",
@@ -604,10 +604,18 @@ static struct n3n_subcmd_def cmd_test[] = {
         .fn = &cmd_test_hashing,
     },
     {
+        .name = "list",
+        .help = "Show the built-in tests",
+        .type = n3n_subcmd_type_fn,
+        .fn = &cmd_test_list,
+        .session_arg = true,
+    },
+    {
         .name = "fakebench",
-        .help = "[name] - count test instructions (when perf is unavailable)",
+        .help = "[name..] - run tests, counting instructions (when perf is unavailable)",
         .type = n3n_subcmd_type_fn,
         .fn = &cmd_test_fakebench,
+        .session_arg = true,
     },
     { .name = NULL }
 };
@@ -682,7 +690,8 @@ static void n3n_config (int argc, char **argv, char *defname, n2n_edge_conf_t *c
             exit(1);
         }
         if(r == -2) {
-            printf(
+            traceEvent(
+                TRACE_INFO,
                 "Warning: no config file found for session '%s'\n",
                 cmd.sessionname
             );

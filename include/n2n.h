@@ -126,6 +126,7 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv);
 void update_supernode_reg (struct n3n_runtime_data * eee, time_t nowTime);
 void readFromIPSocket (struct n3n_runtime_data * eee, int in_sock);
 void edge_term (struct n3n_runtime_data *eee);
+size_t edge_encode_packet (struct n3n_runtime_data *eee, uint8_t *tap_pkt, size_t len, uint8_t *pktbuf, size_t pktbuf_size, n2n_mac_t out_destMac);
 void edge_send_packet2net (struct n3n_runtime_data *eee, uint8_t *tap_pkt, size_t len);
 int run_edge_loop (struct n3n_runtime_data *eee);
 int quick_edge_init (char *device_name, char *community_name,

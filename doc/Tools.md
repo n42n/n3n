@@ -71,7 +71,7 @@ compare test output and expected results to quickly show deviations, helpful
 when on bug hunt.
 
 Example:
-- `tools/tests-transforms`
+- `tools/tests-transform`
 
 ### `n3n-decode`
 

@@ -76,6 +76,28 @@ void n3n_deinitfuncs_config () {
     }
 }
 
+const char *str2id_by_id (const struct n3n_conf_str2id_data data[], const int id) {
+    int i = 0;
+    while(data[i].name) {
+        if(data[i].id == id) {
+            return data[i].name;
+        }
+        i++;
+    }
+    return NULL;
+}
+
+const int str2id_by_name (const struct n3n_conf_str2id_data data[], const char *name) {
+    int i = 0;
+    while(data[i].name) {
+        if(strcmp(data[i].name, name)==0) {
+            return data[i].id;
+        }
+        i++;
+    }
+    return -1;
+}
+
 static struct n3n_conf_option *lookup_section (char *section) {
     struct n3n_conf_section *p = registered_sections;
     while(p) {
@@ -447,11 +469,19 @@ try_uint32:
             resolve_hostnames_str_add(listnr, value);
             return 0;
         }
+        case n3n_conf_str2id: {
+            int *val = (int *)valvoid;
+            *val = str2id_by_name(p->str2id_data, value);
+            if(*val == -1) {
+                return -1;
+            }
+            return 0;
+        }
     }
     return -1;
 }
 
-static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
+static void dump_wordwrap (FILE *f, char *prefix, const char *line, int width) {
     char *line_copy = strdup(line);
 
     int column = 0;
@@ -476,16 +506,16 @@ static void dump_wordwrap (FILE *f, char *prefix, char *line, int width) {
 // for the string - or may return a static string.  A return of NULL means
 // that the option could not be rendered.
 // Buffer overflow is handled simplisticly by simply filling the buffer.
-static const char * stringify_option (void *conf, struct n3n_conf_option *option, char *buf, size_t buflen) {
+static const char * stringify_option (void *conf, struct n3n_conf_option option, char *buf, size_t buflen) {
     void *valvoid = NULL;
 
     // Entries that cannot be set via a pointer are marked with
     // a negative offset
-    if(option->offset >= 0) {
-        valvoid = (char *)conf + option->offset;
+    if(option.offset >= 0) {
+        valvoid = (char *)conf + option.offset;
     }
 
-    switch(option->type) {
+    switch(option.type) {
         case n3n_conf_strncpy: {
             char *val = (char *)valvoid;
 
@@ -658,16 +688,20 @@ static const char * stringify_option (void *conf, struct n3n_conf_option *option
             // This is a multi-value item, so needs special handling to dump
             return NULL;
         }
+        case n3n_conf_str2id: {
+            int *val = (int *)valvoid;
+            return str2id_by_id(option.str2id_data, *val);
+        }
     }
 
     return NULL;
 }
 
-static int option_storagesize (struct n3n_conf_option *option) {
+static int option_storagesize (const struct n3n_conf_option option) {
     void *valvoid = NULL;
-    switch(option->type) {
+    switch(option.type) {
         case n3n_conf_strncpy: {
-            return option->length;
+            return option.length;
         }
         case n3n_conf_bool: {
             bool *val = (bool *)valvoid;
@@ -736,6 +770,10 @@ static int option_storagesize (struct n3n_conf_option *option) {
         case n3n_conf_hostname_str: {
             return -1;
         }
+        case n3n_conf_str2id: {
+            int *val = (int *)valvoid;
+            return sizeof(*val);
+        }
     }
     return -1;
 }
@@ -750,11 +788,8 @@ static int option_storagesize (struct n3n_conf_option *option) {
  * 4 = name, value, desc, schema and long help
  *
  */
-static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option *option) {
-    if(!option) {
-        return;
-    }
-    if(!option->name) {
+static void dump_option (FILE *f, void *conf, int level, const struct n3n_conf_option option) {
+    if(!option.name) {
         return;
     }
 
@@ -765,7 +800,7 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
     }
     if(level >= 2) {
         // prefix with a short desc
-        fprintf(f, "# %s\n", option->desc);
+        fprintf(f, "# %s\n", option.desc);
     }
 #if 0
     if(level >= 3) {
@@ -775,25 +810,25 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
 #endif
     if(level >= 4) {
         // also prefix with a long help
-        dump_wordwrap(f, "#", option->help, 78);
+        dump_wordwrap(f, "#", option.help, 78);
     }
 
     if(level >= 1) {
         // show both name and value
 
-        if(option->type == n3n_conf_hostname_str) {
+        if(option.type == n3n_conf_hostname_str) {
             // special case for this multi-value item
             // TODO: this breaks layering, but I cannot think of a simple
             // alternative
-            fprintf(f, "#%s=\n", option->name);
-            int listnr = option->offset;
+            fprintf(f, "#%s=\n", option.name);
+            int listnr = option.offset;
             int index = 0;
             char *p = (char *)resolve_hostnames_str_get(listnr, index);
             while(p) {
                 fprintf(
                     f,
                     "%s=%s\n",
-                    option->name,
+                    option.name,
                     p
                 );
                 index++;
@@ -812,23 +847,23 @@ static void dump_option (FILE *f, void *conf, int level, struct n3n_conf_option 
 
             if(level >= 2) {
                 // only show the invalids in levels with help texts
-                fprintf(f, "#%s=\n", option->name);
+                fprintf(f, "#%s=\n", option.name);
             }
             return;
         }
 
-        fprintf(f, "%s=%s\n", option->name, p);
+        fprintf(f, "%s=%s\n", option.name, p);
         return;
     }
 
     // level must be <= 0
     // just print the variable name
-    fprintf(f, "%s=\n", option->name);
+    fprintf(f, "%s=\n", option.name);
 }
 
 void n3n_config_dump (void *conf, FILE *f, int level) {
     struct n3n_conf_section *section = registered_sections;
-    struct n3n_conf_option *option;
+    const struct n3n_conf_option *option;
 
     fprintf(f, "# Autogenerated config dump\n");
     while(section) {
@@ -843,9 +878,10 @@ void n3n_config_dump (void *conf, FILE *f, int level) {
         fprintf(f, "[%s]\n", section->name);
 
         option = section->options;
-        while(option->name) {
-            dump_option(f, conf, level, option);
-            option++;
+        int i = 0;
+        while(option[i].name) {
+            dump_option(f, conf, level, option[i]);
+            i++;
         }
 
         section = section->next;
@@ -854,14 +890,15 @@ void n3n_config_dump (void *conf, FILE *f, int level) {
 
 void n3n_config_debug_addr (void *conf, FILE *f) {
     struct n3n_conf_section *section = registered_sections;
-    struct n3n_conf_option *option;
+    const struct n3n_conf_option *option;
 
     fprintf(f, "# Internal Address consistancy checks\n");
     while(section) {
         option = section->options;
-        while(option->name) {
-            if(option->type == n3n_conf_hostname_str) {
-                option++;
+        int i = 0;
+        while(option[i].name) {
+            if(option[i].type == n3n_conf_hostname_str) {
+                i++;
                 continue;
             }
             void *first = NULL;
@@ -869,11 +906,11 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
 
             // Entries that cannot be set via a pointer are marked with
             // a negative offset
-            if(option->offset >= 0) {
-                first = (char *)conf + option->offset;
+            if(option[i].offset >= 0) {
+                first = (char *)conf + option[i].offset;
             }
 
-            int size = option_storagesize(option);
+            int size = option_storagesize(option[i]);
             if(size > 0) {
                 last = first + (size-1);
             }
@@ -885,10 +922,10 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
                 last,
                 size,
                 section->name,
-                option->name,
-                option->type
+                option[i].name,
+                option[i].type
             );
-            option++;
+            i++;
         }
 
         section = section->next;

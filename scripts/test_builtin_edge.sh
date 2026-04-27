@@ -16,7 +16,7 @@ docmd() {
     return $S
 }
 
-docmd "$BINDIR"/apps/n3n-edge test builtin
+docmd "$BINDIR"/apps/n3n-edge test check
 
 docmd "$BINDIR"/apps/n3n-edge test config roundtrip
 

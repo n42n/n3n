@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #ifndef _WIN32
+#include <sys/mman.h>           // for mmap, MAP_SHARED, MAP_ANONYMOUS
 #include <sys/ptrace.h>         // for ptrace
 #include <sys/types.h>          // for PTRACE_*
 #include <sys/wait.h>           // for wait, WIFSTOPPED
@@ -509,6 +510,46 @@ static const uint8_t _test_data_pdu_eth[] = {
     0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
 };
 
+/* Expected output for tun2pdu: the n3n v3 PDU produced by edge_send_packet2net
+ * when handed test_data_pdu_eth.  Layout:
+ *   common header (24 bytes): ver=3, ttl=2, flags=0x0003 (MSG_TYPE_PACKET, no
+ *     socket), community="test"+zeros
+ *   PACKET (14 bytes): srcMac=02:00:00:00:00:00 (device.mac_addr set in
+ *     bench_tun2pdu_setup), dstMac=02:00:00:00:00:11 (eth dst from
+ *     test_data_pdu_eth), compression=1 (NONE), transform=1 (NULL)
+ *   payload (528 bytes): test_data_pdu_eth verbatim (NULL transform copies)
+ */
+static const uint8_t _test_data_tun2pdu[] = {
+    /* common header */
+    0x03,0x02,0x00,0x03,
+    0x74,0x65,0x73,0x74,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    /* PACKET: srcMac, dstMac, compression, transform */
+    0x02,0x00,0x00,0x00,0x00,0x00,
+    0x02,0x00,0x00,0x00,0x00,0x11,
+    0x01,0x01,
+    /* payload: test_data_pdu_eth (528 bytes) */
+    0x02,0x00,0x00,0x00,0x00,0x11,0x02,0x00,
+    0x00,0x00,0x00,0x22,0x0f,0x0f,0x55,0xaa,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+    0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
+};
+
 struct test_data {
     const int size;
     const void *data;
@@ -559,17 +600,13 @@ const struct test_data benchmark_test_data[] = {
         .size = sizeof(_test_data_pdu_eth),
         .data = &_test_data_pdu_eth,
     },
+    [test_data_tun2pdu] = {
+        .size = sizeof(_test_data_tun2pdu),
+        .data = &_test_data_tun2pdu,
+    },
 };
 
 /* A do-nothing function to time the benchmark framework */
-static void *bench_nop_setup (void) {
-    return NULL;
-}
-
-static void bench_nop_teardown (void *ctx) {
-    return;
-}
-
 static const ssize_t bench_nop_run (
     void *ctx,
     const void *data_in,
@@ -582,9 +619,9 @@ static const ssize_t bench_nop_run (
 
 static struct bench_item bench_nop = {
     .name = "NOP",
-    .setup = bench_nop_setup,
+    .flags = BENCH_SKIP_CHECK,
+    .ctx_size = 0,
     .run = bench_nop_run,
-    .teardown = bench_nop_teardown,
     .data_in = test_data_none,
     .data_out = test_data_none,
 };
@@ -608,6 +645,111 @@ int generic_check (
     return 0;
 }
 
+static void *item_setup (struct bench_item *item) {
+    void *ctx;
+    if(item->ctx_size) {
+        ctx = malloc(item->ctx_size);
+        if(!ctx) {
+            fprintf(stderr, "Malloc failure");
+            exit(1);
+        }
+    } else {
+        ctx = NULL;
+    }
+    if(item->setup) {
+        ctx = item->setup(ctx);
+    }
+
+    return ctx;
+}
+
+static void item_teardown (struct bench_item *item, void *ctx) {
+    if(item->teardown) {
+        item->teardown(ctx);
+    }
+    if(item->ctx_size) {
+        free(ctx);
+    }
+}
+
+static int item_fullname (struct bench_item *item, char *buf, ssize_t size, int level) {
+    return snprintf(
+        buf,
+        size,
+        "%s%s%s",
+        item->name,
+        (level || item->variant) ? ",":"",
+        item->variant ? item->variant : ""
+    );
+}
+
+#define ACTION_CHECK    1
+#define ACTION_BENCH    2
+#define ACTION_PTRACE   3
+
+// Check if this item should be run or not
+static bool item_allowrun (struct bench_item *item, int action, int filterc, char **filterv) {
+    bool _default = false;
+
+    // Calculate what the default action would be
+    switch(action) {
+        case ACTION_CHECK:
+            if((item->flags & BENCH_SKIP_CHECK)) {
+                _default = false;
+            } else {
+                _default = true;
+            }
+            break;
+
+        case ACTION_BENCH:
+            if(item->flags & BENCH_SKIP_BENCH) {
+                _default = false;
+            } else {
+                _default = true;
+            }
+            break;
+
+        case ACTION_PTRACE:
+            if(item->flags & BENCH_SKIP_BENCH) {
+                _default = false;
+            } else if(item->flags & BENCH_SKIP_PTRACE) {
+                _default = false;
+            } else {
+                _default = true;
+            }
+    }
+
+    bool result = false;
+
+    if(filterc > 0) {
+        // Check all the filter strings
+        for(int i = 0; i < filterc; i++) {
+            if(!filterv[i]) {
+                continue;
+            }
+            if(strcmp("ALL", filterv[i])==0) {
+                result = true;
+            }
+            if(strcmp("DEFAULT", filterv[i])==0) {
+                result = _default;
+            }
+            if(strcmp(item->name, filterv[i])==0) {
+                result = true;
+            }
+        }
+    } else {
+        result = _default;
+    }
+
+    return result;
+}
+
+// These vars are shared between the harness and the traced pid when running a
+// ptrace benchmark
+struct pthread_shared {
+    int loops;
+    int sentinal;
+};
 
 static bool alarm_fired;
 
@@ -618,13 +760,13 @@ static void handler (int nr) {
 #endif
 
 #ifdef _WIN32
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     fprintf(stderr,"no ptrace support on windows\n");
     return;
 }
 
 #elif defined(DARWIN)
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     fprintf(stderr,"Macos only partially implements ptrace support\n");
     return;
 }
@@ -634,12 +776,25 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
     struct timeval tv1;
     struct timeval tv2;
 
-    void *ctx = item->setup();
+    void *ctx = item_setup(item);
     const int input_size = benchmark_test_data[item->data_in].size;
     const void *input_data = benchmark_test_data[item->data_in].data;
 
-    int loops = 0;
-    alarm_fired = false;
+    struct pthread_shared *shm = mmap(
+        NULL,
+        sizeof(struct pthread_shared),
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED | MAP_ANONYMOUS,
+        -1,
+        0
+    );
+    if(!shm) {
+        perror("mmap");
+        exit(1);
+    }
+
+    shm->loops = 0;
+    shm->sentinal = -1;
 
     struct sigaction sa = {
         .sa_handler = &handler,
@@ -648,24 +803,36 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
     gettimeofday(&tv1, NULL);
 
-    uint64_t sentinal = 0;
     pid_t pid = fork();
 
     if(pid == 0) {
-        raise(SIGSTOP);
+        int wait_count = 10000;
+        // Spin on ether the parent is ready or we get bored of waiting
+        while(wait_count--) {
+            if(shm->sentinal==0) {
+                break;
+            }
+        }
+
+        if(seconds > 0) {
+            alarm_fired = false;
+            alarm(seconds);
+        } else {
+            alarm_fired = true;
+        }
 
         ssize_t count_in;
-        sentinal = 1;
-        while(!alarm_fired) {
+        shm->sentinal = 1;
+        do {
             item->run(
                 ctx,
                 input_data,
                 input_size,
                 &count_in
             );
-            loops++;
-        }
-        sentinal = 2;
+            shm->loops++;
+        } while(!alarm_fired);
+        shm->sentinal = 2;
 
         exit(0);
     } else {
@@ -674,17 +841,12 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
             exit(1);
         }
 
+        shm->sentinal = 0;
         int status;
         wait(&status);
 
-        alarm(seconds);
         while(WIFSTOPPED(status)) {
-            if(alarm_fired) {
-                ptrace(PTRACE_POKEDATA, pid, &alarm_fired, true);
-                loops = ptrace(PTRACE_PEEKDATA, pid, &loops, 0);
-            }
-            uint64_t _sentinal = ptrace(PTRACE_PEEKDATA, pid, &sentinal, 0);
-            if(_sentinal == 1) {
+            if(shm->sentinal == 1) {
                 item->instr++;
 #if 0
                 // For debugging how accurate the measured cycle counts are,
@@ -697,7 +859,29 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 #endif
             }
 
-            if(ptrace(PTRACE_SINGLESTEP, pid, 0, 0)==-1) {
+            int sig = WSTOPSIG(status);
+            switch(sig) {
+                case SIGALRM:
+                    // Pass these through
+                    break;
+                case 0:
+                case SIGTRAP:
+                case SIGSTOP:
+                    // Hide these from the child
+                    sig = 0;
+                    break;
+                default:
+                    printf("child got unexpected signal %i\n", sig);
+#ifdef __x86_64__
+                    struct user_regs_struct regs;
+                    ptrace(PTRACE_GETREGS, pid, 0, &regs);
+                    fhexdump(0, &regs, sizeof(regs), stdout);
+                    printf("ip: 0x%08llx\n", regs.rip);
+#endif
+                    exit(1);
+            }
+
+            if(ptrace(PTRACE_SINGLESTEP, pid, 0, sig)==-1) {
                 perror("ptrace_singlestep");
                 exit(1);
             }
@@ -707,47 +891,29 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
     gettimeofday(&tv2, NULL);
 
-    item->teardown(ctx);
+    item_teardown(item, ctx);
 
     timersub(&tv2, &tv1, &tv1);
 
-    item->loops = loops;
+    item->loops = shm->loops;
     item->sec = tv1.tv_sec;
     item->usec = tv1.tv_usec;
 }
 
 // Run all tests (or just those with the matching name) once and count how
 // many instructions are
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
     printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
 
     for(p = registered_items; p; p = p->next) {
-        if(p->flags & BENCH_ITEM_CHECKONLY) {
+        if(!item_allowrun(p, ACTION_PTRACE, filterc, filterv)) {
             continue;
-        }
-        if(filter) {
-            // Allow filtering for only matching test names
-            if(strcmp(p->name, filter)!=0) {
-                continue;
-            }
-        } else {
-            // Check if this test should be skipped
-            if(p->flags & BENCH_ITEM_NOPTRACE) {
-                continue;
-            }
         }
 
         char name[40];
-        snprintf(
-            &name[0],
-            sizeof(name),
-            "%s,%s",
-            p->name,
-            p->variant ? p->variant : ""
-        );
-
+        item_fullname(p, &name[0], sizeof(name), 1);
         printf("%s,", name);
         fflush(stdout);
 
@@ -760,7 +926,7 @@ void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
 }
 
 #else
-void benchmark_run_all_ptrace_instr (const int seconds, const char *filter) {
+void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     fprintf(stderr,"TODO: add ptrace based fakebench for this platform\n");
     return;
 }
@@ -772,7 +938,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
 
     perf_setup(item);
 
-    void *ctx = item->setup();
+    void *ctx = item_setup(item);
     const int input_size = benchmark_test_data[item->data_in].size;
     const void *input_data = benchmark_test_data[item->data_in].data;
 
@@ -784,13 +950,18 @@ static void run_one_item (const int seconds, struct bench_item *item) {
         .sa_handler = &handler,
     };
     sigaction(SIGALRM, &sa, NULL);
-    alarm(seconds);
+
+    if(seconds > 0) {
+        alarm(seconds);
+    } else {
+        alarm_fired = true;
+    }
 #endif
 
     gettimeofday(&tv1, NULL);
     perf_measure_start(item);
 
-    while(!alarm_fired) {
+    do {
         ssize_t count_in;
 
         ssize_t count_out = item->run(
@@ -809,14 +980,14 @@ static void run_one_item (const int seconds, struct bench_item *item) {
             alarm_fired = true;
         }
 #endif
-    }
+    } while(!alarm_fired);
 
     // TODO: per loop min/max/sumofsquares?
 
     perf_measure_collect(item);
     gettimeofday(&tv2, NULL);
 
-    item->teardown(ctx);
+    item_teardown(item, ctx);
 
 #ifdef _WIN32
     // Just do a half-arsed job on windows, which matches their ability to
@@ -832,7 +1003,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
     item->usec = tv1.tv_usec;
 }
 
-void benchmark_run_all (const int level, const int seconds) {
+void benchmark_run_bench (const int level, const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
     if(level==0) {
@@ -845,18 +1016,12 @@ void benchmark_run_all (const int level, const int seconds) {
     uint64_t cycles_total = 0;
 
     for(p = registered_items; p; p = p->next) {
-        if(p->flags && BENCH_ITEM_CHECKONLY) {
+        if(!item_allowrun(p, ACTION_BENCH, filterc, filterv)) {
             continue;
         }
 
         char name[40];
-        snprintf(
-            &name[0],
-            sizeof(name),
-            "%s,%s",
-            p->name,
-            p->variant ? p->variant : ""
-        );
+        item_fullname(p, &name[0], sizeof(name), level);
 
         if(level==0) {
             printf("%-20s", name);
@@ -905,21 +1070,19 @@ void benchmark_run_all (const int level, const int seconds) {
     }
 }
 
-int benchmark_check_all (int level) {
+int benchmark_run_check (int level, int filterc, char **filterv) {
     int result = 0;
 
     for(struct bench_item *p = registered_items; p; p = p->next) {
-        if(p->data_out == test_data_none && !p->check) {
+        if(!item_allowrun(p, ACTION_CHECK, filterc, filterv)) {
             continue;
         }
 
-        fprintf(stderr, "%s", p->name);
-        if(p->variant) {
-            fprintf(stderr, ",%s", p->variant);
-        }
-        fprintf(stderr, ": ");
+        char name[40];
+        item_fullname(p, &name[0], sizeof(name), level);
+        fprintf(stderr, "%s: ", name);
 
-        void *ctx = p->setup();
+        void *ctx = item_setup(p);
         const int input_size = benchmark_test_data[p->data_in].size;
         const void *input_data = benchmark_test_data[p->data_in].data;
 
@@ -962,8 +1125,8 @@ int benchmark_check_all (int level) {
 
         // Sanity check for bad data structures
         if(!checked) {
-            fprintf(stderr, "ERROR: neither check nor get_output available\n");
-            exit(1);
+            fprintf(stderr, "WARNING: neither check nor get_output available\n");
+            this_result += 1;
         }
 
         if(this_result) {
@@ -974,10 +1137,53 @@ int benchmark_check_all (int level) {
         if(level) {
             printf("\n");
         }
-        p->teardown(ctx);
+        item_teardown(p, ctx);
     }
 
     return result;
+}
+
+void benchmark_list (const int level) {
+    if(level==0) {
+        // Pretty
+        printf("\n");
+        printf("/------ C = include in default check list\n");
+        printf("|/----- B = include in default benchmark list\n");
+        printf("||/---- F = include in default fakebench list\n");
+        printf("||| Name                 ctx_size in out\n");
+        printf("+++-====================-========-==-===\n");
+    } else {
+        // raw
+        printf("flags,name,variant,size,data_in,data_out\n");
+    }
+
+    for(struct bench_item *p = registered_items; p; p = p->next) {
+        char name[40];
+        item_fullname(p, &name[0], sizeof(name), level);
+
+        if(level==0) {
+            // Pretty
+            printf(
+                "%s%s%s %-20s %8i %2i %3i\n",
+                (p->flags & BENCH_SKIP_CHECK) ? "-":"C",
+                (p->flags & BENCH_SKIP_BENCH) ? "-":"B",
+                (p->flags & BENCH_SKIP_PTRACE) ? "-":"F",
+                name,
+                (int)p->ctx_size,
+                p->data_in,
+                p->data_out
+            );
+        } else {
+            printf(
+                "0x%02x,%s,%i,%i,%i\n",
+                p->flags,
+                name,
+                (int)p->ctx_size,
+                p->data_in,
+                p->data_out
+            );
+        }
+    }
 }
 
 void n3n_initfuncs_benchmark () {
