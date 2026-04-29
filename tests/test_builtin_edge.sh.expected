@@ -52,6 +52,7 @@ output_format=pretty
 [tuntap]
 address=0.0.0.0/0
 address_mode=auto
+clamp_mss=false
 metric=0
 mtu=0
 
