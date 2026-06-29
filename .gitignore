@@ -36,6 +36,9 @@ coverage/
 *.unc-backup.md5~
 *.unc-backup~
 
+# Files created by mkdocs
+/site/
+
 # Empty files created by the openwrt build
 /.built
 /.built_check

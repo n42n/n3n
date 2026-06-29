@@ -248,6 +248,9 @@ BUILD_DEP:=\
 	yamllint \
 	jq \
 
+BUILD_DEP_DOCS:=\
+	mkdocs
+
 COVERAGEDIR?=coverage
 
 .PHONY: all
@@ -426,6 +429,18 @@ install: n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
 
 .PHONY: install
 install: install.bin install.doc install.systemd
+
+.PHONY: build-dep-docs
+build-dep-docs:
+	sudo apt install $(BUILD_DEP_DOCS)
+
+.PHONY: docs
+docs:
+	mkdocs build
+
+.PHONY: docs_serve
+docs_serve:
+	mkdocs serve
 
 ifeq (0, $(words $(findstring $(MAKECMDGOALS), clean)))
 -include $(DEPS)
