@@ -12,11 +12,7 @@ Build-Depends:
  flake8,
  gcovr,
  jq,
- libcap-dev,
- libzstd-dev,
- python3,
  shellcheck,
- uncrustify,
  yamllint,
 
 Package: n3n

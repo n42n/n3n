@@ -213,5 +213,6 @@ as they will often use a different libc environment.
 There are also some example package build recipes included with the source.
 
 - Debian: `make dpkg`
+  (This detects missing packages and outputs an error. If so, try `make build-deps`)
 - [RPM](../packages/rpm)
 - [OpenWRT](../packages/openwrt/README.md)

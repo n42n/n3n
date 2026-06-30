@@ -39,51 +39,16 @@ version 1.3.1 which uses a protocol from 2008 and has not been compatible with
 the stable releases of n2n for many years - thus will definitely not
 interoperate with n3n)
 
-## License
-
-- Any new self-contained tools or modules are licensed GPL-2.0-only.
-- Existing code is licensed GPL-3-only.
-- There are multiple distinct copyright holders throughout the codebase.
-- There is no Contributor Licence Agreement and thus there is no single body
-  that can take ownership of the code and/or change the licensing.
-
-## Quick Start
-
-For Debian, Ubuntu or similar dpkg based systems:
-
-- Download the package from the [latest stable release](https://github.com/n42n/n3n/releases/latest).
-
-- Install the package
-
-- Create a config file - `/etc/n3n/mynetwork.conf` containing
-  ```
-  [community]
-  name=mynetwork
-  key=mypassword
-  supernode=supernode.ntop.org:7777
-  ```
-
-- Start the service: `sudo systemctl start n3n-edge@mynetwork`
-
-- Use `n3nctl` (the n3n management CLI) to inspect the running daemon:
-
-  - Check the connection: `sudo n3nctl -s mynetwork supernodes`
-
-  - List other nodes found: `sudo n3nctl -s mynetwork edges`
-
-**IMPORTANT:** It is strongly advised to choose a custom community name (the
-`community.name` option) and a secret encryption key (the `community.key`
-option) in order to prevent other users from connecting to your computer.
-
-It is also suggested that you setup your own [supernode](doc/Supernode.md)
+- [Licensing](Licensing.md)
+- [Quick Start](Quick_Start.md)
 
 # See Also
 
-- [Build from Source](doc/Building.md) document.
-- [Security Considerations](doc/Security.md) document.
-- [Advanced Configuration](doc/Advanced.md) document.
-- Answers to [frequently asked questions](doc/Faq.md) (FAQ).
-- Details about the internals in the [Hacking guide](doc/Hacking.md).
+- [Building from Source](../doc/Building.md)
+- [Security Considerations](../doc/Security.md) document.
+- [Advanced Configuration](../doc/Advanced.md) document.
+- Answers to [frequently asked questions](../doc/Faq.md) (FAQ).
+- Details about the internals in the [Hacking guide](../doc/Hacking.md).
 
 ## Contribution
 
@@ -95,9 +60,9 @@ You can contribute to n3n in various ways:
 - Improve the documentation
 - Provide pull requests with enhancements
 
-For dev setup and internals, see the [Hacking guide](doc/Hacking.md).
+For dev setup and internals, see the [Hacking guide](../doc/Hacking.md).
 
 ---
 
 (C) 2007-22 - ntop.org and contributors
-Copyright (C) 2023-25 Hamish Coleman
+Copyright (C) 2023-26 Hamish Coleman
