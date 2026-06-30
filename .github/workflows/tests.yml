@@ -28,7 +28,7 @@ jobs:
           # - -fsanitize=leak
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -54,7 +54,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "analysis${{ matrix.flags }}"
           path: tests
@@ -69,7 +69,7 @@ jobs:
           - ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -110,7 +110,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tests-linux
           path: tests
@@ -122,13 +122,13 @@ jobs:
         shell: bash
 
       - name: Upload gcovr report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-${{ matrix.os }}
           path: coverage
 
       - name: Upload data to codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -142,7 +142,7 @@ jobs:
           - macos-15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -181,7 +181,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tests-macos
           path: tests
@@ -210,7 +210,7 @@ jobs:
           - windows-2025
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -242,7 +242,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tests-windows
           path: tests
@@ -262,7 +262,7 @@ jobs:
           - i386
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -304,7 +304,7 @@ jobs:
           git status
 
       - name: Upload dpkg
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: packages-dpkg-${{ matrix.arch }}
           path: "*.deb"
@@ -316,7 +316,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -336,7 +336,7 @@ jobs:
           mv ~/rpmbuild ./
 
       - name: Upload rpm
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: packages-rpm
           path: rpmbuild/RPMS/x86_64/*.rpm
@@ -373,7 +373,7 @@ jobs:
     steps:
       - name: Cache entire openwrt dir
         id: cache-openwrt
-        uses: actions/cache@v3
+        uses: actions/cache@v6
         with:
           path: openwrt
           key: openwrt-${{ matrix.sdk_ver }}-${{ matrix.name }}
@@ -387,7 +387,7 @@ jobs:
         working-directory: ./
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: n3n
           fetch-depth: 0
@@ -435,13 +435,13 @@ jobs:
 
       - name: Upload config file used for build
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: openwrt-config-${{ matrix.name }}
           path: config.*
 
       - name: Upload ipk
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: packages-ipk-${{ matrix.name }}
           path: openwrt/bin/packages/*/base/*.ipk
@@ -453,7 +453,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -473,7 +473,7 @@ jobs:
           make install DESTDIR=binaries/x86_64-pc-mingw64
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binaries
           path: binaries
@@ -491,7 +491,7 @@ jobs:
           - arm64-apple-macos
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -516,7 +516,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload config.log output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: config-log-${{ matrix.arch }}
           path: config.log
@@ -527,7 +527,7 @@ jobs:
           make install DESTDIR=binaries/${{ matrix.arch }}
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binaries-${{ matrix.arch }}
           path: binaries
@@ -539,7 +539,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -568,7 +568,7 @@ jobs:
           make install DESTDIR=binaries/universal-apple-darwin
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binaries-universal-macos
           path: binaries
@@ -600,7 +600,7 @@ jobs:
           - arch: mipsel-linux-gnu
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -628,7 +628,7 @@ jobs:
           make install DESTDIR=binaries/${{ matrix.arch }}
 
       - name: Upload binary artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binaries-${{ matrix.arch }}
           path: binaries
@@ -661,7 +661,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

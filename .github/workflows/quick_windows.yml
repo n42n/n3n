@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -30,7 +30,7 @@ jobs:
 
       - if: ${{ failure() }}
         name: Upload tests output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tests-smoketest-windows
           path: tests

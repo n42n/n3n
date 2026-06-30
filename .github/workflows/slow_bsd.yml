@@ -23,15 +23,15 @@ jobs:
             version: '13.2'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
         run: |
           git fetch --force --tags
 
-      - name: Test on ${{ matrix.os.name }}
-        uses: cross-platform-actions/action@v0.27.0
+      - name: Start VM
+        uses: cross-platform-actions/action@v1.3.0
         with:
           operating_system: ${{ matrix.os.name }}
           architecture: ${{ matrix.os.architecture }}
@@ -39,18 +39,21 @@ jobs:
           shell: bash
           memory: 5G
           cpu_count: 4
-          run: |
-            sudo pkg install -y \
-              autoconf \
-              automake \
-              git-tiny \
-              gmake \
-              python3 \
-              jq \
-              bash
-            ./autogen.sh
-            ./configure CC=clang
-            gmake all
+
+      - name: Test
+        shell: cpa.sh {0}
+        run: |
+          sudo pkg install -y \
+            autoconf \
+            automake \
+            git-tiny \
+            gmake \
+            python3 \
+            jq \
+            bash
+          ./autogen.sh
+          ./configure CC=clang
+          gmake all
 
   test_openbsd:
     name: Test OpenBSD
@@ -63,15 +66,15 @@ jobs:
             version: '7.3'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
         run: |
           git fetch --force --tags
 
-      - name: Test on ${{ matrix.os.name }}
-        uses: cross-platform-actions/action@v0.27.0
+      - name: Start VM
+        uses: cross-platform-actions/action@v1.3.0
         with:
           operating_system: ${{ matrix.os.name }}
           architecture: ${{ matrix.os.architecture }}
@@ -79,18 +82,21 @@ jobs:
           shell: bash
           memory: 5G
           cpu_count: 4
-          run: |
-            sudo pkg_add \
-              autoconf-2.71 \
-              automake-1.16.5 \
-              git \
-              gmake \
-              python3 \
-              jq \
-              bash
-            AUTOCONF_VERSION=2.71 AUTOMAKE_VERSION=1.16 ./autogen.sh
-            ./configure CC=clang
-            gmake all
+
+      - name: Test
+        shell: cpa.sh {0}
+        run: |
+          sudo pkg_add \
+            autoconf-2.71 \
+            automake-1.16.5 \
+            git \
+            gmake \
+            python3 \
+            jq \
+            bash
+          AUTOCONF_VERSION=2.71 AUTOMAKE_VERSION=1.16 ./autogen.sh
+          ./configure CC=clang
+          gmake all
 
   test_netbsd:
     name: Test NetBSD
@@ -103,15 +109,15 @@ jobs:
             version: '10.1'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
         run: |
           git fetch --force --tags
 
-      - name: Test on ${{ matrix.os.name }}
-        uses: cross-platform-actions/action@v0.27.0
+      - name: Start VM
+        uses: cross-platform-actions/action@v1.3.0
         with:
           operating_system: ${{ matrix.os.name }}
           architecture: ${{ matrix.os.architecture }}
@@ -119,15 +125,18 @@ jobs:
           shell: bash
           memory: 5G
           cpu_count: 4
-          run: |
-            sudo env PKG_PATH=https://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/10.1/All/ \
-            pkg_add -u -v \
-              autoconf \
-              automake \
-              git \
-              gmake \
-              jq \
-              bash
-            ./autogen.sh
-            ./configure
-            gmake all
+
+      - name: Test
+        shell: cpa.sh {0}
+        run: |
+          sudo env PKG_PATH=https://ftp.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/10.1/All/ \
+          pkg_add -u -v \
+            autoconf \
+            automake \
+            git \
+            gmake \
+            jq \
+            bash
+          ./autogen.sh
+          ./configure
+          gmake all
