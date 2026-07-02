@@ -11,7 +11,7 @@ use_directory_urls: false
 nav:
   - Home: README.md
   - Licensing: Licensing.md
-  - Quick Start Guide:
+  - Quick Start Guides:
       - Config: quick_start/Config.md
       - Debian: quick_start/Debian.md
   - Links:
