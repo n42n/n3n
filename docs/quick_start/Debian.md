@@ -1,3 +1,7 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2020 n2n contributors
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Debian, Ubuntu or similar
 
 These instructions will work on Debian, Ubuntu or similar dpkg based systems.

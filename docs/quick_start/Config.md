@@ -1,3 +1,7 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2020 n2n contributors
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Quick Start Guide to creating a config file
 
 The fastest and easiest way to setup your n3n edge is by creating a config

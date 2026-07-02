@@ -1,3 +1,6 @@
+SPDX-License-Identifier: GPL-2.0-only
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Contributing to the n3n project
 
 This outlines some of the basic steps that this project uses for
