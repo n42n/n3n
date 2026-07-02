@@ -1,10 +1,13 @@
 SPDX-License-Identifier: GPL-2.0-only
+SPDX-FileCopyrightText: Copyright 2022 n2n contributors
 SPDX-FileCopyrightText: Copyright Hamish Coleman
 
 # Contributing to the n3n project
 
 This outlines some of the basic steps that this project uses for
 contributions.
+
+## Provide patches or pull requests
 
 - Ensure you follow the code style (Use `make lint` to check)
 - Ensure that the tests pass (Use `make test` to check)
@@ -21,3 +24,10 @@ contributions.
   should probably go into two different Pull Requests as this makes it easier
   to discuss the change, easier to review the change and easier to update the
   PR after any review comments.
+
+## Other ways to Contribute
+
+- Update an [open issue](https://github.com/n42n/n3n/issues) or create a new
+  one with detailed information
+- Propose new features
+- Improve the documentation

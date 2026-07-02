@@ -1,8 +1,13 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2022 n2n contributors
+SPDX-FileCopyrightText: Copyright Logan oos Even
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # TAP Device Configuration
 
 n3n provides its service through a TAP device which is the virtual ethernet device seen by the computer and user. As a prerequisite, it requires the appropriate TAP driver to be installed. Most Linux systems come with it. If not loaded, `sudo modprobe tap` will do.
 
-For MacOS and Windows there are specific instructions; please see the [Building](../docs/build/index.md) document.
+For MacOS and Windows there are specific instructions; please see the [Building](../build/index.md) document.
 
 ## Device Name
 
@@ -163,7 +168,7 @@ different auto IP address on next edge start-up – if auto IP address is used.
 
 ## Routing
 
-n3n supports routing the traffic through its network. `-r` enables an edge to accept packets at its TAP interface not originating from the local IP address or not destined to the local IP address. As there is more to routing than just this one command-line option, please refer to the dedicated [Routing](Routing.md) document
+n3n supports routing the traffic through its network. `-r` enables an edge to accept packets at its TAP interface not originating from the local IP address or not destined to the local IP address. As there is more to routing than just this one command-line option, please refer to the dedicated [Routing](../advanced/Routing.md) document
 explaining it all in detail.
 
 ## Traffic Filter
@@ -173,4 +178,4 @@ allowed traffic or deny other on edge's TAP interface. It helps to keep
 unwanted traffic out of the n3n network for bandwidth and security reasons. The
 traffic filter is disabled by default and gets activated by providing as many
 `filter.rule` options as required to the edge. Specifics are written down in
-the [Traffic Restrictions](TrafficRestricitons.md) documentation.
+the [Traffic Restrictions](../advanced/TrafficRestrictions.md) documentation.

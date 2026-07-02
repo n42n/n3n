@@ -261,7 +261,7 @@ static struct n3n_conf_option section_filter[] = {
         .desc = "Add a new traffic filter rule",
         .help = "Each rule config option adds a new rule. "
                 "rule_str format: `src_ip/len:[b_port,e_port],dst_ip/len:[s_port,e_port],TCP+/-,UDP+/-,ICMP+/-` "
-                "See the doc/TrafficRestrictions.md for more details",
+                "See the docs/advanced/TrafficRestrictions.md for more details",
     },
     {.name = NULL},
 };

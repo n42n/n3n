@@ -1,3 +1,7 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright Logan oos Even
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # n3n Frequently Asked Questions
 
 
@@ -36,13 +40,13 @@ Beyond this access barrier you may want to use payload encryption (with the
 `community.cipher` option) at the edges. Only the edges – not the supernode –
 are able to decipher the payload data. So, even if anyone would be able to
 break the access barrier to the supernode, the payload remains protected by
-the payload crypto, see [this document](Crypto.md) for details.
+the payload crypto, see [this document](internals/Crypto.md) for details.
 
 
 ### Can I get a list of connected edge nodes and their community and source IP address from the supernode?
 
 How to get this information is described in [the management
-API](ManagementAPI.md) doc.
+API](internals/ManagementAPI.md) doc.
 
 If enabled (by giving a `management.port` option), it can be simply seen with
 any web browser:
@@ -53,7 +57,8 @@ eg.
 
 ### Is there support for multiple supernodes?
 
-Yes, there is. Please [read](Federation.md) about how several supernodes can form a Federation to increase network resilience.
+Yes, there is. Please [read](configure/Federation.md) about how several
+supernodes can form a Federation to increase network resilience.
 
 
 ### Can a supernode listen on multiple ports?
@@ -86,7 +91,7 @@ built version.
 ### How can I know if peer-to-peer connection has successfully been established?
 
 How to get this information is described in [the management
-API](ManagementAPI.md) doc.
+API](internals/ManagementAPI.md) doc.
 
 `n3nctl edges`
 
@@ -101,7 +106,11 @@ to specify a TCP port, and any web browser can be used to inspect the status.
 
 ### The edge repeatedly throws an "Authentication error. MAC or IP address already in use or not released yet by supernode" message. What is wrong?
 
-The edge encountered n3n's protection against spoofing. It prevents that one edge's identity, MAC and IP address, can be impersonated by some other while the original one is still online, see some [details](Authentication.md). Mostly, there are two situations which can trigger this:
+The edge encountered n3n's protection against spoofing. It prevents that one
+edge's identity, MAC and IP address, can be impersonated by some other while
+the original one is still online, see some
+[details](configure/Authentication.md). Mostly, there are two situations which
+can trigger this:
 
 If you use a MAC or IP address that already is in use, just change those parameters.
 

@@ -17,7 +17,7 @@ It is not built by default.
 This C tool has n3n's basic transforms (the ciphers, compression, hash)
 crunch a test packet and outputs the measured throughput. You might observe
 differences depending on compiler optimizations or enabled hardware support,
-see [build configuration](BuildConfig.md).
+see [build configuration](../docs/build/BuildConfig.md).
 
 Example:
 - `tools/n3n-benchmark`
@@ -33,7 +33,8 @@ traffic to some specified networks through the VPN gateway.
 
 Make sure to run with sufficient rights to let the tool add and delete routes.
 
-More general information can be found in the [routing document](Routing.md)
+More general information can be found in the [routing
+document](../docs/advanced/Routing.md)
 including hints how to setup the remote edge (IP routing, masquerading).
 
 Example:
@@ -52,7 +53,7 @@ Note that n3n needs to be compiled with the corresponding options enabled, e.g.
 ./configure --enable-miniupnp --enable-natpmp
 ```
 
-Also see [build configuration](BuildConfig.md).
+Also see [build configuration](../docs/build/BuildConfig.md).
 
 Example:
 - `tools/n3n-portfwd`

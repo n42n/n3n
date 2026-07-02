@@ -1,3 +1,8 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2022 n2n contributors
+SPDX-FileCopyrightText: Copyright Logan oos Even
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # IPv4 Routing (Linux)
 
 ## General Remarks
@@ -22,7 +27,10 @@ On the client side, the easiest way to configure routing is via the `tools/n3n-r
 
 The utility connects to the local edge's management port to receive information about peers and supernodes. It currently works on Linux only but certainly can be ported to other OS (the route handling code is quite OS dependant).
 
-As an alternative to the `tools/n3n-route` utility, the `ip route` linux command can be manually used. See the [n3n-gateway.sh](scripts/n3n-gateway.sh) script for an example. See also the following description of other use cases and in depth explanation.
+As an alternative to the `tools/n3n-route` utility, the `ip route` linux
+command can be manually used. See the
+[n3n-gateway.sh](../scripts/n3n-gateway.sh) script for an example. See also
+the following description of other use cases and in depth explanation.
 
 ## Special Scenarios
 

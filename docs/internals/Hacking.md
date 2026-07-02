@@ -1,3 +1,8 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2008-2010 Richard Andrews
+SPDX-FileCopyrightText: Copyright 2022 n2n contributors
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Hacking
 
 --------
@@ -255,8 +260,3 @@ follows:
 60 ! Encapsulated ethernet payload
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
-
--------
-(C) 2008-2010 - Richard Andrews
-
-January 2010 - Richard Andrews <andrews@ntop.org>

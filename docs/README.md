@@ -49,19 +49,6 @@ interoperate with n3n)
 
 # See Also
 
-- [Security Considerations](../doc/Security.md) document.
-- [Advanced Configuration](../doc/Advanced.md) document.
-- Answers to [frequently asked questions](../doc/Faq.md) (FAQ).
-- Details about the internals in the [Hacking guide](../doc/Hacking.md).
-
-## Contribution
-
-You can contribute to n3n in various ways:
-
-- Update an [open issue](https://github.com/n42n/n3n/issues) or create a new
-  one with detailed information
-- Propose new features
-- Improve the documentation
-- Provide pull requests with enhancements
-
-For dev setup and internals, see the [Hacking guide](../doc/Hacking.md).
+- [Configure](configure/index.md)
+- Answers to [frequently asked questions](FAQ.md) (FAQ).
+- Details about the internals in the [Hacking guide](internals/Hacking.md).

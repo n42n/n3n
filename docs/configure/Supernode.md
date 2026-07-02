@@ -1,3 +1,6 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2020 n2n contributors
+
 # Setting up a Custom Supernode
 
 For the privacy of your data sent and to reduce the server load or reliance
