@@ -40,7 +40,7 @@ the stable releases of n2n for many years - thus will definitely not
 interoperate with n3n)
 
 - [Licensing](Licensing.md)
-- [Quick Start](Quick_Start.md)
+- [Quick Start Guides](quick_start)
 
 # See Also
 
