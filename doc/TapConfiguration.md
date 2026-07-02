@@ -2,7 +2,7 @@
 
 n3n provides its service through a TAP device which is the virtual ethernet device seen by the computer and user. As a prerequisite, it requires the appropriate TAP driver to be installed. Most Linux systems come with it. If not loaded, `sudo modprobe tap` will do.
 
-For MacOS and Windows there are specific instructions; please see the [Building](./Building.md) document.
+For MacOS and Windows there are specific instructions; please see the [Building](../docs/build/index.md) document.
 
 ## Device Name
 

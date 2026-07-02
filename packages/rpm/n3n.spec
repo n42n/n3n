@@ -53,7 +53,6 @@ rm -fr $RPM_BUILD_ROOT
 /usr/share/doc/n3n/Authentication.md
 /usr/share/doc/n3n/Bridging.md
 /usr/share/doc/n3n/BuildConfig.md
-/usr/share/doc/n3n/Building.md
 /usr/share/doc/n3n/Communities.md
 /usr/share/doc/n3n/ConfigurationFiles.md
 /usr/share/doc/n3n/Crypto.md

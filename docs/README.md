@@ -41,10 +41,11 @@ interoperate with n3n)
 
 - [Licensing](Licensing.md)
 - [Quick Start Guides](quick_start)
+- [Building from Source](build/index.md)
+- [Contributing](Contributing.md)
 
 # See Also
 
-- [Building from Source](../doc/Building.md)
 - [Security Considerations](../doc/Security.md) document.
 - [Advanced Configuration](../doc/Advanced.md) document.
 - Answers to [frequently asked questions](../doc/Faq.md) (FAQ).

@@ -32,7 +32,7 @@ Example:
 
 This shell script is used during development to help build on Windows
 systems.  An example of how to use it is shown in
-the [Building document](Building.md)
+the [Building document](../docs/build/index.md)
 
 ### `indent.sh`
 
