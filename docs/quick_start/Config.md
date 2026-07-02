@@ -22,4 +22,4 @@ option) in order to prevent unexpected users from connecting to your computer.
 
 The n3n project runs the public supernode in the above config for testing
 purposes - is it suggested that you setup your own
-[supernode](../doc/Supernode.md) for longer term use.
+[supernode](../../doc/Supernode.md) for longer term use.
