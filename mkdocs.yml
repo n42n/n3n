@@ -12,7 +12,7 @@ nav:
   - Home: README.md
   - Licensing: Licensing.md
   - Quick Start Guide:
-    - Config: quick_start/Config.md
-    - Debian: quick_start/Debian.md
+      - Config: quick_start/Config.md
+      - Debian: quick_start/Debian.md
   - Links:
       - Bug Tracker: 'https://github.com/n42n/n3n/issues'
