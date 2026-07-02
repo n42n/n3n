@@ -14,5 +14,7 @@ nav:
   - Quick Start Guides:
       - Config: quick_start/Config.md
       - Debian: quick_start/Debian.md
+  - Development:
+      - Contributing: Contributing.md
   - Links:
       - Bug Tracker: 'https://github.com/n42n/n3n/issues'
