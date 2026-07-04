@@ -464,6 +464,10 @@ jobs:
           name: packages-ipk-${{ matrix.name }}
           path: openwrt/bin/packages/*/base/*.ipk
 
+      - name: Debug openwrt bin
+        run: |
+          find openwrt/bin
+
       - name: Upload CI result to package queue
         if: ${{ env.INCOMING_URL != '' }}
         env:
