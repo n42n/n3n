@@ -464,10 +464,6 @@ jobs:
           name: packages-ipk-${{ matrix.name }}
           path: openwrt/bin/packages/*/base/*.ipk
 
-      - name: Debug openwrt bin
-        run: |
-          find openwrt/bin
-
       - name: Upload CI result to package queue
         if: ${{ env.INCOMING_URL != '' }}
         env:
@@ -475,7 +471,7 @@ jobs:
           INCOMING_USER: ${{ vars.INCOMING_USER }}
           INCOMING_URL: ${{ vars.INCOMING_URL }}
         run: |
-          for i in $(find openwrt/bin/packages -name '*.ipk'); do curl -u $INCOMING_USER:$INCOMING_PASS -T $i $INCOMING_URL; done
+          for i in $(find bin/packages -name '*.ipk'); do curl -u $INCOMING_USER:$INCOMING_PASS -T $i $INCOMING_URL/; done
 
   binaries_windows:
     name: Binaries for Windows (x86_64-pc-mingw64)
