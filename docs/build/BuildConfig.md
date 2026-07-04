@@ -1,5 +1,6 @@
-Copyright (C) Hamish Coleman
 SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright Logan oos Even
+SPDX-FileCopyrightText: Copyright Hamish Coleman
 
 # Configuration at Build time
 
@@ -173,4 +174,3 @@ Your specific ARM mileage may vary, so it can be enabled by configuring the defi
 `./configure CFLAGS="-DSPECK_ARM_NEON"`
 
 Just make sure that the correct architecture is set, too. `-march=native` usually works quite well.
-

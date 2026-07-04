@@ -1,3 +1,6 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright joshuafc
+
 # Traffic Restrictions
 
 It is possible to drop or accept specific packet transmit over edge network

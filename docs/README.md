@@ -1,3 +1,6 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2022 n2n contributors
+SPDX-FileCopyrightText: Copyright Hamish Coleman
 
 # n3n
 
@@ -40,29 +43,12 @@ the stable releases of n2n for many years - thus will definitely not
 interoperate with n3n)
 
 - [Licensing](Licensing.md)
-- [Quick Start](Quick_Start.md)
+- [Quick Start Guides](quick_start)
+- [Building from Source](build/index.md)
+- [Contributing](Contributing.md)
 
 # See Also
 
-- [Building from Source](../doc/Building.md)
-- [Security Considerations](../doc/Security.md) document.
-- [Advanced Configuration](../doc/Advanced.md) document.
-- Answers to [frequently asked questions](../doc/Faq.md) (FAQ).
-- Details about the internals in the [Hacking guide](../doc/Hacking.md).
-
-## Contribution
-
-You can contribute to n3n in various ways:
-
-- Update an [open issue](https://github.com/n42n/n3n/issues) or create a new
-  one with detailed information
-- Propose new features
-- Improve the documentation
-- Provide pull requests with enhancements
-
-For dev setup and internals, see the [Hacking guide](../doc/Hacking.md).
-
----
-
-(C) 2007-22 - ntop.org and contributors
-Copyright (C) 2023-26 Hamish Coleman
+- [Configure](configure/index.md)
+- Answers to [frequently asked questions](FAQ.md) (FAQ).
+- Details about the internals in the [Hacking guide](internals/Hacking.md).

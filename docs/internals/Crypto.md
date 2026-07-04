@@ -1,3 +1,7 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2020 n2n contributors
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Cryptography in n3n
 
 ## Payload
@@ -22,7 +26,11 @@ The following chart might help to make a quick comparison and decide what cipher
 
 The two block ciphers Twofish and AES are used in CTS mode.
 
-n3n has all four ciphers built-in as basic versions. Some of them optionally compile to faster versions by the means of available hardware support (AES-NI, SSE, AVX – please see the [Building document](./Building.md) for details. Depending on your platform, AES and ChaCha20 might also draw notable acceleration from optionally compiling with openSSL 1.1 support.
+n3n has all four ciphers built-in as basic versions. Some of them optionally
+compile to faster versions by the means of available hardware support (AES-NI,
+SSE, AVX – please see the [Building document](../build/index.md) for
+details. Depending on your platform, AES and ChaCha20 might also draw notable
+acceleration from optionally compiling with openSSL 1.1 support.
 
 The`-k <key>` command line parameter supplies the key. As even non-privileged
 users might get to see the command line parameters (try `ps -Af | grep edge`),
@@ -52,7 +60,12 @@ mileage may vary. Cipher speed's can be compared running the
 
 AES also prepends a random value to the plaintext. Its size is adjustable by changing the `AES_PREAMBLE_SIZE` definition found in `src/transform_aes.c`. It defaults to AES_BLOCK_SIZE (== 16). The AES scheme uses a CBC/CTS scheme which can send out plaintext-length ciphertexts as long as they are one block or more in length.
 
-Apart from n3n's plain C implementation, Intel's AES-NI is supported – again, please have a look at the [Building document](./Building.md). In case of openSSL support its `evp_*` interface gets used which also offers hardware acceleration where available (SSE, AES-NI, …). It however is slower than the following stream ciphers because the CBC mode cannot compete with the optimized stream ciphers.
+Apart from n3n's plain C implementation, Intel's AES-NI is supported – again,
+please have a look at the [Building document](../build/index.md). In case
+of openSSL support its `evp_*` interface gets used which also offers hardware
+acceleration where available (SSE, AES-NI, …). It however is slower than the
+following stream ciphers because the CBC mode cannot compete with the
+optimized stream ciphers.
 
 This cipher's different key-sizes are triggered by the length of the user-provided key: 22 characters or less make n3n use AES-128, between 23 and 32 characters lead to AES-192, and 33 or more characters trigger AES-256.
 

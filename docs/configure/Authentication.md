@@ -1,3 +1,7 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright Logan oos Even
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Edge Authentication
 
 From a discussion on how to prevent MAC address spoofing, the need of edge authentication became evident. In fact, the REGISTER_SUPER type messages already have shown a so far unused `auth` field which gets used for the first time starting in the course of n3n version 2.9 development.
@@ -151,7 +155,17 @@ having it show up as part of the command line.
 
 #### How Does It Work?
 
-In order to make this authentication scheme work, the existing header encryption scheme is split into using two keys: a _static_ and a _dynamic_ one. The static key remains unchanged and is the [classic header encryption key](Crypto.md#header) derived from the community name. It only is applied to the very basic registration traffic between edge and supernode (REGISTER_SUPER, REGISTER_SUPER_ACK, REGISTER_SUPER_NAK). The dynamic key is derived (among others) from the federation name – keep it secret! – and applied to all the other packets, especially the data packets (PACKET) and peer-to-peer building packets (REGISTER), but also the ping and peer information (QUERY_PEER, PEER_INFO). An edge not provided with a valid dynamic key is not able to participate in the further communication.
+In order to make this authentication scheme work, the existing header
+encryption scheme is split into using two keys: a _static_ and a _dynamic_
+one. The static key remains unchanged and is the [classic header encryption
+key](../internals/Crypto.md#header) derived from the community name. It
+only is applied to the very basic registration traffic between edge and
+supernode (REGISTER_SUPER, REGISTER_SUPER_ACK, REGISTER_SUPER_NAK). The
+dynamic key is derived (among others) from the federation name – keep it
+secret! – and applied to all the other packets, especially the data packets
+(PACKET) and peer-to-peer building packets (REGISTER), but also the ping and
+peer information (QUERY_PEER, PEER_INFO). An edge not provided with a valid
+dynamic key is not able to participate in the further communication.
 
 In regular header encryption mode, static key and dynamic key are equal. With activated user-password scheme, the supernode generates and transmits a dynamic key with the REGISTER_SUPER for further use. This happens in a secure way based on public key cryptography. A non-authenticated edge, i.e. without corresponding entry at the supernode or valid credentials, will not receive a valid dynmic key for communication beyond registration.
 

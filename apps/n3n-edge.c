@@ -401,8 +401,8 @@ static void cmd_tools_keygen (int argc, char **argv, void *conf) {
             "   outputs a line to insert at supernode's community file for\n"
             "   user-and-password authentication or the config option\n"
             "   value with the public federation key for use in the edge's\n"
-            "   config, please refer to the doc/Authentication.md document\n"
-            "   for more details\n"
+            "   config, please refer to the docs/configure/Authentication.md\n"
+            "   document for more details\n"
             "\n"
         );
         exit(1);

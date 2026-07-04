@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Fix Checkout
@@ -32,7 +32,7 @@ jobs:
           ./scripts/benchmark2graphdata.py <benchmark.csv >benchmark.json
 
       - name: Download previous benchmark data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ./cache
           key: ${{ runner.os }}-benchmark

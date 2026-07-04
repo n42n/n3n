@@ -11,6 +11,11 @@ use_directory_urls: false
 nav:
   - Home: README.md
   - Licensing: Licensing.md
-  - Quick Start: Quick_Start.md
+  - Quick Start Guides:
+      - Config: quick_start/Config.md
+      - Debian: quick_start/Debian.md
+  - Development:
+      - Contributing: Contributing.md
+      - Build From Source: build/index.md
   - Links:
       - Bug Tracker: 'https://github.com/n42n/n3n/issues'

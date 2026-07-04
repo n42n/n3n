@@ -1,3 +1,8 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2022 n2n contributors
+SPDX-FileCopyrightText: Copyright Logan oos Even
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Communities
 
 
@@ -81,7 +86,7 @@ Also, as the `. * + ? [ ] \` characters indicate parts of regular expressions, w
 
 By default, the community name is transmitted in plain witch each packet. So, a fixed-name community might keep your younger siblings out of your community (as long as they do not know the community name) but sniffing attackers will find out the community name. Using this name, they will be able to access it by just connecting to the supernode then.
 
-[Header encryption](Crypto.md#header) can be enabled to prevent plain transmission. It is important to understand that header encryption, if enabled, only works on fixed-name communities. It will not work on community names described by regular expressions.
+[Header encryption](../internals/Crypto.md#header) can be enabled to prevent plain transmission. It is important to understand that header encryption, if enabled, only works on fixed-name communities. It will not work on community names described by regular expressions.
 
 On the other hand, the provision of fixed-name communities blocks all other, non-listed communities. To allow a mixed operation of certain encrypted and hence fixed-name communities along with all other open communities, the following "trick" can be applied:
 

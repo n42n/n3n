@@ -6,4 +6,4 @@ Nothing in this directory should need compiling to use and they should be
 written such that they do not need configuring (e.g: they might probe several
 directories for their requirements)
 
-See the [Scripts Documentation](../docs/Scripts.md) for further details
+See the [Scripts Documentation](../doc/Scripts.md) for further details

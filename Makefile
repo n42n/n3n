@@ -422,7 +422,7 @@ install: n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
 	$(INSTALL_DOC) n3n-edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) n3n-supernode.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
-	$(INSTALL_DOC) doc/*.md doc/*.sample $(CONFIG_DOCDIR)/
+	$(INSTALL_DOC) doc/*.md docs/*.sample $(CONFIG_DOCDIR)/
 
 # TODO:
 # install wireshark dissector
