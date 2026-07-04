@@ -309,6 +309,15 @@ jobs:
           name: packages-dpkg-${{ matrix.arch }}
           path: "*.deb"
 
+      - name: Upload CI result to package queue
+        if: ${{ env.INCOMING_URL != '' }}
+        env:
+          INCOMING_PASS: ${{ secrets.INCOMING_PASS }}
+          INCOMING_USER: ${{ vars.INCOMING_USER }}
+          INCOMING_URL: ${{ vars.INCOMING_URL }}
+        run: |
+          for i in *.deb; do curl -u $INCOMING_USER:$INCOMING_PASS -T $i $INCOMING_URL; done
+
   package_rpm:
     name: Package for Redhat/RPM
     needs:
@@ -340,6 +349,15 @@ jobs:
         with:
           name: packages-rpm
           path: rpmbuild/RPMS/x86_64/*.rpm
+
+      - name: Upload CI result to package queue
+        if: ${{ env.INCOMING_URL != '' }}
+        env:
+          INCOMING_PASS: ${{ secrets.INCOMING_PASS }}
+          INCOMING_USER: ${{ vars.INCOMING_USER }}
+          INCOMING_URL: ${{ vars.INCOMING_URL }}
+        run: |
+          for i in rpmbuild/RPMS/x86_64/*.rpm; do curl -u $INCOMING_USER:$INCOMING_PASS -T $i $INCOMING_URL; done
 
   package_ipk:
     name: Package for OpenWrt
@@ -445,6 +463,15 @@ jobs:
         with:
           name: packages-ipk-${{ matrix.name }}
           path: openwrt/bin/packages/*/base/*.ipk
+
+      - name: Upload CI result to package queue
+        if: ${{ env.INCOMING_URL != '' }}
+        env:
+          INCOMING_PASS: ${{ secrets.INCOMING_PASS }}
+          INCOMING_USER: ${{ vars.INCOMING_USER }}
+          INCOMING_URL: ${{ vars.INCOMING_URL }}
+        run: |
+          for i in openwrt/bin/packages/*/base/*.ipk; do curl -u $INCOMING_USER:$INCOMING_PASS -T $i $INCOMING_URL; done
 
   binaries_windows:
     name: Binaries for Windows (x86_64-pc-mingw64)
