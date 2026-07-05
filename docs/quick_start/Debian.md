@@ -38,6 +38,9 @@ sudo apt install n3n
 
 ## After installing
 
+- Ensure you have the example config file shown in the [Config quick
+  start](Config.md)
+
 - Start the service: `sudo systemctl start n3n-edge@myfirstnetwork`
 
 - Use `n3nctl` (the n3n management CLI) to inspect the running daemon:
