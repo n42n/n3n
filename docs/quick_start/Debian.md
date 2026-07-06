@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: Copyright Hamish Coleman
 
 # Debian, Ubuntu or similar
 
-These instructions will work on Debian, Ubuntu or similar dpkg based
+These instructions will work on Debian, Ubuntu or similar `dpkg`-based
 systems.
 
 For these systems, use the `/etc/n3n/` directory as the location for any
@@ -32,7 +32,7 @@ sudo apt install n3n
 ## Older systems
 
 - Download the [latest stable release](https://github.com/n42n/n3n/releases/latest)
-  deb package file matching your computer architecture (eg: `amd64`).
+  deb package file matching your computer architecture (e.g.: `amd64`).
 
 - Install the package (eg: `apt install ./n3n_3.3.4-1_amd64.deb`)
 
