@@ -63,7 +63,7 @@ jobs:
         os:
           - name: openbsd
             architecture: x86-64
-            version: '7.3'
+            version: '7.5'
 
     steps:
       - uses: actions/checkout@v7

@@ -311,6 +311,7 @@ jobs:
 
       - name: Upload CI result to package queue
         if: ${{ env.INCOMING_URL != '' }}
+        continue-on-error: true
         env:
           INCOMING_PASS: ${{ secrets.INCOMING_PASS }}
           INCOMING_USER: ${{ vars.INCOMING_USER }}
@@ -352,6 +353,7 @@ jobs:
 
       - name: Upload CI result to package queue
         if: ${{ env.INCOMING_URL != '' }}
+        continue-on-error: true
         env:
           INCOMING_PASS: ${{ secrets.INCOMING_PASS }}
           INCOMING_USER: ${{ vars.INCOMING_USER }}
@@ -466,6 +468,7 @@ jobs:
 
       - name: Upload CI result to package queue
         if: ${{ env.INCOMING_URL != '' }}
+        continue-on-error: true
         env:
           INCOMING_PASS: ${{ secrets.INCOMING_PASS }}
           INCOMING_USER: ${{ vars.INCOMING_USER }}

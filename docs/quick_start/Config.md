@@ -17,7 +17,7 @@ directory location)
 [community]
 name=mynetwork
 key=mypassword
-supernode=supernode.n3n.dev
+supernode=supernode.n3n.dev:7654
 ```
 
 **IMPORTANT:** It is strongly advised to choose a custom community name (the
