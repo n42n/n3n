@@ -25,13 +25,13 @@ n3n peer-to-peer VPN
 
 cd %TOPDIR
 ./autogen.sh
-./configure --prefix=/usr
-make
+%configure
+%make_build
 
 %install
 
 cd %TOPDIR
-make install DESTDIR=$RPM_BUILD_ROOT
+%make_install
 chmod u+w $RPM_BUILD_ROOT/usr/sbin/*
 
 #find $RPM_BUILD_ROOT -name ".git" | xargs /bin/rm -rf
