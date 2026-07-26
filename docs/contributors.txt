@@ -10,3 +10,9 @@ Code contributions courtesy of:
  * Hamish Coleman <hamish@zot.org>
 
 and others, as seen in the commit history.
+
+Use `git shortlog -s -e` to see the complete list of contributors.
+
+TODO:
+- Create a .mailmap that consolidates contributions from people who have
+  changed their commit email address

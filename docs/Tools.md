@@ -1,3 +1,7 @@
+SPDX-License-Identifier: GPL-3.0-only
+SPDX-FileCopyrightText: Copyright 2023 n2n contributors
+SPDX-FileCopyrightText: Copyright Hamish Coleman
+
 # Tools
 
 There are a number of handy tools coming with n3n extending fumction and
@@ -17,12 +21,14 @@ It is not built by default.
 This C tool has n3n's basic transforms (the ciphers, compression, hash)
 crunch a test packet and outputs the measured throughput. You might observe
 differences depending on compiler optimizations or enabled hardware support,
-see [build configuration](../docs/build/BuildConfig.md).
+see [build configuration](build/BuildConfig.md).
 
 Example:
 - `tools/n3n-benchmark`
 
 ### `n3n-route`
+
+This tool has not been converted to work with the JsonRPC API interface.
 
 This C tool sets new routes for all the traffic to be routed via a VPN gateway
 (another edge) and polls the management port of a local n3n edge for adding
@@ -34,7 +40,7 @@ traffic to some specified networks through the VPN gateway.
 Make sure to run with sufficient rights to let the tool add and delete routes.
 
 More general information can be found in the [routing
-document](../docs/advanced/Routing.md)
+document](advanced/Routing.md)
 including hints how to setup the remote edge (IP routing, masquerading).
 
 Example:
@@ -43,6 +49,8 @@ Example:
 - `tools/n3n-route -n 8.8.8.8/32:192.168.0.5  <some (other) remote edge address>`
 
 ### `n3n-portfwd`
+
+This tool has not been converted to work with the JsonRPC API interface.
 
 This C tool uses UPnP and/or PMP to have a local router forward the edge port.
 The program polls a local edge's management port and takes apporpriate action.
@@ -53,7 +61,7 @@ Note that n3n needs to be compiled with the corresponding options enabled, e.g.
 ./configure --enable-miniupnp --enable-natpmp
 ```
 
-Also see [build configuration](../docs/build/BuildConfig.md).
+Also see [build configuration](build/BuildConfig.md).
 
 Example:
 - `tools/n3n-portfwd`

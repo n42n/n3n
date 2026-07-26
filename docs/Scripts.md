@@ -1,5 +1,5 @@
-Copyright (C) Hamish Coleman
-SPDX-License-Identifier: GPL-3.0-only
+SPDX-License-Identifier: GPL-2.0-only
+SPDX-FileCopyrightText: Copyright Hamish Coleman
 
 # Scripts
 
@@ -8,7 +8,7 @@ Some of these scripts are only useful during build and development, but
 other scripts are intended for end users to be able to use.  These scripts
 may be installed with n3n as part of your operating system package.
 
-All scripts can be found in the `scripts` directory.
+Most scripts can be found in the `scripts` directory.
 
 Short descriptions of these scripts are below.
 
@@ -32,19 +32,13 @@ Example:
 
 This shell script is used during development to help build on Windows
 systems.  An example of how to use it is shown in
-the [Building document](../docs/build/index.md)
+the [Build documentation](build/index.md)
 
 ### `indent.sh`
 
 This shell script is a wrapper for the `uncrustify` C code style checker
 which checks or applies a set of rules to the code.  It is used during
 the automated lint checks.
-
-### `n3n-gateway.sh`
-
-A sample script to route all the host traffic towards a remote gateway,
-which is reachable via the n3n virtual interface.  This can be found in
-the `docs/advanced/n3n-gateway.sh`
 
 ### `version.sh`
 
@@ -105,3 +99,11 @@ and compared with the expected output.
 
 This starts a supernode and runs an integration test on the Json API using
 the `n3nctl` command.
+
+## Example or Documentation scripts
+
+### `n3n-gateway.sh`
+
+A sample script to route all the host traffic towards a remote gateway,
+which is reachable via the n3n virtual interface.  This can be found in
+the `docs/advanced/n3n-gateway.sh`
