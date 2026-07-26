@@ -43,7 +43,8 @@ the automated lint checks.
 ### `n3n-gateway.sh`
 
 A sample script to route all the host traffic towards a remote gateway,
-which is reachable via the n3n virtual interface.
+which is reachable via the n3n virtual interface.  This can be found in
+the `docs/advanced/n3n-gateway.sh`
 
 ### `version.sh`
 
