@@ -6,7 +6,7 @@
 #   --device=/dev/net/tun \
 #   --cap-add=NET_ADMIN \
 #   -t=n3n \
-#   -f doc/Containerfile.example \
+#   -f docs/Containerfile.example \
 #   .
 #
 # Note that podman must be run in rootful mode for the build tests to pass.
@@ -14,7 +14,7 @@
 # podman build \
 #   --build-arg SKIP_TESTS=1 \
 #   -t=n3n \
-#   -f doc/Containerfile.example \
+#   -f docs/Containerfile.example \
 #   .
 #
 # Start a n3n session with:
