@@ -49,6 +49,13 @@ rm -fr $RPM_BUILD_ROOT
 /usr/lib/systemd/system/n3n-supernode.service
 /usr/sbin/n3n-edge
 /usr/sbin/n3n-supernode
+/usr/share/doc/n3n/Contributing.md
+/usr/share/doc/n3n/FAQ.md
+/usr/share/doc/n3n/Licensing.md
+/usr/share/doc/n3n/README.md
+/usr/share/doc/n3n/ReleaseProcess.md
+/usr/share/doc/n3n/Scripts.md
+/usr/share/doc/n3n/Tools.md
 /usr/share/doc/n3n/community.list.sample
 /usr/share/doc/n3n/edge.conf.sample
 /usr/share/doc/n3n/supernode.conf.sample
