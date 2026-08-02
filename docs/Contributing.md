@@ -15,7 +15,9 @@ contributions.
 - Ensure that each commit has a commit message that clearly explains "why" the
   commit was made (Note, you should not explain "what" as that should be clear
   in the commit diff)
-- Enaure that each commit has a single clear purpose, do not mix multiple
+- The language used for documentation, commit messages and code comments is
+  English.
+- Ensure that each commit has a single clear purpose, do not mix multiple
   things into one change (Eg, do not have both whitespace fixes and functional
   improvements in one commit, or do not have a new feature and a bugfix for an
   unrelated feature)
@@ -24,6 +26,13 @@ contributions.
   should probably go into two different Pull Requests as this makes it easier
   to discuss the change, easier to review the change and easier to update the
   PR after any review comments.
+- If you have used any software to assist with creation of your patch, ensure
+  you declare that usage in the commit message as it may help the reviewer to
+  understand what questions to ask.
+- As the submitter of the change, you need to understand what the change is
+  and how it works - you must be prepared to answer questions about it and be
+  able to adjust it to fit the project.  Essentially, since you are proposing
+  it, you need to own it.
 
 ## Other ways to Contribute
 

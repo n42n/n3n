@@ -29,7 +29,7 @@ The utility connects to the local edge's management port to receive information 
 
 As an alternative to the `tools/n3n-route` utility, the `ip route` linux
 command can be manually used. See the
-[n3n-gateway.sh](../scripts/n3n-gateway.sh) script for an example. See also
+[n3n-gateway.sh](n3n-gateway.sh) script for an example. See also
 the following description of other use cases and in depth explanation.
 
 ## Special Scenarios

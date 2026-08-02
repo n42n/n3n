@@ -25,13 +25,13 @@ n3n peer-to-peer VPN
 
 cd %TOPDIR
 ./autogen.sh
-./configure --prefix=/usr
-make
+%configure
+%make_build
 
 %install
 
 cd %TOPDIR
-make install DESTDIR=$RPM_BUILD_ROOT
+%make_install
 chmod u+w $RPM_BUILD_ROOT/usr/sbin/*
 
 #find $RPM_BUILD_ROOT -name ".git" | xargs /bin/rm -rf
@@ -49,8 +49,11 @@ rm -fr $RPM_BUILD_ROOT
 /usr/lib/systemd/system/n3n-supernode.service
 /usr/sbin/n3n-edge
 /usr/sbin/n3n-supernode
+/usr/share/doc/n3n/Contributing.md
+/usr/share/doc/n3n/FAQ.md
+/usr/share/doc/n3n/Licensing.md
+/usr/share/doc/n3n/README.md
 /usr/share/doc/n3n/ReleaseProcess.md
-/usr/share/doc/n3n/Scratchpad.md
 /usr/share/doc/n3n/Scripts.md
 /usr/share/doc/n3n/Tools.md
 /usr/share/doc/n3n/community.list.sample
