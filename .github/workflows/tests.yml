@@ -717,9 +717,10 @@ jobs:
 
       - name: Upload Assets to Release
         if: steps.get_tagtype.outputs.TAGTYPE == 'tag'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: true
+          generate_release_notes: true
           files: |
             artifacts/packages-dpkg-*/*.deb
             artifacts/packages-rpm/*.rpm
