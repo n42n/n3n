@@ -1122,6 +1122,7 @@ int n3n_config_load_file (void *conf, char *name) {
         if(*line == '[') {
             // A section heading
             free(section);
+            section = NULL;
             char *tmp_section = extract_section(line);
             if(!tmp_section) {
                 printf(
