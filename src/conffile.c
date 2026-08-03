@@ -1449,21 +1449,21 @@ void n3n_config_help_options (const struct n3n_config_getopt *map, const struct 
     }
 }
 
+// TODO:
+// - this is not an implementation of "mkdir -p"
+// - it is a mkdir that sets perms
+// This might not be clear from the name
 static int mkdir_p (const char *pathname, int mode, int uid, int gid) {
-    if(access(pathname, R_OK) == 0) {
-        // it already exists (may not be a dir though)
-        return 0;
-    }
-
-    if(errno != ENOENT) {
-        // some other error
-        return -1;
-    }
-
 #ifndef _WIN32
     if(mkdir(pathname, mode) == -1) {
+        // it already exists (may not be a dir though)
+        if(errno == EEXIST) {
+            return 0;
+        }
         return -1;
     }
+
+    // If we created it, we set the perms
     if(chown(pathname, uid, gid) == -1) {
         return -1;
     }
@@ -1472,6 +1472,9 @@ static int mkdir_p (const char *pathname, int mode, int uid, int gid) {
     // Some versions of windows appear to have mkdir(), others _mkdir()
     // using this gives some undefined warnings, but is most compatible
     if(_mkdir(pathname) == -1) {
+        if(errno == EEXIST) {
+            return 0;
+        }
         return -1;
     }
 #endif
