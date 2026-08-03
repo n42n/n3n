@@ -11,6 +11,9 @@ on:
       - edited
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test_bsd:
     name: Test BSD

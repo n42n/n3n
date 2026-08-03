@@ -5,6 +5,9 @@ name: Debug
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
 
   # Oh, github, for a company that is built around the git VCS, how is it

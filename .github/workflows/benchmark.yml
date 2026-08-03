@@ -7,6 +7,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   benchmark:
     name: Benchmark
