@@ -74,7 +74,7 @@ void n3n_pktbuf_initialise (ssize_t mtu, int count) {
     pool_item_size = item_size;
     pool_item_count = count;
     pool_item_next_search = pool;
-    pool_item_max = pool + (count - 1) * sizeof(struct n3n_pktbuf);
+    pool_item_max = &pool[count - 1];
 
     int i;
     for(i=0; i < pool_item_count; i++) {
@@ -100,7 +100,7 @@ struct n3n_pktbuf *n3n_pktbuf_alloc (ssize_t size) {
     int count = pool_item_count;
 
     while(count) {
-        if(p > (struct n3n_pktbuf *)pool_item_max) {
+        if(p > pool_item_max) {
             p = pool;
         }
 
@@ -124,7 +124,7 @@ void n3n_pktbuf_free (struct n3n_pktbuf *p) {
     if(p < (struct n3n_pktbuf *)pool) {
         return;
     }
-    if(p > (struct n3n_pktbuf *)pool_item_max) {
+    if(p > pool_item_max) {
         return;
     }
 
