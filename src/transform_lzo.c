@@ -1,7 +1,8 @@
 /**
- * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-FileCopyrightText: Copyright 2022,2026 n2n contributors
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
+
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
