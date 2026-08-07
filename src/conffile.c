@@ -330,15 +330,18 @@ try_uint32:
                 return 0;
             }
 
-            in_addr_t address_tmp = inet_addr(value);
-            if(address_tmp == INADDR_NONE) {
-                val->family = AF_INVALID;
-                return -1;
+            if(inet_pton(AF_INET, value, &(val->addr.v4)) == 1) {
+                val->family = AF_INET;
+                return 0;
             }
 
-            memcpy(&(val->addr.v4), &(address_tmp), IPV4_SIZE);
-            val->family = AF_INET;
-            return 0;
+            if(inet_pton(AF_INET6, value, &(val->addr.v6)) == 1) {
+                val->family = AF_INET6;
+                return 0;
+            }
+
+            val->family = AF_INVALID;
+            return -1;
         }
         case n3n_conf_sn_selection: {
             uint8_t *val = (uint8_t *)valvoid;
