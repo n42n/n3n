@@ -615,11 +615,12 @@ static ssize_t sendto_sock (struct n3n_runtime_data *sss,
     socklen_t socket_len;
     struct sockaddr_storage dest_addr = {0};
 
-    // this assumes we operate on a IPv6 dual stock socket
-    socket_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, socket);
+    // Build a destination matching the family our socket was opened with
+    socket_len = prepare_sockaddr_for_send(&dest_addr, sss->sock_family, socket);
     if(socket_len == 0) {
-        // unknown or unsupported family we cannot send
-        traceEvent(TRACE_ERROR, "found unknown address family %d", socket->sa_family);
+        traceEvent(TRACE_ERROR,
+                   "cannot reach a family %d peer over a family %d socket",
+                   socket->sa_family, sss->sock_family);
         return -1;
     }
 

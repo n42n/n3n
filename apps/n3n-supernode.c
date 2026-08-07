@@ -563,6 +563,21 @@ int main (int argc, char * argv[]) {
         traceEvent(TRACE_NORMAL, "supernode is listening on UDP %u (main)", ntohs(sa->sin_port));
     }
 
+    /* Ask the socket which family it ended up with, so that sending can build
+     * destinations to match it. */
+    {
+        struct sockaddr_storage bound;
+        socklen_t bound_len = sizeof(bound);
+
+        if(getsockname(sss_node.sock, (struct sockaddr *)&bound, &bound_len) == 0) {
+            sss_node.sock_family = bound.ss_family;
+        } else {
+            traceEvent(TRACE_WARNING, "getsockname failed [%s], assuming IPv4",
+                       strerror(errno));
+            sss_node.sock_family = AF_INET;
+        }
+    }
+
 #ifdef N2N_HAVE_TCP
     sss_node.tcp_sock = open_socket(
         sss_node.conf.bind_address,

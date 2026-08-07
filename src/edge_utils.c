@@ -446,6 +446,23 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         return;
     }
 
+    /* Ask the socket itself rather than assuming the configured family: with
+     * no bind address open_socket() picks one, and may fall back to IPv4 when
+     * IPv6 is unavailable.  sendto_sock() needs the answer to hand the kernel
+     * a destination of the matching family. */
+    {
+        struct sockaddr_storage bound;
+        socklen_t bound_len = sizeof(bound);
+
+        if(getsockname(eee->sock, (struct sockaddr *)&bound, &bound_len) == 0) {
+            eee->sock_family = bound.ss_family;
+        } else {
+            traceEvent(TRACE_WARNING, "getsockname failed [%s], assuming IPv4",
+                       strerror(errno));
+            eee->sock_family = AF_INET;
+        }
+    }
+
     if(eee->conf.connect_tcp) {
         mainloop_register_fd(eee->sock, fd_info_proto_v3tcp);
     } else {
@@ -1346,19 +1363,14 @@ static void sendto_sock (struct n3n_runtime_data *eee, const void * buf,
 
     traceEvent(TRACE_DEBUG, "%s AF %i", __func__, dest->family);
 
-    // TODO: FIXME:
-    // This is a hack.  It was needed to successfully progress the test suite
-    // with the new IPv6 code, but I suspect it breaks things.
-    if(dest->family == AF_INET) {
-        sendto_fd(eee, buf, len, (struct sockaddr *) &peer_addr_storage, peer_addr_len);
-        return;
-    }
-
-    // this assumes we operate on a IPv6 dual stock socket
-    peer_addr_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, (const struct sockaddr *)&peer_addr_storage);
+    // Convert the destination to whichever family our socket actually is: an
+    // IPv6 socket needs IPv4 destinations as v4 mapped addresses, and an IPv4
+    // socket cannot be handed a sockaddr_in6 at all.
+    peer_addr_len = prepare_sockaddr_for_send(&dest_addr, eee->sock_family, (const struct sockaddr *)&peer_addr_storage);
     if(peer_addr_len == 0) {
-        // unknown or unsupported family we cannot send (unlikely after previous check though)
-        traceEvent(TRACE_DEBUG, "found unknown address family %d", peer_addr_storage.ss_family);
+        traceEvent(TRACE_WARNING,
+                   "cannot reach a family %d peer over a family %d socket",
+                   peer_addr_storage.ss_family, eee->sock_family);
         return;
     }
 

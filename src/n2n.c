@@ -57,14 +57,28 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
     if(local_address) {
         family = local_address->sa_family;
     } else {
-        // If no bind details provided, assume IPv4.
-        family = AF_INET;
+        // No bind details provided, so open a dual stack IPv6 socket: with
+        // IPV6_V6ONLY cleared below it reaches IPv4 peers through v4 mapped
+        // addresses, whereas an IPv4 socket could not reach IPv6 peers at all.
+        family = AF_INET6;
     }
 
     if((int)(sock_fd = socket(family, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
-        traceEvent(TRACE_ERROR, "Unable to create socket for family %d [%s][%d]\n",
-                   family, strerror(errno), sock_fd);
-        return -1;
+        if(!local_address && (family == AF_INET6)) {
+            // IPv6 is unavailable (kernel built or booted without it), so the
+            // caller that expressed no preference still gets a usable socket.
+            traceEvent(TRACE_INFO,
+                       "No IPv6 socket available [%s], falling back to IPv4",
+                       strerror(errno));
+            family = AF_INET;
+            sock_fd = socket(family, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0);
+        }
+
+        if((int)sock_fd < 0) {
+            traceEvent(TRACE_ERROR, "Unable to create socket for family %d [%s][%d]\n",
+                       family, strerror(errno), sock_fd);
+            return -1;
+        }
     }
 
 #ifndef _WIN32

@@ -550,6 +550,7 @@ struct n3n_runtime_data {
     /* supernode socket is in        eee->curr_sn->sock (of type n3n_sock_t) */
     slots_t *mgmt_slots;
     int sock;
+    int sock_family;    /**< AF_INET or AF_INET6, the family 'sock' was opened with. */
 
 #ifndef SKIP_MULTICAST_PEERS_DISCOVERY
     int udp_multicast_sock_v4;                                           /**< socket for local IPv4 multicast registrations. */
