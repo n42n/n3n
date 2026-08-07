@@ -2906,8 +2906,13 @@ void process_pdu (struct n3n_runtime_data *eee,
                  * address - either it predates IPv6 support or its auto IPv6
                  * service is switched off. */
                 if(ra.dev_addr6.net_bitlen != 0) {
+                    ip6_bit_str_t ip6_bit_str = {'\0'};
+
                     memcpy(eee->conf.tuntap_v6.net_addr, ra.dev_addr6.net_addr, IPV6_SIZE);
                     eee->conf.tuntap_v6.net_bitlen = ra.dev_addr6.net_bitlen;
+
+                    traceEvent(TRACE_NORMAL, "supernode issued IPv6 address %s",
+                               ip6_subnet_to_str(ip6_bit_str, &eee->conf.tuntap_v6));
                 }
             }
 

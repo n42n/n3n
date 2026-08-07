@@ -653,6 +653,63 @@ void test_REGISTER_SUPER_no_ip6 (n2n_common_t *common) {
     fprintf(stderr, "%s: tested\n", test_name);
 }
 
+/*
+ * REGISTER_SUPER_ACK is the message that carries an assigned IPv6 subnet back
+ * to the edge, so round trip it and show what survives.  Encoding a field but
+ * forgetting to decode it (or the other way round) leaves the address silently
+ * unset, which looks exactly like a supernode that issued nothing.
+ */
+void test_REGISTER_SUPER_ACK_ip6 (n2n_common_t *common) {
+    char *test_name = "REGISTER_SUPER_ACK_ip6";
+
+    common->pc = MSG_TYPE_REGISTER_SUPER_ACK;
+
+    n2n_REGISTER_SUPER_ACK_t ack;
+    memset( &ack, 0, sizeof(ack) );
+    init_mac( ack.srcMac, 0x40,0x41,0x42,0x43,0x44,0x45);
+    init_ip_subnet(&ack.dev_addr);
+    init_ip6_subnet(&ack.dev_addr6);
+    init_auth(&ack.auth);
+    ack.lifetime = 60;
+    ack.num_sn = 0;
+    ack.key_time = 600;
+
+    /* The supernode always fills in the sender socket, and encode_sock() emits
+     * a different length per family, so set one rather than leaving it zero */
+    ack.sock.family = AF_INET6;
+    ack.sock.port = 7777;
+    memset(ack.sock.addr.v6, 0x5a, IPV6_SIZE);
+
+    print_ip6_subnet(test_name, "in  ack.dev_addr6", &ack.dev_addr6);
+
+    uint8_t pktbuf[N2N_PKT_BUF_SIZE];
+    uint8_t payload[REG_SUPER_ACK_PAYLOAD_SPACE];
+    memset(payload, 0, sizeof(payload));
+
+    size_t idx = 0;
+    encode_REGISTER_SUPER_ACK( pktbuf, &idx, common, &ack, payload);
+    printf("%s: encoded size = 0x%x\n", test_name, (uint32_t)idx);
+
+    n2n_common_t out_cmn;
+    n2n_REGISTER_SUPER_ACK_t out_ack;
+    uint8_t out_payload[REG_SUPER_ACK_PAYLOAD_SPACE];
+    size_t rem = idx;
+    size_t out_idx = 0;
+
+    memset(&out_cmn, 0, sizeof(out_cmn));
+    decode_common(&out_cmn, pktbuf, &rem, &out_idx);
+    decode_REGISTER_SUPER_ACK(&out_ack, &out_cmn, pktbuf, &rem, &out_idx, out_payload);
+
+    print_ip6_subnet(test_name, "out ack.dev_addr6", &out_ack.dev_addr6);
+    printf("%s: unconsumed bytes = %u\n", test_name, (uint32_t)rem);
+    printf("%s: dev_addr6 survived = %s\n",
+           test_name,
+           (memcmp(&ack.dev_addr6, &out_ack.dev_addr6, sizeof(ack.dev_addr6)) == 0) ? "yes" : "NO");
+
+    printf("\n");
+    fprintf(stderr, "%s: tested\n", test_name);
+}
+
 int main (int argc, char * argv[]) {
     char *test_name = "environment";
 
@@ -664,6 +721,7 @@ int main (int argc, char * argv[]) {
     test_REGISTER(&common);
     test_REGISTER_SUPER(&common);
     test_REGISTER_SUPER_no_ip6(&common);
+    test_REGISTER_SUPER_ACK_ip6(&common);
     test_UNREGISTER_SUPER(&common);
     // TODO: add more wire tests
 

@@ -637,6 +637,7 @@ int encode_REGISTER_SUPER_ACK (uint8_t *base,
     retval += encode_buf(base, idx, tmpbuf, (reg->num_sn*REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE));
 
     retval += encode_uint32(base, idx, reg->key_time);
+    retval += encode_ip6_subnet(base, idx, &(reg->dev_addr6));
 
     return retval;
 }
@@ -680,6 +681,7 @@ int decode_REGISTER_SUPER_ACK (n2n_REGISTER_SUPER_ACK_t *reg,
     retval += decode_buf(tmpbuf, (reg->num_sn * REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE), base, rem, idx);
 
     retval += decode_uint32(&(reg->key_time), base, rem, idx);
+    retval += decode_ip6_subnet(&(reg->dev_addr6), base, rem, idx);
 
     return retval;
 }
