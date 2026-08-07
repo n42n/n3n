@@ -319,6 +319,20 @@ static struct n3n_conf_option section_management[] = {
 
 static struct n3n_conf_option section_supernode[] = {
     {
+        .name = "auto_ip6_net",
+        .type = n3n_conf_ip6_subnet,
+        .offset = offsetof(n2n_edge_conf_t, sn_auto_ip6_net),
+        .desc = "Prefix the auto IPv6 addresses are drawn from",
+        .help = "When the supernode is issuing IPv6 addresses to the edges "
+                "(with the edge tuntap.address6_mode option) this configures "
+                "the prefix used. The supernode derives one /64 per community "
+                "from it, and the host part of each edge is derived from the "
+                "connection.description setting. The prefix must be shorter "
+                "than /64 to leave room for the community part. Defaults to a "
+                "unique local prefix, so it never collides with globally "
+                "routable addresses.",
+    },
+    {
         .name = "auto_ip_max",
         .type = n3n_conf_ip_subnet,
         .offset = offsetof(n2n_edge_conf_t, sn_max_auto_ip_net),
@@ -451,6 +465,28 @@ static struct n3n_conf_option section_tuntap[] = {
                 "of the address_mode setting. "
                 "The address can also contain an optional trailing '/' and "
                 "subnet size.",
+    },
+    {
+        .name = "address6",
+        .type = n3n_conf_ip6_subnet,
+        .offset = offsetof(n2n_edge_conf_t, tuntap_v6),
+        .desc = "Set the tuntap IPv6 address",
+        .help = "By default, the supernode will assign an address. The "
+                "address defined here may be ignored depending on the value "
+                "of the address6_mode setting. "
+                "The address can also contain an optional trailing '/' and "
+                "prefix length, which defaults to /64.",
+    },
+    {
+        .name = "address6_mode",
+        .type = n3n_conf_ip_mode,
+        .offset = offsetof(n2n_edge_conf_t, tuntap_ip6_mode),
+        .desc = "Define how the tuntap IPv6 address is set",
+        .help = "By default, the 'auto' mode allows the supernode to issue "
+                "an IPv6 address.  Other options are: 'static' - where the "
+                "address is statically configured; 'dhcp' - where no "
+                "address is set by the edge and an external process (or IPv6 "
+                "autoconfiguration) is expected to set it.",
     },
     {
         .name = "address_mode",

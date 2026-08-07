@@ -61,10 +61,14 @@ int main () {
     subnet.net_addr = htonl(0x0a000001);    // Set ip address 10.0.0.1
     subnet.net_bitlen = 24;                 // Netmask to use
 
+    struct n2n_ip6_subnet subnet6;
+    memset(&subnet6, 0, sizeof(subnet6));   // No IPv6 address
+
     if(tuntap_open(&tuntap,
                    "edge0",             // Name of the device to create
                    TUNTAP_IP_MODE_STATIC, // IP mode; static|dhcp
                    subnet,
+                   subnet6,             // IPv6 address, zero for none
                    "DE:AD:BE:EF:01:10", // Set mac address
                    DEFAULT_MTU,         // MTU to use
                    0                    // Metric - unused in n2n on most OS

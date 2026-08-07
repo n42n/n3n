@@ -37,6 +37,7 @@
 #include <n3n/mainloop.h>            // for mainloop_register_fd
 #include <n3n/tests.h>               // for test_hashing
 #include <n3n/random.h>              // for n3n_rand_seeds, n3n_rand_seeds_s...
+#include <n3n/strings.h>             // for ip6_subnet_to_str
 #include <n3n/transform.h>           // for n3n_transform_lookup_id
 #include <signal.h>                  // for signal, SIG_IGN, SIGPIPE, SIGCHLD
 #include <stdbool.h>
@@ -1017,6 +1018,24 @@ int main (int argc, char* argv[]) {
             break;
     }
 
+    switch(eee->conf.tuntap_ip6_mode) {
+        case TUNTAP_IP_MODE_SN_ASSIGN:
+            traceEvent(TRACE_NORMAL, "automatically assign IPv6 address by supernode");
+            break;
+        case TUNTAP_IP_MODE_STATIC:
+            traceEvent(TRACE_NORMAL, "use manually set IPv6 address");
+            break;
+        case TUNTAP_IP_MODE_DHCP:
+            traceEvent(TRACE_NORMAL, "leave the IPv6 address to an external process");
+            /* Nothing is to touch the interface's IPv6 configuration, so drop
+             * any address that was configured anyway */
+            memset(&eee->conf.tuntap_v6, 0, sizeof(eee->conf.tuntap_v6));
+            break;
+        default:
+            traceEvent(TRACE_ERROR, "unknown ip6_mode");
+            break;
+    }
+
     // mini main loop for bootstrap, not using main loop code because some of its mechanisms do not fit in here
     // for the sake of quickly establishing connection. REVISIT when a more elegant way to re-use main loop code
     // is found
@@ -1095,7 +1114,8 @@ int main (int argc, char* argv[]) {
         }
 
         if(runlevel == 2) { /* send REGISTER_SUPER to get auto ip address from a supernode */
-            if(eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
+            if((eee->conf.tuntap_ip_mode == TUNTAP_IP_MODE_SN_ASSIGN) ||
+               (eee->conf.tuntap_ip6_mode == TUNTAP_IP_MODE_SN_ASSIGN)) {
                 last_action = now;
                 eee->sn_wait = 1;
                 send_register_super(eee);
@@ -1135,6 +1155,7 @@ int main (int argc, char* argv[]) {
                            eee->conf.tuntap_dev_name,
                            eee->conf.tuntap_ip_mode,
                            eee->conf.tuntap_v4,
+                           eee->conf.tuntap_v6,
                            eee->conf.device_mac,
                            eee->conf.mtu,
                            eee->conf.metric) < 0)
@@ -1149,6 +1170,11 @@ int main (int argc, char* argv[]) {
                        inet_ntoa(*tmp),
                        eee->conf.tuntap_v4.net_bitlen,
                        macaddr_str(mac_buf, eee->device.mac_addr));
+            if(eee->conf.tuntap_v6.net_bitlen) {
+                ip6_bit_str_t ip6_bit_str = {'\0'};
+                traceEvent(TRACE_NORMAL, "local tap device IPv6: %s",
+                           ip6_subnet_to_str(ip6_bit_str, &eee->conf.tuntap_v6));
+            }
             runlevel = 5;
             // no more answers required
             seek_answer = 0;

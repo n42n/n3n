@@ -413,6 +413,36 @@ try_uint32:
             val->net_bitlen = tmp.net_bitlen;
             return 0;
         }
+        case n3n_conf_ip6_subnet: {
+            struct n2n_ip6_subnet *val = (struct n2n_ip6_subnet *)valvoid;
+            struct n2n_ip6_subnet tmp;
+            tmp.net_bitlen = N2N_SN_AUTO_IP6_HOST_BITLEN;
+
+            char *endptr;
+
+            char *bitlen_str = strchr(value, '/');
+            if(bitlen_str) {
+                // Found a prefix length, try to parse it
+                *bitlen_str++ = 0;
+                tmp.net_bitlen = strtoul(bitlen_str, &endptr, 10);
+                if(*endptr) {
+                    // there were non parsable chars in the string
+                    return -1;
+                }
+                if(tmp.net_bitlen > 128) {
+                    return -1;
+                }
+            }
+
+            if(inet_pton(AF_INET6, value, &tmp.net_addr) != 1) {
+                // error parsing
+                return -1;
+            }
+
+            memcpy(val->net_addr, tmp.net_addr, sizeof(val->net_addr));
+            val->net_bitlen = tmp.net_bitlen;
+            return 0;
+        }
         case n3n_conf_ip_mode: {
             uint8_t *val = (uint8_t *)valvoid;
 
@@ -663,6 +693,16 @@ static const char * stringify_option (void *conf, struct n3n_conf_option option,
             snprintf(buf + used, buflen - used, "/%i", val->net_bitlen);
             return buf;
         }
+        case n3n_conf_ip6_subnet: {
+            struct n2n_ip6_subnet *val = (struct n2n_ip6_subnet *)valvoid;
+
+            if(inet_ntop(AF_INET6, val->net_addr, buf, buflen) == NULL) {
+                return NULL;
+            }
+            ssize_t used = strlen(buf);
+            snprintf(buf + used, buflen - used, "/%i", val->net_bitlen);
+            return buf;
+        }
         case n3n_conf_ip_mode: {
             uint8_t *val = (uint8_t *)valvoid;
 
@@ -757,6 +797,10 @@ static int option_storagesize (const struct n3n_conf_option option) {
         }
         case n3n_conf_ip_subnet: {
             struct n2n_ip_subnet *val = (struct n2n_ip_subnet *)valvoid;
+            return sizeof(*val);
+        }
+        case n3n_conf_ip6_subnet: {
+            struct n2n_ip6_subnet *val = (struct n2n_ip6_subnet *)valvoid;
             return sizeof(*val);
         }
         case n3n_conf_ip_mode: {

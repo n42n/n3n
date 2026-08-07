@@ -25,6 +25,7 @@
 #include <string.h>    // for memset, strcpy, strncpy
 #include "n2n.h"       // for n2n_common_t, n2n_REGISTER_SUPER_t, n2n_REGIST...
 #include "n2n_wire.h"  // for encode_REGISTER, encode_REGISTER_SUPER, encode...
+#include <n3n/strings.h> // for ip6_subnet_to_str
 
 
 void init_ip_subnet (n2n_ip_subnet_t * d) {
@@ -37,6 +38,22 @@ void print_ip_subnet (char *test_name, char *field, n2n_ip_subnet_t * d) {
            test_name, field, d->net_addr);
     printf("%s: %s.net_bitlen = %i\n",
            test_name, field, d->net_bitlen);
+}
+
+void init_ip6_subnet (n2n_ip6_subnet_t * d) {
+    // fd11:2233:4455:6677:8899:aabb:ccdd:eeff
+    static const uint8_t addr[IPV6_SIZE] = {
+        0xfd, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
+    };
+    memcpy(d->net_addr, addr, sizeof(addr));
+    d->net_bitlen = 64;
+}
+
+void print_ip6_subnet (char *test_name, char *field, n2n_ip6_subnet_t * d) {
+    ip6_bit_str_t buf = {'\0'};
+    printf("%s: %s = %s\n",
+           test_name, field, ip6_subnet_to_str(buf, d));
 }
 
 void init_mac (n2n_mac_t mac, const uint8_t o0, const uint8_t o1,
@@ -96,6 +113,7 @@ void test_REGISTER (n2n_common_t *common) {
     init_mac( reg.srcMac, 0,1,2,3,4,5);
     init_mac( reg.dstMac, 0x10,0x11,0x12,0x13,0x14,0x15);
     init_ip_subnet(&reg.dev_addr);
+    init_ip6_subnet(&reg.dev_addr6);
     strcpy( (char *)reg.dev_desc, "Dummy_Dev_Desc" );
 
     printf("%s: reg.cookie = %i\n", test_name, reg.cookie);
@@ -104,6 +122,7 @@ void test_REGISTER (n2n_common_t *common) {
     // TODO: print reg.sock
     print_ip_subnet(test_name, "reg.dev_addr", &reg.dev_addr);
     printf("%s: reg.dev_desc = \"%s\"\n", test_name, reg.dev_desc);
+    print_ip6_subnet(test_name, "reg.dev_addr6", &reg.dev_addr6);
     printf("\n");
 
     uint8_t pktbuf[N2N_PKT_BUF_SIZE];
@@ -131,6 +150,7 @@ void test_REGISTER_SUPER (n2n_common_t *common) {
     init_mac( reg.edgeMac, 0x20,0x21,0x22,0x23,0x24,0x25);
     // n3n_sock_t sock
     init_ip_subnet(&reg.dev_addr);
+    init_ip6_subnet(&reg.dev_addr6);
     strcpy( (char *)reg.dev_desc, "Dummy_Dev_Desc" );
     init_auth(&reg.auth);
     reg.key_time = 600;
@@ -143,6 +163,7 @@ void test_REGISTER_SUPER (n2n_common_t *common) {
     printf("%s: reg.dev_desc = \"%s\"\n", test_name, reg.dev_desc);
     print_auth(test_name, "reg.auth", &reg.auth);
     printf("%s: reg.key_time = %u\n", test_name, (uint32_t)reg.key_time);
+    print_ip6_subnet(test_name, "reg.dev_addr6", &reg.dev_addr6);
     printf("\n");
 
     uint8_t pktbuf[N2N_PKT_BUF_SIZE];
@@ -565,6 +586,73 @@ void pattern_tests () {
 
 }
 
+/*
+ * The IPv6 subnet is appended to the end of REGISTER_SUPER, so a message from
+ * a peer that predates IPv6 support simply stops short.  Confirm that such a
+ * message still decodes, and that the optional field reads back as unset
+ * instead of picking up whatever bytes happen to follow.
+ *
+ * The trailing bytes matter here: when a shared secret is in use the sender
+ * appends an N2N_REG_SUP_HASH_CHECK_LEN byte hash which is still counted in
+ * the remaining length, so those bytes must not be mistaken for an address.
+ */
+void test_REGISTER_SUPER_no_ip6 (n2n_common_t *common) {
+    char *test_name = "REGISTER_SUPER_no_ip6";
+
+    common->pc = MSG_TYPE_REGISTER_SUPER;
+
+    n2n_REGISTER_SUPER_t reg;
+    memset( &reg, 0, sizeof(reg) );
+    init_mac( reg.edgeMac, 0x20,0x21,0x22,0x23,0x24,0x25);
+    init_ip_subnet(&reg.dev_addr);
+    init_ip6_subnet(&reg.dev_addr6);
+    strcpy( (char *)reg.dev_desc, "Dummy_Dev_Desc" );
+    init_auth(&reg.auth);
+    reg.key_time = 600;
+
+    uint8_t pktbuf[N2N_PKT_BUF_SIZE];
+    size_t idx = 0;
+    encode_REGISTER_SUPER( pktbuf, &idx, common, &reg);
+
+    /* Drop the encoded IPv6 subnet to imitate a sender without IPv6 support */
+    size_t truncated = idx - (IPV6_SIZE + 1);
+
+    struct {
+        char *name;
+        size_t extra;
+    } cases[] = {
+        { "truncated", 0 },
+        { "truncated_plus_hash", N2N_REG_SUP_HASH_CHECK_LEN },
+    };
+
+    for(unsigned int i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        n2n_common_t out_common;
+        n2n_REGISTER_SUPER_t out_reg;
+        size_t out_idx = 0;
+
+        /* The hash bytes are opaque, any non zero pattern will do */
+        memset(pktbuf + truncated, 0xA5, cases[i].extra);
+
+        size_t rem = truncated + cases[i].extra;
+        decode_common(&out_common, pktbuf, &rem, &out_idx);
+        decode_REGISTER_SUPER(&out_reg, &out_common, pktbuf, &rem, &out_idx);
+
+        printf("%s: %s: dev_addr.net_addr = 0x%08x\n",
+               test_name, cases[i].name, out_reg.dev_addr.net_addr);
+        printf("%s: %s: key_time = %u\n",
+               test_name, cases[i].name, (uint32_t)out_reg.key_time);
+
+        char field[64];
+        snprintf(field, sizeof(field), "%s: dev_addr6", cases[i].name);
+        print_ip6_subnet(test_name, field, &out_reg.dev_addr6);
+        printf("%s: %s: unconsumed bytes = %u\n",
+               test_name, cases[i].name, (uint32_t)rem);
+    }
+
+    printf("\n");
+    fprintf(stderr, "%s: tested\n", test_name);
+}
+
 int main (int argc, char * argv[]) {
     char *test_name = "environment";
 
@@ -575,6 +663,7 @@ int main (int argc, char * argv[]) {
 
     test_REGISTER(&common);
     test_REGISTER_SUPER(&common);
+    test_REGISTER_SUPER_no_ip6(&common);
     test_UNREGISTER_SUPER(&common);
     // TODO: add more wire tests
 

@@ -358,6 +358,20 @@ char *ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr) {
 }
 
 // TODO: move to a strings helper source file
+char *ip6_subnet_to_str (ip6_bit_str_t buf, const n2n_ip6_subnet_t *ipaddr) {
+
+    if(inet_ntop(AF_INET6, ipaddr->net_addr, buf, sizeof(ip6_bit_str_t)) == NULL) {
+        snprintf(buf, sizeof(ip6_bit_str_t), "(invalid)");
+        return buf;
+    }
+
+    size_t used = strlen(buf);
+    snprintf(buf + used, sizeof(ip6_bit_str_t) - used, "/%u", ipaddr->net_bitlen);
+
+    return buf;
+}
+
+// TODO: move to a strings helper source file
 const char *sockaddr_to_str (char *s, size_t len, const struct sockaddr *sa) {
     if(sa->sa_family == AF_INET) {
         return inet_ntop(

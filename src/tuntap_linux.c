@@ -45,6 +45,7 @@
 #include "n2n.h"                      // for tuntap_dev, ...
 #include "n2n_typedefs.h"
 #include "n3n/ethernet.h"
+#include "n3n/strings.h"              // for ip6_subnet_to_str
 
 
 static int setup_ifname (int fd, const char *ifname,
@@ -108,6 +109,74 @@ static int setup_ifname (int fd, const char *ifname,
 }
 
 
+/* The kernel takes IPv6 interface addresses through SIOCSIFADDR on an AF_INET6
+ * socket with this structure, not through the AF_INET struct ifreq used above.
+ * It lives in <linux/ipv6.h>, which cannot be included alongside
+ * <netinet/in.h> without clashing, so it is declared here instead. */
+struct n3n_in6_ifreq {
+    struct in6_addr ifr6_addr;
+    uint32_t ifr6_prefixlen;
+    int ifr6_ifindex;
+};
+
+
+/** @brief Add an IPv6 address to an already configured interface.
+ *
+ *  @return - 0 on success, negative on error
+ */
+static int setup_ifname_v6 (const char *ifname, struct n2n_ip6_subnet v6subnet) {
+
+    struct n3n_in6_ifreq ifr6;
+    struct ifreq ifr;
+    ip6_bit_str_t ip6_bit_str = {'\0'};
+    int fd;
+
+    if(v6subnet.net_bitlen == 0) {
+        /* No IPv6 address to set */
+        return 0;
+    }
+
+    if((fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_IP)) < 0) {
+        traceEvent(TRACE_ERROR, "IPv6 socket creation failed [%d]: %s", errno, strerror(errno));
+        return -1;
+    }
+
+    /* The in6_ifreq refers to the interface by index, not by name */
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
+    ifr.ifr_name[IFNAMSIZ-1] = '\0';
+
+    if(ioctl(fd, SIOCGIFINDEX, &ifr) == -1) {
+        traceEvent(TRACE_ERROR, "ioctl(SIOCGIFINDEX) failed [%d]: %s", errno, strerror(errno));
+        close(fd);
+        return -2;
+    }
+
+    memset(&ifr6, 0, sizeof(ifr6));
+    memcpy(&ifr6.ifr6_addr, v6subnet.net_addr, sizeof(ifr6.ifr6_addr));
+    ifr6.ifr6_prefixlen = v6subnet.net_bitlen;
+    ifr6.ifr6_ifindex = ifr.ifr_ifindex;
+
+    if(ioctl(fd, SIOCSIFADDR, &ifr6) == -1) {
+        /* EEXIST simply means we already have this address, which is not worth
+         * failing the interface setup over. */
+        if(errno != EEXIST) {
+            traceEvent(TRACE_ERROR, "ioctl(SIOCSIFADDR, %s) failed [%d]: %s",
+                       ip6_subnet_to_str(ip6_bit_str, &v6subnet), errno, strerror(errno));
+            close(fd);
+            return -3;
+        }
+    }
+
+    close(fd);
+
+    traceEvent(TRACE_INFO, "assigned IPv6 address %s to %s",
+               ip6_subnet_to_str(ip6_bit_str, &v6subnet), ifname);
+
+    return 0;
+}
+
+
 /** @brief  Open and configure the TAP device for packet read/write.
  *
  *  This routine creates the interface via the tuntap driver and then
@@ -117,6 +186,7 @@ static int setup_ifname (int fd, const char *ifname,
  *  @param dev         - user-defined name for the new iface,
  *                       if NULL system will assign a name
  *  @param v4subnet    - address and netmask of iface
+ *  @param v6subnet    - IPv6 address and prefix length, zero bitlen for none
  *  @param mtu         - MTU for device
  *
  *  @return - negative value on error
@@ -126,6 +196,7 @@ int tuntap_open (tuntap_dev *device,
                  char *dev, /* user-definable interface name, eg. edge0 */
                  uint8_t address_mode, /* unused! */
                  struct n2n_ip_subnet v4subnet,
+                 struct n2n_ip6_subnet v6subnet,
                  const char * device_mac,
                  int mtu,
                  int ignored) {
@@ -254,6 +325,13 @@ int tuntap_open (tuntap_dev *device,
     close(nl_fd);
 
     device->ip_addr = v4subnet.net_addr;
+
+    /* The IPv6 address has to go on after the interface is up, otherwise the
+     * kernel discards it again when duplicate address detection restarts. */
+    if(setup_ifname_v6(device->dev_name, v6subnet) == 0) {
+        memcpy(device->ip6_addr, v6subnet.net_addr, sizeof(device->ip6_addr));
+        device->ip6_bitlen = v6subnet.net_bitlen;
+    }
 
     return device->fd;
 }

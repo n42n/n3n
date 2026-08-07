@@ -125,6 +125,8 @@ typedef char ipstr_t[INET_ADDRSTRLEN];
 
 typedef char dec_ip_str_t[N2N_NETMASK_STR_SIZE];
 typedef char dec_ip_bit_str_t[N2N_NETMASK_STR_SIZE + 4];
+/* INET6_ADDRSTRLEN (46) plus room for a trailing "/128" and the terminator */
+typedef char ip6_bit_str_t[52];
 typedef char devstr_t[N2N_IFNAMSIZ];
 
 
@@ -134,6 +136,8 @@ typedef struct tuntap_dev {
     devstr_t dev_name;
 #endif
     in_addr_t ip_addr;
+    uint8_t ip6_addr[16];           /* Network order, all zero when unset. */
+    uint8_t ip6_bitlen;
     n2n_mac_t mac_addr;
     uint16_t mtu;
 #ifdef _WIN32
@@ -189,6 +193,14 @@ typedef struct n2n_ip_subnet {
     uint8_t net_bitlen;             /* Subnet prefix. */
 } n2n_ip_subnet_t;
 
+/* IPv6 counterpart of n2n_ip_subnet_t.  Unlike the IPv4 version, the address
+ * is kept in network byte order throughout - there is no host-order integer
+ * wide enough to be worth converting to and from. */
+typedef struct n2n_ip6_subnet {
+    uint8_t net_addr[IPV6_SIZE];    /* Network order IPv6 address. */
+    uint8_t net_bitlen;             /* Subnet prefix length, 0 means unset. */
+} n2n_ip6_subnet_t;
+
 typedef struct n2n_sock {
     uint8_t family;                   /* AF_INET, AF_INET6 or AF_INVALID (0xff, a custom #define);
                                          mind that AF_UNSPEC (0) means auto IPv4 or IPv6 */
@@ -236,6 +248,7 @@ typedef struct n2n_REGISTER {
     n3n_sock_t sock;                /**< Supernode's view of edge socket OR edge's preferred local socket */
     n2n_ip_subnet_t dev_addr;       /**< IP address of the tuntap adapter. */
     n2n_desc_t dev_desc;            /**< Hint description correlated with the edge */
+    n2n_ip6_subnet_t dev_addr6;     /**< IPv6 address of the tuntap adapter, zero if none. */
 } n2n_REGISTER_t;
 
 typedef struct n2n_REGISTER_ACK {
@@ -262,6 +275,7 @@ typedef struct n2n_REGISTER_SUPER {
     n2n_desc_t dev_desc;            /**< Hint description correlated with the edge */
     n2n_auth_t auth;                /**< Authentication scheme and tokens */
     uint32_t key_time;              /**< key time for dynamic key, used between federatred supernodes only */
+    n2n_ip6_subnet_t dev_addr6;     /**< IPv6 address of the tuntap adapter, zero to request one. */
 } n2n_REGISTER_SUPER_t;
 
 
@@ -282,6 +296,8 @@ typedef struct n2n_REGISTER_SUPER_ACK {
                                      * even if we cannot store them all. */
 
     uint32_t key_time;              /**< key time for dynamic key, used between federatred supernodes only */
+
+    n2n_ip6_subnet_t dev_addr6;     /**< Assign an IPv6 address to the tuntap adapter of edge. */
 } n2n_REGISTER_SUPER_ACK_t;
 
 
@@ -455,7 +471,9 @@ typedef struct n2n_edge_conf {
     char *sessiondir;              // path to use for session files
     devstr_t tuntap_dev_name;
     struct n2n_ip_subnet tuntap_v4;
+    struct n2n_ip6_subnet tuntap_v6;
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
+    uint8_t tuntap_ip6_mode;                         /**< IPv6 address allocation mode, see TUNTAP_IP_MODE_*. */
 
     uint32_t test_benchmark_seconds;
     int test_output_format;
@@ -469,6 +487,7 @@ typedef struct n2n_edge_conf {
     struct peer_info *sn_edges;     // SN federation storage during configure
     n2n_ip_subnet_t sn_min_auto_ip_net;                        /* Address range of auto_ip service. */
     n2n_ip_subnet_t sn_max_auto_ip_net;                        /* Address range of auto_ip service. */
+    n2n_ip6_subnet_t sn_auto_ip6_net;                          /* Prefix the auto IPv6 service draws /64s from. */
 } n2n_edge_conf_t;
 
 
@@ -612,6 +631,7 @@ struct sn_community {
     sn_user_t                     *allowed_users;         /* list of allowed users */
     int64_t number_enc_packets;                           /* Number of encrypted packets handled so far, required for sorting from time to time */
     n2n_ip_subnet_t auto_ip_net;                          /* Address range of auto ip address service. */
+    n2n_ip6_subnet_t auto_ip6_net;                        /* /64 this community draws IPv6 addresses from. */
 
     UT_hash_handle hh;                                    /* makes this structure hashable */
 };

@@ -66,3 +66,15 @@ home 192.168.168.0/24
 #      `-a xxx.xxx.xxx.xxx` option. also, the enhanced syntax `-r -a dhcp:0.0.0.0` is
 #      still available to have more professional needs served by a full dhcp server.
 #
+#      an IPv6 network can optionally follow the IPv4 one, as a third field. it
+#      has to be a /64, because the supernode fills the remaining 64 bits with a
+#      host part derived from each edge's `connection.description`
+#
+home6 192.168.169.0/24 fd00:1234:5678:9abc::/64
+#
+#      if no IPv6 network is given here, the supernode derives one /64 per
+#      community from the `supernode.auto_ip6_net` prefix (which itself defaults
+#      to a unique local prefix), by hashing the community name. the fields are
+#      positional, so an IPv6 network can only be given together with an IPv4
+#      one.
+#

@@ -259,7 +259,7 @@ void send_re_register_super (struct n3n_runtime_data *sss) {
  */
 int load_allowed_sn_community (struct n3n_runtime_data *sss) {
 
-    char buffer[4096], *line, *cmn_str, net_str[20], format[20];
+    char buffer[4096], *line, *cmn_str, net_str[20], net6_str[52], format[20];
 
     sn_user_t *user, *tmp_user;
     n2n_desc_t username;
@@ -267,7 +267,10 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     char ascii_public_key[(N2N_PRIVATE_PUBLIC_KEY_SIZE * 8 + 5) / 6 + 1];
 
     dec_ip_str_t ip_str = {'\0'};
+    char ip6_str[46] = {'\0'};
     uint8_t bitlen;
+    uint8_t bitlen6;
+    uint8_t net6[IPV6_SIZE];
     in_addr_t net;
     uint32_t mask;
     FILE *fd = fopen(sss->conf.community_file, "r");
@@ -283,6 +286,7 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
     struct sn_community_regular_expression *re, *tmp_re;
     uint32_t num_regex = 0;
     int has_net;
+    int has_net6;
 
     if(fd == NULL) {
         traceEvent(TRACE_WARNING, "File %s not found", sss->conf.community_file);
@@ -413,7 +417,9 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
 
         // cut off any IP sub-network upfront
         cmn_str = (char*)calloc(len + 1, sizeof(char));
-        has_net = (sscanf(line, "%s %s", cmn_str, net_str) == 2);
+        int num_fields = sscanf(line, "%s %19s %51s", cmn_str, net_str, net6_str);
+        has_net = (num_fields >= 2);
+        has_net6 = (num_fields >= 3);
 
         // if it contains typical characters...
         if(NULL != strpbrk(cmn_str, ".*+?[]\\")) {
@@ -482,6 +488,39 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
                            comm->community);
             } else {
                 assign_one_ip_subnet(sss, comm);
+            }
+
+            // check for the optional IPv6 sub-network address
+            if(has_net6) {
+                if(sscanf(net6_str, "%45[^/]/%hhu", ip6_str, &bitlen6) != 2) {
+                    traceEvent(TRACE_WARNING, "bad net6/bit format '%s' for community '%s', ignoring; see comments inside community.list file",
+                               net6_str, cmn_str);
+                    has_net6 = 0;
+                } else if(inet_pton(AF_INET6, ip6_str, net6) != 1) {
+                    traceEvent(TRACE_WARNING, "bad IPv6 network '%s' in '%s' for community '%s', ignoring",
+                               ip6_str, net6_str, cmn_str);
+                    has_net6 = 0;
+                } else if(bitlen6 != N2N_SN_AUTO_IP6_HOST_BITLEN) {
+                    /* The host part always holds a 64 bit EUI-64, so anything
+                     * other than a /64 cannot be handed out. */
+                    traceEvent(TRACE_WARNING, "bad prefix '%hhu' in '%s' for community '%s', only /%u is supported, ignoring",
+                               bitlen6, net6_str, cmn_str, N2N_SN_AUTO_IP6_HOST_BITLEN);
+                    has_net6 = 0;
+                } else if(memcmp(net6 + 8, "\0\0\0\0\0\0\0\0", 8) != 0) {
+                    traceEvent(TRACE_WARNING, "IPv6 network '%s' for community '%s' has a non-zero host part, ignoring",
+                               net6_str, cmn_str);
+                    has_net6 = 0;
+                }
+            }
+            if(has_net6) {
+                ip6_bit_str_t ip6_bit_str = {'\0'};
+                memcpy(comm->auto_ip6_net.net_addr, net6, IPV6_SIZE);
+                comm->auto_ip6_net.net_bitlen = bitlen6;
+                traceEvent(TRACE_INFO, "assigned IPv6 sub-network %s to community '%s'",
+                           ip6_subnet_to_str(ip6_bit_str, &comm->auto_ip6_net),
+                           comm->community);
+            } else {
+                assign_one_ip6_subnet(sss, comm);
             }
         }
         free(cmn_str);
@@ -922,6 +961,8 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     conf->sn_min_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
     conf->sn_max_auto_ip_net.net_addr = inet_addr(N2N_SN_MAX_AUTO_IP_NET_DEFAULT);
     conf->sn_max_auto_ip_net.net_bitlen = N2N_SN_AUTO_IP_NET_BIT_DEFAULT;
+    inet_pton(AF_INET6, N2N_SN_AUTO_IP6_NET_DEFAULT, conf->sn_auto_ip6_net.net_addr);
+    conf->sn_auto_ip6_net.net_bitlen = N2N_SN_AUTO_IP6_NET_BIT_DEFAULT;
 
     sss->federation = (struct sn_community *)calloc(1, sizeof(struct sn_community));
     if(!sss->federation) {
@@ -1284,6 +1325,7 @@ static int update_edge (struct n3n_runtime_data *sss,
                 scan = peer_info_malloc(reg->edgeMac); /* deallocated in purge_expired_nodes */
                 scan->dev_addr.net_addr = reg->dev_addr.net_addr;
                 scan->dev_addr.net_bitlen = reg->dev_addr.net_bitlen;
+                memcpy(&(scan->dev_addr6), &(reg->dev_addr6), sizeof(n2n_ip6_subnet_t));
                 memcpy((char*)scan->dev_desc, reg->dev_desc, N2N_DESC_SIZE);
                 memcpy(&(scan->sock), sender_sock, sizeof(n3n_sock_t));
                 scan->socket_fd = socket_fd;
@@ -1323,6 +1365,7 @@ static int update_edge (struct n3n_runtime_data *sss,
             if(!sock_equal(sender_sock, &(scan->sock))) {
                 scan->dev_addr.net_addr = reg->dev_addr.net_addr;
                 scan->dev_addr.net_bitlen = reg->dev_addr.net_bitlen;
+                memcpy(&(scan->dev_addr6), &(reg->dev_addr6), sizeof(n2n_ip6_subnet_t));
                 memcpy((char*)scan->dev_desc, reg->dev_desc, N2N_DESC_SIZE);
                 memcpy(&(scan->sock), sender_sock, sizeof(n3n_sock_t));
                 scan->socket_fd = socket_fd;
@@ -1526,6 +1569,170 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
                    comm->community);
         return -1;
     }
+}
+
+
+/** Copy the leading bitlen bits of src into dst, leaving the rest of dst alone. */
+static void ip6_copy_prefix_bits (uint8_t *dst, const uint8_t *src, uint8_t bitlen) {
+
+    uint8_t whole = bitlen / 8;
+    uint8_t spare = bitlen % 8;
+
+    memcpy(dst, src, whole);
+
+    if(spare) {
+        uint8_t mask = (uint8_t)(0xFF << (8 - spare));
+        dst[whole] = (dst[whole] & ~mask) | (src[whole] & mask);
+    }
+}
+
+
+/** The IPv6 /64 assigned to the community by the auto ip address function of sn.
+ *
+ * The supernode prefix is typically much shorter than /64, so the bits between
+ * the end of that prefix and the /64 boundary are filled with a hash of the
+ * community name.  With at least 16 bits of community space this collides far
+ * more rarely than the IPv4 equivalent, and unlike IPv4 a collision is not
+ * fatal - the host part still separates the edges - so no scan is needed. */
+int assign_one_ip6_subnet (struct n3n_runtime_data *sss,
+                           struct sn_community *comm) {
+
+    const n2n_ip6_subnet_t *pool = &sss->conf.sn_auto_ip6_net;
+    ip6_bit_str_t ip6_bit_str = {'\0'};
+    uint8_t community_bits;
+    uint64_t hash;
+    uint8_t net[IPV6_SIZE];
+
+    memset(&comm->auto_ip6_net, 0, sizeof(comm->auto_ip6_net));
+
+    if(pool->net_bitlen == 0) {
+        /* The auto IPv6 service is switched off */
+        return -1;
+    }
+
+    if(pool->net_bitlen > N2N_SN_AUTO_IP6_HOST_BITLEN) {
+        traceEvent(TRACE_WARNING,
+                   "auto_ip6_net prefix /%u is longer than /%u, cannot assign an IPv6 sub-network to community '%s'",
+                   pool->net_bitlen,
+                   N2N_SN_AUTO_IP6_HOST_BITLEN,
+                   comm->community);
+        return -1;
+    }
+
+    memset(net, 0, sizeof(net));
+    ip6_copy_prefix_bits(net, pool->net_addr, pool->net_bitlen);
+
+    /* Spread the community hash across the bits between the configured prefix
+     * and the /64 boundary. */
+    community_bits = N2N_SN_AUTO_IP6_HOST_BITLEN - pool->net_bitlen;
+    if(community_bits) {
+        hash = pearson_hash_64((const uint8_t *)comm->community, N2N_COMMUNITY_SIZE);
+        /* Keeping only the low community_bits bits of the hash lands it in
+         * exactly the bit range [net_bitlen, 64) once written big endian into
+         * the leading 8 bytes, which is the gap between the pool prefix and
+         * the /64 boundary. */
+        hash &= (UINT64_C(1) << community_bits) - 1;
+
+        for(int i = 0; i < 8; i++) {
+            net[i] |= (uint8_t)(hash >> (56 - 8 * i));
+        }
+    }
+
+    memcpy(comm->auto_ip6_net.net_addr, net, IPV6_SIZE);
+    comm->auto_ip6_net.net_bitlen = N2N_SN_AUTO_IP6_HOST_BITLEN;
+
+    traceEvent(TRACE_INFO, "assigned IPv6 sub-network %s to community '%s'",
+               ip6_subnet_to_str(ip6_bit_str, &comm->auto_ip6_net),
+               comm->community);
+
+    return 0;
+}
+
+
+/** checks if a certain IPv6 address is still available in a community */
+static int ip6_addr_available (struct sn_community *comm, const n2n_ip6_subnet_t *ip6_addr) {
+
+    struct peer_info *peer, *tmp_peer;
+
+    HASH_ITER(hh, comm->edges, peer, tmp_peer) {
+        if(peer->dev_addr6.net_bitlen == 0) {
+            continue;
+        }
+        if(memcmp(peer->dev_addr6.net_addr, ip6_addr->net_addr, IPV6_SIZE) == 0) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+
+/** Write a 64 bit host part into the low half of an address. */
+static void ip6_set_host_part (uint8_t *net_addr, uint64_t host) {
+
+    for(int i = 0; i < 8; i++) {
+        net_addr[8 + i] = (uint8_t)(host >> (56 - 8 * i));
+    }
+}
+
+
+/** The IPv6 address assigned to the edge by the auto ip address function of sn.
+ *
+ * The host part is derived from the edge description rather than from its MAC
+ * address: the edge asks for an address during bootstrap, before it has opened
+ * its TAP interface, so at that point the MAC it reports is still all zeroes
+ * and would be identical for every edge.  This is the same input the IPv4 path
+ * hashes, which also keeps the two addresses of an edge consistent with each
+ * other.
+ *
+ * With 64 host bits a hash collision is unlikely, but two edges sharing a
+ * description (the hostname by default) hash to the same value, so the result
+ * is still checked against the community and probed upwards if taken. */
+static int assign_one_ip6_addr (struct sn_community *comm,
+                                n2n_desc_t dev_desc,
+                                n2n_ip6_subnet_t *ip6_addr) {
+
+    ip6_bit_str_t ip6_bit_str = {'\0'};
+    uint64_t host;
+
+    memset(ip6_addr, 0, sizeof(*ip6_addr));
+
+    if(comm->auto_ip6_net.net_bitlen == 0) {
+        /* No IPv6 sub-network for this community */
+        return -1;
+    }
+
+    memcpy(ip6_addr->net_addr, comm->auto_ip6_net.net_addr, IPV6_SIZE);
+    ip6_addr->net_bitlen = comm->auto_ip6_net.net_bitlen;
+
+    host = pearson_hash_64(dev_desc, sizeof(n2n_desc_t));
+
+    /* Clear the universal/local bit: this identifier is made up locally and is
+     * not derived from a globally unique EUI-64. */
+    host &= ~(UINT64_C(0x02) << 56);
+
+    for(int attempt = 0; attempt < 16; attempt++) {
+        /* The all zero host part is the subnet router anycast address, and the
+         * top of the range is reserved for anycast too (RFC 2526). */
+        if((host == 0) || (host >= UINT64_C(0xFFFFFFFFFFFFFF80))) {
+            host = 1;
+        }
+
+        ip6_set_host_part(ip6_addr->net_addr, host);
+
+        if(ip6_addr_available(comm, ip6_addr)) {
+            traceEvent(TRACE_INFO, "assign IPv6 %s to tap adapter of edge",
+                       ip6_subnet_to_str(ip6_bit_str, ip6_addr));
+            return 0;
+        }
+
+        host++;
+    }
+
+    traceEvent(TRACE_WARNING, "no assignable IPv6 address to edge tap adapter");
+    memset(ip6_addr, 0, sizeof(*ip6_addr));
+
+    return -1;
 }
 
 
@@ -2124,6 +2331,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
                     traceEvent(TRACE_INFO, "new community: %s", comm->community);
                     assign_one_ip_subnet(sss, comm);
+                    assign_one_ip6_subnet(sss, comm);
                 }
             }
 
@@ -2169,6 +2377,14 @@ static int process_pdu (struct n3n_runtime_data * sss,
                     assign_one_ip_addr(comm, reg.dev_desc, &ipaddr);
                     ack.dev_addr.net_addr = ipaddr.net_addr;
                     ack.dev_addr.net_bitlen = ipaddr.net_bitlen;
+                }
+
+                /* Same idea for IPv6: only hand out an address when the edge
+                 * did not bring one of its own.  A link local address does not
+                 * count as configured, it is what the OS makes up by itself. */
+                if((reg.dev_addr6.net_bitlen == 0) ||
+                   ((reg.dev_addr6.net_addr[0] == 0xFE) && ((reg.dev_addr6.net_addr[1] & 0xC0) == 0x80))) {
+                    assign_one_ip6_addr(comm, reg.dev_desc, &ack.dev_addr6);
                 }
             }
 

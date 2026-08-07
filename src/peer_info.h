@@ -30,6 +30,7 @@ struct peer_info {
     bool purgeable;
     uint8_t local;
     n2n_ip_subnet_t dev_addr;
+    n2n_ip6_subnet_t dev_addr6;
     n2n_desc_t dev_desc;
     n3n_sock_t sock;
     SOCKET socket_fd;

@@ -96,6 +96,7 @@ int n2n_transop_zstd_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt);
 /* Tuntap API */
 int tuntap_open (struct tuntap_dev *device, char *dev, uint8_t address_mode,
                  struct n2n_ip_subnet v4subnet,
+                 struct n2n_ip6_subnet v6subnet,
                  const char * device_mac, int mtu,
                  int metric);
 int tuntap_read (struct tuntap_dev *tuntap, unsigned char *buf, int len);
@@ -138,5 +139,6 @@ int comm_init (struct sn_community *comm, char *cmn);
 void sn_init (struct n3n_runtime_data *sss);
 void sn_term (struct n3n_runtime_data *sss);
 int assign_one_ip_subnet (struct n3n_runtime_data *sss, struct sn_community *comm);
+int assign_one_ip6_subnet (struct n3n_runtime_data *sss, struct sn_community *comm);
 
 #endif /* _N2N_H_ */

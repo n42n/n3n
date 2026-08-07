@@ -36,7 +36,7 @@ random MAC address.
 
 ## IP Address
 
-n3n supports several ways to assign an IPv4 address to the virtual ethernet device. Support for IPv6 addresses relies on OS support.
+n3n supports several ways to assign an IPv4 address to the virtual ethernet device. The same three ways are available for IPv6, see the [IPv6](#ipv6) section below.
 
 ### Manually Assigned IP Address
 
@@ -56,20 +56,64 @@ If an edge of the community runs a DHCP server, the others could draw their IP a
 
 ### IPv6
 
-n3n supports the carriage of IPv6 packets within the n3n tunnel. n3n does not
-yet use IPv6 for transport between edges and supernodes.
+n3n supports the carriage of IPv6 packets within the n3n tunnel, and can assign
+IPv6 addresses to the TAP interface the same three ways it assigns IPv4 ones.
+This is controlled by `tuntap.address6_mode`, which is independent of the IPv4
+`tuntap.address_mode`, so an edge can take a static IPv4 address and an
+automatic IPv6 one, or any other combination.
 
-To make IPv6 carriage work you need to manually add IPv6 addresses to the TAP
-interfaces at each end. There is currently no way to specify an IPv6 address on
-the edge command line.
+Address assignment is implemented on every platform that supports IPv4 address
+assignment: Linux, macOS, FreeBSD, OpenBSD, NetBSD and Windows.
 
-For example, under Linux
+**IPv6 neighbour discovery is multicast**, so `filter.allow_multicast=true` is
+required for anything IPv6 to work at all - without it the discovery packets
+are dropped and no peer is ever resolved. Note also that IPv6 needs an MTU of
+at least 1280; the default `tuntap.mtu` of 1290 is fine, but lowering it below
+1280 makes the operating system refuse the address.
+
+#### Auto IPv6 address
+
+This is the default. The supernode derives one `/64` per community from its
+`supernode.auto_ip6_net` prefix by hashing the community name, and hands each
+edge an address out of that `/64`. The host part is derived from the edge's
+`connection.description` (the hostname by default), the same input the IPv4
+auto address uses, so it stays stable across restarts - and changing the
+hostname changes the address.
+
+By default the prefix is a unique local one, so the addresses never collide
+with globally routable space. To use your own:
+
+```ini
+[supernode]
+auto_ip6_net=fd12:3456::/32
+```
+
+The prefix has to be shorter than `/64` to leave room for the per-community
+part. Individual communities can be pre-assigned a fixed `/64` in the
+`community.list` file, see the comments in that file.
+
+#### Manually assigned IPv6 address
+
+```ini
+[tuntap]
+address6=fc00:abcd:1234::7/64
+address6_mode=static
+```
+
+The prefix length is optional and defaults to `/64`.
+
+#### Externally assigned IPv6 address
+
+Setting `address6_mode=dhcp` makes the edge leave the IPv6 configuration of the
+interface alone, for when an external process - or IPv6 stateless
+autoconfiguration - is expected to set it. In that case add the addresses
+yourself, for example under Linux
 
 on hostA:
-`[hostA] $ /sbin/ip -6 addr add fc00:abcd:1234::7/48 dev n3n0`
+`[hostA] $ /sbin/ip -6 addr add fc00:abcd:1234::7/64 dev n3n0`
 
 on hostB:
-`[hostB] $ /sbin/ip -6 addr add fc00:abcd:1234::6/48 dev n3n0`
+`[hostB] $ /sbin/ip -6 addr add fc00:abcd:1234::6/64 dev n3n0`
 
 You may find it useful to make use of `tunctl` from the uml-utilities
 package. `tunctl` allows you to bring up a TAP interface and configure addressing
@@ -79,6 +123,13 @@ interface closing (which would normally affect routing tables).
 Once the IPv6 addresses are configured and edge is started, IPv6 neighbor discovery
 packets flow (get broadcast) and IPv6 entities self-arrange. Test your IPv6
 setup with `ping6` - the IPv6 ping command.
+
+#### Interoperability
+
+The IPv6 subnet is carried in an optional trailing field of the registration
+messages, so edges and supernodes with and without IPv6 support interoperate:
+an older supernode simply never issues an IPv6 address, and an older edge
+ignores one that is issued to it.
 
 ## MTU
 

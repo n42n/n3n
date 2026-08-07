@@ -38,6 +38,7 @@ port=0
 unix_sock_perms=0
 
 [supernode]
+auto_ip6_net=::/0
 auto_ip_max=0.0.0.0/0
 auto_ip_min=0.0.0.0/0
 macaddr=00:00:00:00:00:00
@@ -51,6 +52,8 @@ output_format=pretty
 
 [tuntap]
 address=0.0.0.0/0
+address6=::/0
+address6_mode=auto
 address_mode=auto
 metric=0
 mtu=0

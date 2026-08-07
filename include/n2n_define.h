@@ -135,6 +135,20 @@ enum n3n_event_topic {
 #define N2N_SN_MAX_AUTO_IP_NET_DEFAULT "10.255.255.0"
 #define N2N_SN_AUTO_IP_NET_BIT_DEFAULT 24
 
+/* Default prefix the auto IPv6 address service draws per-community /64s from.
+ * This is inside the fc00::/7 unique local range, so it never collides with
+ * globally routable addresses. */
+#define N2N_SN_AUTO_IP6_NET_DEFAULT     "fd6e:3300::"
+#define N2N_SN_AUTO_IP6_NET_BIT_DEFAULT 32
+
+/* The auto IPv6 service always hands out a full /64 so that the host part can
+ * hold an EUI-64 derived from the edge MAC. */
+#define N2N_SN_AUTO_IP6_HOST_BITLEN     64
+
+/* Smallest MTU IPv6 allows on a link (RFC 8200).  The kernel refuses to keep
+ * an IPv6 address on an interface below this. */
+#define IPV6_MIN_MTU                    1280
+
 /* ************************************** */
 
 #define SUPERNODE_IP      "127.0.0.1"

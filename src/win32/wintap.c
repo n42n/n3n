@@ -212,6 +212,7 @@ int open_wintap (struct tuntap_dev *device,
                  const char * devname,
                  uint8_t address_mode, /* "static" or "dhcp" */
                  struct n2n_ip_subnet v4subnet,
+                 struct n2n_ip6_subnet v6subnet,
                  const char *device_mac,
                  int mtu,
                  int metric) {
@@ -334,6 +335,34 @@ int open_wintap (struct tuntap_dev *device,
     } else {
         printf("ERROR: Unable to set IP address [%s]\n", cmd);
         return -1;
+    }
+
+    /* ****************** */
+
+    /* IPv6 address, if we have one to set */
+
+    if(v6subnet.net_bitlen) {
+        char addr6_buf[INET6_ADDRSTRLEN];
+
+        if(inet_ntop(AF_INET6, v6subnet.net_addr, (char *)&addr6_buf, sizeof(addr6_buf)) == NULL) {
+            printf("ERROR: Unable to format the IPv6 address\n");
+        } else {
+            /* 'set address' would replace any existing address, but IPv6
+             * interfaces normally keep their link local one, so add instead */
+            _snprintf(cmd, sizeof(cmd),
+                      "netsh interface ipv6 add address \"%s\" %s/%u > nul",
+                      device->ifName,
+                      addr6_buf,
+                      v6subnet.net_bitlen
+            );
+
+            if(system(cmd) == 0) {
+                memcpy(device->ip6_addr, v6subnet.net_addr, sizeof(device->ip6_addr));
+                device->ip6_bitlen = v6subnet.net_bitlen;
+            } else {
+                printf("WARNING: Unable to set IPv6 address [%s]\n", cmd);
+            }
+        }
     }
 
     /* ****************** */
@@ -513,10 +542,11 @@ int tuntap_open (struct tuntap_dev *device,
                  char *dev,
                  uint8_t address_mode, /* static or dhcp */
                  struct n2n_ip_subnet v4subnet,
+                 struct n2n_ip6_subnet v6subnet,
                  const char * device_mac,
                  int mtu,
                  int metric) {
-    return(open_wintap(device, dev, address_mode, v4subnet, device_mac, mtu, metric));
+    return(open_wintap(device, dev, address_mode, v4subnet, v6subnet, device_mac, mtu, metric));
 }
 
 /* ************************************************ */

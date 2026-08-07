@@ -14,6 +14,8 @@
 
 char * ip_subnet_to_str (dec_ip_bit_str_t buf, const n2n_ip_subnet_t *ipaddr);
 
+char * ip6_subnet_to_str (ip6_bit_str_t buf, const n2n_ip6_subnet_t *ipaddr);
+
 char* sock_to_cstr (n3n_sock_str_t out,
                     const n3n_sock_t * sock);
 

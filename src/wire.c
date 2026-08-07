@@ -204,6 +204,46 @@ static int decode_mac (n2n_mac_t out,
     return decode_buf(out, N2N_MAC_SIZE, base, rem, idx);
 }
 
+/* The IPv6 subnet fields are always encoded at the very end of their message
+ * so that they are optional on the wire: a peer built before IPv6 support
+ * simply stops decoding early, and decode_ip6_subnet() leaves the (memset to
+ * zero) destination alone when the bytes are not present.  A zero net_bitlen
+ * therefore means "the other side did not send an IPv6 subnet". */
+static int encode_ip6_subnet (uint8_t * base,
+                              size_t * idx,
+                              const n2n_ip6_subnet_t * s) {
+
+    int retval = 0;
+
+    retval += encode_buf(base, idx, s->net_addr, IPV6_SIZE);
+    retval += encode_uint8(base, idx, s->net_bitlen);
+
+    return retval;
+}
+
+static int decode_ip6_subnet (n2n_ip6_subnet_t * s,
+                              const uint8_t * base,
+                              size_t * rem,
+                              size_t * idx) {
+
+    int retval = 0;
+
+    /* Decode all of the subnet or none of it.  This must stay atomic: the
+     * REGISTER_SUPER and REGISTER_SUPER_ACK messages may carry a trailing
+     * N2N_REG_SUP_HASH_CHECK_LEN byte hash which is still counted in *rem, so
+     * a peer that sent no IPv6 subnet can leave exactly that many bytes
+     * unconsumed here.  Requiring the full IPV6_SIZE + 1 bytes keeps those
+     * hash bytes from being mistaken for an address. */
+    if(*rem < IPV6_SIZE + 1) {
+        return 0;
+    }
+
+    retval += decode_buf(s->net_addr, IPV6_SIZE, base, rem, idx);
+    retval += decode_uint8(&(s->net_bitlen), base, rem, idx);
+
+    return retval;
+}
+
 static int encode_cookie (uint8_t * base,
                           size_t * idx,
                           const n2n_cookie_t c) {
@@ -397,6 +437,7 @@ int encode_REGISTER (uint8_t *base,
     retval += encode_uint32(base, idx, reg->dev_addr.net_addr);
     retval += encode_uint8(base, idx, reg->dev_addr.net_bitlen);
     retval += encode_buf(base, idx, reg->dev_desc, N2N_DESC_SIZE);
+    retval += encode_ip6_subnet(base, idx, &(reg->dev_addr6));
 
     return retval;
 }
@@ -420,6 +461,7 @@ int decode_REGISTER (n2n_REGISTER_t *reg,
     retval += decode_uint32(&(reg->dev_addr.net_addr), base, rem, idx);
     retval += decode_uint8(&(reg->dev_addr.net_bitlen), base, rem, idx);
     retval += decode_buf(reg->dev_desc, N2N_DESC_SIZE, base, rem, idx);
+    retval += decode_ip6_subnet(&(reg->dev_addr6), base, rem, idx);
 
     return retval;
 }
@@ -445,6 +487,7 @@ int encode_REGISTER_SUPER (uint8_t *base,
     retval += encode_uint16(base, idx, reg->auth.token_size);
     retval += encode_buf(base, idx, reg->auth.token, reg->auth.token_size);
     retval += encode_uint32(base, idx, reg->key_time);
+    retval += encode_ip6_subnet(base, idx, &(reg->dev_addr6));
 
     return retval;
 }
@@ -476,6 +519,7 @@ int decode_REGISTER_SUPER (n2n_REGISTER_SUPER_t *reg,
     }
     retval += decode_buf(reg->auth.token, reg->auth.token_size, base, rem, idx);
     retval += decode_uint32(&(reg->key_time), base, rem, idx);
+    retval += decode_ip6_subnet(&(reg->dev_addr6), base, rem, idx);
 
     return retval;
 }

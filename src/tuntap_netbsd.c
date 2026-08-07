@@ -43,6 +43,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
                  char *dev,
                  uint8_t address_mode, /* unused! */
                  struct n2n_ip_subnet v4subnet,
+                 struct n2n_ip6_subnet v6subnet,
                  const char * device_mac,
                  int mtu,
                  int ignored) {
@@ -98,6 +99,30 @@ int tuntap_open (tuntap_dev *device /* ignored */,
         system(cmd);
 
         traceEvent(TRACE_NORMAL, "Interface %s up and running (%s/%u)", tap_device, addr_buf, v4subnet.net_bitlen);
+
+        /* The IPv6 address is added separately, the interface keeps both */
+        if(v6subnet.net_bitlen) {
+            char addr6_buf[INET6_ADDRSTRLEN];
+
+            if(inet_ntop(AF_INET6, v6subnet.net_addr, addr6_buf, sizeof(addr6_buf)) == NULL) {
+                traceEvent(TRACE_ERROR, "Unable to format the IPv6 address for %s", tap_device);
+            } else {
+                snprintf(cmd, sizeof(cmd), "ifconfig %s inet6 %s prefixlen %u up",
+                         tap_device,
+                         addr6_buf,
+                         v6subnet.net_bitlen
+                );
+                if(system(cmd) != 0) {
+                    traceEvent(TRACE_ERROR, "Unable to set IPv6 address %s/%u on %s",
+                               addr6_buf, v6subnet.net_bitlen, tap_device);
+                } else {
+                    memcpy(device->ip6_addr, v6subnet.net_addr, sizeof(device->ip6_addr));
+                    device->ip6_bitlen = v6subnet.net_bitlen;
+                    traceEvent(TRACE_NORMAL, "Interface %s IPv6 %s/%u",
+                               tap_device, addr6_buf, v6subnet.net_bitlen);
+                }
+            }
+        }
 
         // read MAC address
         snprintf(cmd, sizeof(cmd), "ifconfig %s |grep address|cut -c 11-28", tap_device);

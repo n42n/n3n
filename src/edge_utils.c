@@ -235,6 +235,23 @@ int edge_verify_conf (const n2n_edge_conf_t *conf) {
        ((conf->encrypt_key != NULL) && (conf->transop_id == N2N_TRANSFORM_ID_NULL)))
         return -4;
 
+    if((conf->tuntap_ip6_mode != TUNTAP_IP_MODE_DHCP) && (conf->mtu < IPV6_MIN_MTU)) {
+        /* Not fatal - the user may not care about IPv6 - but the kernel will
+         * refuse to keep an IPv6 address on an interface this small. */
+        traceEvent(TRACE_WARNING,
+                   "tuntap.mtu of %i is below the IPv6 minimum of %i, IPv6 will not work on the TAP interface",
+                   conf->mtu,
+                   IPV6_MIN_MTU);
+    }
+
+    if(!conf->allow_multicast &&
+       ((conf->tuntap_ip6_mode != TUNTAP_IP_MODE_DHCP) || (conf->tuntap_v6.net_bitlen != 0))) {
+        /* IPv6 neighbour discovery is multicast, so without this nothing on
+         * the IPv6 side will ever resolve a peer. */
+        traceEvent(TRACE_WARNING,
+                   "filter.allow_multicast is off, IPv6 neighbour discovery will be dropped and IPv6 will not work");
+    }
+
     return 0;
 }
 
@@ -1517,6 +1534,8 @@ void send_register_super (struct n3n_runtime_data *eee) {
     reg.cookie = eee->curr_sn->last_cookie;
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
     reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
+    memcpy(reg.dev_addr6.net_addr, eee->device.ip6_addr, IPV6_SIZE);
+    reg.dev_addr6.net_bitlen = eee->device.ip6_bitlen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
     get_local_auth(eee, &(reg.auth));
 
@@ -1669,6 +1688,8 @@ static void send_register (struct n3n_runtime_data * eee,
     }
     reg.dev_addr.net_addr = ntohl(eee->device.ip_addr);
     reg.dev_addr.net_bitlen = eee->conf.tuntap_v4.net_bitlen;
+    memcpy(reg.dev_addr6.net_addr, eee->device.ip6_addr, IPV6_SIZE);
+    reg.dev_addr6.net_bitlen = eee->device.ip6_bitlen;
     memcpy(reg.dev_desc, eee->conf.dev_desc, N2N_DESC_SIZE);
 
     idx = 0;
@@ -2433,6 +2454,7 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
                     eee->conf.tuntap_dev_name,
                     eee->conf.tuntap_ip_mode,
                     eee->conf.tuntap_v4,
+                    eee->conf.tuntap_v6,
                     eee->conf.device_mac,
                     eee->conf.mtu,
                     eee->conf.metric
@@ -2864,6 +2886,16 @@ void process_pdu (struct n3n_runtime_data *eee,
                 if((ra.dev_addr.net_addr != 0) && (ra.dev_addr.net_bitlen != 0)) {
                     eee->conf.tuntap_v4.net_addr = htonl(ra.dev_addr.net_addr);
                     eee->conf.tuntap_v4.net_bitlen = ra.dev_addr.net_bitlen;
+                }
+            }
+
+            if(eee->conf.tuntap_ip6_mode == TUNTAP_IP_MODE_SN_ASSIGN) {
+                /* A zero net_bitlen means the supernode did not issue an IPv6
+                 * address - either it predates IPv6 support or its auto IPv6
+                 * service is switched off. */
+                if(ra.dev_addr6.net_bitlen != 0) {
+                    memcpy(eee->conf.tuntap_v6.net_addr, ra.dev_addr6.net_addr, IPV6_SIZE);
+                    eee->conf.tuntap_v6.net_bitlen = ra.dev_addr6.net_bitlen;
                 }
             }
 
@@ -3623,6 +3655,10 @@ void edge_init_conf_defaults (n2n_edge_conf_t *conf, char *sessionname) {
     conf->tuntap_ip_mode = TUNTAP_IP_MODE_SN_ASSIGN;
     conf->tuntap_v4.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
+    conf->tuntap_ip6_mode = TUNTAP_IP_MODE_SN_ASSIGN;
+    /* left all zero - the supernode fills this in, or the config overrides it */
+    memset(&conf->tuntap_v6, 0, sizeof(conf->tuntap_v6));
+
     /* reserve possible last char as null terminator. */
     gethostname((char*)conf->dev_desc, N2N_DESC_SIZE-1);
 
@@ -3684,9 +3720,13 @@ int quick_edge_init (char *device_name, char *community_name,
     subnet.net_addr = htonl(local_ip_address);
     subnet.net_bitlen = N2N_EDGE_DEFAULT_V4MASKLEN;
 
+    struct n2n_ip6_subnet subnet6;
+    memset(&subnet6, 0, sizeof(subnet6));   /* no IPv6 address */
+
     /* Open the tuntap device */
     if(tuntap_open(&tuntap, device_name, TUNTAP_IP_MODE_STATIC,
                    subnet,
+                   subnet6,
                    device_mac, conf.mtu,
                    0) < 0)
         return(-2);

@@ -537,6 +537,7 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
     // Otherwise send the supernode's view
     struct sn_community *community, *tmp;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
+    ip6_bit_str_t ip6_bit_str = {'\0'};
 
     jsonrpc_result_head(id, conn);
     sb_reprintf(&conn->request, "[");
@@ -559,11 +560,13 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
                     "\"community\":\"%s\","
                     "\"purgeable\":%i,"
                     "\"is_federation\":%i,"
-                    "\"ip4addr\":\"%s\"},",
+                    "\"ip4addr\":\"%s\","
+                    "\"ip6addr\":\"%s\"},",
                     (community->is_federation) ? "-/-" : community->community,
                     community->purgeable,
                     community->is_federation,
-                    (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
+                    (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net),
+                    (community->auto_ip6_net.net_bitlen == 0) ? "" : ip6_subnet_to_str(ip6_bit_str, &community->auto_ip6_net));
 
         if(jsonrpc_error_overflow(id, conn, count)) {
             return;
@@ -583,12 +586,14 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
     n3n_sock_str_t sockbuf;
     n3n_sock_str_t sockbuf2;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
+    ip6_bit_str_t ip6_bit_str = {'\0'};
 
     sb_reprintf(reply,
                 "{"
                 "\"mode\":\"%s\","
                 "\"community\":\"%s\","
                 "\"ip4addr\":\"%s\","
+                "\"ip6addr\":\"%s\","
                 "\"purgeable\":%i,"
                 "\"local\":%i,"
                 "\"macaddr\":\"%s\","
@@ -605,6 +610,7 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 mode,
                 community,
                 (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
+                (peer->dev_addr6.net_bitlen == 0) ? "" : ip6_subnet_to_str(ip6_bit_str, &peer->dev_addr6),
                 peer->purgeable,
                 peer->local,
                 (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
