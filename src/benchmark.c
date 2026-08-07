@@ -64,7 +64,9 @@ static int _perf_setup1 (struct bench_item *item, int id, uint64_t config) {
         return -1;
     }
 
+#ifdef PERF_EVENT_IOC_ID
     ioctl(fd, PERF_EVENT_IOC_ID, &item->id[id]);
+#endif
     return fd;
 }
 
