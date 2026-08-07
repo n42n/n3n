@@ -73,7 +73,8 @@ int tuntap_open (tuntap_dev *device /* ignored */,
             system(buf);
         }
 
-        in_addr_t addr = htonl(device->ip_addr);
+        // ip_addr is already in network order, unlike the bitlen2mask() result
+        in_addr_t addr = device->ip_addr;
         in_addr_t mask = htonl(bitlen2mask(v4subnet.net_bitlen));
         char addr_buf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr, &addr_buf, sizeof(addr_buf));
