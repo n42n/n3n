@@ -26,7 +26,8 @@
 #include <header_encryption.h> // for packet_header_setup_key
 #include <n3n/conffile.h>      // for n3n_config_set_option
 #include <n3n/initfuncs.h>     // for n3n_initfuncs()
-#include <n3n/logging.h>       // for traceEvent
+#include <n3n/logging.h>
+#include <n3n/strings.h>             // for ip6_subnet_to_str       // for traceEvent
 #include <n3n/supernode.h>     // for load_allowed_sn_community, calculate_s...
 #include <signal.h>            // for signal, SIGHUP, SIGINT, SIGPIPE, SIGTERM
 #include <stdbool.h>
@@ -533,6 +534,29 @@ int main (int argc, char * argv[]) {
         ip_max_str,
         sss_node.conf.sn_min_auto_ip_net.net_bitlen
     );
+
+    /* The IPv6 pool needs room between its prefix and the /64 boundary for the
+     * per community part, so anything from /64 up is unusable. */
+    if(sss_node.conf.sn_auto_ip6_net.net_bitlen == 0) {
+        traceEvent(TRACE_NORMAL, "auto ipv6 address service is disabled");
+    } else if(sss_node.conf.sn_auto_ip6_net.net_bitlen >= N2N_SN_AUTO_IP6_HOST_BITLEN) {
+        traceEvent(
+            TRACE_ERROR,
+            "invalid auto IPv6 prefix /%hhu, must be shorter than /%u",
+            sss_node.conf.sn_auto_ip6_net.net_bitlen,
+            N2N_SN_AUTO_IP6_HOST_BITLEN
+        );
+        exit(1);
+    } else {
+        ip6_bit_str_t ip6_net_str = {'\0'};
+
+        traceEvent(
+            TRACE_NORMAL,
+            "auto ipv6 address range is '%s', one /%u per community",
+            ip6_subnet_to_str(ip6_net_str, &sss_node.conf.sn_auto_ip6_net),
+            N2N_SN_AUTO_IP6_HOST_BITLEN
+        );
+    }
 
     calculate_shared_secrets(&sss_node);
 
