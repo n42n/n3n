@@ -79,7 +79,7 @@ void n3n_pktbuf_initialise (ssize_t mtu, int count) {
     int i;
     for(i=0; i < pool_item_count; i++) {
         pool[i].buf = pool_buf + i * item_size;
-        pool[i].capacity = item_size;
+        *(short *)&pool[i].capacity = item_size;
         pool[i].owner = n3n_pktbuf_owner_none;
         n3n_pktbuf_zero(&pool[i]);
     }
@@ -108,12 +108,12 @@ struct n3n_pktbuf *n3n_pktbuf_alloc (ssize_t size) {
             p->owner = n3n_pktbuf_owner_alloc;
             n3n_pktbuf_zero(p);
 
-            pool_item_next_search = p + pool_item_size;
+            pool_item_next_search = p + 1;
             metrics.alloc++;
             return p;
         }
 
-        p += pool_item_size;
+        p++;
         count--;
     }
     return NULL;
@@ -138,16 +138,16 @@ void n3n_pktbuf_zero (struct n3n_pktbuf *p) {
     p->offset_end = 0;
 }
 
-ssize_t n3n_pktbuf_getbufsize (struct n3n_pktbuf *p) {
+ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf *p) {
     return p->offset_end - p->offset_start;
 }
 
-ssize_t n3n_pktbuf_getbufavail (struct n3n_pktbuf *p) {
+ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf *p) {
     return p->capacity - p->offset_end;
 }
 
-void *n3n_pktbuf_getbufptr (struct n3n_pktbuf *p) {
-    return &p->buf[p->offset_start];
+void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf *p) {
+    return (void *)&p->buf[p->offset_start];
 }
 
 int n3n_pktbuf_prepend (struct n3n_pktbuf *p, ssize_t prepend) {
@@ -167,7 +167,7 @@ int n3n_pktbuf_append (struct n3n_pktbuf *p, ssize_t size, void *buf) {
         return -1;
     }
     p->offset_end = new_end;
-    memcpy(&p->buf[p->offset_end], buf, size);
+    memcpy((void *)&p->buf[p->offset_end], buf, size);
     return 1;
 }
 
