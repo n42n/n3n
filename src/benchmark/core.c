@@ -183,11 +183,8 @@ int generic_check (
         return 1;
     }
 
-    if(memcmp(
-            n3n_pktbuf_getbufptr(&benchmark_test_data[p->data_out]),
-            got,
-            got_size
-    ) != 0) {
+    void *expect = n3n_pktbuf_getbufptr(&benchmark_test_data[p->data_out]);
+    if(memcmp(expect, got, got_size) != 0) {
         // not matching expected result is an error
         return 1;
     }
