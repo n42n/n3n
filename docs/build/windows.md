@@ -7,7 +7,7 @@ SPDX-FileCopyrightText: Copyright Hamish Coleman
 The following document one possible windows compile recipe.  The reason
 a MinGW build process is used is it is more friendly to open source
 development.
- 
+
 ## MinGW
  
 These steps were tested on a fresh install of Windows 10 Pro with all patches
@@ -26,7 +26,11 @@ applied as of 2021-09-29.
     - `make test`
  
 Due to limitations in the Windows environment, the normal autotools steps have
-been emulated by the `hack_fakeautoconf`
+been emulated by the `hack_fakeautoconf`.
+
+This fake auto conf is only done due to the high hostility of installing
+autotools in the Windows environment.  It should not be done on any Unix
+system, or any system that autotools can actually be installed on.
  
 Note that building with the UPnP libraries on Windows requires a bit of manual
 work at the moment.
@@ -53,3 +57,17 @@ and [supernode.conf](../supernode.conf.sample) are available.
  
 See `edge.exe --help` and `supernode.exe --help` for a full list of supported
 options.
+
+## Windows XP
+
+There is deliberate support for compiling the n3n project to work on Windows
+XP 32bit.  This has been used by people to support using old LAN protocols
+across the internet (eg, for retro gaming)
+
+Note that there are a number of features that are simply disabled in the
+Windows XP build.
+
+## Windows unsupported features
+
+Some features are not easily available in the windows build (eg: the builtin
+benchmarks cannot provide cycle and instruction counts)

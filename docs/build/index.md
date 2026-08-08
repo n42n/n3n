@@ -29,16 +29,8 @@ The following pages provide more in-depth information:
 
 - [Overview](Overview.md)
 - [Build time Configuration](BuildConfig.md)
+- [Build on Linux](linux.md)
 - [Build on macOS](macos.md)
 - [Build on BSD](bsd.md)
 - [Build on Windows](windows.md)
 - [Cross compile on Linux](linux_crosscompile.md)
-
-# Building n3n packages
-
-There are also some package build recipes included with the source.
- 
-- Debian: `make dpkg`
-  (This detects missing packages and outputs an error. If so, try `make build-dep`)
-- [RPM](../../packages/rpm)
-- [OpenWRT](openwrt.md)
