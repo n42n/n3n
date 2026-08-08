@@ -9,8 +9,10 @@ contributions.
 
 ## Provide patches or pull requests
 
-- Ensure you follow the code style (Use `make lint` to check)
-- Ensure that the tests pass (Use `make test` to check)
+- Ensure you follow the code style (Use `make lint` to check,
+  [more info](develop/linting.md))
+- Ensure that the tests pass (Use `make test` to check, [more
+  info](develop/testing.md))
 - Ensure that the licence and copyright of any imported code is marked
 - Ensure that each commit has a commit message that clearly explains "why" the
   commit was made (Note, you should not explain "what" as that should be clear

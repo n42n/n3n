@@ -11,6 +11,9 @@ on:
       - edited
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   analyse:
     name: Code Analysers
@@ -276,6 +279,7 @@ jobs:
           sudo apt-get install dh-python devscripts equivs \
             crossbuild-essential-${{ matrix.arch }}
           sudo mk-build-deps -i
+          rm -f n3n-build-deps*
 
       - name: Hack dpkg-shlibdeps
         run: |
@@ -716,9 +720,10 @@ jobs:
 
       - name: Upload Assets to Release
         if: steps.get_tagtype.outputs.TAGTYPE == 'tag'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: true
+          generate_release_notes: true
           files: |
             artifacts/packages-dpkg-*/*.deb
             artifacts/packages-rpm/*.rpm

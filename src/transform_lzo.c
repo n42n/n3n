@@ -1,7 +1,8 @@
 /**
- * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-FileCopyrightText: Copyright 2022,2026 n2n contributors
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
+
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +29,7 @@
 #include <string.h>     // for memset
 #include <stdbool.h>
 
-#include "minilzo.h"    // for lzo1x_1_compress, lzo1x_decompress, LZO1X_1_M...
+#include "minilzo.h"    // for lzo1x_1_compress, lzo1x_decompress_safe, LZO1...
 #include "n2n.h"        // for n2n_trans_op_t, N2N_...
 #include "n2n_define.h"
 #include "n2n_typedefs.h"
@@ -101,7 +102,18 @@ static int transop_decode_lzo (n2n_trans_op_t *arg,
         return 0;
     }
 
-    lzo1x_decompress(inbuf, in_len, outbuf, &deflated_len, NULL);
+    int result = lzo1x_decompress_safe(
+        inbuf,
+        in_len,
+        outbuf,
+        &deflated_len,
+        NULL
+    );
+
+    if(result != LZO_E_OK) {
+        traceEvent(TRACE_ERROR, "lzo1x_decompress_safe failed");
+        return 0;
+    }
 
     if(deflated_len > N2N_PKT_BUF_SIZE) {
         traceEvent(TRACE_ERROR, "decode_lzo outbuf wrong size (%ul) decompressed", deflated_len);
@@ -184,13 +196,16 @@ static const ssize_t bench_lzo_uncomp_run (
 
     ctx->outbuf_size = sizeof(ctx->outbuf);
 
-    lzo1x_decompress(
+    lzo1x_decompress_safe(
         data_in,
         data_in_size,
         ctx->outbuf,
         &ctx->outbuf_size,
         NULL
     );
+
+    // deliberately ignore the result from lzo1x_decompress_safe as we are
+    // assuming that the benchmark is handed valid compressed data
 
     *bytes_in = data_in_size;
     return ctx->outbuf_size;

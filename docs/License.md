@@ -1,4 +1,4 @@
-# Licensing
+# License
 
 The intent of the licensing for the n3n project is to ensure that the source
 code is always freely available, to avoid concentrating the rights into any

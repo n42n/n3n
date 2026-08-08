@@ -230,7 +230,9 @@ LINT_CCODE=\
 # TODO: change either the files or the linter to remove these failures
 LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
 
-DOCS=n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
+MANS+=docs/n3n-edge.8.gz
+MANS+=docs/n3n-supernode.8.gz
+MANS+=docs/n3n.7.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
@@ -254,7 +256,7 @@ BUILD_DEP_DOCS:=\
 COVERAGEDIR?=coverage
 
 .PHONY: all
-all: version $(DOCS) tools apps
+all: version $(MANS) tools apps
 
 .PHONY: version
 # This allows breaking the build if the version.sh script discovers
@@ -375,7 +377,7 @@ iwyu.out:
 
 .PHONY: clean
 clean: clean.cov
-	rm -rf $(SUBDIR_LIBS) $(DOCS) $(COVERAGEDIR)/ *.dSYM *~
+	rm -rf $(SUBDIR_LIBS) $(MANS) $(COVERAGEDIR)/ *.dSYM *~
 	rm -f tests/*.out
 	rm -f $(CLEAN_FILES)
 	for dir in $(SUBDIR_CLEAN); do $(MAKE) -C $$dir clean; done
@@ -417,11 +419,11 @@ install.systemd:
 	$(INSTALL_DOC) packages/lib/systemd/system/n3n-supernode.service $(CONFIG_SYSTEMDDIR)
 
 .PHONY: install.doc
-install: n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
+install: $(MANS)
 	$(INSTALL) -d $(MAN7DIR) $(MAN8DIR) $(CONFIG_DOCDIR)
-	$(INSTALL_DOC) n3n-edge.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) n3n-supernode.8.gz $(MAN8DIR)/
-	$(INSTALL_DOC) n3n.7.gz $(MAN7DIR)/
+	$(INSTALL_DOC) docs/n3n-edge.8.gz $(MAN8DIR)/
+	$(INSTALL_DOC) docs/n3n-supernode.8.gz $(MAN8DIR)/
+	$(INSTALL_DOC) docs/n3n.7.gz $(MAN7DIR)/
 	$(INSTALL_DOC) docs/*.md docs/*.sample $(CONFIG_DOCDIR)/
 
 # TODO:
