@@ -419,7 +419,7 @@ install.systemd:
 	$(INSTALL_DOC) packages/lib/systemd/system/n3n-supernode.service $(CONFIG_SYSTEMDDIR)
 
 .PHONY: install.doc
-install: n3n-edge.8.gz n3n-supernode.8.gz n3n.7.gz
+install: $(MANS)
 	$(INSTALL) -d $(MAN7DIR) $(MAN8DIR) $(CONFIG_DOCDIR)
 	$(INSTALL_DOC) docs/n3n-edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) docs/n3n-supernode.8.gz $(MAN8DIR)/
