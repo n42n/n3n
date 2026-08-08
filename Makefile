@@ -100,9 +100,9 @@ OBJS=\
 	src/aes.o \
 	src/auth.o \
 	src/base64.o \
-	src/benchmark.o \
+	src/benchmark/core.o \
+	src/benchmark/pdu.o \
 	src/benchmark/staticdata.o \
-	src/benchmark_pdu.o \
 	src/cc20.o \
 	src/conffile.o \
 	src/conffile_defs.o \

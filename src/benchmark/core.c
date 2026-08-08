@@ -1,6 +1,6 @@
 /*
- * Copyright (C) Hamish Coleman
- * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
  */
 
@@ -15,8 +15,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#include "benchmark/staticdata.h"
-#include "pktbuf.h"
+#include "staticdata.h"
+#include "../pktbuf.h"
 
 #ifndef _WIN32
 #include <sys/mman.h>           // for mmap, MAP_SHARED, MAP_ANONYMOUS
