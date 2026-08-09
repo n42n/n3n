@@ -101,8 +101,10 @@ OBJS=\
 	src/auth.o \
 	src/base64.o \
 	src/benchmark/core.o \
+	src/benchmark/gettime.o \
 	src/benchmark/pdu.o \
 	src/benchmark/staticdata.o \
+	src/benchmark/nop.o \
 	src/cc20.o \
 	src/conffile.o \
 	src/conffile_defs.o \

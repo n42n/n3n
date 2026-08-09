@@ -152,26 +152,6 @@ void n3n_benchmark_register (struct bench_item *item) {
     registered_items = item;
 }
 
-/* A do-nothing function to time the benchmark framework */
-static const ssize_t bench_nop_run (
-    void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
-    ssize_t *in
-) {
-    *in = 0;
-    return 0;
-}
-
-static struct bench_item bench_nop = {
-    .name = "NOP",
-    .flags = BENCH_SKIP_CHECK,
-    .ctx_size = 0,
-    .run = bench_nop_run,
-    .data_in = test_data_none,
-    .data_out = test_data_none,
-};
-
 int generic_check (
     const struct bench_item *const p,
     const void *const got,
@@ -743,8 +723,4 @@ void benchmark_list (const int level) {
             );
         }
     }
-}
-
-void n3n_initfuncs_benchmark () {
-    n3n_benchmark_register(&bench_nop);
 }
