@@ -1,6 +1,6 @@
 /*
- * Copyright (C) Hamish Coleman
- * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
  */
 
@@ -19,7 +19,7 @@
 #include <sys/socket.h>     // for socketpair
 #endif
 
-#include "peer_info.h"      // for peer_info_malloc
+#include "../peer_info.h"   // for peer_info_malloc
 
 struct bench_ctx {
     struct n3n_runtime_data eee;

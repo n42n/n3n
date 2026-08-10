@@ -1,7 +1,7 @@
 /**
- * (C) 2007-22 - ntop.org and contributors
- * Copyright (C) 2023-25 Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-FileCopyrightText: Copyright n2n contributors
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -262,8 +262,9 @@ uint8_t is_null_mac (const n2n_mac_t dest_mac) {
 void print_n3n_version () {
 
     printf("n3n v%s, configured %s\n"
-           "Copyright 2007-2022 - ntop.org and contributors\n"
-           "Copyright (C) 2023-25 Hamish Coleman\n\n",
+           "Copyright n2n contributors\n"
+           "Copyright Hamish Coleman\n"
+           "\n",
            VERSION, BUILDDATE);
 }
 

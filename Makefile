@@ -97,15 +97,21 @@ LDFLAGS+=-L$(abspath src)
 CFLAGS+=-DHAVE_BRIDGING_SUPPORT
 
 OBJS=\
-	src/aes.o \
 	src/auth.o \
 	src/base64.o \
-	src/benchmark.o \
-	src/benchmark_pdu.o \
-	src/cc20.o \
+	src/benchmark/core.o \
+	src/benchmark/gettime.o \
+	src/benchmark/pdu.o \
+	src/benchmark/staticdata.o \
+	src/benchmark/nop.o \
 	src/conffile.o \
 	src/conffile_defs.o \
-	src/curve25519.o \
+	src/crypto/aes.o \
+	src/crypto/cc20.o \
+	src/crypto/curve25519.o \
+	src/crypto/pearson.o \
+	src/crypto/speck.o \
+	src/crypto/tf.o \
 	src/edge_utils.o \
 	src/header_encryption.o \
 	src/hexdump.o \
@@ -120,15 +126,12 @@ OBJS=\
 	src/n2n_port_mapping.o \
 	src/n2n_regex.o \
 	src/network_traffic_filter.o \
-	src/pearson.o \
 	src/peer_info.o \
 	src/pktbuf.o \
 	src/random_numbers.o \
 	src/resolve.o \
 	src/sn_selection.o \
 	src/sn_utils.o \
-	src/speck.o \
-	src/tf.o \
 	src/transform.o \
 	src/transform_aes.o \
 	src/transform_cc20.o \
@@ -145,7 +148,7 @@ OBJS=\
 	src/wire.o \
 
 # TODO: add performance testing and then try to avoid ignoring this warning
-CFLAGS_src/speck.c := -Wno-maybe-uninitialized
+CFLAGS_src/crypto/speck.c := -Wno-maybe-uninitialized
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
 OBJS+=src/win32/edge_rc.o
