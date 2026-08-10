@@ -51,7 +51,7 @@ rm -fr $RPM_BUILD_ROOT
 /usr/sbin/n3n-supernode
 /usr/share/doc/n3n/Contributing.md
 /usr/share/doc/n3n/FAQ.md
-/usr/share/doc/n3n/License.md
+/usr/share/doc/n3n/LICENSE.md
 /usr/share/doc/n3n/README.md
 /usr/share/doc/n3n/ReleaseProcess.md
 /usr/share/doc/n3n/Scripts.md

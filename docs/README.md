@@ -42,7 +42,7 @@ version 1.3.1 which uses a protocol from 2008 and has not been compatible with
 the stable releases of n2n for many years - thus will definitely not
 interoperate with n3n)
 
-- [License](License.md)
+- [License](LICENSE.md)
 - [Quick Start Guides](quick_start)
 - [Building from Source](build/index.md)
 - [Contributing](Contributing.md)
