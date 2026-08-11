@@ -1,0 +1,10 @@
+purge_peer_list boundary peers=0: removed=0 remaining=0
+purge_peer_list boundary peers=1: removed=1 remaining=0
+purge_peer_list boundary peers=3: removed=1 remaining=2
+purge_peer_list boundary peers=15: removed=1 remaining=14
+purge_peer_list boundary peers=16: removed=1 remaining=15
+purge_peer_list boundary peers=17: removed=1 remaining=16
+purge_peer_list small-list: removed=1 remaining=2
+stale purgeable peer present=0
+fresh purgeable peer present=1
+stale non-purgeable peer present=1
