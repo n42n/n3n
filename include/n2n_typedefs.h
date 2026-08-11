@@ -456,7 +456,7 @@ typedef struct n2n_edge_conf {
     devstr_t tuntap_dev_name;
     struct n2n_ip_subnet tuntap_v4;
     uint8_t tuntap_ip_mode;                          /**< Interface IP address allocated mode, eg. DHCP. */
-
+    bool clamp_mss;                              /**< Clamp TCP MSS to MTU. */
     uint32_t test_benchmark_seconds;
     int test_output_format;
 
