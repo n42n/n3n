@@ -667,13 +667,24 @@ struct n3n_runtime_data* edge_init (const n2n_edge_conf_t *conf, int *rv) {
     // Show the user what has been configured
     resolve_log_hostnames(RESOLVE_LIST_SUPERNODE);
 
-    if(resolve_hostnames_str_to_peer_info(
-           RESOLVE_LIST_SUPERNODE,
-           &eee->supernodes)) {
-        traceEvent(
-            TRACE_WARNING,
-            "resolve_hostnames_str_to_peer_info returned errors"
-        );
+    // Loop until we successfully resolve at least one supernode
+    while(1) {
+        if(resolve_hostnames_str_to_peer_info(
+               RESOLVE_LIST_SUPERNODE,
+               &eee->supernodes)) {
+            traceEvent(
+                TRACE_WARNING,
+                "resolve_hostnames_str_to_peer_info returned errors"
+            );
+        }
+
+        // If we successfully got a supernode, break out of the loop
+        if(eee->supernodes) {
+            break;
+        }
+
+        traceEvent(TRACE_WARNING, "No supernodes resolved, retrying in 5 seconds...");
+        sleep(5);
     }
 
     // Statically calculate how many packet buffers we need:
