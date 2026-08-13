@@ -20,6 +20,7 @@
  */
 
 
+#include <lzo/minilzo.h>    // for lzo1x_1_compress, lzo1x_decompress_safe, LZO1...
 #include <n3n/benchmark.h>
 #include <n3n/hexdump.h>   // for fhexdump
 #include <n3n/logging.h> // for traceEvent
@@ -29,7 +30,6 @@
 #include <string.h>     // for memset
 #include <stdbool.h>
 
-#include "minilzo.h"    // for lzo1x_1_compress, lzo1x_decompress_safe, LZO1...
 #include "n2n.h"        // for n2n_trans_op_t, N2N_...
 #include "n2n_define.h"
 #include "n2n_typedefs.h"

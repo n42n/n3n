@@ -97,6 +97,7 @@ LDFLAGS+=-L$(abspath src)
 CFLAGS+=-DHAVE_BRIDGING_SUPPORT
 
 OBJS=\
+	libs/lzo/minilzo.o \
 	src/auth.o \
 	src/base64.o \
 	src/benchmark/core.o \
@@ -121,7 +122,6 @@ OBJS=\
 	src/mainloop.o \
 	src/management.o \
 	src/metrics.o \
-	src/minilzo.o \
 	src/n2n.o \
 	src/n2n_port_mapping.o \
 	src/n2n_regex.o \
@@ -231,7 +231,7 @@ LINT_CCODE=\
 
 # Some files currently cause the linter to fail, so they need to be excluded
 # TODO: change either the files or the linter to remove these failures
-LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
+LINT_EXCLUDE=include/uthash.h
 
 MANS+=docs/n3n-edge.8.gz
 MANS+=docs/n3n-supernode.8.gz

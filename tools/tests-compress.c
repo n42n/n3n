@@ -19,6 +19,7 @@
 
 
 #include <assert.h>    // for assert
+#include <lzo/minilzo.h>    // for lzo1x_1_compress, lzo1x_decompress, LZO1X_1_ME...
 #include <n3n/hexdump.h>  // for fhexdump
 #include <n3n/logging.h> // for traceEvent
 #include <stdint.h>    // for uint8_t
@@ -26,7 +27,6 @@
 #include <stdlib.h>    // for exit
 #include <string.h>    // for memcmp
 #include "config.h"    // for HAVE_LIBZSTD
-#include "minilzo.h"   // for lzo1x_1_compress, lzo1x_decompress, LZO1X_1_ME...
 #include "n2n.h"       // for N2N_PKT_BUF_SIZE
 
 
