@@ -107,7 +107,9 @@ OBJS=\
 	src/benchmark/nop.o \
 	src/conffile.o \
 	src/conffile_defs.o \
-	src/crypto/aes.o \
+	src/crypto/aes_openssl.o \
+	src/crypto/aes_plainc.o \
+	src/crypto/aes_sse2.o \
 	src/crypto/cc20.o \
 	src/crypto/curve25519.o \
 	src/crypto/pearson.o \

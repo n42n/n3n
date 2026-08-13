@@ -28,7 +28,7 @@
 #include <string.h>          // for memcpy, size_t, memset, memcmp, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 
-#include "aes.h"             // for AES_BLOCK_SIZE, aes_cbc_decrypt, aes_cbc...
+#include "crypto/aes.h"      // for AES_BLOCK_SIZE, aes_cbc_decrypt, aes_cbc...
 #include "n2n.h"             // for n2n_trans_op_t
 #include "n2n_define.h"
 #include "n2n_typedefs.h"
