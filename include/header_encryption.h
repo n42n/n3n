@@ -17,7 +17,9 @@
  */
 
 #include "n2n_typedefs.h"
-#include "speck.h"          // for struct speck_context_t
+
+// FIXME, including private headers
+#include "../src/crypto/speck.h"  // for struct speck_context_t
 
 int packet_header_decrypt (uint8_t packet[], uint16_t packet_len,
                            char *community_name,

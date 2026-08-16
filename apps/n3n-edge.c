@@ -53,10 +53,10 @@
 #include "n2n.h"                     // for n2n_edge_conf_t, n3n_runtime_data, fil...
 #include "portable_endian.h"         // for htobe32
 #include "sn_selection.h"            // for sn_selection_sort, sn_selection_...
-#include "speck.h"                   // for speck_init, speck_context_t
 #include "uthash.h"                  // for UT_hash_handle, HASH_ADD, HASH_C...
 
 // FIXME, including private headers
+#include "../src/crypto/speck.h"     // for speck_init, speck_context_t
 #include "../src/peer_info.h"        // for peer_info, peer_info_t
 #include "../src/resolve.h"          // for resolve_check
 

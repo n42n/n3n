@@ -34,7 +34,8 @@
 #include <uthash.h>
 #include <n2n_define.h>
 
-#include "speck.h"      // for struct speck_context_t
+// FIXME, including private headers
+#include "../src/crypto/speck.h"  // for struct speck_context_t
 
 typedef char n2n_community_t[N2N_COMMUNITY_SIZE];
 typedef uint8_t n2n_private_public_key_t[N2N_PRIVATE_PUBLIC_KEY_SIZE];

@@ -115,7 +115,11 @@ OBJS=\
 	src/crypto/cc20_sse2.o \
 	src/crypto/curve25519.o \
 	src/crypto/pearson.o \
-	src/crypto/speck.o \
+	src/crypto/speck_avx2.o \
+	src/crypto/speck_avx512.o \
+	src/crypto/speck_neon.o \
+	src/crypto/speck_plainc.o \
+	src/crypto/speck_sse2.o \
 	src/crypto/tf.o \
 	src/edge_utils.o \
 	src/header_encryption.o \
@@ -152,7 +156,7 @@ OBJS=\
 	src/wire.o \
 
 # TODO: add performance testing and then try to avoid ignoring this warning
-CFLAGS_src/crypto/speck.c := -Wno-maybe-uninitialized
+CFLAGS_src/crypto/speck_sse2.c := -Wno-maybe-uninitialized
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
 OBJS+=src/win32/edge_rc.o
