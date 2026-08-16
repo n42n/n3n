@@ -202,15 +202,6 @@ int cc20_init (const unsigned char *key, cc20_context_t **ctx) {
     *ctx = (cc20_context_t*)calloc(1, sizeof(cc20_context_t));
     if(!(*ctx))
         return -1;
-#ifdef HAVE_LIBCRYPTO
-    if(!((*ctx)->ctx = EVP_CIPHER_CTX_new())) {
-        traceEvent(TRACE_ERROR, "cc20_init openssl's evp_* encryption context creation failed: %s",
-                   openssl_err_as_string());
-        return -1;
-    }
-
-    (*ctx)->cipher = EVP_chacha20();
-#endif
     memcpy((*ctx)->key, key, CC20_KEY_BYTES);
 
     return 0;
@@ -219,9 +210,6 @@ int cc20_init (const unsigned char *key, cc20_context_t **ctx) {
 
 int cc20_deinit (cc20_context_t *ctx) {
 
-#ifdef HAVE_LIBCRYPTO
-    if(ctx->ctx) EVP_CIPHER_CTX_free(ctx->ctx);
-#endif
     free(ctx);
     return 0;
 }
