@@ -110,7 +110,9 @@ OBJS=\
 	src/crypto/aes_openssl.o \
 	src/crypto/aes_plainc.o \
 	src/crypto/aes_sse2.o \
-	src/crypto/cc20.o \
+	src/crypto/cc20_openssl.o \
+	src/crypto/cc20_plainc.o \
+	src/crypto/cc20_sse2.o \
 	src/crypto/curve25519.o \
 	src/crypto/pearson.o \
 	src/crypto/speck.o \

@@ -28,7 +28,7 @@
 #include <string.h>          // for memset, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 
-#include "cc20.h"            // for CC20_IV_SIZE, cc20_crypt, cc20_deinit
+#include "crypto/cc20.h"     // for CC20_IV_SIZE, cc20_crypt, cc20_deinit
 #include "n2n.h"             // for n2n_trans_op_t
 #include "n2n_define.h"
 #include "n2n_typedefs.h"
