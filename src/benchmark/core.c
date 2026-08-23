@@ -158,12 +158,12 @@ int generic_check (
     const ssize_t got_size,
     const int level
 ) {
-    if(got_size != n3n_pktbuf_getbufsize(&benchmark_test_data[p->data_out])) {
+    if(got_size != n3n_pktbuf_getbufsize(benchmark_test_data[p->data_out])) {
         // unexpected size results in an error
         return 1;
     }
 
-    void *expect = n3n_pktbuf_getbufptr(&benchmark_test_data[p->data_out]);
+    void *expect = n3n_pktbuf_getbufptr(benchmark_test_data[p->data_out]);
     if(memcmp(expect, got, got_size) != 0) {
         // not matching expected result is an error
         return 1;
@@ -305,10 +305,10 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
     void *ctx = item_setup(item);
     const int input_size = n3n_pktbuf_getbufsize(
-        &benchmark_test_data[item->data_in]
+        benchmark_test_data[item->data_in]
     );
     const void *input_data = n3n_pktbuf_getbufptr(
-        &benchmark_test_data[item->data_in]
+        benchmark_test_data[item->data_in]
     );
 
     struct pthread_shared *shm = mmap(
@@ -471,10 +471,10 @@ static void run_one_item (const int seconds, struct bench_item *item) {
 
     void *ctx = item_setup(item);
     const int input_size = n3n_pktbuf_getbufsize(
-        &benchmark_test_data[item->data_in]
+        benchmark_test_data[item->data_in]
     );
     const void *input_data = n3n_pktbuf_getbufptr(
-        &benchmark_test_data[item->data_in]
+        benchmark_test_data[item->data_in]
     );
 
     int loops = 0;
@@ -619,10 +619,10 @@ int benchmark_run_check (int level, int filterc, char **filterv) {
 
         void *ctx = item_setup(p);
         const int input_size = n3n_pktbuf_getbufsize(
-            &benchmark_test_data[p->data_in]
+            benchmark_test_data[p->data_in]
         );
         const void *input_data = n3n_pktbuf_getbufptr(
-            &benchmark_test_data[p->data_in]
+            benchmark_test_data[p->data_in]
         );
 
         ssize_t count_in;

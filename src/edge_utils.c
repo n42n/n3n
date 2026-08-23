@@ -3081,8 +3081,8 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
 
     ssize_t bread = recvfrom(
         sock,
-        n3n_pktbuf_getbufptr(pktbuf),
-        n3n_pktbuf_getbufavail(pktbuf),
+        n3n_pktbuf_getbufptr(*pktbuf),
+        n3n_pktbuf_getbufavail(*pktbuf),
         0 /*flags*/,
         sender_sock,
         &ss_size
@@ -3121,8 +3121,8 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
         eee,
         sender_sock,
         sock,
-        n3n_pktbuf_getbufptr(pktbuf),
-        n3n_pktbuf_getbufsize(pktbuf),
+        n3n_pktbuf_getbufptr(*pktbuf),
+        n3n_pktbuf_getbufsize(*pktbuf),
         now
     );
     return;

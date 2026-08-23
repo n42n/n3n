@@ -21,7 +21,7 @@ enum __attribute__((__packed__)) n3n_pktbuf_owner {
 };
 
 struct n3n_pktbuf {
-    const uint8_t *buf;
+    uint8_t *const buf;
     const short capacity;       // Total size of buf
     short offset_start;   // Offset to start of data
     short offset_end;     // Offset to end of data
@@ -35,9 +35,9 @@ void n3n_pktbuf_free (struct n3n_pktbuf *);
 
 void n3n_pktbuf_zero (struct n3n_pktbuf *);
 
-ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf *);
-ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf *);
-void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf *);
+ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf);
+ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf);
+void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf);
 
 int n3n_pktbuf_prepend(struct n3n_pktbuf *, ssize_t);
 int n3n_pktbuf_append(struct n3n_pktbuf *, ssize_t, void *);
