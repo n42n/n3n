@@ -35,6 +35,22 @@
 #define LINUX_PERF  1
 #endif
 
+// Information about the current benchmark
+struct info {
+    // Perf processing tmp storage
+    int fd[2];              // perf event fd (.0 == group leader)
+    int id[2];              // perf event id
+
+    // Returned Results
+    int sec;            // How many seconds did we run for
+    int usec;           // add how many microseconds
+    ssize_t bytes_in;  // Total input bytes processed by all the runs
+    ssize_t bytes_out; // Total output bytes processed by all the runs
+    uint64_t loops;     // How many loops did we get
+    uint64_t cycles;    // how many CPU cycles elapsed
+    uint64_t instr;     // how many CPU instructions retired
+};
+
 #if LINUX_PERF
 static long perf_event_open (
     struct perf_event_attr *hw_event,
@@ -48,7 +64,7 @@ static long perf_event_open (
     return ret;
 }
 
-static int _perf_setup1 (struct bench_item *item, int id, uint64_t config) {
+static int _perf_setup1 (struct info *info, int id, uint64_t config) {
     struct perf_event_attr pe;
 
     memset(&pe, 0, sizeof(pe));
@@ -62,36 +78,36 @@ static int _perf_setup1 (struct bench_item *item, int id, uint64_t config) {
     pe.sample_period = 0;
     pe.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
-    int fd = perf_event_open(&pe, 0, -1, item->fd[0], 0);
+    int fd = perf_event_open(&pe, 0, -1, info->fd[0], 0);
     if(fd == -1) {
         return -1;
     }
 
-    ioctl(fd, PERF_EVENT_IOC_ID, &item->id[id]);
+    ioctl(fd, PERF_EVENT_IOC_ID, &info->id[id]);
     return fd;
 }
 
-static void perf_setup (struct bench_item *item) {
-    item->fd[0] = -1;  // make the kernel see the first setup as leader
-    item->fd[0] = _perf_setup1(item, 0,  PERF_COUNT_HW_INSTRUCTIONS);
-    if(item->fd[0] == -1) {
+static void perf_setup (struct info *info) {
+    info->fd[0] = -1;  // make the kernel see the first setup as leader
+    info->fd[0] = _perf_setup1(info, 0,  PERF_COUNT_HW_INSTRUCTIONS);
+    if(info->fd[0] == -1) {
         return;
     }
 
-    item->fd[1] = _perf_setup1(item, 1, PERF_COUNT_HW_CPU_CYCLES);
-    if(item->fd[1] == -1) {
-        close(item->fd[0]);
-        item->fd[0] = -1;
+    info->fd[1] = _perf_setup1(info, 1, PERF_COUNT_HW_CPU_CYCLES);
+    if(info->fd[1] == -1) {
+        close(info->fd[0]);
+        info->fd[0] = -1;
         return;
     }
 }
 
-static void perf_measure_start (struct bench_item *item) {
-    if(item->fd[0] == -1) {
+static void perf_measure_start (struct info *info) {
+    if(info->fd[0] == -1) {
         return;
     }
-    ioctl(item->fd[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-    ioctl(item->fd[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+    ioctl(info->fd[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+    ioctl(info->fd[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
 }
 
 struct read_format {
@@ -102,48 +118,47 @@ struct read_format {
     } values[2];
 };
 
-static void perf_measure_collect (struct bench_item *item) {
-    if(item->fd[0] == -1) {
+static void perf_measure_collect (struct info *info) {
+    if(info->fd[0] == -1) {
         return;
     }
 
-    ioctl(item->fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+    ioctl(info->fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
 
     struct read_format data;
-    ssize_t count = read(item->fd[0], &data, sizeof(data));
+    ssize_t count = read(info->fd[0], &data, sizeof(data));
     if(count == -1) {
         perror("read");
         exit(1);
     }
 
     for(int i = 0; i < data.nr; i++) {
-        if(data.values[i].id == item->id[0]) {
-            item->instr = data.values[i].value;
-        } else if(data.values[i].id == item->id[1]) {
-            item->cycles = data.values[i].value;
+        if(data.values[i].id == info->id[0]) {
+            info->instr = data.values[i].value;
+        } else if(data.values[i].id == info->id[1]) {
+            info->cycles = data.values[i].value;
         } else {
             printf("Unexpected perf id\n");
             exit(1);
         }
     }
 
-    close(item->fd[0]);
-    close(item->fd[1]);
-    item->fd[0] = -1;
-    item->fd[1] = -1;
+    close(info->fd[0]);
+    close(info->fd[1]);
+    info->fd[0] = -1;
+    info->fd[1] = -1;
 }
 #else
-static void perf_setup (struct bench_item *item) {
+static void perf_setup (struct info *info) {
     return;
 }
-static void perf_measure_start (struct bench_item *item) {
+static void perf_measure_start (struct info info) {
     return;
 }
-static void perf_measure_collect (struct bench_item *item) {
+static void perf_measure_collect (struct info *info) {
     return;
 }
 #endif
-
 
 static struct bench_item *registered_items = NULL;
 
@@ -172,7 +187,7 @@ int generic_check (
     return 0;
 }
 
-static void *item_setup (struct bench_item *item) {
+static void *item_setup (const struct bench_item *item) {
     void *ctx;
     if(item->ctx_size) {
         ctx = malloc(item->ctx_size);
@@ -190,7 +205,7 @@ static void *item_setup (struct bench_item *item) {
     return ctx;
 }
 
-static void item_teardown (struct bench_item *item, void *ctx) {
+static void item_teardown (const struct bench_item *item, void *ctx) {
     if(item->teardown) {
         item->teardown(ctx);
     }
@@ -299,7 +314,7 @@ void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
 }
 
 #elif defined(__linux__)
-static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
+static void run_one_item_ptrace (const int seconds, struct info *info, const struct bench_item *item) {
     struct timeval tv1;
     struct timeval tv2;
 
@@ -378,7 +393,7 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
         while(WIFSTOPPED(status)) {
             if(shm->sentinal == 1) {
-                item->instr++;
+                info->instr++;
 #if 0
                 // For debugging how accurate the measured cycle counts are,
                 // output a trace of every instruction.
@@ -426,9 +441,9 @@ static void run_one_item_ptrace (const int seconds, struct bench_item *item) {
 
     timersub(&tv2, &tv1, &tv1);
 
-    item->loops = shm->loops;
-    item->sec = tv1.tv_sec;
-    item->usec = tv1.tv_usec;
+    info->loops = shm->loops;
+    info->sec = tv1.tv_sec;
+    info->usec = tv1.tv_usec;
 }
 
 // Run all tests (or just those with the matching name) once and count how
@@ -448,11 +463,14 @@ void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
         printf("%s,", name);
         fflush(stdout);
 
-        run_one_item_ptrace(seconds, p);
+        struct info info;
+        memset(&info, 0, sizeof(info));
 
-        printf("%i.%06i,", p->sec, p->usec);
-        printf("%" PRIu64 ",", p->loops);
-        printf("%" PRIu64 "\n", p->instr);
+        run_one_item_ptrace(seconds, &info, p);
+
+        printf("%i.%06i,", info.sec, info.usec);
+        printf("%" PRIu64 ",", info.loops);
+        printf("%" PRIu64 "\n", info.instr);
     }
 }
 
@@ -463,11 +481,11 @@ void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
 }
 #endif
 
-static void run_one_item (const int seconds, struct bench_item *item) {
+static void run_one_item (const int seconds, struct info *info, const struct bench_item *item) {
     struct timeval tv1;
     struct timeval tv2;
 
-    perf_setup(item);
+    perf_setup(info);
 
     void *ctx = item_setup(item);
     const int input_size = n3n_pktbuf_getbufsize(
@@ -494,7 +512,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
 #endif
 
     gettimeofday(&tv1, NULL);
-    perf_measure_start(item);
+    perf_measure_start(info);
 
     do {
         ssize_t count_in;
@@ -506,8 +524,8 @@ static void run_one_item (const int seconds, struct bench_item *item) {
             &count_in
         );
         loops++;
-        item->bytes_in += count_in;
-        item->bytes_out += count_out;
+        info->bytes_in += count_in;
+        info->bytes_out += count_out;
 
 #ifdef _WIN32
         gettimeofday(&tv2, NULL);
@@ -519,7 +537,7 @@ static void run_one_item (const int seconds, struct bench_item *item) {
 
     // TODO: per loop min/max/sumofsquares?
 
-    perf_measure_collect(item);
+    perf_measure_collect(info);
     gettimeofday(&tv2, NULL);
 
     item_teardown(item, ctx);
@@ -533,9 +551,9 @@ static void run_one_item (const int seconds, struct bench_item *item) {
     timersub(&tv2, &tv1, &tv1);
 #endif
 
-    item->loops = loops;
-    item->sec = tv1.tv_sec;
-    item->usec = tv1.tv_usec;
+    info->loops = loops;
+    info->sec = tv1.tv_sec;
+    info->usec = tv1.tv_usec;
 }
 
 void benchmark_run_bench (const int level, const int seconds, int filterc, char **filterv) {
@@ -565,36 +583,39 @@ void benchmark_run_bench (const int level, const int seconds, int filterc, char 
         }
         fflush(stdout);
 
-        run_one_item(seconds, p);
+        struct info info;
+        memset(&info, 0, sizeof(info));
+
+        run_one_item(seconds, &info, p);
 
         if(level==0) {
-            float seconds = ((float)p->usec / 1000000) + p->sec;
+            float seconds = ((float)info.usec / 1000000) + info.sec;
             seconds_total += seconds;
 
             printf(
                 "%6.1fMB/s (%0.0f bytes) -> (%0.0f bytes)",
-                (float)p->bytes_in / seconds / 1000000,
-                (float)p->bytes_in / p->loops,
-                (float)p->bytes_out / p->loops
+                (float)info.bytes_in / seconds / 1000000,
+                (float)info.bytes_in / info.loops,
+                (float)info.bytes_out / info.loops
             );
 
-            if(p->cycles) {
-                cycles_total += p->cycles;
+            if(info.cycles) {
+                cycles_total += info.cycles;
                 printf(
                     " cycles/loop=%0.0f ipc=%0.2f",
-                    (float)p->cycles / p->loops,
-                    (float)p->instr / p->cycles
+                    (float)info.cycles / info.loops,
+                    (float)info.instr / info.cycles
                 );
             }
             printf("\n");
         } else if(level==1) {
-            printf("%i.%06i,", p->sec, p->usec);
-            printf("%zd,%zd,", p->bytes_in, p->bytes_out);
+            printf("%i.%06i,", info.sec, info.usec);
+            printf("%zd,%zd,", info.bytes_in, info.bytes_out);
             printf(
                 "%" PRIu64 ",%" PRIu64 ",%" PRIu64 "\n",
-                p->loops,
-                p->cycles,
-                p->instr
+                info.loops,
+                info.cycles,
+                info.instr
             );
         }
     }

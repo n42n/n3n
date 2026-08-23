@@ -48,19 +48,6 @@ struct bench_item {
     void(*const teardown)(void *const ctx);   // destroy any setup done
     enum n3n_test_data data_in;     // What test_data buffer to use as input
     enum n3n_test_data data_out;    // What test_data buffer to check output
-
-    // Perf processing tmp storage
-    int fd[2];              // perf event fd (.0 == group leader)
-    int id[2];              // perf event id
-
-    // Returned Results
-    int sec;            // How many seconds did we run for
-    int usec;           // add how many microseconds
-    ssize_t bytes_in;  // Total input bytes processed by all the runs
-    ssize_t bytes_out; // Total output bytes processed by all the runs
-    uint64_t loops;     // How many loops did we get
-    uint64_t cycles;    // how many CPU cycles elapsed
-    uint64_t instr;     // how many CPU instructions retired
 };
 
 void n3n_benchmark_register (struct bench_item *);
