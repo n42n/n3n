@@ -1,8 +1,8 @@
 /**
- * Copyright (C) Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
- * Private interface to the packet-sized buffers
+ * Management of packet-sized buffers
  */
 
 #ifndef _PKTBUF_H

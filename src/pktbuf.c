@@ -1,15 +1,15 @@
 /**
  * Copyright (C) Hamish Coleman
- * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
  * Routines for handling a pool of packet-sized buffers
  */
 
 #include <n3n/metrics.h>
+#include <n3n/pktbuf.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pktbuf.h"
 
 static struct metrics {
     uint32_t alloc;     // n3n_pktbuf_alloc() is called

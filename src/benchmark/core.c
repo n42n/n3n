@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <n3n/benchmark.h>
 #include <n3n/hexdump.h>  // for fhexdump
+#include <n3n/pktbuf.h>
 #include <signal.h>
 #include <stdbool.h>            // for true, false
 #include <stdio.h>
@@ -16,7 +17,6 @@
 #include <unistd.h>
 
 #include "staticdata.h"
-#include "../pktbuf.h"
 
 #ifndef _WIN32
 #include <sys/mman.h>           // for mmap, MAP_SHARED, MAP_ANONYMOUS

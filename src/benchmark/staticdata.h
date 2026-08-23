@@ -8,7 +8,7 @@
 #ifndef _BENCHMARK_STATICDATA_H
 #define _BENCHMARK_STATICDATA_H
 
-#include "../pktbuf.h"
+#include <n3n/pktbuf.h>
 
 extern const struct n3n_pktbuf benchmark_test_data[];
 

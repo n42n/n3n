@@ -6,9 +6,8 @@
 #ifndef _EDGE_UTILS_H_
 #define _EDGE_UTILS_H_
 
+#include <n3n/pktbuf.h>     // for n3n_pktbuf
 #include <stdint.h>
-
-#include "pktbuf.h"     // for n3n_pktbuf
 
 // Forward declare so that this header can stay small
 struct n3n_runtime_data;

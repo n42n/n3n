@@ -5,8 +5,7 @@
  */
 
 #include <n3n/benchmark.h>
-
-#include "../pktbuf.h"
+#include <n3n/pktbuf.h>
 
 /* *INDENT-OFF* */
 static const uint8_t _test_data_32x16[]={
