@@ -5,12 +5,12 @@
  */
 
 #include <n3n/benchmark.h>
+#include <n3n/pktbuf.h>
 
 /* A do-nothing function to time the benchmark framework */
 static const ssize_t bench_nop_run (
     void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *in
 ) {
     *in = 0;

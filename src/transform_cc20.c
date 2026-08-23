@@ -21,6 +21,7 @@
 
 #include <n3n/benchmark.h>
 #include <n3n/logging.h>     // for traceEvent
+#include <n3n/pktbuf.h>
 #include <n3n/random.h>      // for n3n_rand
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
@@ -208,11 +209,12 @@ static void bench_teardown (void *_ctx) {
 
 static const ssize_t bench_encr_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
     // TODO: refactor to call transop_encode_cc20() directly
 
@@ -235,11 +237,12 @@ static const ssize_t bench_encr_run (
 
 static const ssize_t bench_decr_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
     // TODO: refactor to call transop_decode_cc20() directly
 

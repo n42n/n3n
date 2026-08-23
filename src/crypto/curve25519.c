@@ -17,6 +17,7 @@
  */
 
 #include <n3n/benchmark.h>
+#include <n3n/pktbuf.h>
 #include <stddef.h>
 
 /**
@@ -369,8 +370,7 @@ static const uint8_t test_data_k[] = {
 
 static const ssize_t bench_curve25519_run (
     void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     uint8_t q[32];

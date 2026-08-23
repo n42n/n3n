@@ -9,7 +9,7 @@
 #define _PKTBUF_H
 
 #include <inttypes.h>   // for uint8_t
-#include <stddef.h>     // for ssize_t
+#include <sys/types.h>  // for ssize_t
 
 enum __attribute__((__packed__)) n3n_pktbuf_owner {
     n3n_pktbuf_owner_none = 0,          // Nobody owns it, ready for alloc

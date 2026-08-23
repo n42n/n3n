@@ -319,12 +319,6 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
     struct timeval tv2;
 
     void *ctx = item_setup(item);
-    const int input_size = n3n_pktbuf_getbufsize(
-        benchmark_test_data[item->data_in]
-    );
-    const void *input_data = n3n_pktbuf_getbufptr(
-        benchmark_test_data[item->data_in]
-    );
 
     struct pthread_shared *shm = mmap(
         NULL,
@@ -372,8 +366,7 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
         do {
             item->run(
                 ctx,
-                input_data,
-                input_size,
+                &benchmark_test_data[item->data_in],
                 &count_in
             );
             shm->loops++;
@@ -488,12 +481,6 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
     perf_setup(info);
 
     void *ctx = item_setup(item);
-    const int input_size = n3n_pktbuf_getbufsize(
-        benchmark_test_data[item->data_in]
-    );
-    const void *input_data = n3n_pktbuf_getbufptr(
-        benchmark_test_data[item->data_in]
-    );
 
     int loops = 0;
     alarm_fired = false;
@@ -519,8 +506,7 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
 
         ssize_t count_out = item->run(
             ctx,
-            input_data,
-            input_size,
+            &benchmark_test_data[item->data_in],
             &count_in
         );
         loops++;
@@ -639,19 +625,12 @@ int benchmark_run_check (int level, int filterc, char **filterv) {
         fprintf(stderr, "%s: ", name);
 
         void *ctx = item_setup(p);
-        const int input_size = n3n_pktbuf_getbufsize(
-            benchmark_test_data[p->data_in]
-        );
-        const void *input_data = n3n_pktbuf_getbufptr(
-            benchmark_test_data[p->data_in]
-        );
 
         ssize_t count_in;
 
         ssize_t count_out = p->run(
             ctx,
-            input_data,
-            input_size,
+            &benchmark_test_data[p->data_in],
             &count_in
         );
 

@@ -24,6 +24,7 @@
 #include <n3n/benchmark.h>
 #include <n3n/hexdump.h>   // for fhexdump
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/pktbuf.h>
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>     // for uint8_t
 #include <stdlib.h>     // for size_t, calloc, free, NULL
@@ -161,11 +162,12 @@ struct bench_ctx {
 
 static const ssize_t bench_lzo_comp_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
     ctx->outbuf_size = 0;
 
@@ -188,11 +190,12 @@ static const ssize_t bench_lzo_comp_run (
 
 static const ssize_t bench_lzo_uncomp_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
     ctx->outbuf_size = sizeof(ctx->outbuf);
 

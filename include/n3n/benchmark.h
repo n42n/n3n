@@ -7,6 +7,7 @@
 #ifndef _N3N_BENCHMARK_H_
 #define _N3N_BENCHMARK_H_
 
+#include <n3n/pktbuf.h>
 #include <sys/types.h>
 #include <stdint.h>
 
@@ -39,8 +40,7 @@ struct bench_item {
     void *(*const setup)(void *const ctx); // Any pre-run setup
     const ssize_t(*const run)(
         void *const ctx,
-        const void *data_in,
-        const ssize_t data_in_size,
+        const struct n3n_pktbuf *inbuf,
         ssize_t *const bytes_in
     );
     int(*const check)(void *const ctx, const int level);   // Custom check fn
