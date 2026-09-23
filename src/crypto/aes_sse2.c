@@ -289,6 +289,144 @@ int aes_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
 }
 
 
+// encrypts several packets, each with its own CBC chain, at once
+//
+// AESENC has a latency of several cycles and CBC feeds every cipher text block
+// into the next one, so encrypting a single packet leaves most of the pipeline
+// idle (in contrast to decryption, which has independent blocks and uses four
+// rails below). Packets are independent of each other, so four of them are
+// encrypted in parallel here, which fills the same pipeline.
+//
+// All packets use the same iv, as they do in transform_aes.c, where the first
+// block of every packet is a random value.
+int aes_cbc_encrypt_multi (unsigned char *out[], const unsigned char *in[], const size_t in_len[],
+                           const unsigned char *iv, aes_context_t *ctx, int count) {
+
+    int i;                       /* first packet of the current group of four */
+    uint8_t ivec_bytes[16];      /* chaining value of a rail that has blocks left */
+
+    for(i = 0; i + 4 <= count; i += 4) {
+        const unsigned char *in1 = in[i];
+        const unsigned char *in2 = in[i+1];
+        const unsigned char *in3 = in[i+2];
+        const unsigned char *in4 = in[i+3];
+
+        unsigned char *out1 = out[i];
+        unsigned char *out2 = out[i+1];
+        unsigned char *out3 = out[i+2];
+        unsigned char *out4 = out[i+3];
+
+        size_t n1 = in_len[i] / 16;
+        size_t n2 = in_len[i+1] / 16;
+        size_t n3 = in_len[i+2] / 16;
+        size_t n4 = in_len[i+3] / 16;
+        size_t n;                /* blocks all four packets have in common */
+
+        __m128i ivec1 = _mm_loadu_si128((__m128i*)iv);
+        __m128i ivec2 = ivec1;
+        __m128i ivec3 = ivec1;
+        __m128i ivec4 = ivec1;
+
+        // the four rails run in lockstep for as long as all four packets have blocks left
+        n = n1;
+        if(n2 < n) n = n2;
+        if(n3 < n) n = n3;
+        if(n4 < n) n = n4;
+
+        n1 -= n; n2 -= n; n3 -= n; n4 -= n;
+
+        for(; n != 0; n--) {
+            __m128i tmp1 = _mm_loadu_si128((__m128i*)in1); in1 += 16;
+            __m128i tmp2 = _mm_loadu_si128((__m128i*)in2); in2 += 16;
+            __m128i tmp3 = _mm_loadu_si128((__m128i*)in3); in3 += 16;
+            __m128i tmp4 = _mm_loadu_si128((__m128i*)in4); in4 += 16;
+
+            tmp1 = _mm_xor_si128(tmp1, ivec1); tmp2 = _mm_xor_si128(tmp2, ivec2);
+            tmp3 = _mm_xor_si128(tmp3, ivec3); tmp4 = _mm_xor_si128(tmp4, ivec4);
+
+            tmp1 = _mm_xor_si128(tmp1, ctx->rk_enc[ 0]); tmp2 = _mm_xor_si128(tmp2, ctx->rk_enc[ 0]);
+            tmp3 = _mm_xor_si128(tmp3, ctx->rk_enc[ 0]); tmp4 = _mm_xor_si128(tmp4, ctx->rk_enc[ 0]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 1]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 1]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 1]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 1]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 2]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 2]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 2]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 2]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 3]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 3]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 3]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 3]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 4]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 4]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 4]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 4]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 5]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 5]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 5]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 5]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 6]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 6]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 6]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 6]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 7]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 7]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 7]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 7]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 8]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 8]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 8]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 8]);
+
+            tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[ 9]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[ 9]);
+            tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[ 9]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[ 9]);
+            if(ctx->Nr > 10) {
+                tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[10]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[10]);
+                tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[10]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[10]);
+
+                tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[11]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[11]);
+                tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[11]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[11]);
+
+                if(ctx->Nr > 12) {
+                    tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[12]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[12]);
+                    tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[12]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[12]);
+
+                    tmp1 = _mm_aesenc_si128(tmp1, ctx->rk_enc[13]); tmp2 = _mm_aesenc_si128(tmp2, ctx->rk_enc[13]);
+                    tmp3 = _mm_aesenc_si128(tmp3, ctx->rk_enc[13]); tmp4 = _mm_aesenc_si128(tmp4, ctx->rk_enc[13]);
+                }
+            }
+            tmp1 = _mm_aesenclast_si128(tmp1, ctx->rk_enc[ctx->Nr]); tmp2 = _mm_aesenclast_si128(tmp2, ctx->rk_enc[ctx->Nr]);
+            tmp3 = _mm_aesenclast_si128(tmp3, ctx->rk_enc[ctx->Nr]); tmp4 = _mm_aesenclast_si128(tmp4, ctx->rk_enc[ctx->Nr]);
+
+            ivec1 = tmp1; ivec2 = tmp2; ivec3 = tmp3; ivec4 = tmp4;
+
+            _mm_storeu_si128((__m128i*)out1, tmp1); out1 += 16;
+            _mm_storeu_si128((__m128i*)out2, tmp2); out2 += 16;
+            _mm_storeu_si128((__m128i*)out3, tmp3); out3 += 16;
+            _mm_storeu_si128((__m128i*)out4, tmp4); out4 += 16;
+        }
+
+        // whatever is longer than the shortest packet of the four finishes on its own
+        if(n1) {
+            _mm_storeu_si128((__m128i*)ivec_bytes, ivec1);
+            aes_cbc_encrypt(out1, in1, n1 * 16, ivec_bytes, ctx);
+        }
+        if(n2) {
+            _mm_storeu_si128((__m128i*)ivec_bytes, ivec2);
+            aes_cbc_encrypt(out2, in2, n2 * 16, ivec_bytes, ctx);
+        }
+        if(n3) {
+            _mm_storeu_si128((__m128i*)ivec_bytes, ivec3);
+            aes_cbc_encrypt(out3, in3, n3 * 16, ivec_bytes, ctx);
+        }
+        if(n4) {
+            _mm_storeu_si128((__m128i*)ivec_bytes, ivec4);
+            aes_cbc_encrypt(out4, in4, n4 * 16, ivec_bytes, ctx);
+        }
+    }
+
+    // fewer than four packets left over
+    for(; i < count; i++) {
+        aes_cbc_encrypt(out[i], in[i], in_len[i], iv, ctx);
+    }
+
+    return 0;
+}
+
+
 int aes_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                      const unsigned char *iv, aes_context_t *ctx) {
 

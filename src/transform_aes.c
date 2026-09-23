@@ -452,9 +452,7 @@ static const ssize_t bench_encr_burst_run (
         in_len[i] = padded_len;
     }
 
-    for(i = 0; i < BENCH_BURST; i++) {
-        aes_cbc_encrypt(out[i], in[i], in_len[i], aes_null_iv, ctx->priv.ctx);
-    }
+    aes_cbc_encrypt_multi(out, in, in_len, aes_null_iv, ctx->priv.ctx, BENCH_BURST);
 
     if(padded_len != idx) {
         uint8_t buf[AES_BLOCK_SIZE];

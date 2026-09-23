@@ -666,6 +666,21 @@ int aes_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
 }
 
 
+// encrypts several packets, each with its own CBC chain (see the AES-NI code for
+// why this exists); without AES-NI there is nothing to interleave, so this is a loop
+int aes_cbc_encrypt_multi (unsigned char *out[], const unsigned char *in[], const size_t in_len[],
+                           const unsigned char *iv, aes_context_t *ctx, int count) {
+
+    int i;
+
+    for(i = 0; i < count; i++) {
+        aes_cbc_encrypt(out[i], in[i], in_len[i], iv, ctx);
+    }
+
+    return 0;
+}
+
+
 int aes_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                      const unsigned char *iv, aes_context_t *ctx) {
 
