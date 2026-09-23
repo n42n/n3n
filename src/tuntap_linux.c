@@ -25,7 +25,7 @@
 #include <arpa/inet.h>                // for inet_addr, inet_pton
 #include <sys/uio.h>                  // for iovec
 #include <errno.h>                    // for errno
-#include <fcntl.h>                    // for open, O_RDWR
+#include <fcntl.h>                    // for open, O_RDWR, O_NONBLOCK
 #include <linux/if_tun.h>             // for IFF_NO_PI, IFF_TAP, TUNSETIFF
 #include <linux/netlink.h>            // for sockaddr_nl, nlmsghdr, NETLINK_...
 #include <linux/rtnetlink.h>          // for ifinfomsg, RTMGRP_LINK
@@ -141,7 +141,7 @@ int tuntap_open (tuntap_dev *device,
     int up_and_running = 0;
     struct msghdr msg;
 
-    device->fd = open(tuntap_device, O_RDWR);
+    device->fd = open(tuntap_device, O_RDWR | O_NONBLOCK);
     if(device->fd < 0) {
         traceEvent(TRACE_ERROR, "tuntap open() error: %s[%d]. Is the tun kernel module loaded?\n", strerror(errno), errno);
         return -1;

@@ -19,7 +19,7 @@
  */
 
 
-#include <fcntl.h>  // for open. O_RDWR
+#include <fcntl.h>  // for open. O_RDWR, O_NONBLOCK
 #include <n3n/logging.h>  // for traceEvent
 #include "n2n.h"
 
@@ -47,7 +47,7 @@ int tuntap_open (tuntap_dev *device /* ignored */,
     for(i = 0; i < 255; i++) {
         snprintf(tap_device, sizeof(tap_device), "/dev/tap%d", i);
 
-        device->fd = open(tap_device, O_RDWR);
+        device->fd = open(tap_device, O_RDWR | O_NONBLOCK);
         if(device->fd > 0) {
             traceEvent(TRACE_NORMAL, "Succesfully open %s", tap_device);
             break;

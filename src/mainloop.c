@@ -38,6 +38,19 @@
 #define closesocket(a) close(a)
 #endif
 
+#ifdef _WIN32
+// Winsock has no per call non blocking read flag, so draining is not possible
+// there - a second read would block the whole mainloop
+#define FD_DRAIN_MAX 1
+#else
+// How many packets to take from one fd before returning to the mainloop.
+// select() only tells us that at least one packet is waiting, but under load
+// there is usually a queue behind it and reading the queue out in one go
+// avoids a select() call per packet.  The cap is what stops a busy fd from
+// starving the other fds, the management interface and the timers
+#define FD_DRAIN_MAX 32
+#endif
+
 static struct metrics {
     uint32_t mainloop;      // mainloop_runonce() is called
     uint32_t register_fd;   // mainloop_register_fd() is called
@@ -369,12 +382,16 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             assert(false);
             return;
 
-        case fd_info_proto_tuntap:
-            // read an ethernet frame from the TAP socket; write on the IP
+        case fd_info_proto_tuntap: {
+            // read ethernet frames from the TAP socket; write on the IP
             // socket
             // TODO: change API to tell it which fd
-            edge_read_from_tap(eee);
+            int drain = FD_DRAIN_MAX;
+            while(drain && (edge_read_from_tap(eee) > 0)) {
+                drain--;
+            }
             return;
+        }
 
         case fd_info_proto_listen_http: {
             int client = accept(info.fd, NULL, 0);
@@ -415,7 +432,12 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
                 abort();
             }
             pkt->owner = n3n_pktbuf_owner_rx_pdu;
-            edge_read_proto3_udp(eee, info.fd, pkt, now);
+
+            int drain = FD_DRAIN_MAX;
+            while(drain && (edge_read_proto3_udp(eee, info.fd, pkt, now) > 0)) {
+                drain--;
+            }
+
             n3n_pktbuf_free(pkt);
             return;
         }

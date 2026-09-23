@@ -86,6 +86,12 @@
 #define IPV6_ADD_MEMBERSHIP 12       // the standard value for this option
 #endif
 
+#ifndef MSG_DONTWAIT
+// Winsock has no per call non blocking flag.  Asking for a blocking read is
+// safe there because the mainloop only ever does one read per readiness event
+#define MSG_DONTWAIT 0
+#endif
+
 /* ************************************** */
 
 // TODO: most of these forward defs can be removed by re-ordering the code
@@ -2400,15 +2406,30 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
 
 /** Read a single packet from the TAP interface, process it and write out the
  *    corresponding packet to the cooked socket.
+ *
+ * Returns 1 if a frame was taken off the tap queue, 0 if the queue was empty
+ * and -1 if the device needed to be reopened.  The caller can use this to
+ * drain several frames from one readiness event.
  */
-void edge_read_from_tap (struct n3n_runtime_data * eee) {
+int edge_read_from_tap (struct n3n_runtime_data * eee) {
 
     /* tun -> remote */
     uint8_t eth_pkt[N2N_PKT_BUF_SIZE];
     macstr_t mac_buf;
     ssize_t len;
 
+    /* tuntap_read() is not a syscall on every platform, so make sure that we
+     * do not test a stale errno below */
+    errno = 0;
+
     len = tuntap_read( &(eee->device), eth_pkt, N2N_PKT_BUF_SIZE );
+
+    if((len < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) {
+        /* The tap device is opened non blocking, so this just means that
+         * there is nothing (more) queued for us */
+        return 0;
+    }
+
     if((len <= 0) || (len > N2N_PKT_BUF_SIZE)) {
         // TODO:
         // - how often does this actually happen
@@ -2440,7 +2461,7 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
 #ifndef _WIN32
         mainloop_register_fd(eee->device.fd, fd_info_proto_tuntap);
 #endif
-        return;
+        return -1;
 
     }
 
@@ -2453,24 +2474,25 @@ void edge_read_from_tap (struct n3n_runtime_data * eee) {
         is_ethMulticast(eth_pkt, len))) {
         traceEvent(TRACE_INFO, "dropping Tx multicast");
         eee->stats.tx_multicast_drop++;
-        return;
+        return 1;
     }
 
     if(!eee->last_sup) {
         // drop packets before first registration with supernode
         traceEvent(TRACE_DEBUG, "DROP packet before first registration with supernode");
-        return;
+        return 1;
     }
 
     if(eee->network_traffic_filter) {
         if(eee->network_traffic_filter->filter_packet_from_tap(eee->network_traffic_filter, eee, eth_pkt,
                                                                len) == N2N_DROP) {
             traceEvent(TRACE_DEBUG, "filtered packet of size %u", (unsigned int)len);
-            return;
+            return 1;
         }
     }
 
     edge_send_packet2net(eee, eth_pkt, len);
+    return 1;
 }
 
 
@@ -3071,19 +3093,28 @@ void process_pdu (struct n3n_runtime_data *eee,
 
 /* ************************************** */
 
-void edge_read_proto3_udp (struct n3n_runtime_data *eee,
-                           SOCKET sock,
-                           struct n3n_pktbuf *pktbuf,
-                           time_t now) {
+/** Read a single datagram from a UDP socket and process it.
+ *
+ * Returns 1 if a datagram was taken off the socket queue, 0 if the queue was
+ * empty and -1 if the socket is no good any more.  The caller can use this to
+ * drain several datagrams from one readiness event.
+ */
+int edge_read_proto3_udp (struct n3n_runtime_data *eee,
+                          SOCKET sock,
+                          struct n3n_pktbuf *pktbuf,
+                          time_t now) {
     struct sockaddr_storage sas;
     struct sockaddr *sender_sock = (struct sockaddr*)&sas;
     socklen_t ss_size = sizeof(sas);
+
+    // The caller may hand us the same buffer several times while draining
+    n3n_pktbuf_zero(pktbuf);
 
     ssize_t bread = recvfrom(
         sock,
         n3n_pktbuf_getbufptr(*pktbuf),
         n3n_pktbuf_getbufavail(*pktbuf),
-        0 /*flags*/,
+        MSG_DONTWAIT,
         sender_sock,
         &ss_size
     );
@@ -3095,19 +3126,29 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
         if(wsaerr == WSAECONNRESET) {
             // On a UDP-datagram socket this error indicates a previous send
             // operation resulted in an ICMP Port Unreachable message.
-            return;
+            return 0;
+        }
+        if(wsaerr == WSAEWOULDBLOCK) {
+            /* Nothing (more) queued for us */
+            return 0;
         }
         traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", wsaerr);
+#else
+        if((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+            /* We asked for a non blocking read, so this just means that
+             * there is nothing (more) queued for us */
+            return 0;
+        }
 #endif
 
         /* The fd is no good now. Maybe we lost our interface. */
         traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
         *eee->keep_running = false;
-        return;
+        return -1;
     }
     if(bread == 0) {
         /* For UDP bread of zero just means no data (unlike TCP). */
-        return;
+        return 0;
     }
 
     // TODO:
@@ -3125,7 +3166,7 @@ void edge_read_proto3_udp (struct n3n_runtime_data *eee,
         n3n_pktbuf_getbufsize(*pktbuf),
         now
     );
-    return;
+    return 1;
 }
 
 void edge_read_proto3_tcp (struct n3n_runtime_data *eee,

@@ -25,7 +25,7 @@
 #ifdef __NetBSD__
 
 #include <errno.h>
-#include <fcntl.h>          // for open
+#include <fcntl.h>          // for open, O_RDWR, O_NONBLOCK
 #include <n3n/logging.h>    // for traceEvent
 #include <net/if.h>         // for TAPGIFNAME
 #include <net/if_tap.h>
@@ -52,10 +52,10 @@ int tuntap_open (tuntap_dev *device /* ignored */,
 
     if(dev) {
         snprintf(tap_device, sizeof(tap_device), "/dev/%s", dev);
-        device->fd = open(tap_device, O_RDWR);
+        device->fd = open(tap_device, O_RDWR | O_NONBLOCK);
         snprintf(tap_device, sizeof(tap_device), "%s", dev);
     } else {
-        device->fd = open("/dev/tap", O_RDWR);
+        device->fd = open("/dev/tap", O_RDWR | O_NONBLOCK);
         if(device->fd >= 0) {
             if(ioctl(device->fd, TAPGIFNAME, &req) == -1) {
                 traceEvent(TRACE_ERROR, "Unable to obtain name of tap device (%s)", strerror(errno));

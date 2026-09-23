@@ -12,12 +12,15 @@
 // Forward declare so that this header can stay small
 struct n3n_runtime_data;
 
-void edge_read_from_tap (struct n3n_runtime_data *eee);
+// The read functions return 1 if they consumed a packet, 0 if there was
+// nothing queued and -1 if the fd went bad
 
-void edge_read_proto3_udp (struct n3n_runtime_data *eee,
-                           SOCKET sock,
-                           struct n3n_pktbuf *pktbuf,
-                           time_t now);
+int edge_read_from_tap (struct n3n_runtime_data *eee);
+
+int edge_read_proto3_udp (struct n3n_runtime_data *eee,
+                          SOCKET sock,
+                          struct n3n_pktbuf *pktbuf,
+                          time_t now);
 void edge_read_proto3_tcp (struct n3n_runtime_data *eee,
                            SOCKET sock,
                            uint8_t *pktbuf,
