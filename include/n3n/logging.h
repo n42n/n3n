@@ -22,6 +22,14 @@ void setUseSyslog (int use_syslog);
 int getTraceLevel ();
 void closeTraceFile ();
 void _traceEvent (int eventTraceLevel, char* file, int line, char * format, ...);
-#define traceEvent(level, format, ...) _traceEvent(level, __FILE__, __LINE__, format, ## __VA_ARGS__)
+
+// check before call to not make expensive argument evaluation when not required
+// do while is required when traceEvent call is in some if-then-ELSE because it can become our else here other-wise
+#define traceEvent(level, format, ...) \
+    do { \
+        if((level) <= getTraceLevel()) { \
+            _traceEvent(level, __FILE__, __LINE__, format, ## __VA_ARGS__); \
+        } \
+    } while(0)
 
 #endif
