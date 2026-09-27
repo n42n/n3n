@@ -2251,20 +2251,34 @@ static int send_packet (struct n3n_runtime_data * eee,
  * discarded by policy (e.g. routing rules).  out_destMac receives the n3n
  * destination MAC that should be used to route the PDU.
  */
-size_t edge_encode_packet (struct n3n_runtime_data *eee,
-                           uint8_t *tap_pkt, size_t len,
-                           uint8_t *pktbuf, size_t pktbuf_size,
-                           n2n_mac_t out_destMac) {
+/* The part of encoding a PACKET that comes before the payload transform: the
+ * routing check, working out the destination, compression, and the PACKET
+ * header, which is written to the start of pktbuf.
+ *
+ * Returns the length of that header, or 0 if the frame is not to be sent. On
+ * success, *enc_src and *enc_len say what the transform has to encode: the
+ * frame itself, or compression_buf if it was worth compressing.
+ */
+static size_t edge_encode_packet_head (struct n3n_runtime_data *eee,
+                                       uint8_t *tap_pkt, size_t len,
+                                       uint8_t *pktbuf,
+                                       n2n_mac_t out_destMac,
+                                       uint8_t *compression_buf,
+                                       size_t compression_buf_size,
+                                       const uint8_t **enc_src,
+                                       size_t *enc_len) {
 
     ipstr_t ip_buf;
     n2n_common_t cmn;
     n2n_PACKET_t pkt;
-    uint8_t *enc_src = tap_pkt;
-    size_t enc_len = len;
-    uint8_t compression_buf[N2N_PKT_BUF_SIZE];
     size_t idx = 0;
     n2n_transform_t tx_transop_idx = eee->transop.transform_id;
     ether_hdr_t eh;
+
+    /* unless compression pays off below, the frame itself is what gets
+     * encoded */
+    *enc_src = tap_pkt;
+    *enc_len = len;
 
     /* tap_pkt is not aligned so we have to copy to aligned memory */
     memcpy(&eh, tap_pkt, sizeof(ether_hdr_t));
@@ -2323,7 +2337,7 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
         switch(eee->conf.compression) {
             case N2N_COMPRESSION_ID_LZO:
                 compression_len = eee->transop_lzo.fwd(&eee->transop_lzo,
-                                                       compression_buf, sizeof(compression_buf),
+                                                       compression_buf, compression_buf_size,
                                                        tap_pkt, len,
                                                        pkt.dstMac);
 
@@ -2335,7 +2349,7 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
 #ifdef HAVE_LIBZSTD
             case N2N_COMPRESSION_ID_ZSTD:
                 compression_len = eee->transop_zstd.fwd(&eee->transop_zstd,
-                                                        compression_buf, sizeof(compression_buf),
+                                                        compression_buf, compression_buf_size,
                                                         tap_pkt, len,
                                                         pkt.dstMac);
 
@@ -2353,22 +2367,33 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
             traceEvent(TRACE_DEBUG, "payload compression [%s]: compressed %u bytes to %u bytes\n",
                        n3n_compression_id2str(pkt.compression),
                        len, compression_len);
-            enc_src = compression_buf;
-            enc_len = compression_len;
+            *enc_src = compression_buf;
+            *enc_len = compression_len;
         }
     }
 
     idx = 0;
     encode_PACKET(pktbuf, &idx, &cmn, &pkt);
 
-    uint16_t headerIdx = idx;
+    return idx;
+}
 
-    idx += eee->transop.fwd(&eee->transop,
-                            pktbuf + idx, pktbuf_size - idx,
-                            enc_src, enc_len, pkt.dstMac);
+
+/* The part of encoding a PACKET that comes after the payload transform: header
+ * encryption - which with user-password auth reaches into the transformed
+ * payload, so it has to come after it - and the statistics.
+ *
+ * idx is the length of the header plus the transformed payload, len the
+ * length of the original frame. Returns the length of the finished PDU.
+ */
+static size_t edge_encode_packet_tail (struct n3n_runtime_data *eee,
+                                       uint8_t *pktbuf,
+                                       size_t headerIdx,
+                                       size_t idx,
+                                       size_t len) {
 
     traceEvent(TRACE_DEBUG, "encode PACKET of %u bytes, %u bytes data, %u bytes overhead, transform %u",
-               (u_int)idx, (u_int)len, (u_int)(idx - len), tx_transop_idx);
+               (u_int)idx, (u_int)len, (u_int)(idx - len), eee->transop.transform_id);
 
     if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED)
         // in case of user-password auth, also encrypt the iv of payload assuming ChaCha20 and SPECK having the same iv size
@@ -2388,6 +2413,33 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
     eee->transop.tx_cnt++; /* stats */
 
     return idx;
+}
+
+
+size_t edge_encode_packet (struct n3n_runtime_data *eee,
+                           uint8_t *tap_pkt, size_t len,
+                           uint8_t *pktbuf, size_t pktbuf_size,
+                           n2n_mac_t out_destMac) {
+
+    uint8_t compression_buf[N2N_PKT_BUF_SIZE];
+    const uint8_t *enc_src;
+    size_t enc_len;
+    size_t headerIdx;
+    size_t idx;
+
+    headerIdx = edge_encode_packet_head(eee, tap_pkt, len, pktbuf, out_destMac,
+                                        compression_buf, sizeof(compression_buf),
+                                        &enc_src, &enc_len);
+    if(!headerIdx) {
+        return 0;
+    }
+
+    idx = headerIdx;
+    idx += eee->transop.fwd(&eee->transop,
+                            pktbuf + idx, pktbuf_size - idx,
+                            enc_src, enc_len, out_destMac);
+
+    return edge_encode_packet_tail(eee, pktbuf, headerIdx, idx, len);
 }
 
 void edge_send_packet2net (struct n3n_runtime_data * eee,
