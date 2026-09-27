@@ -382,16 +382,12 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
             assert(false);
             return;
 
-        case fd_info_proto_tuntap: {
+        case fd_info_proto_tuntap:
             // read ethernet frames from the TAP socket; write on the IP
             // socket
             // TODO: change API to tell it which fd
-            int drain = FD_DRAIN_MAX;
-            while(drain && (edge_read_from_tap(eee) > 0)) {
-                drain--;
-            }
+            edge_read_from_tap_batch(eee, FD_DRAIN_MAX);
             return;
-        }
 
         case fd_info_proto_listen_http: {
             int client = accept(info.fd, NULL, 0);

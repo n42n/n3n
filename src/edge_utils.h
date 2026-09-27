@@ -17,6 +17,9 @@ struct n3n_runtime_data;
 
 int edge_read_from_tap (struct n3n_runtime_data *eee);
 
+// Reads up to max frames and returns how many it took off the tap queue
+int edge_read_from_tap_batch (struct n3n_runtime_data *eee, int max);
+
 int edge_read_proto3_udp (struct n3n_runtime_data *eee,
                           SOCKET sock,
                           struct n3n_pktbuf *pktbuf,

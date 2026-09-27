@@ -2574,6 +2574,121 @@ int edge_read_from_tap (struct n3n_runtime_data * eee) {
 }
 
 
+/* How many frames edge_read_from_tap_batch() encodes together at most. A
+ * multiple of 4, because that is how many packets the AES-NI code encrypts
+ * side by side. */
+#define EDGE_TX_BATCH 16
+
+/* Scratch space for one batch of outgoing frames. It is always empty again by
+ * the time edge_read_from_tap_batch() returns, so it carries no state from one
+ * call to the next, and the mainloop that uses it is single threaded - which
+ * is why it can be a static rather than part of the runtime data. */
+static struct edge_tx_batch {
+    int count;
+    struct edge_tx_slot {
+        uint8_t frame[N2N_PKT_BUF_SIZE];     /* as read from the tap device */
+        uint8_t comp[N2N_PKT_BUF_SIZE];      /* the frame compressed, if that paid off */
+        uint8_t pdu[N2N_PKT_BUF_SIZE];       /* header and transformed payload */
+        size_t len;                          /* of the frame */
+        size_t head;                         /* of the header at the start of pdu */
+        n2n_mac_t dest;
+    } slot[EDGE_TX_BATCH];
+    n2n_transform_job_t job[EDGE_TX_BATCH];
+} tx_batch;
+
+
+/* Transform every payload in the batch - all at once if the transform has a
+ * batched form, one by one if not - then finish and send the packets, in the
+ * order their frames were read. */
+static void edge_tx_flush (struct n3n_runtime_data *eee, struct edge_tx_batch *b) {
+
+    int i;
+
+    if(b->count == 0) {
+        return;
+    }
+
+    if(eee->transop.fwd_multi && (b->count > 1)) {
+        eee->transop.fwd_multi(&eee->transop, b->job, b->count);
+    } else {
+        for(i = 0; i < b->count; i++) {
+            n2n_transform_job_t *j = &b->job[i];
+
+            j->result = eee->transop.fwd(&eee->transop,
+                                         j->out, j->out_len,
+                                         j->in, j->in_len, j->peer_mac);
+        }
+    }
+
+    for(i = 0; i < b->count; i++) {
+        struct edge_tx_slot *s = &b->slot[i];
+        size_t idx = s->head;
+
+        idx += b->job[i].result;
+        idx = edge_encode_packet_tail(eee, s->pdu, s->head, idx, s->len);
+        if(idx) {
+            send_packet(eee, s->dest, s->pdu, idx); /* to peer or supernode */
+        }
+    }
+
+    b->count = 0;
+}
+
+
+/** Read up to max frames from the TAP interface and send them, transforming
+ *    them in batches where the transform supports that.
+ *
+ * This is what the mainloop uses. edge_read_from_tap() is still there, one
+ * frame at a time, for the reader thread on Windows.
+ *
+ * Returns how many frames were taken off the tap queue.
+ */
+int edge_read_from_tap_batch (struct n3n_runtime_data * eee, int max) {
+
+    struct edge_tx_batch *b = &tx_batch;
+    int taken = 0;
+
+    while(taken < max) {
+        struct edge_tx_slot *s = &b->slot[b->count];
+        n2n_transform_job_t *j = &b->job[b->count];
+        const uint8_t *enc_src;
+        size_t enc_len;
+
+        if(edge_tap_take(eee, s->frame, &s->len) <= 0) {
+            break;
+        }
+        taken++;
+
+        if(!s->len) {
+            /* taken off the queue, but not to be sent */
+            continue;
+        }
+
+        s->head = edge_encode_packet_head(eee, s->frame, s->len, s->pdu, s->dest,
+                                          s->comp, sizeof(s->comp),
+                                          &enc_src, &enc_len);
+        if(!s->head) {
+            continue;
+        }
+
+        j->out = s->pdu + s->head;
+        j->out_len = sizeof(s->pdu) - s->head;
+        j->in = enc_src;
+        j->in_len = enc_len;
+        j->peer_mac = s->dest;
+        j->result = 0;
+
+        if(++b->count == EDGE_TX_BATCH) {
+            edge_tx_flush(eee, b);
+        }
+    }
+
+    edge_tx_flush(eee, b);
+
+    return taken;
+}
+
+
 /* ************************************** */
 
 
