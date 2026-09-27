@@ -2456,19 +2456,22 @@ void edge_send_packet2net (struct n3n_runtime_data * eee,
 
 /* ************************************** */
 
-/** Read a single packet from the TAP interface, process it and write out the
- *    corresponding packet to the cooked socket.
+/* Take one frame off the TAP interface into eth_pkt and decide whether it is
+ * to be sent at all (multicast, not yet registered, traffic filter).
  *
- * Returns 1 if a frame was taken off the tap queue, 0 if the queue was empty
- * and -1 if the device needed to be reopened.  The caller can use this to
- * drain several frames from one readiness event.
+ * Returns 1 if a frame was taken off the queue - *out_len is then its length,
+ * or 0 if it was dropped here - 0 if the queue was empty and -1 if the device
+ * needed to be reopened.
  */
-int edge_read_from_tap (struct n3n_runtime_data * eee) {
+static int edge_tap_take (struct n3n_runtime_data * eee,
+                          uint8_t *eth_pkt,
+                          size_t *out_len) {
 
-    /* tun -> remote */
-    uint8_t eth_pkt[N2N_PKT_BUF_SIZE];
     macstr_t mac_buf;
     ssize_t len;
+
+    /* stays 0 unless a frame is taken that is to be sent */
+    *out_len = 0;
 
     /* tuntap_read() is not a syscall on every platform, so make sure that we
      * do not test a stale errno below */
@@ -2543,8 +2546,31 @@ int edge_read_from_tap (struct n3n_runtime_data * eee) {
         }
     }
 
-    edge_send_packet2net(eee, eth_pkt, len);
+    *out_len = len;
     return 1;
+}
+
+
+/** Read a single packet from the TAP interface, process it and write out the
+ *    corresponding packet to the cooked socket.
+ *
+ * Returns 1 if a frame was taken off the tap queue, 0 if the queue was empty
+ * and -1 if the device needed to be reopened.  The caller can use this to
+ * drain several frames from one readiness event.
+ */
+int edge_read_from_tap (struct n3n_runtime_data * eee) {
+
+    /* tun -> remote */
+    uint8_t eth_pkt[N2N_PKT_BUF_SIZE];
+    size_t len;
+    int rc;
+
+    rc = edge_tap_take(eee, eth_pkt, &len);
+    if((rc > 0) && len) {
+        edge_send_packet2net(eee, eth_pkt, len);
+    }
+
+    return rc;
 }
 
 
