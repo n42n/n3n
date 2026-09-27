@@ -72,6 +72,21 @@
 #define closesocket(a) close(a)
 #endif
 
+#ifdef _WIN32
+// Winsock has no per call non blocking read flag, so draining is not possible
+// there - a second read would block the whole loop
+#define SN_DRAIN_MAX 1
+#ifndef MSG_DONTWAIT
+#define MSG_DONTWAIT 0
+#endif
+#else
+// How many datagrams to take from the UDP socket before going round the loop
+// again, for the same reason as FD_DRAIN_MAX in mainloop.c: select() only
+// says that at least one is waiting, and under load there is a queue behind
+// it. The cap keeps the TCP connections and the management interface served
+#define SN_DRAIN_MAX 32
+#endif
+
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
@@ -2879,39 +2894,55 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
 
             // external udp
             if(FD_ISSET(sss->sock, &readers)) {
-                struct sockaddr_storage sas;
-                struct sockaddr *sender_sock = (struct sockaddr*)&sas;
-                socklen_t ss_size = sizeof(sas);
+                // take the whole queue, up to SN_DRAIN_MAX, not just the one
+                // datagram select() promised. pktbuf is reused each time
+                // round, which is fine: process_pdu() is done with it when it
+                // returns
+                int drain = SN_DRAIN_MAX;
 
-                bread = recvfrom(
-                    sss->sock,
-                    (void *)pktbuf,
-                    N2N_SN_PKTBUF_SIZE,
-                    0 /*flags*/,
-                    sender_sock,
-                    &ss_size
-                );
+                while(drain--) {
+                    struct sockaddr_storage sas;
+                    struct sockaddr *sender_sock = (struct sockaddr*)&sas;
+                    socklen_t ss_size = sizeof(sas);
 
-                if((bread < 0)
+                    bread = recvfrom(
+                        sss->sock,
+                        (void *)pktbuf,
+                        N2N_SN_PKTBUF_SIZE,
+                        MSG_DONTWAIT,
+                        sender_sock,
+                        &ss_size
+                    );
+
+                    if(bread < 0) {
 #ifdef _WIN32
-                   && (WSAGetLastError() != WSAECONNRESET)
+                        // FIXME: when would we get a WSAECONNRESET on a UDP
+                        // read of a non connected socket
+                        if(WSAGetLastError() == WSAECONNRESET) {
+                            break;
+                        }
+#else
+                        if((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+                            // nothing (more) queued for us
+                            break;
+                        }
 #endif
-                ) {
-                    // FIXME: when would we get a WSAECONNRESET on a UDP read
-                    // of a non connected socket
+                        /* The fd is no good now. Maybe we lost our interface. */
+                        traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
+#ifdef _WIN32
+                        traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
+#endif
+                        *sss->keep_running = false;
+                        break;
+                    }
 
                     /* For UDP bread of zero just means no data (unlike TCP). */
-                    /* The fd is no good now. Maybe we lost our interface. */
-                    traceEvent(TRACE_ERROR, "recvfrom() failed %d errno %d (%s)", bread, errno, strerror(errno));
-#ifdef _WIN32
-                    traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
-#endif
-                    *sss->keep_running = false;
-                }
+                    if(bread == 0) {
+                        break;
+                    }
 
-                // we have a datagram to process...
-                if(bread > 0) {
-                    // ...and the datagram has data (not just a header)
+                    // we have a datagram to process, and it has data (not just
+                    // a header)
                     process_pdu(
                         sss,
                         sender_sock,
