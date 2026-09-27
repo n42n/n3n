@@ -143,6 +143,46 @@ const uint8_t multEF[] = { 0x00, 0xEF, 0xB7, 0x58, 0x07, 0xE8, 0xB0, 0x5F, 0x0E,
 #define U8S_TO_U32(r0, r1, r2, r3) ((r0 << 24) ^ (r1 << 16) ^ (r2 << 8) ^ r3)
 
 
+// The block functions below work on blocks of TF_BLOCK_WORDS host-aligned 32-bit
+// words, holding the block in wire (little endian) order. Callers copy whole blocks
+// in and out of their own buffers, so nothing here depends on the alignment of the
+// caller's packet buffer and no word is accessed through a cast.
+
+#define TF_BLOCK_WORDS (TF_BLOCK_SIZE / 4)
+
+// whiten one input word
+#define WHITEN_IN(dst, src, key) ((dst) = le32toh(src) ^ (key))
+
+// whiten one output word
+#define WHITEN_OUT(dst, val, key) ((dst) = htole32((val) ^ (key)))
+
+// whiten one output word and chain it with the preceding cipher text word. The
+// chaining value is not byteswapped: XOR commutes with a byteswap.
+#define WHITEN_CHAIN_OUT(dst, val, key, iv) ((dst) = htole32((val) ^ (key)) ^ (iv))
+
+// read and write one 32 bit word through a buffer of unknown alignment.
+// memcpy() with a constant size is the portable way of saying "reinterpret
+// these four bytes"; gcc and clang both emit a single mov for it, so this
+// costs nothing at runtime and is the only spelling that is not undefined
+// behaviour on a uint8_t* that may be unaligned
+static inline uint32_t tf_load32 (const void *src) {
+
+    uint32_t v;
+
+    memcpy(&v, src, sizeof(v));
+
+    return v;
+}
+
+static inline void tf_store32 (void *dst, uint32_t v) {
+
+    memcpy(dst, &v, sizeof(v));
+}
+
+// whiten one output word, chain it and store it straight into the output
+// buffer, so that it never has to visit the stack
+#define WHITEN_CHAIN_STORE(dst, val, key, iv) tf_store32(dst, htole32((val) ^ (key)) ^ (iv))
+
 // multiply two polynomials represented as u32's, actually called with bytes
 uint32_t polyMult (uint32_t a, uint32_t b) {
 
@@ -305,16 +345,17 @@ void fullKey (uint32_t L[4], int k, uint32_t QF[4][256]) {
     R3 = ROL(R3, 1) ^ (2*T1 + T0 + ctx->K[2*round+9]);
 
 
-void twofish_internal_encrypt (uint8_t PT[16], tf_context_t *ctx) {
+// encrypts the block PT in place
+void twofish_internal_encrypt (uint32_t PT[TF_BLOCK_WORDS], tf_context_t *ctx) {
 
     uint32_t R0, R1, R2, R3;
     uint32_t T0, T1;
 
     // load/byteswap/whiten input
-    R3 = ctx->K[3] ^ le32toh(((uint32_t*)PT)[3]);
-    R2 = ctx->K[2] ^ le32toh(((uint32_t*)PT)[2]);
-    R1 = ctx->K[1] ^ le32toh(((uint32_t*)PT)[1]);
-    R0 = ctx->K[0] ^ le32toh(((uint32_t*)PT)[0]);
+    WHITEN_IN(R3, PT[3], ctx->K[3]);
+    WHITEN_IN(R2, PT[2], ctx->K[2]);
+    WHITEN_IN(R1, PT[1], ctx->K[1]);
+    WHITEN_IN(R0, PT[0], ctx->K[0]);
 
     ENC_ROUND(R0, R1, R2, R3,  0);
     ENC_ROUND(R2, R3, R0, R1,  1);
@@ -334,10 +375,10 @@ void twofish_internal_encrypt (uint8_t PT[16], tf_context_t *ctx) {
     ENC_ROUND(R2, R3, R0, R1, 15);
 
     // whiten/byteswap/store output
-    ((uint32_t*)PT)[3] = htole32(R1 ^ ctx->K[7]);
-    ((uint32_t*)PT)[2] = htole32(R0 ^ ctx->K[6]);
-    ((uint32_t*)PT)[1] = htole32(R3 ^ ctx->K[5]);
-    ((uint32_t*)PT)[0] = htole32(R2 ^ ctx->K[4]);
+    WHITEN_OUT(PT[3], R1, ctx->K[7]);
+    WHITEN_OUT(PT[2], R0, ctx->K[6]);
+    WHITEN_OUT(PT[1], R3, ctx->K[5]);
+    WHITEN_OUT(PT[0], R2, ctx->K[4]);
 }
 
 
@@ -352,16 +393,16 @@ void twofish_internal_encrypt (uint8_t PT[16], tf_context_t *ctx) {
     R3 = ROR(R3 ^ (T0 + 2*T1 + ctx->K[2*round+9]), 1);
 
 
-void twofish_internal_decrypt (uint8_t PT[16], const uint8_t CT[16], tf_context_t *ctx) {
+void twofish_internal_decrypt (uint32_t PT[TF_BLOCK_WORDS], const uint32_t CT[TF_BLOCK_WORDS], tf_context_t *ctx) {
 
     uint32_t T0, T1;
     uint32_t R0, R1, R2, R3;
 
     // load/byteswap/whiten input
-    R3 = ctx->K[7] ^ le32toh(((uint32_t*)CT)[3]);
-    R2 = ctx->K[6] ^ le32toh(((uint32_t*)CT)[2]);
-    R1 = ctx->K[5] ^ le32toh(((uint32_t*)CT)[1]);
-    R0 = ctx->K[4] ^ le32toh(((uint32_t*)CT)[0]);
+    WHITEN_IN(R3, CT[3], ctx->K[7]);
+    WHITEN_IN(R2, CT[2], ctx->K[6]);
+    WHITEN_IN(R1, CT[1], ctx->K[5]);
+    WHITEN_IN(R0, CT[0], ctx->K[4]);
 
     DEC_ROUND(R0, R1, R2, R3, 15);
     DEC_ROUND(R2, R3, R0, R1, 14);
@@ -381,10 +422,10 @@ void twofish_internal_decrypt (uint8_t PT[16], const uint8_t CT[16], tf_context_
     DEC_ROUND(R2, R3, R0, R1,  0);
 
     // whiten/byteswap/store output
-    ((uint32_t*)PT)[3] = htole32(R1 ^ ctx->K[3]);
-    ((uint32_t*)PT)[2] = htole32(R0 ^ ctx->K[2]);
-    ((uint32_t*)PT)[1] = htole32(R3 ^ ctx->K[1]);
-    ((uint32_t*)PT)[0] = htole32(R2 ^ ctx->K[0]);
+    WHITEN_OUT(PT[3], R1, ctx->K[3]);
+    WHITEN_OUT(PT[2], R0, ctx->K[2]);
+    WHITEN_OUT(PT[1], R3, ctx->K[1]);
+    WHITEN_OUT(PT[0], R2, ctx->K[0]);
 }
 
 
@@ -394,7 +435,7 @@ void twofish_internal_decrypt (uint8_t PT[16], const uint8_t CT[16], tf_context_
 // the key schedule routine
 void keySched (const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
 
-    uint32_t Mo[4], Me[4];
+    uint32_t Mo[4], Me[4], Mw[8];
     int i, j;
     uint8_t vector[8];
     uint32_t A, B;
@@ -402,9 +443,10 @@ void keySched (const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
     *k = (N + 63) / 64;
     *S = (uint32_t*)malloc(sizeof(uint32_t) * (*k));
 
+    memcpy(Mw, M, 8 * *k);
     for(i = 0; i < *k; i++) {
-        Me[i] = le32toh(((uint32_t*)M)[2*i]);
-        Mo[i] = le32toh(((uint32_t*)M)[2*i+1]);
+        Me[i] = le32toh(Mw[2*i]);
+        Mo[i] = le32toh(Mw[2*i+1]);
     }
 
     for(i = 0; i < *k; i++) {
@@ -427,8 +469,10 @@ void keySched (const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
 // ----------------------------------------------------------------------------------------------------------------
 
 
-#define fix_xor(target, source) *(uint32_t*)&(target)[0] = *(uint32_t*)&(target)[0] ^ *(uint32_t*)&(source)[0]; *(uint32_t*)&(target)[4] = *(uint32_t*)&(target)[4] ^ *(uint32_t*)&(source)[4]; \
-    *(uint32_t*)&(target)[8] = *(uint32_t*)&(target)[8] ^ *(uint32_t*)&(source)[8]; *(uint32_t*)&(target)[12] = *(uint32_t*)&(target)[12] ^ *(uint32_t*)&(source)[12];
+// ----------------------------------------------------------------------------------------------------------------
+
+
+
 
 // ----------------------------------------------------------------------------------------------------------------
 
@@ -438,7 +482,11 @@ void keySched (const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
 
 int tf_ecb_decrypt (unsigned char *out, const unsigned char *in, tf_context_t *ctx) {
 
-    twofish_internal_decrypt(out, in, ctx);
+    uint32_t pt[TF_BLOCK_WORDS], ct[TF_BLOCK_WORDS];
+
+    memcpy(ct, in, TF_BLOCK_SIZE);
+    twofish_internal_decrypt(pt, ct, ctx);
+    memcpy(out, pt, TF_BLOCK_SIZE);
 
     return TF_BLOCK_SIZE;
 }
@@ -447,8 +495,11 @@ int tf_ecb_decrypt (unsigned char *out, const unsigned char *in, tf_context_t *c
 // not used
 int tf_ecb_encrypt (unsigned char *out, const unsigned char *in, tf_context_t *ctx) {
 
-    memcpy(out, in, TF_BLOCK_SIZE);
-    twofish_internal_encrypt(out, ctx);
+    uint32_t pt[TF_BLOCK_WORDS];
+
+    memcpy(pt, in, TF_BLOCK_SIZE);
+    twofish_internal_encrypt(pt, ctx);
+    memcpy(out, pt, TF_BLOCK_SIZE);
 
     return TF_BLOCK_SIZE;
 }
@@ -457,17 +508,23 @@ int tf_ecb_encrypt (unsigned char *out, const unsigned char *in, tf_context_t *c
 int tf_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                     const unsigned char *iv, tf_context_t *ctx) {
 
-    uint8_t tmp[TF_BLOCK_SIZE];
+    uint32_t cv[TF_BLOCK_WORDS], blk[TF_BLOCK_WORDS];
     size_t i;
     size_t n;
 
-    memcpy(tmp, iv, TF_BLOCK_SIZE);
+    memcpy(cv, iv, TF_BLOCK_SIZE);
 
     n = in_len / TF_BLOCK_SIZE;
     for(i = 0; i < n; i++) {
-        fix_xor(tmp, &in[i * TF_BLOCK_SIZE]);
-        twofish_internal_encrypt(tmp, ctx);
-        memcpy(&out[i * TF_BLOCK_SIZE], tmp, TF_BLOCK_SIZE);
+        // encrypting (plain text XOR previous cipher text) gives the next cipher
+        // text block, which is also the next chaining value
+        memcpy(blk, &in[i * TF_BLOCK_SIZE], TF_BLOCK_SIZE);
+        cv[0] ^= blk[0];
+        cv[1] ^= blk[1];
+        cv[2] ^= blk[2];
+        cv[3] ^= blk[3];
+        twofish_internal_encrypt(cv, ctx);
+        memcpy(&out[i * TF_BLOCK_SIZE], cv, TF_BLOCK_SIZE);
     }
 
     return n * TF_BLOCK_SIZE;
@@ -477,36 +534,40 @@ int tf_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
 int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                     const unsigned char *iv, tf_context_t *ctx) {
 
-    int n;                       /* number of blocks */
-    /* int ret = (int)in_len & 15;  remainder, unused*/
+    int n;                        /* number of blocks */
 
-    uint8_t ivec[TF_BLOCK_SIZE]; /* the ivec/old handling might be optimized if we */
-    uint8_t old[TF_BLOCK_SIZE];  /* can be sure that in != out                     */
+    uint32_t ivw[TF_BLOCK_WORDS]; /* chaining value, the preceding cipher text block */
+    uint32_t old[TF_BLOCK_WORDS]; /* saved cipher text, out is allowed to be in */
 
-    memcpy(ivec, iv, TF_BLOCK_SIZE);
+    memcpy(ivw, iv, TF_BLOCK_SIZE);
+
+    n = in_len / TF_BLOCK_SIZE;
 
     // 3 parallel rails of twofish decryption
-    for(n = in_len / TF_BLOCK_SIZE; n > 2; n -=3) {
-        memcpy(old, in + 2 * TF_BLOCK_SIZE, TF_BLOCK_SIZE);
+    for(; n > 2; n -= 3) {
 
         uint32_t T0, T1;
         uint32_t Q0, Q1, Q2, Q3, R0, R1, R2, R3, S0, S1, S2, S3;
 
-        // load/byteswap/whiten input/iv
-        Q3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[3]);
-        Q2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[2]);
-        Q1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[1]);
-        Q0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[0]);
+        // the last cipher text block of this group is the chaining value of the
+        // next one, and writing out would lose it if out == in
+        memcpy(old, in + 2 * TF_BLOCK_SIZE, TF_BLOCK_SIZE);
 
-        R3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[7]);
-        R2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[6]);
-        R1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[5]);
-        R0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[4]);
+        // load/byteswap/whiten input
+        WHITEN_IN(Q3, tf_load32(in + 12), ctx->K[7]);
+        WHITEN_IN(Q2, tf_load32(in +  8), ctx->K[6]);
+        WHITEN_IN(Q1, tf_load32(in +  4), ctx->K[5]);
+        WHITEN_IN(Q0, tf_load32(in +  0), ctx->K[4]);
 
-        S3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[11]);
-        S2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[10]);
-        S1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[9]);
-        S0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[8]);
+        WHITEN_IN(R3, tf_load32(in + 28), ctx->K[7]);
+        WHITEN_IN(R2, tf_load32(in + 24), ctx->K[6]);
+        WHITEN_IN(R1, tf_load32(in + 20), ctx->K[5]);
+        WHITEN_IN(R0, tf_load32(in + 16), ctx->K[4]);
+
+        WHITEN_IN(S3, tf_load32(in + 44), ctx->K[7]);
+        WHITEN_IN(S2, tf_load32(in + 40), ctx->K[6]);
+        WHITEN_IN(S1, tf_load32(in + 36), ctx->K[5]);
+        WHITEN_IN(S0, tf_load32(in + 32), ctx->K[4]);
 
         DEC_ROUND(Q0, Q1, Q2, Q3, 15); DEC_ROUND(R0, R1, R2, R3, 15); DEC_ROUND(S0, S1, S2, S3, 15);
         DEC_ROUND(Q2, Q3, Q0, Q1, 14); DEC_ROUND(R2, R3, R0, R1, 14); DEC_ROUND(S2, S3, S0, S1, 14);
@@ -525,39 +586,43 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         DEC_ROUND(Q0, Q1, Q2, Q3,  1); DEC_ROUND(R0, R1, R2, R3,  1); DEC_ROUND(S0, S1, S2, S3,  1);
         DEC_ROUND(Q2, Q3, Q0, Q1,  0); DEC_ROUND(R2, R3, R0, R1,  0); DEC_ROUND(S2, S3, S0, S1,  0);
 
-        // whiten/byteswap/store output/iv
-        ((uint32_t*)out)[11] = htole32(S1 ^ ctx->K[3] ^ ((uint32_t*)in)[7]);
-        ((uint32_t*)out)[10] = htole32(S0 ^ ctx->K[2] ^ ((uint32_t*)in)[6]);
-        ((uint32_t*)out)[9]  = htole32(S3 ^ ctx->K[1] ^ ((uint32_t*)in)[5]);
-        ((uint32_t*)out)[8]  = htole32(S2 ^ ctx->K[0] ^ ((uint32_t*)in)[4]);
+        // whiten/byteswap output, chained with the preceding cipher text block.
+        // The blocks are stored back to front on purpose: each one still reads
+        // cipher text words of the block before it, so if out == in the later
+        // block has to be written before the earlier one overwrites its input
+        WHITEN_CHAIN_STORE(out + 44, S1, ctx->K[3], tf_load32(in + 28));
+        WHITEN_CHAIN_STORE(out + 40, S0, ctx->K[2], tf_load32(in + 24));
+        WHITEN_CHAIN_STORE(out + 36, S3, ctx->K[1], tf_load32(in + 20));
+        WHITEN_CHAIN_STORE(out + 32, S2, ctx->K[0], tf_load32(in + 16));
 
-        ((uint32_t*)out)[7]  = htole32(R1 ^ ctx->K[3] ^ ((uint32_t*)in)[3]);
-        ((uint32_t*)out)[6]  = htole32(R0 ^ ctx->K[2] ^ ((uint32_t*)in)[2]);
-        ((uint32_t*)out)[5]  = htole32(R3 ^ ctx->K[1] ^ ((uint32_t*)in)[1]);
-        ((uint32_t*)out)[4]  = htole32(R2 ^ ctx->K[0] ^ ((uint32_t*)in)[0]);
+        WHITEN_CHAIN_STORE(out + 28, R1, ctx->K[3], tf_load32(in + 12));
+        WHITEN_CHAIN_STORE(out + 24, R0, ctx->K[2], tf_load32(in +  8));
+        WHITEN_CHAIN_STORE(out + 20, R3, ctx->K[1], tf_load32(in +  4));
+        WHITEN_CHAIN_STORE(out + 16, R2, ctx->K[0], tf_load32(in +  0));
 
-        ((uint32_t*)out)[3]  = htole32(Q1 ^ ctx->K[3] ^ ((uint32_t*)ivec)[3]);
-        ((uint32_t*)out)[2]  = htole32(Q0 ^ ctx->K[2] ^ ((uint32_t*)ivec)[2]);
-        ((uint32_t*)out)[1]  = htole32(Q3 ^ ctx->K[1] ^ ((uint32_t*)ivec)[1]);
-        ((uint32_t*)out)[0]  = htole32(Q2 ^ ctx->K[0] ^ ((uint32_t*)ivec)[0]);
+        WHITEN_CHAIN_STORE(out + 12, Q1, ctx->K[3], ivw[3]);
+        WHITEN_CHAIN_STORE(out +  8, Q0, ctx->K[2], ivw[2]);
+        WHITEN_CHAIN_STORE(out +  4, Q3, ctx->K[1], ivw[1]);
+        WHITEN_CHAIN_STORE(out +  0, Q2, ctx->K[0], ivw[0]);
+
+        memcpy(ivw, old, TF_BLOCK_SIZE);
 
         in += 3 * TF_BLOCK_SIZE; out += 3 * TF_BLOCK_SIZE;
-
-        memcpy(ivec, old, TF_BLOCK_SIZE);
     }
 
     // handle the two or less remaining block on a single rail
     for(; n != 0; n--) {
+
         uint32_t T0, T1;
         uint32_t Q0, Q1, Q2, Q3;
 
         memcpy(old, in, TF_BLOCK_SIZE);
 
         // load/byteswap/whiten input
-        Q3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[3]);
-        Q2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[2]);
-        Q1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[1]);
-        Q0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[0]);
+        WHITEN_IN(Q3, tf_load32(in + 12), ctx->K[7]);
+        WHITEN_IN(Q2, tf_load32(in +  8), ctx->K[6]);
+        WHITEN_IN(Q1, tf_load32(in +  4), ctx->K[5]);
+        WHITEN_IN(Q0, tf_load32(in +  0), ctx->K[4]);
 
         DEC_ROUND(Q0, Q1, Q2, Q3, 15);
         DEC_ROUND(Q2, Q3, Q0, Q1, 14);
@@ -576,15 +641,15 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         DEC_ROUND(Q0, Q1, Q2, Q3,  1);
         DEC_ROUND(Q2, Q3, Q0, Q1,  0);
 
-        // load/byteswap/whiten output/iv
-        ((uint32_t*)out)[3] = htole32(Q1 ^ ctx->K[3] ^ ((uint32_t*)ivec)[3]);
-        ((uint32_t*)out)[2] = htole32(Q0 ^ ctx->K[2] ^ ((uint32_t*)ivec)[2]);
-        ((uint32_t*)out)[1] = htole32(Q3 ^ ctx->K[1] ^ ((uint32_t*)ivec)[1]);
-        ((uint32_t*)out)[0] = htole32(Q2 ^ ctx->K[0] ^ ((uint32_t*)ivec)[0]);
+        // whiten/byteswap output, chained with the preceding cipher text block
+        WHITEN_CHAIN_STORE(out + 12, Q1, ctx->K[3], ivw[3]);
+        WHITEN_CHAIN_STORE(out +  8, Q0, ctx->K[2], ivw[2]);
+        WHITEN_CHAIN_STORE(out +  4, Q3, ctx->K[1], ivw[1]);
+        WHITEN_CHAIN_STORE(out +  0, Q2, ctx->K[0], ivw[0]);
 
-        in += TF_BLOCK_SIZE; out+= TF_BLOCK_SIZE;
+        memcpy(ivw, old, TF_BLOCK_SIZE);
 
-        memcpy(ivec, old, TF_BLOCK_SIZE);
+        in += TF_BLOCK_SIZE; out += TF_BLOCK_SIZE;
     }
 
     return n * TF_BLOCK_SIZE;
