@@ -386,6 +386,24 @@ typedef int (*n2n_transform_f)(struct n2n_trans_op * arg,
                                const uint8_t * inbuf,
                                size_t in_len,
                                const n2n_mac_t peer_mac);
+
+/* One payload for the batched form of fwd: the arguments fwd() takes, plus
+ * where to put what fwd() would have returned for it. */
+typedef struct n2n_transform_job {
+    uint8_t *          out;
+    size_t out_len;
+    const uint8_t *    in;
+    size_t in_len;
+    const uint8_t *    peer_mac;
+    int result;
+} n2n_transform_job_t;
+
+/* Encode count payloads at once. Each job must come out exactly as fwd()
+ * would have made it; the point is only that the transform can work on the
+ * payloads side by side, which CBC encryption cannot do within one. */
+typedef void (*n2n_transform_multi_f)(struct n2n_trans_op * arg,
+                                      n2n_transform_job_t * job,
+                                      int count);
 /** Holds the info associated with a data transform plugin.
  *
  *  When a packet arrives the transform ID is extracted. This defines the code
@@ -400,6 +418,9 @@ typedef struct n2n_trans_op {
     n2n_transdeinit_f deinit;         /* destructor function */
     n2n_transform_f fwd;              /* encode a payload */
     n2n_transform_f rev;              /* decode a payload */
+    n2n_transform_multi_f fwd_multi;  /* optional: encode several payloads at
+                                       * once, NULL if the transform has no
+                                       * batched form */
 
     n2n_transform_t transform_id;
     uint8_t no_encryption;            /* 1 if this transop does not perform encryption */
