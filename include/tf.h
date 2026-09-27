@@ -63,6 +63,7 @@ typedef struct tf_context_t {
     int N;
     uint32_t K[40];
     uint32_t QF[4][256];
+    uint8_t SB[4][256];   // keyed byte S-boxes (QF without the MDS part), used by SIMD code
 } tf_context_t;
 
 
