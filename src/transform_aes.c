@@ -134,6 +134,94 @@ static int transop_encode_aes (n2n_trans_op_t *arg,
 }
 
 
+
+// how many payloads transop_encode_aes_multi() hands to aes_cbc_encrypt_multi()
+// in one call; this is what bounds its assembly buffers on the stack (8 x 2 KB)
+#define AES_MULTI_CHUNK 8
+
+
+// the batched form of transop_encode_aes(): every job comes out exactly as
+// transop_encode_aes() would have made it - same checks, same random
+// preamble, same padding and block exchange - only the CBC encryption of the
+// payloads runs side by side, which it cannot do within one of them
+static void transop_encode_aes_multi (n2n_trans_op_t *arg,
+                                      n2n_transform_job_t *job,
+                                      int count) {
+
+    transop_aes_t *priv = (transop_aes_t *)arg->priv;
+
+    uint8_t assembly[AES_MULTI_CHUNK][N2N_PKT_BUF_SIZE];
+    const unsigned char *in[AES_MULTI_CHUNK];
+    unsigned char *out[AES_MULTI_CHUNK];
+    size_t padded_len[AES_MULTI_CHUNK];
+    n2n_transform_job_t *jobs[AES_MULTI_CHUNK];
+    uint8_t buf[AES_BLOCK_SIZE];
+    int i = 0;
+    int n, k;
+
+    while(i < count) {
+
+        // assemble up to AES_MULTI_CHUNK payloads; one that fails the checks
+        // gets the same 0 result transop_encode_aes() would give it
+        for(n = 0; (n < AES_MULTI_CHUNK) && (i < count); i++) {
+            n2n_transform_job_t *j = &job[i];
+            size_t idx = 0;
+
+            j->result = 0;
+
+            if(j->in_len > N2N_PKT_BUF_SIZE) {
+                traceEvent(TRACE_ERROR, "transop_encode_aes inbuf too big to encrypt");
+                continue;
+            }
+            if((j->in_len + AES_PREAMBLE_SIZE + AES_BLOCK_SIZE) > j->out_len) {
+                traceEvent(TRACE_ERROR, "transop_encode_aes outbuf too small");
+                continue;
+            }
+
+            traceEvent(TRACE_DEBUG, "transop_encode_aes %lu bytes plaintext", j->in_len);
+
+            // full block sized random value (128 bit)
+            *(uint64_t *)(&assembly[n][0]) = n3n_rand();
+            *(uint64_t *)(&assembly[n][8]) = n3n_rand();
+
+            // adjust for maybe differently chosen AES_PREAMBLE_SIZE
+            idx = AES_PREAMBLE_SIZE;
+
+            // the plaintext data
+            memcpy((assembly[n] + idx), j->in, j->in_len);
+            idx += j->in_len;
+
+            // round up to next whole AES block size, pad with zero
+            padded_len[n] = (((idx - 1) / AES_BLOCK_SIZE) + 1) * AES_BLOCK_SIZE;
+            memset(assembly[n] + idx, 0, AES_BLOCK_SIZE);
+
+            in[n] = assembly[n];
+            out[n] = j->out;
+            jobs[n] = j;
+            j->result = idx;
+            n++;
+        }
+
+        if(n == 0) {
+            continue;
+        }
+
+        aes_cbc_encrypt_multi(out, in, padded_len, aes_null_iv, priv->ctx, n);
+
+        for(k = 0; k < n; k++) {
+            if(padded_len[k] != (size_t)jobs[k]->result) {
+                // exchange last two cipher blocks
+                uint8_t *o = out[k];
+                size_t pl = padded_len[k];
+
+                memcpy(buf, o + pl - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+                memcpy(o + pl - AES_BLOCK_SIZE, o + pl - 2 * AES_BLOCK_SIZE, AES_BLOCK_SIZE);
+                memcpy(o + pl - 2 * AES_BLOCK_SIZE, buf, AES_BLOCK_SIZE);
+            }
+        }
+    }
+}
+
 // see transop_encode_aes for packet format
 static int transop_decode_aes (n2n_trans_op_t *arg,
                                uint8_t *outbuf,
@@ -243,6 +331,7 @@ int n2n_transop_aes_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
     ttt->deinit       = transop_deinit_aes;
     ttt->fwd          = transop_encode_aes;
+    ttt->fwd_multi    = transop_encode_aes_multi;
     ttt->rev          = transop_decode_aes;
 
     priv = (transop_aes_t*)calloc(1, sizeof(transop_aes_t));
