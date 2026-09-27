@@ -333,6 +333,11 @@ void fullKey (uint32_t L[4], int k, uint32_t QF[4][256]) {
 // fully keyed h (aka g) function
 #define fkh(X) (ctx->QF[0][b0(X)]^ctx->QF[1][b1(X)]^ctx->QF[2][b2(X)]^ctx->QF[3][b3(X)])
 
+// fkh(ROL(X,8)), without materializing the rotated value: ROL(X,8) sends
+// byte i -> byte (i+1)%4, so its bytes are (b3,b0,b1,b2) instead of
+// (b0,b1,b2,b3); reindex which QF table each byte feeds and skip the rotate.
+#define fkh8(X) (ctx->QF[0][b3(X)]^ctx->QF[1][b0(X)]^ctx->QF[2][b1(X)]^ctx->QF[3][b2(X)])
+
 
 // ----------------------------------------------------------------------------------------------------------------
 
@@ -340,7 +345,7 @@ void fullKey (uint32_t L[4], int k, uint32_t QF[4][256]) {
 // one encryption round
 #define ENC_ROUND(R0, R1, R2, R3, round) \
     T0 = fkh(R0); \
-    T1 = fkh(ROL(R1, 8)); \
+    T1 = fkh8(R1); \
     R2 = ROR(R2 ^ (T1 + T0 + ctx->K[2*round+8]), 1); \
     R3 = ROL(R3, 1) ^ (2*T1 + T0 + ctx->K[2*round+9]);
 
@@ -388,7 +393,7 @@ void twofish_internal_encrypt (uint32_t PT[TF_BLOCK_WORDS], tf_context_t *ctx) {
 // one decryption round
 #define DEC_ROUND(R0, R1, R2, R3, round) \
     T0 = fkh(R0); \
-    T1 = fkh(ROL(R1, 8)); \
+    T1 = fkh8(R1); \
     R2 = ROL(R2, 1) ^ (T0 + T1 + ctx->K[2*round+8]); \
     R3 = ROR(R3 ^ (T0 + 2*T1 + ctx->K[2*round+9]), 1);
 
