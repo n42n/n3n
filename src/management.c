@@ -334,9 +334,7 @@ static void extract_pagination (char *params, int *limit, int *offset) {
     }
 }
 
-/* Close the outer object, point conn->reply at the buffer and add the
- * headers. Without this the reply is left NULL and conn_write() crashes
- */
+/* Every JSON-RPC reply, a result or an error, has to be finished with this */
 static void jsonrpc_result_tail (conn_t *conn, int code) {
     sb_reprintf(&conn->request, "}");
 
