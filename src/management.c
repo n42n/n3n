@@ -334,7 +334,17 @@ static void extract_pagination (char *params, int *limit, int *offset) {
     }
 }
 
-static void jsonrpc_result_tail (conn_t *conn, int code);
+/* Close the outer object, point conn->reply at the buffer and add the
+ * headers. Without this the reply is left NULL and conn_write() crashes
+ */
+static void jsonrpc_result_tail (conn_t *conn, int code) {
+    sb_reprintf(&conn->request, "}");
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+
+    generate_http_headers(conn, "application/json", code);
+}
 
 static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int count) {
     // Reuse the request buffer
@@ -366,8 +376,6 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int 
     }
     sb_reprintf(&conn->request, "}");
 
-    // Close the outer object, point conn->reply at the buffer and add the
-    // headers. Without this the reply is left NULL and conn_write() crashes
     jsonrpc_result_tail(conn, code);
 }
 
@@ -383,15 +391,6 @@ static void jsonrpc_result_head (char *id, conn_t *conn) {
         "\"result\":",
         id
     );
-}
-
-static void jsonrpc_result_tail (conn_t *conn, int code) {
-    sb_reprintf(&conn->request, "}");
-
-    // Update the reply buffer after last potential realloc
-    conn->reply = conn->request;
-
-    generate_http_headers(conn, "application/json", code);
 }
 
 static void jsonrpc_1uint (char *id, conn_t *conn, uint32_t result) {
