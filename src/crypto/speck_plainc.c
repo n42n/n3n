@@ -18,7 +18,10 @@
  */
 
 
+#include "portable_endian.h"  // for htole64, le64toh
 #include "speck.h"
+
+// NOTE: these includes are used by code outside of all these ifdefs
 
 #if defined (__AVX512F__)  // AVX512 support ----------------------------------------------------------------------
 #elif defined (__AVX2__)  // AVX2 support -------------------------------------------------------------------------
@@ -32,7 +35,6 @@
 // https://github.com/nsacyber/simon-speck-supercop/blob/master/crypto_stream/speck128256ctr/
 
 
-#include "portable_endian.h"  // for htole64, le64toh
 #include <stdlib.h>     // for size_t, malloc, free
 
 #if defined (SPECK_ALIGNED_CTX)
