@@ -2259,14 +2259,15 @@ static int send_packet (struct n3n_runtime_data * eee,
  * success, *enc_src and *enc_len say what the transform has to encode: the
  * frame itself, or compression_buf if it was worth compressing.
  */
-static size_t edge_encode_packet_head (struct n3n_runtime_data *eee,
-                                       uint8_t *tap_pkt, size_t len,
-                                       uint8_t *pktbuf,
-                                       n2n_mac_t out_destMac,
-                                       uint8_t *compression_buf,
-                                       size_t compression_buf_size,
-                                       const uint8_t **enc_src,
-                                       size_t *enc_len) {
+static inline __attribute__((always_inline))
+size_t edge_encode_packet_head (struct n3n_runtime_data *eee,
+                                uint8_t *tap_pkt, size_t len,
+                                uint8_t *pktbuf,
+                                n2n_mac_t out_destMac,
+                                uint8_t *compression_buf,
+                                size_t compression_buf_size,
+                                const uint8_t **enc_src,
+                                size_t *enc_len) {
 
     ipstr_t ip_buf;
     n2n_common_t cmn;
@@ -2386,11 +2387,12 @@ static size_t edge_encode_packet_head (struct n3n_runtime_data *eee,
  * idx is the length of the header plus the transformed payload, len the
  * length of the original frame. Returns the length of the finished PDU.
  */
-static size_t edge_encode_packet_tail (struct n3n_runtime_data *eee,
-                                       uint8_t *pktbuf,
-                                       size_t headerIdx,
-                                       size_t idx,
-                                       size_t len) {
+static inline __attribute__((always_inline))
+size_t edge_encode_packet_tail (struct n3n_runtime_data *eee,
+                                uint8_t *pktbuf,
+                                size_t headerIdx,
+                                size_t idx,
+                                size_t len) {
 
     traceEvent(TRACE_DEBUG, "encode PACKET of %u bytes, %u bytes data, %u bytes overhead, transform %u",
                (u_int)idx, (u_int)len, (u_int)(idx - len), eee->transop.transform_id);
