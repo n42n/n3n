@@ -152,7 +152,7 @@ static void perf_measure_collect (struct info *info) {
 static void perf_setup (struct info *info) {
     return;
 }
-static void perf_measure_start (struct info info) {
+static void perf_measure_start (struct info *info) {
     return;
 }
 static void perf_measure_collect (struct info *info) {
