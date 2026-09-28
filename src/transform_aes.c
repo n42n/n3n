@@ -29,6 +29,7 @@
 #include <string.h>          // for memcpy, size_t, memset, memcmp, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 
+#include "benchmark/staticdata.h"  // for benchmark_test_data
 #include "crypto/aes.h"      // for AES_BLOCK_SIZE, aes_cbc_decrypt, aes_cbc...
 #include "n2n.h"             // for n2n_trans_op_t
 #include "n2n_define.h"
@@ -255,6 +256,10 @@ int n2n_transop_aes_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
     return setup_aes_key(priv, encrypt_key, encrypt_key_len);
 }
 
+// An edge that finds several frames waiting on its tap device can encrypt
+// them one after the other, as a burst - so there is a benchmark for that too
+#define BENCH_BURST 16
+
 struct bench_ctx {
     transop_aes_t priv;
     // for encryption, want to be able to test the largest expected MTU + IV
@@ -262,6 +267,7 @@ struct bench_ctx {
     uint8_t iv[AES_PREAMBLE_SIZE];
     uint8_t outbuf[2048 + AES_PREAMBLE_SIZE];
     ssize_t outbuf_size;
+    uint8_t burst_outbuf[BENCH_BURST][2048 + AES_PREAMBLE_SIZE];
 };
 
 static void *bench_setup (void *const _ctx) {
@@ -420,6 +426,66 @@ static const ssize_t bench_decr_run (
     return ctx->outbuf_size;
 }
 
+static const ssize_t bench_encr_burst_run (
+    void *_ctx,
+    const struct n3n_pktbuf *inbuf,
+    ssize_t *bytes_in
+) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    const ssize_t idx = AES_PREAMBLE_SIZE + data_in_size;
+    const ssize_t padded_len = (((idx - 1) / AES_BLOCK_SIZE) + 1) * AES_BLOCK_SIZE;
+
+    uint8_t assembly[BENCH_BURST][N2N_PKT_BUF_SIZE];
+    const unsigned char *in[BENCH_BURST];
+    unsigned char *out[BENCH_BURST];
+    size_t in_len[BENCH_BURST];
+    int i;
+
+    // every packet as bench_encr_run() assembles its one
+    for(i = 0; i < BENCH_BURST; i++) {
+        memcpy(&assembly[i][0], ctx->iv, AES_PREAMBLE_SIZE);
+        memcpy(&assembly[i][AES_PREAMBLE_SIZE], n3n_pktbuf_getbufptr(*inbuf), data_in_size);
+        memset(&assembly[i][idx], 0, AES_BLOCK_SIZE);
+        in[i] = assembly[i];
+        out[i] = ctx->burst_outbuf[i];
+        in_len[i] = padded_len;
+    }
+
+    for(i = 0; i < BENCH_BURST; i++) {
+        aes_cbc_encrypt(out[i], in[i], in_len[i], aes_null_iv, ctx->priv.ctx);
+    }
+
+    if(padded_len != idx) {
+        uint8_t buf[AES_BLOCK_SIZE];
+
+        // exchange last two cipher blocks
+        for(i = 0; i < BENCH_BURST; i++) {
+            memcpy(buf, &out[i][padded_len - AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+            memcpy(&out[i][padded_len - AES_BLOCK_SIZE], &out[i][padded_len - 2 * AES_BLOCK_SIZE], AES_BLOCK_SIZE);
+            memcpy(&out[i][padded_len - 2 * AES_BLOCK_SIZE], buf, AES_BLOCK_SIZE);
+        }
+    }
+
+    *bytes_in = BENCH_BURST * data_in_size;
+    return BENCH_BURST * idx;
+}
+
+// every packet of the burst has to come out as bench_encr_run() makes it
+static int bench_encr_burst_check (void *const _ctx, const int level) {
+    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const struct n3n_pktbuf expect = benchmark_test_data[test_data_aes];
+    int i;
+
+    for(i = 0; i < BENCH_BURST; i++) {
+        if(memcmp(ctx->burst_outbuf[i], n3n_pktbuf_getbufptr(expect), n3n_pktbuf_getbufsize(expect))) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static const void *const bench_get_output (void *const _ctx) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     return &ctx->outbuf;
@@ -448,6 +514,18 @@ static struct bench_item bench_decr = {
 };
 
 
+static struct bench_item bench_encr_burst = {
+    .name = "aes_encr_x16",
+    .ctx_size = sizeof(struct bench_ctx),
+    .setup = bench_setup,
+    .run = bench_encr_burst_run,
+    .check = bench_encr_burst_check,
+    .teardown = bench_teardown,
+    .data_in = test_data_32x16,
+    .data_out = test_data_aes,
+};
+
+
 static struct n3n_transform transform = {
     .name = "AES",
     .id = N2N_TRANSFORM_ID_AES,
@@ -457,4 +535,5 @@ void n3n_initfuncs_transform_aes () {
     n3n_transform_register(&transform);
     n3n_benchmark_register(&bench_decr);
     n3n_benchmark_register(&bench_encr);
+    n3n_benchmark_register(&bench_encr_burst);
 }
