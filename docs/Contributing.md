@@ -35,6 +35,13 @@ contributions.
   and how it works - you must be prepared to answer questions about it and be
   able to adjust it to fit the project.  Essentially, since you are proposing
   it, you need to own it.
+- If your change is related to performance, please be sure to run the builtin
+  benchmarks both before and after and with the instruction cycle counts
+  (See the [testing](develop/testing.md) doc) and include this output in
+  a commit message.  This allows others to see the improvements and to be able
+  to try and replicate your results.  Pasting the exact text from the builtin
+  benchmarks makes it easy for people to see and compare with a standard
+  format.
 
 ## Other ways to Contribute
 
