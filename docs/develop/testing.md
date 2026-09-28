@@ -65,3 +65,26 @@ without the need for a PMU.  This uses ptrace to single-step the tests and is
 less accurate, takes longer to run and only supports Linux.
 
 `n3n-edge test fakebench`
+
+This "fakebench" generates fake numbers and should not be used for precise
+measurements. It should be considered a hack that has been cobbled together as
+a last resort to allow a minimal CI testing.
+
+### Contributing performance changes
+
+When contributing changes that may have a performance impact, it is very
+useful to be able to characterise those changes.
+
+To this end, the before and after benchmark results (Not fakebench) should be
+included in a commit message.  This allows others to see the size of the
+performance change and hopefully provide the information needed for the
+results to be replicated and compared.
+
+Pasting the exact text from the builtin benchmarks is important as this
+makes it easy for people to see and compare with a standard format.  If the
+benchmark settings have been changed from the defaults, that should also be
+explained.
+
+It is intended that the benchmark outputs will be improved to give better
+information on the environment used and the statistics and confidence levels
+in them to help with replicating any tests.
