@@ -52,7 +52,7 @@
 
 #define LOW  _mm512_unpacklo_epi64
 #define HIGH _mm512_unpackhi_epi64
-#define LD(ip) (_mm512_load_epi64(((void *)(ip))))
+#define LD(ip) _mm512_loadu_si512((void *)(ip))
 #define ST(ip,X) _mm512_storeu_si512((void *)(ip),X)
 #define STORE(out,X,Y) (ST(out,LOW(Y,X)), ST(out+64,HIGH(Y,X)))
 #define XOR_STORE(in,out,X,Y) (ST(out,XOR(LD(in),LOW(Y,X))), ST(out+64,XOR(LD(in+64),HIGH(Y,X))))
