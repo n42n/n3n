@@ -19,6 +19,7 @@
 #include <inttypes.h>  // for PRIx64, PRIx16, PRIx32
 #include <n3n/benchmark.h>
 #include <n3n/hexdump.h>  // for fhexdump
+#include <n3n/pktbuf.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>    // for memcmp
@@ -232,14 +233,17 @@ static const uint64_t expected_pearson_hash_64 = 0xb2d98fa82ea108be;
 
 static const ssize_t bench_16_run (
     void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     uint16_t *result = (uint16_t *)ctx;
     uint8_t *bytes = (uint8_t *)ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
-    *result = pearson_hash_16(data_in, data_in_size);
+    *result = pearson_hash_16(
+        n3n_pktbuf_getbufptr(*inbuf),
+        data_in_size
+    );
     *bytes_in = data_in_size;
     bytes[32] = 2;
     return bytes[32];
@@ -268,14 +272,17 @@ static int bench_16_check (void *ctx, int level) {
 
 static const ssize_t bench_32_run (
     void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     uint32_t *result = (uint32_t *)ctx;
     uint8_t *bytes = (uint8_t *)ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
-    *result = pearson_hash_32(data_in, data_in_size);
+    *result = pearson_hash_32(
+        n3n_pktbuf_getbufptr(*inbuf),
+        data_in_size
+    );
     *bytes_in = data_in_size;
     bytes[32] = 4;
     return bytes[32];
@@ -304,14 +311,17 @@ static int bench_32_check (void *ctx, int level) {
 
 static const ssize_t bench_64_run (
     void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     uint64_t *result = (uint64_t *)ctx;
     uint8_t *bytes = (uint8_t *)ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
-    *result = pearson_hash_64(data_in, data_in_size);
+    *result = pearson_hash_64(
+        n3n_pktbuf_getbufptr(*inbuf),
+        data_in_size
+    );
     *bytes_in = data_in_size;
     bytes[32] = 8;
     return bytes[32];
@@ -340,13 +350,17 @@ static int bench_64_check (void *ctx, int level) {
 
 static const ssize_t bench_128_run (
     void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     uint8_t *bytes = (uint8_t *)ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
-    pearson_hash_128(ctx, data_in, data_in_size);
+    pearson_hash_128(
+        ctx,
+        n3n_pktbuf_getbufptr(*inbuf),
+        data_in_size
+    );
     *bytes_in = data_in_size;
     bytes[32] = 16;
     return bytes[32];
@@ -354,13 +368,17 @@ static const ssize_t bench_128_run (
 
 static const ssize_t bench_256_run (
     void *ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     uint8_t *bytes = (uint8_t *)ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
-    pearson_hash_256(ctx, data_in, data_in_size);
+    pearson_hash_256(
+        ctx,
+        n3n_pktbuf_getbufptr(*inbuf),
+        data_in_size
+    );
     *bytes_in = data_in_size;
     bytes[32] = 32;
     return bytes[32];

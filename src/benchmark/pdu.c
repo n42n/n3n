@@ -9,6 +9,7 @@
 #include <n2n_typedefs.h>   // for n2n_edge_conf
 #include <n3n/benchmark.h>  // for bench_item
 #include <n3n/edge.h>       // for edge_init_conf_defaults, edge_verify_conf
+#include <n3n/pktbuf.h>
 #include <n3n/resolve.h>    // for resolve_supernode_str_add
 #include <stddef.h>         // for NULL
 #include <stdio.h>          // for perror
@@ -97,11 +98,11 @@ void process_pdu (struct n3n_runtime_data *eee,
 
 static const ssize_t bench_pdu2tun_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
     struct sockaddr_in sa;
     time_t now = time(NULL);
@@ -117,7 +118,7 @@ static const ssize_t bench_pdu2tun_run (
         &ctx->eee,
         (struct sockaddr *)&sa,
         -1,
-        (uint8_t *)data_in,
+        n3n_pktbuf_getbufptr(*inbuf),
         data_in_size,
         now
     );
@@ -150,16 +151,17 @@ static struct bench_item bench_pdu2tun = {
 
 static const ssize_t bench_tun2pdu_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
     n2n_mac_t destMac;
 
     ctx->outbuf_size = edge_encode_packet(
         &ctx->eee,
-        (uint8_t *)data_in, data_in_size,
+        n3n_pktbuf_getbufptr(*inbuf),
+        data_in_size,
         ctx->outbuf, sizeof(ctx->outbuf),
         destMac
     );

@@ -31,38 +31,19 @@
 
 
 #ifdef HAVE_LIBCRYPTO // openSSL 1.1 ----------------------------------------------------------------------------
-
-
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#endif
 
 typedef struct cc20_context_t {
+#ifdef HAVE_LIBCRYPTO
     EVP_CIPHER_CTX      *ctx;                    /* openssl's reusable evp_* en/de-cryption context */
     const EVP_CIPHER    *cipher;                 /* cipher to use: e.g. EVP_chacha20() */
-    uint8_t key[CC20_KEY_BYTES];                 /* the pure key data for payload encryption & decryption */
-} cc20_context_t;
-
-
-#elif defined (__SSE2__)  // SSE2 ---------------------------------------------------------------------------------
-
-
-typedef struct cc20_context {
-    uint32_t keystream32[16];
-    uint8_t key[CC20_KEY_BYTES];
-} cc20_context_t;
-
-
-#else // plain C --------------------------------------------------------------------------------------------------
-
-
-typedef struct cc20_context {
+#endif
     uint32_t keystream32[16];
     uint32_t state[16];
-    uint8_t key[CC20_KEY_BYTES];
+    uint8_t key[CC20_KEY_BYTES];                 /* the pure key data for payload encryption & decryption */
 } cc20_context_t;
-
-
-#endif // openSSL 1.1, plain C ------------------------------------------------------------------------------------
 
 
 int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,

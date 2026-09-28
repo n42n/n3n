@@ -1,15 +1,15 @@
 /**
  * Copyright (C) Hamish Coleman
- * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
  * Routines for handling a pool of packet-sized buffers
  */
 
 #include <n3n/metrics.h>
+#include <n3n/pktbuf.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "pktbuf.h"
 
 static struct metrics {
     uint32_t alloc;     // n3n_pktbuf_alloc() is called
@@ -78,7 +78,8 @@ void n3n_pktbuf_initialise (ssize_t mtu, int count) {
 
     int i;
     for(i=0; i < pool_item_count; i++) {
-        pool[i].buf = pool_buf + i * item_size;
+        // override the const for the initialisation
+        *((uint8_t **)&pool[i].buf) = pool_buf + i * item_size;
         *(short *)&pool[i].capacity = item_size;
         pool[i].owner = n3n_pktbuf_owner_none;
         n3n_pktbuf_zero(&pool[i]);
@@ -138,19 +139,19 @@ void n3n_pktbuf_zero (struct n3n_pktbuf *p) {
     p->offset_end = 0;
 }
 
-ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf *p) {
-    return p->offset_end - p->offset_start;
+ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf meta) {
+    return meta.offset_end - meta.offset_start;
 }
 
-ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf *p) {
-    return p->capacity - p->offset_end;
+ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf meta) {
+    return meta.capacity - meta.offset_end;
 }
 
-void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf *p) {
-    return (void *)&p->buf[p->offset_start];
+void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf meta) {
+    return &meta.buf[meta.offset_start];
 }
 
-int n3n_pktbuf_prepend (struct n3n_pktbuf *p, ssize_t prepend) {
+int n3n_pktbuf_prepend_space (struct n3n_pktbuf *p, ssize_t prepend) {
     if(prepend < 0) {
         return -1;
     }
@@ -158,10 +159,11 @@ int n3n_pktbuf_prepend (struct n3n_pktbuf *p, ssize_t prepend) {
         return -1;
     }
     p->offset_start = prepend;
+    // We leave the offset_end alone as there may be data stored
     return 1;
 }
 
-int n3n_pktbuf_append (struct n3n_pktbuf *p, ssize_t size, void *buf) {
+int n3n_pktbuf_append_memcpy (struct n3n_pktbuf *p, ssize_t size, void *buf) {
     int new_end = p->offset_end + size;
     if(new_end > p->capacity) {
         return -1;

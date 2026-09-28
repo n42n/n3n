@@ -21,6 +21,7 @@
 
 #include <n3n/benchmark.h>
 #include <n3n/logging.h> // for traceEvent
+#include <n3n/pktbuf.h>
 #include <n3n/random.h>      // for n3n_rand
 #include <n3n/transform.h>   // for n3n_transform_register
 #include <stdint.h>          // for uint8_t
@@ -28,7 +29,7 @@
 #include <string.h>          // for memcpy, size_t, memset, memcmp, strlen
 #include <sys/types.h>       // for u_char, ssize_t, time_t
 
-#include "aes.h"             // for AES_BLOCK_SIZE, aes_cbc_decrypt, aes_cbc...
+#include "crypto/aes.h"      // for AES_BLOCK_SIZE, aes_cbc_decrypt, aes_cbc...
 #include "n2n.h"             // for n2n_trans_op_t
 #include "n2n_define.h"
 #include "n2n_typedefs.h"
@@ -287,11 +288,11 @@ static void bench_teardown (void *_ctx) {
 
 static const ssize_t bench_encr_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
     // TODO: refactor to call transop_encode_aes() directly
 
@@ -304,7 +305,11 @@ static const ssize_t bench_encr_run (
     ssize_t idx = AES_PREAMBLE_SIZE;
 
     // Copy the plaintext into place
-    memcpy(&assembly[idx], data_in, data_in_size);
+    memcpy(
+        &assembly[idx],
+        n3n_pktbuf_getbufptr(*inbuf),
+        data_in_size
+    );
     idx += data_in_size;
 
     ssize_t padded_len = (((idx - 1) / AES_BLOCK_SIZE) + 1) * AES_BLOCK_SIZE;
@@ -350,14 +355,14 @@ static const ssize_t bench_encr_run (
 
 static const ssize_t bench_decr_run (
     void *_ctx,
-    const void *data_in,
-    const ssize_t data_in_size,
+    const struct n3n_pktbuf *inbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
+    const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
 
     uint8_t assembly[N2N_PKT_BUF_SIZE];
-    const unsigned char *bytes = (unsigned char *)data_in;
+    const unsigned char *bytes = n3n_pktbuf_getbufptr(*inbuf);
 
     // TODO: refactor to call transop_decode_cc20() directly
 
@@ -402,7 +407,7 @@ static const ssize_t bench_decr_run (
         // regular cbc decryption on multiple block-sized payload
         aes_cbc_decrypt(
             assembly,
-            data_in,
+            bytes,
             data_in_size,
             aes_null_iv,
             ctx->priv.ctx

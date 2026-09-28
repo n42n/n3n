@@ -5,8 +5,8 @@
  */
 
 #include <n3n/benchmark.h>
-
-#include "../pktbuf.h"
+#include <n3n/pktbuf.h>
+#include <stddef.h>         // for NULL
 
 /* *INDENT-OFF* */
 static const uint8_t _test_data_32x16[]={
@@ -416,68 +416,68 @@ const struct n3n_pktbuf benchmark_test_data[] = {
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_32x16] = {
-        .buf = (const uint8_t *)&_test_data_32x16,
+        .buf = (uint8_t *)&_test_data_32x16,
         .capacity = sizeof(_test_data_32x16),
         .offset_end = sizeof(_test_data_32x16),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_pearson_256] = {
-        .buf = (const uint8_t *)&_test_data_pearson_256,
+        .buf = (uint8_t *)&_test_data_pearson_256,
         .capacity = sizeof(_test_data_pearson_256),
         .offset_end = sizeof(_test_data_pearson_256),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_pearson_128] = {
-        .buf = (const uint8_t *)&_test_data_pearson_256,
+        .buf = (uint8_t *)&_test_data_pearson_256,
         .capacity = sizeof(_test_data_pearson_256),
         .offset_start = 16,
         .offset_end = 32,
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_lzo] = {
-        .buf = (const uint8_t *)&_test_data_lzo,
+        .buf = (uint8_t *)&_test_data_lzo,
         .capacity = sizeof(_test_data_lzo),
         .offset_end = sizeof(_test_data_lzo),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_speck] = {
-        .buf = (const uint8_t *)&_test_data_speck,
+        .buf = (uint8_t *)&_test_data_speck,
         .capacity = sizeof(_test_data_speck),
         .offset_end = sizeof(_test_data_speck),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_cc20] = {
-        .buf = (const uint8_t *)&_test_data_cc20,
+        .buf = (uint8_t *)&_test_data_cc20,
         .capacity = sizeof(_test_data_cc20),
         .offset_end = sizeof(_test_data_cc20),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_aes] = {
-        .buf = (const uint8_t *)&_test_data_aes,
+        .buf = (uint8_t *)&_test_data_aes,
         .capacity = sizeof(_test_data_aes),
         .offset_end = sizeof(_test_data_aes),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_tf] = {
-        .buf = (const uint8_t *)&_test_data_tf,
+        .buf = (uint8_t *)&_test_data_tf,
         .capacity = sizeof(_test_data_tf),
         .offset_end = sizeof(_test_data_tf),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_pdu_v3] = {
-        .buf = (const uint8_t *)&_test_data_pdu_v3,
+        .buf = (uint8_t *)&_test_data_pdu_v3,
         .capacity = sizeof(_test_data_pdu_v3),
         .offset_end = sizeof(_test_data_pdu_v3),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_pdu_eth] = {
-        .buf = (const uint8_t *)&_test_data_pdu_eth,
+        .buf = (uint8_t *)&_test_data_pdu_eth,
         .capacity = sizeof(_test_data_pdu_eth),
         .offset_end = sizeof(_test_data_pdu_eth),
         .owner = n3n_pktbuf_owner_staticdata,
     },
     [test_data_tun2pdu] = {
-        .buf = (const uint8_t *)&_test_data_tun2pdu,
+        .buf = (uint8_t *)&_test_data_tun2pdu,
         .capacity = sizeof(_test_data_tun2pdu),
         .offset_end = sizeof(_test_data_tun2pdu),
         .owner = n3n_pktbuf_owner_staticdata,

@@ -1,22 +1,3 @@
-/**
- * (C) 2007-22 - ntop.org and contributors
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not see see <http://www.gnu.org/licenses/>
- *
- */
-
-
 /* minilzo.h -- mini subset of the LZO real-time data compression library
 
    This file is part of the LZO real-time data compression library.
@@ -84,8 +65,8 @@ extern "C" {
 
 
 /***********************************************************************
-   //
- ************************************************************************/
+//
+************************************************************************/
 
 /* Memory required for the wrkmem parameter.
  * When the required size is 0, you can also pass a NULL pointer.
@@ -98,21 +79,21 @@ extern "C" {
 
 /* compression */
 LZO_EXTERN(int)
-lzo1x_1_compress( const lzo_bytep src, lzo_uint src_len,
-                  lzo_bytep dst, lzo_uintp dst_len,
-                  lzo_voidp wrkmem );
+lzo1x_1_compress        ( const lzo_bytep src, lzo_uint  src_len,
+                                lzo_bytep dst, lzo_uintp dst_len,
+                                lzo_voidp wrkmem );
 
 /* decompression */
 LZO_EXTERN(int)
-lzo1x_decompress( const lzo_bytep src, lzo_uint src_len,
-                  lzo_bytep dst, lzo_uintp dst_len,
-                  lzo_voidp wrkmem /* NOT USED */ );
+lzo1x_decompress        ( const lzo_bytep src, lzo_uint  src_len,
+                                lzo_bytep dst, lzo_uintp dst_len,
+                                lzo_voidp wrkmem /* NOT USED */ );
 
 /* safe decompression with overrun testing */
 LZO_EXTERN(int)
-lzo1x_decompress_safe( const lzo_bytep src, lzo_uint src_len,
-                       lzo_bytep dst, lzo_uintp dst_len,
-                       lzo_voidp wrkmem /* NOT USED */ );
+lzo1x_decompress_safe   ( const lzo_bytep src, lzo_uint  src_len,
+                                lzo_bytep dst, lzo_uintp dst_len,
+                                lzo_voidp wrkmem /* NOT USED */ );
 
 
 #ifdef __cplusplus

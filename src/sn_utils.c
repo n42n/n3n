@@ -38,6 +38,7 @@
 #include <unistd.h>
 
 #include "auth.h"               // for ascii_to_bin, calculate_dynamic_key
+#include "crypto/speck.h"       // for speck_128_encrypt, speck_context_t
 #include "header_encryption.h"  // for packet_header_encrypt, packet_header_...
 #include "management.h"         // for process_mgmt
 #include "minmax.h"                  // for MIN, MAX
@@ -51,7 +52,6 @@
 #include "portable_endian.h"    // for be16toh, htobe16
 #include "resolve.h"            // for resolve_create_thread, resolve_cancel...
 #include "sn_selection.h"       // for sn_selection_criterion_gather_data
-#include "speck.h"              // for speck_128_encrypt, speck_context_t
 #include "uthash.h"             // for UT_hash_handle, HASH_ITER, HASH_DEL
 
 #ifdef _WIN32

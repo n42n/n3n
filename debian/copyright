@@ -62,3 +62,8 @@ License: GPL-3.0-only
  A copy of the GNU General Public License version 3 is available as
  LICENSES/preferred/GPL-3.0 in the source of this package or at
  https://www.gnu.org/licenses/gpl-3.0-standalone.html
+
+Files:
+ libs/lzo/*
+Copyright: 1996-2017 Markus Franz Xaver Johannes Oberhumer
+License: GPL-2+

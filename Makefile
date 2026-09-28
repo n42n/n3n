@@ -97,6 +97,7 @@ LDFLAGS+=-L$(abspath src)
 CFLAGS+=-DHAVE_BRIDGING_SUPPORT
 
 OBJS=\
+	libs/lzo/minilzo.o \
 	src/auth.o \
 	src/base64.o \
 	src/benchmark/core.o \
@@ -106,11 +107,19 @@ OBJS=\
 	src/benchmark/nop.o \
 	src/conffile.o \
 	src/conffile_defs.o \
-	src/crypto/aes.o \
-	src/crypto/cc20.o \
+	src/crypto/aes_openssl.o \
+	src/crypto/aes_plainc.o \
+	src/crypto/aes_sse2.o \
+	src/crypto/cc20_openssl.o \
+	src/crypto/cc20_plainc.o \
+	src/crypto/cc20_sse2.o \
 	src/crypto/curve25519.o \
 	src/crypto/pearson.o \
-	src/crypto/speck.o \
+	src/crypto/speck_avx2.o \
+	src/crypto/speck_avx512.o \
+	src/crypto/speck_neon.o \
+	src/crypto/speck_plainc.o \
+	src/crypto/speck_sse2.o \
 	src/crypto/tf.o \
 	src/edge_utils.o \
 	src/header_encryption.o \
@@ -121,7 +130,6 @@ OBJS=\
 	src/mainloop.o \
 	src/management.o \
 	src/metrics.o \
-	src/minilzo.o \
 	src/n2n.o \
 	src/n2n_port_mapping.o \
 	src/n2n_regex.o \
@@ -148,7 +156,7 @@ OBJS=\
 	src/wire.o \
 
 # TODO: add performance testing and then try to avoid ignoring this warning
-CFLAGS_src/crypto/speck.c := -Wno-maybe-uninitialized
+CFLAGS_src/crypto/speck_sse2.c := -Wno-maybe-uninitialized
 
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
 OBJS+=src/win32/edge_rc.o
@@ -231,7 +239,7 @@ LINT_CCODE=\
 
 # Some files currently cause the linter to fail, so they need to be excluded
 # TODO: change either the files or the linter to remove these failures
-LINT_EXCLUDE=include/uthash.h|include/lzodefs.h|src/minilzo.c
+LINT_EXCLUDE=include/uthash.h
 
 MANS+=docs/n3n-edge.8.gz
 MANS+=docs/n3n-supernode.8.gz

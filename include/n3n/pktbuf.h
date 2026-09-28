@@ -1,15 +1,15 @@
 /**
- * Copyright (C) Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
- * Private interface to the packet-sized buffers
+ * Management of packet-sized buffers
  */
 
 #ifndef _PKTBUF_H
 #define _PKTBUF_H
 
 #include <inttypes.h>   // for uint8_t
-#include <stddef.h>     // for ssize_t
+#include <sys/types.h>  // for ssize_t
 
 enum __attribute__((__packed__)) n3n_pktbuf_owner {
     n3n_pktbuf_owner_none = 0,          // Nobody owns it, ready for alloc
@@ -21,7 +21,7 @@ enum __attribute__((__packed__)) n3n_pktbuf_owner {
 };
 
 struct n3n_pktbuf {
-    const uint8_t *buf;
+    uint8_t *const buf;
     const short capacity;       // Total size of buf
     short offset_start;   // Offset to start of data
     short offset_end;     // Offset to end of data
@@ -35,9 +35,9 @@ void n3n_pktbuf_free (struct n3n_pktbuf *);
 
 void n3n_pktbuf_zero (struct n3n_pktbuf *);
 
-ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf *);
-ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf *);
-void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf *);
+ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf);
+ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf);
+void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf);
 
 int n3n_pktbuf_prepend(struct n3n_pktbuf *, ssize_t);
 int n3n_pktbuf_append(struct n3n_pktbuf *, ssize_t, void *);
