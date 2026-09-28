@@ -334,6 +334,16 @@ static void extract_pagination (char *params, int *limit, int *offset) {
     }
 }
 
+/* Every JSON-RPC reply, a result or an error, has to be finished with this */
+static void jsonrpc_result_tail (conn_t *conn, int code) {
+    sb_reprintf(&conn->request, "}");
+
+    // Update the reply buffer after last potential realloc
+    conn->reply = conn->request;
+
+    generate_http_headers(conn, "application/json", code);
+}
+
 static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int count) {
     // Reuse the request buffer
     sb_zero(conn->request);
@@ -363,6 +373,8 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int 
         );
     }
     sb_reprintf(&conn->request, "}");
+
+    jsonrpc_result_tail(conn, code);
 }
 
 static void jsonrpc_result_head (char *id, conn_t *conn) {
@@ -377,15 +389,6 @@ static void jsonrpc_result_head (char *id, conn_t *conn) {
         "\"result\":",
         id
     );
-}
-
-static void jsonrpc_result_tail (conn_t *conn, int code) {
-    sb_reprintf(&conn->request, "}");
-
-    // Update the reply buffer after last potential realloc
-    conn->reply = conn->request;
-
-    generate_http_headers(conn, "application/json", code);
 }
 
 static void jsonrpc_1uint (char *id, conn_t *conn, uint32_t result) {
@@ -447,7 +450,6 @@ static bool jsonrpc_error_overflow (char *id, conn_t *conn, int count) {
     }
 
     jsonrpc_error(id, conn, 507, "overflow", count);
-    jsonrpc_result_tail(conn, 507);
     return true;
 }
 
