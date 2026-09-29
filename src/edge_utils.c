@@ -3242,8 +3242,17 @@ int run_edge_loop (struct n3n_runtime_data *eee) {
      * readFromIPSocket() or edge_read_from_tap()
      */
 
+    int errs = 0;
+
     while(*eee->keep_running) {
-        mainloop_runonce(eee);
+        if(mainloop_runonce(eee) < 0) {
+            if(++errs >= 5) {
+                traceEvent(TRACE_ERROR, "exiting edge loop after 5 consecutive mainloop errors");
+                *eee->keep_running = false;
+            }
+        } else {
+            errs = 0;
+        }
 
         // TODO:
         // - migrate all the following regular actions into the

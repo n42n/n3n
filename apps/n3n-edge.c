@@ -1156,7 +1156,14 @@ int main (int argc, char* argv[]) {
 
         // we usually wait for some answer, there however are exceptions when going back to a previous runlevel
         if(seek_answer) {
-            mainloop_runonce(eee);
+            int rc = mainloop_runonce(eee);
+
+            // Critical error during bootstrap - should never happen, abort immediately
+            if(rc < 0) {
+                traceEvent(TRACE_ERROR, "mainloop critical error during bootstrap, aborting");
+                edge_term(eee);
+                return 1;
+            }
 
             // FIXME: the mainloop could wait for BOOTSTRAP_TIMEOUT, not its
             // usual timeout ?!?
