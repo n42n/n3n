@@ -2056,6 +2056,11 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
         }
     }
 
+    /* Clamp TCP MSS on incoming VPN packets before writing to TAP. */
+    if(eee->conf.clamp_mss) {
+        clamp_mss(eee, eth_payload, eth_size);
+    }
+
     /* Write ethernet packet to tap device. */
     traceEvent(TRACE_DEBUG, "sending data of size %u to TAP", (unsigned int)eth_size);
     data_sent_len = tuntap_write(&(eee->device), eth_payload, eth_size);
@@ -2193,6 +2198,188 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
 
 /* ***************************************************** */
 
+/**
+ * Incremental TCP checksum update (RFC 1624).
+ *
+ * When a 16-bit field in the TCP header is modified, the checksum can be
+ * updated incrementally rather than recalculated from scratch:
+ *   HC' = ~(~HC + ~m + m')
+ *
+ * All values are in host byte order.
+ */
+uint16_t tcp_csum_update (uint16_t old_csum, uint16_t old_val, uint16_t new_val) {
+    uint32_t sum = (uint32_t)(~old_csum & 0xFFFF)
+                   + (uint32_t)(~old_val  & 0xFFFF)
+                   + (uint32_t) new_val;
+    sum = (sum & 0xFFFF) + (sum >> 16);
+    sum += sum >> 16;
+    return (uint16_t)(~sum & 0xFFFF);
+}
+
+/**
+ * Clamp the TCP MSS value in SYN/SYN-ACK packets to prevent fragmentation.
+ * Supports IPv4/IPv6, VLAN/QinQ, IP-in-IP, and IPv6 extension headers.
+ * Uses byte-shift reads for alignment safety on ARM/MIPS.
+ * Inspired by tinc's clamp_mss; expanded with full protocol support.
+ * TCP checksum update follows RFC 1624 incremental one's-complement method.
+ */
+void clamp_mss (struct n3n_runtime_data *eee, uint8_t *tap_pkt, size_t len) {
+
+    if(eee->conf.mtu <= 0) {
+        return;
+    }
+
+    uint16_t mtu = eee->conf.mtu;
+
+    /* ---- Ethernet ---- */
+    if(len < sizeof(ether_hdr_t)) {
+        return;
+    }
+
+    size_t offset = sizeof(ether_hdr_t);
+    uint16_t ethertype = (tap_pkt[12] << 8) | tap_pkt[13];
+
+    /* Skip stacked VLAN tags (802.1Q / 802.1ad QinQ) */
+    while(ethertype == 0x8100 || ethertype == 0x88A8 || ethertype == 0x9100) {
+        if(len < offset + 4) {
+            return;
+        }
+        ethertype = (tap_pkt[offset + 2] << 8) | tap_pkt[offset + 3];
+        offset += 4;
+    }
+
+    /* ---- IP ---- */
+    uint8_t ip_proto = 0;
+
+    if(ethertype == 0x0800) {
+        /* --- IPv4 --- */
+        if(len < offset + 20 || (tap_pkt[offset] >> 4) != 4) {
+            return;
+        }
+
+        /* Check for fragmentation: offset != 0 OR More Fragments flag set */
+        if(((tap_pkt[offset + 6] << 8) | tap_pkt[offset + 7]) & 0x3FFF) {
+            return;
+        }
+
+        uint16_t ihl_bytes = (tap_pkt[offset] & 0x0F) * 4;
+        ip_proto = tap_pkt[offset + 9];
+
+        /* Support for IP-in-IP encapsulation (RFC 2003) */
+        if(ip_proto == 4) {
+            offset += ihl_bytes;
+            if(len < offset + 20 || (tap_pkt[offset] >> 4) != 4) {
+                return;
+            }
+            if(((tap_pkt[offset + 6] << 8) | tap_pkt[offset + 7]) & 0x3FFF) {
+                return;
+            }
+            ihl_bytes = (tap_pkt[offset] & 0x0F) * 4;
+            ip_proto = tap_pkt[offset + 9];
+        }
+        offset += ihl_bytes;
+
+    } else if(ethertype == 0x86DD) {
+        /* --- IPv6 --- */
+        if(len < offset + 40 || (tap_pkt[offset] >> 4) != 6) {
+            return;
+        }
+        uint8_t next_hdr = tap_pkt[offset + 6];
+        offset += 40;
+
+        /* Walk through Extension Headers */
+        while(next_hdr != IPPROTO_TCP && next_hdr != IPPROTO_NONE) {
+            if(len < offset + 2) {
+                return;
+            }
+            if(next_hdr == 0 || next_hdr == 43 || next_hdr == 60) {
+                uint16_t ext_len = (tap_pkt[offset + 1] + 1) * 8;
+                if(len < offset + ext_len) {
+                    return;
+                }
+                next_hdr = tap_pkt[offset];
+                offset += ext_len;
+            } else if(next_hdr == 44 || next_hdr == 51) {
+                /* Abort on Fragment (44) or Auth Header (51) */
+                return;
+            } else {
+                break;
+            }
+        }
+        ip_proto = next_hdr;
+    } else {
+        return; /* not IP */
+    }
+
+    /* ---- TCP ---- */
+    if(ip_proto != IPPROTO_TCP || len < offset + 20) {
+        return;
+    }
+
+    /* Only process SYN or SYN-ACK packets (Flag bit 2) */
+    if(!(tap_pkt[offset + 13] & 0x02)) {
+        return;
+    }
+
+    uint8_t tcp_doff = tap_pkt[offset + 12] >> 4;
+    size_t tcp_hdr_len = tcp_doff * 4;
+    if(tcp_doff < 5 || len < offset + tcp_hdr_len) {
+        return;
+    }
+
+    /* Calculate dynamic Max MSS based on total IP overhead found */
+    size_t ip_overhead = offset - 14;
+    if(mtu <= (ip_overhead + 20)) {
+        return;
+    }
+    uint16_t max_mss = mtu - (uint16_t)ip_overhead - 20;
+    if(max_mss == 0) {
+        return;
+    }
+
+    /* ---- Walk TCP options for MSS (kind=2, len=4) ---- */
+    uint8_t *opts = tap_pkt + offset + 20;
+    size_t opts_len = tcp_hdr_len - 20;
+
+    for(size_t i = 0; i < opts_len; ) {
+        uint8_t kind = opts[i];
+
+        if(kind == 0) break;           /* End of Options */
+        if(kind == 1) {
+            i++; continue;
+        }                                /* NOP */
+
+        if(i + 1 >= opts_len) break;
+        uint8_t olen = opts[i + 1];
+        if(olen < 2 || i + olen > opts_len) break;
+
+        if(kind == 2 && olen == 4) {
+            uint16_t old_mss = (opts[i + 2] << 8) | opts[i + 3];
+            if(old_mss > max_mss) {
+                uint16_t new_mss = max_mss;
+
+                traceEvent(TRACE_INFO, "Clamping MSS from %u to %u", old_mss, new_mss);
+
+                /* Update MSS value in place using byte-writes for alignment safety */
+                opts[i + 2] = (uint8_t)(new_mss >> 8);
+                opts[i + 3] = (uint8_t)(new_mss & 0xFF);
+
+                /* Recalculate TCP Checksum incrementally */
+                uint16_t old_cs = (tap_pkt[offset + 16] << 8) | tap_pkt[offset + 17];
+                uint16_t new_cs = tcp_csum_update(old_cs, old_mss, new_mss);
+
+                tap_pkt[offset + 16] = (uint8_t)(new_cs >> 8);
+                tap_pkt[offset + 17] = (uint8_t)(new_cs & 0xFF);
+            }
+            break;
+        }
+
+        i += olen;
+    }
+}
+
+/* ***************************************************** */
+
 /** Send an ecapsulated ethernet PACKET to a destination edge or broadcast MAC
  *    address. */
 static int send_packet (struct n3n_runtime_data * eee,
@@ -2249,6 +2436,11 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
                            uint8_t *tap_pkt, size_t len,
                            uint8_t *pktbuf, size_t pktbuf_size,
                            n2n_mac_t out_destMac) {
+
+    /* Clamp TCP MSS if enabled */
+    if(eee->conf.clamp_mss) {
+        clamp_mss(eee, tap_pkt, len);
+    }
 
     ipstr_t ip_buf;
     n2n_common_t cmn;
