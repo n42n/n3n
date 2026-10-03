@@ -1561,8 +1561,8 @@ static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struc
             uint8_t pktbuf[N2N_PKT_BUF_SIZE] = {0};
             size_t idx;
             /* ssize_t sent; */
-            n2n_common_t cmn;
-            n2n_REGISTER_SUPER_t reg;
+            n2n_common_t cmn = {0};
+            n2n_REGISTER_SUPER_t reg = {0};
             n3n_sock_str_t sockbuf;
 
             cmn.ttl = N2N_DEFAULT_TTL;
@@ -2577,8 +2577,8 @@ static int process_pdu (struct n3n_runtime_data * sss,
             n2n_QUERY_PEER_t query;
             uint8_t encbuf[N2N_SN_PKTBUF_SIZE];
             size_t encx = 0;
-            n2n_common_t cmn2;
-            n2n_PEER_INFO_t pi;
+            n2n_common_t cmn2 = {0};
+            n2n_PEER_INFO_t pi = {0};
             struct sn_community_regular_expression *re, *tmp_re;
             int8_t allowed_match = -1;
             uint8_t match = 0;
