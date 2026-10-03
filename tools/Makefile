@@ -18,6 +18,9 @@ TESTS+=tests-elliptic
 TESTS+=tests-transform
 TESTS+=tests-wire
 TESTS+=tests-auth
+TESTS+=tests-peer_info
+
+tests-peer_info: CPPFLAGS+=-I$(abspath ../src)
 
 .PHONY: all clean install
 all: $(TOOLS) $(TESTS)
