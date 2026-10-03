@@ -88,3 +88,24 @@ explained.
 It is intended that the benchmark outputs will be improved to give better
 information on the environment used and the statistics and confidence levels
 in them to help with replicating any tests.
+
+## Testing on other architectures
+
+Most development happens on 64 bit little endian x86, but n3n also runs on
+big endian hosts (some MIPS, PowerPC, s390x), on 32 bit ones and on CPUs that
+trap on unaligned memory accesses - typically routers.  The expected outputs
+of the unit tests and of `n3n-edge test check` are the same for all of them,
+so a cross compiled tree can run them under qemu-user:
+
+```
+sudo apt install gcc-mips-linux-gnu libc6-dev-mips-cross qemu-user
+./configure --host=mips-linux-gnu
+make apps tools
+scripts/test_qemu.sh qemu-mips -L /usr/mips-linux-gnu
+```
+
+Only the pattern tests of `tests-wire` are left out: they fill structs with
+byte patterns, which naturally come out differently on a big endian host.
+
+CI runs this for s390x (big endian, 64 bit), mips (big endian, 32 bit) and
+aarch64.
