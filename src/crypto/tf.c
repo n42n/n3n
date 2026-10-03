@@ -474,6 +474,8 @@ int tf_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
 }
 
 
+// The chaining values (in, ivec) are XORed in as they are, in wire order,
+// after the byte swap of the decrypted words: XOR commutes with it.
 int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                     const unsigned char *iv, tf_context_t *ctx) {
 
@@ -526,20 +528,20 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         DEC_ROUND(Q2, Q3, Q0, Q1,  0); DEC_ROUND(R2, R3, R0, R1,  0); DEC_ROUND(S2, S3, S0, S1,  0);
 
         // whiten/byteswap/store output/iv
-        ((uint32_t*)out)[11] = htole32(S1 ^ ctx->K[3] ^ ((uint32_t*)in)[7]);
-        ((uint32_t*)out)[10] = htole32(S0 ^ ctx->K[2] ^ ((uint32_t*)in)[6]);
-        ((uint32_t*)out)[9]  = htole32(S3 ^ ctx->K[1] ^ ((uint32_t*)in)[5]);
-        ((uint32_t*)out)[8]  = htole32(S2 ^ ctx->K[0] ^ ((uint32_t*)in)[4]);
+        ((uint32_t*)out)[11] = htole32(S1 ^ ctx->K[3]) ^ ((uint32_t*)in)[7];
+        ((uint32_t*)out)[10] = htole32(S0 ^ ctx->K[2]) ^ ((uint32_t*)in)[6];
+        ((uint32_t*)out)[9]  = htole32(S3 ^ ctx->K[1]) ^ ((uint32_t*)in)[5];
+        ((uint32_t*)out)[8]  = htole32(S2 ^ ctx->K[0]) ^ ((uint32_t*)in)[4];
 
-        ((uint32_t*)out)[7]  = htole32(R1 ^ ctx->K[3] ^ ((uint32_t*)in)[3]);
-        ((uint32_t*)out)[6]  = htole32(R0 ^ ctx->K[2] ^ ((uint32_t*)in)[2]);
-        ((uint32_t*)out)[5]  = htole32(R3 ^ ctx->K[1] ^ ((uint32_t*)in)[1]);
-        ((uint32_t*)out)[4]  = htole32(R2 ^ ctx->K[0] ^ ((uint32_t*)in)[0]);
+        ((uint32_t*)out)[7]  = htole32(R1 ^ ctx->K[3]) ^ ((uint32_t*)in)[3];
+        ((uint32_t*)out)[6]  = htole32(R0 ^ ctx->K[2]) ^ ((uint32_t*)in)[2];
+        ((uint32_t*)out)[5]  = htole32(R3 ^ ctx->K[1]) ^ ((uint32_t*)in)[1];
+        ((uint32_t*)out)[4]  = htole32(R2 ^ ctx->K[0]) ^ ((uint32_t*)in)[0];
 
-        ((uint32_t*)out)[3]  = htole32(Q1 ^ ctx->K[3] ^ ((uint32_t*)ivec)[3]);
-        ((uint32_t*)out)[2]  = htole32(Q0 ^ ctx->K[2] ^ ((uint32_t*)ivec)[2]);
-        ((uint32_t*)out)[1]  = htole32(Q3 ^ ctx->K[1] ^ ((uint32_t*)ivec)[1]);
-        ((uint32_t*)out)[0]  = htole32(Q2 ^ ctx->K[0] ^ ((uint32_t*)ivec)[0]);
+        ((uint32_t*)out)[3]  = htole32(Q1 ^ ctx->K[3]) ^ ((uint32_t*)ivec)[3];
+        ((uint32_t*)out)[2]  = htole32(Q0 ^ ctx->K[2]) ^ ((uint32_t*)ivec)[2];
+        ((uint32_t*)out)[1]  = htole32(Q3 ^ ctx->K[1]) ^ ((uint32_t*)ivec)[1];
+        ((uint32_t*)out)[0]  = htole32(Q2 ^ ctx->K[0]) ^ ((uint32_t*)ivec)[0];
 
         in += 3 * TF_BLOCK_SIZE; out += 3 * TF_BLOCK_SIZE;
 
@@ -577,10 +579,10 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         DEC_ROUND(Q2, Q3, Q0, Q1,  0);
 
         // load/byteswap/whiten output/iv
-        ((uint32_t*)out)[3] = htole32(Q1 ^ ctx->K[3] ^ ((uint32_t*)ivec)[3]);
-        ((uint32_t*)out)[2] = htole32(Q0 ^ ctx->K[2] ^ ((uint32_t*)ivec)[2]);
-        ((uint32_t*)out)[1] = htole32(Q3 ^ ctx->K[1] ^ ((uint32_t*)ivec)[1]);
-        ((uint32_t*)out)[0] = htole32(Q2 ^ ctx->K[0] ^ ((uint32_t*)ivec)[0]);
+        ((uint32_t*)out)[3] = htole32(Q1 ^ ctx->K[3]) ^ ((uint32_t*)ivec)[3];
+        ((uint32_t*)out)[2] = htole32(Q0 ^ ctx->K[2]) ^ ((uint32_t*)ivec)[2];
+        ((uint32_t*)out)[1] = htole32(Q3 ^ ctx->K[1]) ^ ((uint32_t*)ivec)[1];
+        ((uint32_t*)out)[0] = htole32(Q2 ^ ctx->K[0]) ^ ((uint32_t*)ivec)[0];
 
         in += TF_BLOCK_SIZE; out+= TF_BLOCK_SIZE;
 
