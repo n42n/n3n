@@ -68,6 +68,20 @@
     dec3(in);    \
     dec1(in)
 
+// The input need not be aligned, nor the output: words are read and written
+// through memcpy()
+static inline uint64_t load64_le (const void *p) {
+    uint64_t v;
+    memcpy(&v, p, sizeof(v));
+    return le64toh(v);
+}
+
+static inline void store64_be (void *p, uint64_t v) {
+    v = htobe64(v);
+    memcpy(p, &v, sizeof(v));
+}
+
+
 #define hash_round(hash, in, part) \
     hash ## part ^= in;              \
     dec ## part(hash ## part);         \
@@ -86,10 +100,10 @@ void pearson_hash_256 (uint8_t *out, const uint8_t *in, size_t len) {
 
     while(len > 7) {
         // digest words little endian first
-        hash_round(hash, le64toh(*current), 1);
-        hash_round(hash, le64toh(*current), 2);
-        hash_round(hash, le64toh(*current), 3);
-        hash_round(hash, le64toh(*current), 4);
+        hash_round(hash, load64_le(current), 1);
+        hash_round(hash, load64_le(current), 2);
+        hash_round(hash, load64_le(current), 3);
+        hash_round(hash, load64_le(current), 4);
 
         current++;
         len-=8;
@@ -126,13 +140,13 @@ void pearson_hash_256 (uint8_t *out, const uint8_t *in, size_t len) {
     // hash string is stored big endian, the natural way to read
     uint64_t *o;
     o = (uint64_t*)out;
-    *o = htobe64(hash4);
+    store64_be(o, hash4);
     o++;
-    *o = htobe64(hash3);
+    store64_be(o, hash3);
     o++;
-    *o = htobe64(hash2);
+    store64_be(o, hash2);
     o++;
-    *o = htobe64(hash1);
+    store64_be(o, hash1);
 }
 
 
@@ -146,8 +160,8 @@ void pearson_hash_128 (uint8_t *out, const uint8_t *in, size_t len) {
 
     while(len > 7) {
         // digest words little endian first
-        hash_round(hash, le64toh(*current), 1);
-        hash_round(hash, le64toh(*current), 2);
+        hash_round(hash, load64_le(current), 1);
+        hash_round(hash, load64_le(current), 2);
 
         current++;
         len-=8;
@@ -176,9 +190,9 @@ void pearson_hash_128 (uint8_t *out, const uint8_t *in, size_t len) {
     // hash string is stored big endian, the natural way to read
     uint64_t *o;
     o = (uint64_t*)out;
-    *o = htobe64(hash2);
+    store64_be(o, hash2);
     o++;
-    *o = htobe64(hash1);
+    store64_be(o, hash1);
 }
 
 
@@ -191,7 +205,7 @@ uint64_t pearson_hash_64 (const uint8_t *in, size_t len) {
 
     while(len > 7) {
         // digest words little endian first
-        hash_round(hash, le64toh(*current), 1);
+        hash_round(hash, load64_le(current), 1);
 
         current++;
         len-=8;
