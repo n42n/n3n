@@ -1,0 +1,6 @@
+purge_peer_list:  0 peers,  0 purged,  0 kept: ok
+purge_peer_list:  1 peers,  0 purged,  1 kept: ok
+purge_peer_list:  3 peers,  2 purged,  1 kept: ok
+purge_peer_list: 15 peers,  8 purged,  7 kept: ok
+purge_peer_list: 16 peers,  8 purged,  8 kept: ok
+purge_peer_list: 17 peers,  9 purged,  8 kept: ok
