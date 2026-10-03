@@ -6,3 +6,5 @@ tests-compress
 tests-elliptic
 tests-transform
 tests-wire
+tests-wire-fuzz
+tests-wire-numsn
