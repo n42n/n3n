@@ -22,10 +22,15 @@
 #define _N3N_RANDOM_H_
 
 
-#include <stdint.h>   // for uint64_t, uint32_t
+#include <stddef.h>   // for size_t
+#include <stdint.h>   // for uint64_t, uint32_t, uint8_t
 
 uint64_t n3n_rand (void);
 int memrnd (uint8_t *address, size_t len);
+
+// Store a random 64 bit number at out, which need not be aligned, as little
+// endian - the same bytes on any host, e.g. for an IV
+void n3n_rand_le64 (uint8_t *out);
 
 // Only use when attempting to make a reproducible test case
 void n3n_srand_stable_default (void);
