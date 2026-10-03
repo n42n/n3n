@@ -13,11 +13,15 @@ n3n-route.exe
 
 # Binaries built to run tests
 tests-auth
+tests-aes
+tests-cc20
 tests-compress
 tests-elliptic
 tests-transform
 tests-wire
 tests-auth.exe
+tests-aes.exe
+tests-cc20.exe
 tests-compress.exe
 tests-elliptic.exe
 tests-transform.exe
