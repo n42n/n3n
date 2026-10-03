@@ -175,7 +175,9 @@ void calculate_shared_secrets (struct n3n_runtime_data *sss) {
         HASH_ITER(hh, comm->allowed_users, user, tmp_user) {
             // calculate common shared secret (ECDH)
             generate_shared_secret(user->shared_secret, sss->private_key, user->public_key);
-            // prepare for use as key
+            // prepare for use as key; at start-up, this runs once more
+            // when the federation name is known
+            speck_deinit((speck_context_t*)user->shared_secret_ctx);
             speck_init((speck_context_t**)&user->shared_secret_ctx, user->shared_secret, 128);
         }
     }
