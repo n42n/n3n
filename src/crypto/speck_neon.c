@@ -105,32 +105,40 @@
         return 0;                                       \
     }                                                   \
                                                         \
+    /* Each size stores its blocks in its own branch, so \
+     * that the compiler sees that only initialised X[] \
+     * and Y[] get stored */                            \
     SET1(X[0], nonce[1]); SET2(Y[0], nonce[0]);         \
                                                         \
-    if(numbytes == 32)                                  \
-    Encrypt_ ## keysize(X, Y, ctx->rk, 2);            \
-    else {                                              \
-        X[1] = X[0]; SET2(Y[1], nonce[0]);              \
-        if(numbytes == 64)                              \
-        Encrypt_ ## keysize(X, Y, ctx->rk, 4);        \
-        else {                                          \
-            X[2] = X[0]; SET2(Y[2], nonce[0]);          \
-            if(numbytes == 96)                          \
-            Encrypt_ ## keysize(X, Y, ctx->rk, 6);    \
-            else {                                      \
-                X[3] = X[0]; SET2(Y[3], nonce[0]);      \
-                Encrypt_ ## keysize(X, Y, ctx->rk, 8);    \
-            }                                           \
-        }                                               \
+    if(numbytes == 32) {                                \
+        Encrypt_ ## keysize(X, Y, ctx->rk, 2);          \
+        XOR_STORE(in, out, X[0], Y[0]);                 \
+        return 0;                                       \
     }                                                   \
                                                         \
+    X[1] = X[0]; SET2(Y[1], nonce[0]);                  \
+    if(numbytes == 64) {                                \
+        Encrypt_ ## keysize(X, Y, ctx->rk, 4);          \
+        XOR_STORE(in, out, X[0], Y[0]);                 \
+        XOR_STORE(in + 32, out + 32, X[1], Y[1]);       \
+        return 0;                                       \
+    }                                                   \
+                                                        \
+    X[2] = X[0]; SET2(Y[2], nonce[0]);                  \
+    if(numbytes == 96) {                                \
+        Encrypt_ ## keysize(X, Y, ctx->rk, 6);          \
+        XOR_STORE(in, out, X[0], Y[0]);                 \
+        XOR_STORE(in + 32, out + 32, X[1], Y[1]);       \
+        XOR_STORE(in + 64, out + 64, X[2], Y[2]);       \
+        return 0;                                       \
+    }                                                   \
+                                                        \
+    X[3] = X[0]; SET2(Y[3], nonce[0]);                  \
+    Encrypt_ ## keysize(X, Y, ctx->rk, 8);              \
     XOR_STORE(in, out, X[0], Y[0]);                     \
-    if(numbytes >= 64)                                  \
-    XOR_STORE(in +  32, out +  32, X[1], Y[1]);     \
-    if(numbytes >= 96)                                  \
-    XOR_STORE(in +  64, out +  64, X[2], Y[2]);     \
-    if(numbytes >= 128)                                 \
-    XOR_STORE(in +  96, out +  96, X[3], Y[3]);     \
+    XOR_STORE(in + 32, out + 32, X[1], Y[1]);           \
+    XOR_STORE(in + 64, out + 64, X[2], Y[2]);           \
+    XOR_STORE(in + 96, out + 96, X[3], Y[3]);           \
                                                         \
     return 0
 
