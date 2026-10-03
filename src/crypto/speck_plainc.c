@@ -18,10 +18,26 @@
  */
 
 
+#include <string.h>           // for memcpy
+
 #include "portable_endian.h"  // for htole64, le64toh
 #include "speck.h"
 
 // NOTE: these includes are used by code outside of all these ifdefs
+
+
+// The words of a block are little endian in memory, wherever they are: also
+// unaligned, as they are within packets
+static inline u64 load64_le (const unsigned char *p) {
+    u64 v;
+    memcpy(&v, p, sizeof(v));
+    return le64toh(v);
+}
+
+static inline void store64_le (unsigned char *p, u64 v) {
+    v = htole64(v);
+    memcpy(p, &v, sizeof(v));
+}
 
 #if defined (__AVX512F__)  // AVX512 support ----------------------------------------------------------------------
 #elif defined (__AVX2__)  // AVX2 support -------------------------------------------------------------------------
@@ -69,15 +85,16 @@ static int internal_speck_ctr (unsigned char *out, const unsigned char *in, unsi
         free(block);
         return 0;
     }
-    nonce[0] = htole64( ((u64*)n)[0] );
-    nonce[1] = htole64( ((u64*)n)[1] );
+    nonce[0] = load64_le(&n[0]);
+    nonce[1] = load64_le(&n[8]);
 
+    // the keystream XORs the text as little endian words
     t=0;
     while(inlen >= 16) {
         x = nonce[1]; y = nonce[0]; nonce[0]++;
         speck_encrypt(&x, &y, ctx, numrounds);
-        ((u64 *)out)[1+t] = htole64(x ^ ((u64 *)in)[1+t]);
-        ((u64 *)out)[0+t] = htole64(y ^ ((u64 *)in)[0+t]);
+        store64_le(&out[8 * (1+t)], x ^ load64_le(&in[8 * (1+t)]));
+        store64_le(&out[8 * (0+t)], y ^ load64_le(&in[8 * (0+t)]));
         t += 2;
         inlen -= 16;
     }
@@ -85,7 +102,7 @@ static int internal_speck_ctr (unsigned char *out, const unsigned char *in, unsi
     if(inlen > 0) {
         x = nonce[1]; y = nonce[0];
         speck_encrypt(&x, &y, ctx, numrounds);
-        ((u64 *)block)[1] = htole64(x); ((u64 *)block)[0] = htole64(y);
+        store64_le(&block[8], x); store64_le(&block[0], y);
         for(i = 0; i < inlen; i++)
             out[i + 8*t] = block[i] ^ in[i + 8*t];
     }
@@ -102,7 +119,7 @@ static int speck_expand_key (speck_context_t *ctx, const unsigned char *k, int k
     u64 i;
 
     for(i = 0; i < (keysize >> 6); i++)
-        K[i] = htole64( ((u64 *)k)[i] );
+        K[i] = load64_le(&k[8 * i]);
 
     for(i = 0; i < 33; i += 3) {
         ctx->key[i  ] = K[0];
@@ -193,14 +210,14 @@ int speck_128_decrypt (unsigned char *inout, speck_context_t *ctx) {
     u64 x, y;
     int i;
 
-    x = le64toh( *(u64*)&inout[8] );
-    y = le64toh( *(u64*)&inout[0] );
+    x = load64_le(&inout[8]);
+    y = load64_le(&inout[0]);
 
     for(i = 31; i >= 0; i--)
         DR128(x, y, ctx->key[i]);
 
-    ((u64*)inout)[1] = htole64(x);
-    ((u64*)inout)[0] = htole64(y);
+    store64_le(&inout[8], x);
+    store64_le(&inout[0], y);
 
     return 0;
 }
@@ -211,14 +228,14 @@ int speck_128_encrypt (unsigned char *inout, speck_context_t *ctx) {
     u64 x, y;
     int i;
 
-    x = le64toh( *(u64*)&inout[8] );
-    y = le64toh( *(u64*)&inout[0] );
+    x = load64_le(&inout[8]);
+    y = load64_le(&inout[0]);
 
     for(i = 0; i < 32; i++)
         ER128(x, y, ctx->key[i]);
 
-    ((u64*)inout)[1] = htole64(x);
-    ((u64*)inout)[0] = htole64(y);
+    store64_le(&inout[8], x);
+    store64_le(&inout[0], y);
 
     return 0;
 }

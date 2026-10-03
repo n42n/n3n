@@ -29,7 +29,7 @@
 
 #include "cc20.h"
 #include "config.h"  // HAVE_LIBCRYPTO
-#include "portable_endian.h"  // for htole32
+#include "portable_endian.h"  // for htole32, le32toh
 
 
 // taken (and modified) from https://github.com/Ginurx/chacha20-c (public domain)
@@ -42,6 +42,11 @@ static void cc20_init_block (cc20_context_t *ctx, const uint8_t nonce[]) {
     memcpy(&(ctx->state[ 0]), magic_constant, 16);
     memcpy(&(ctx->state[ 4]), ctx->key, CC20_KEY_BYTES);
     memcpy(&(ctx->state[12]), nonce, CC20_IV_SIZE);
+
+    // the words of constant, key and nonce are little endian
+    for(int i = 0; i < 16; i++) {
+        ctx->state[i] = le32toh(ctx->state[i]);
+    }
 }
 
 
@@ -116,8 +121,12 @@ static void cc20_block_next (cc20_context_t *ctx) {
     ctx->keystream32[14] += ctx->state[14];
     ctx->keystream32[15] += ctx->state[15];
 
-    // increment counter, make sure it is and stays little endian in memory
-    *counter = htole32(le32toh(*counter)+1);
+    // the keystream is the little endian bytes of its words
+    for(int i = 0; i < 16; i++) {
+        ctx->keystream32[i] = htole32(ctx->keystream32[i]);
+    }
+
+    (*counter)++;
 }
 
 
@@ -131,31 +140,22 @@ int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
                 const unsigned char *iv, cc20_context_t *ctx) {
 
     uint8_t   *keystream8 = (uint8_t*)ctx->keystream32;
-    uint32_t * in_p       = (uint32_t*)in;
-    uint32_t * out_p      = (uint32_t*)out;
-    size_t tmp_len      = in_len;
 
     cc20_init_context(ctx, iv);
 
+    // in and out may be unaligned, as they are within packets
     while(in_len >= 64) {
+        uint32_t w[16];
+
         cc20_block_next(ctx);
 
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 0]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 1]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 2]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 3]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 4]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 5]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 6]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 7]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 8]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[ 9]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[10]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[11]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[12]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[13]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[14]; in_p++; out_p++;
-        *(uint32_t*)out_p = *(uint32_t*)in_p ^ ctx->keystream32[15]; in_p++; out_p++;
+        memcpy(w, in, 64);
+        for(int i = 0; i < 16; i++) {
+            w[i] ^= ctx->keystream32[i];
+        }
+        memcpy(out, w, 64);
+        in += 64;
+        out += 64;
 
         in_len -= 64;
     }
@@ -163,11 +163,8 @@ int cc20_crypt (unsigned char *out, const unsigned char *in, size_t in_len,
     if(in_len > 0) {
         cc20_block_next(ctx);
 
-        tmp_len -= in_len;
-        while(in_len > 0) {
-            out[tmp_len] = in[tmp_len] ^ keystream8[tmp_len%64];
-            tmp_len++;
-            in_len--;
+        for(size_t i = 0; i < in_len; i++) {
+            out[i] = in[i] ^ keystream8[i];
         }
     }
 
