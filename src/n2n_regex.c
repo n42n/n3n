@@ -239,8 +239,20 @@ re_t re_compile (const char* pattern) {
     /* 'UNUSED' is a sentinel used to indicate end-of-pattern */
     re_compiled[j].type = UNUSED;
 
-    re_p = (re_t)calloc(1, sizeof(re_compiled));
+    /* The character classes go along, behind the symbols: in the static
+       buffer, the next re_compile() would overwrite them. */
+    re_p = (re_t)calloc(1, sizeof(re_compiled) + ccl_bufidx);
+    if(!re_p) {
+        return 0;
+    }
     memcpy(re_p, re_compiled, sizeof(re_compiled));
+    unsigned char *ccl_copy = (unsigned char *)re_p + sizeof(re_compiled);
+    memcpy(ccl_copy, ccl_buf, ccl_bufidx);
+    for(i = 0; i < j; i++) {
+        if((re_p[i].type == CHAR_CLASS) || (re_p[i].type == INV_CHAR_CLASS)) {
+            re_p[i].ccl = ccl_copy + (re_p[i].ccl - ccl_buf);
+        }
+    }
 
     return (re_t) re_p;
 }
