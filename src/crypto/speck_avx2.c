@@ -123,37 +123,43 @@
         return 0;                                                                         \
     }                                                                                     \
                                                                                           \
+    /* Each size stores its blocks in its own branch, so that the compiler \
+     * sees that only initialised X[] and Y[] get stored */                    \
     SET1(X[0], nonce[1]); SET4(Y[0], nonce[0]);                                           \
-                                                                                          \
-    if(numbytes == 64)                                                                    \
-    Encrypt_ ## keysize(X, Y, ctx->rk, 4);                                              \
-    else {                                                                                \
-        X[1] = X[0];                                                                      \
-        Y[1] = ADD(Y[0], _four);                                                          \
-        if(numbytes == 128)                                                               \
-        Encrypt_ ## keysize(X, Y, ctx->rk, 8);                                          \
-        else {                                                                            \
-            X[2] = X[0];                                                                  \
-            Y[2] = ADD(Y[1], _four);                                                      \
-            if(numbytes == 192)                                                           \
-            Encrypt_ ## keysize(X, Y, ctx->rk, 12);                                     \
-            else {                                                                        \
-                X[3] = X[0];                                                              \
-                Y[3] = ADD(Y[2], _four);                                                  \
-                Encrypt_ ## keysize(X, Y, ctx->rk, 16);                                     \
-            }                                                                             \
-        }                                                                                 \
-    }                                                                                     \
-                                                                                          \
     nonce[0] += (numbytes >> 4);                                                          \
                                                                                           \
+    if(numbytes == 64) {                                                                  \
+        Encrypt_ ## keysize(X, Y, ctx->rk, 4);                                            \
+        XOR_STORE(in, out, X[0], Y[0]);                                                   \
+        return 0;                                                                         \
+    }                                                                                     \
+                                                                                          \
+    X[1] = X[0];                                                                          \
+    Y[1] = ADD(Y[0], _four);                                                              \
+    if(numbytes == 128) {                                                                 \
+        Encrypt_ ## keysize(X, Y, ctx->rk, 8);                                            \
+        XOR_STORE(in, out, X[0], Y[0]);                                                   \
+        XOR_STORE(in +  64, out +  64, X[1], Y[1]);                                       \
+        return 0;                                                                         \
+    }                                                                                     \
+                                                                                          \
+    X[2] = X[0];                                                                          \
+    Y[2] = ADD(Y[1], _four);                                                              \
+    if(numbytes == 192) {                                                                 \
+        Encrypt_ ## keysize(X, Y, ctx->rk, 12);                                           \
+        XOR_STORE(in, out, X[0], Y[0]);                                                   \
+        XOR_STORE(in +  64, out +  64, X[1], Y[1]);                                       \
+        XOR_STORE(in + 128, out + 128, X[2], Y[2]);                                       \
+        return 0;                                                                         \
+    }                                                                                     \
+                                                                                          \
+    X[3] = X[0];                                                                          \
+    Y[3] = ADD(Y[2], _four);                                                              \
+    Encrypt_ ## keysize(X, Y, ctx->rk, 16);                                               \
     XOR_STORE(in, out, X[0], Y[0]);                                                       \
-    if(numbytes >= 128)                                                                  \
-    XOR_STORE(in +  64, out +  64, X[1], Y[1]);                                       \
-    if(numbytes >= 192)                                                                   \
-    XOR_STORE(in + 128, out + 128, X[2], Y[2]);                                       \
-    if(numbytes >= 256)                                                                   \
-    XOR_STORE(in + 192, out + 192, X[3], Y[3]);                                       \
+    XOR_STORE(in +  64, out +  64, X[1], Y[1]);                                           \
+    XOR_STORE(in + 128, out + 128, X[2], Y[2]);                                           \
+    XOR_STORE(in + 192, out + 192, X[3], Y[3]);                                           \
                                                                                           \
     return 0
 
