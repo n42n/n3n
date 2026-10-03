@@ -1,10 +1,21 @@
 var verbose=-1;
 var jsonrpc_id=1;   // incremented on each request
 
+// Text as HTML: names and descriptions come from other peers, and must not
+// become markup in this page
+function esc(val) {
+    return String(val)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 function result2verbose(id, unused, data) {
     verbose = data;
     let div = document.getElementById(id);
-    div.innerHTML=verbose;
+    div.textContent=verbose;
 }
 
 function rows2keyvalue(id, keys, data) {
@@ -12,7 +23,7 @@ function rows2keyvalue(id, keys, data) {
     data.forEach((row) => {
         keys.forEach((key) => {
             if (key in row) {
-                s += "<tr><th>" + key + "<td>" + row[key];
+                s += "<tr><th>" + esc(key) + "<td>" + esc(row[key]);
             }
         });
     });
@@ -24,7 +35,7 @@ function rows2keyvalue(id, keys, data) {
 function rows2keyvalueall(id, unused, data) {
     let s = "<table border=1 cellspacing=0>"
     Object.keys(data).forEach((key) => {
-        s += "<tr><th>" + key + "<td>" + data[key];
+        s += "<tr><th>" + esc(key) + "<td>" + esc(data[key]);
     });
 
     s += "</table>"
@@ -36,16 +47,16 @@ function rows2table(id, columns, data) {
     let s = "<table border=1 cellspacing=0>"
     s += "<tr>"
     columns.forEach((col) => {
-        s += "<th>" + col
+        s += "<th>" + esc(col)
     });
     data.forEach((row) => {
         s += "<tr>"
         columns.forEach((col) => {
-            val = row[col]
+            let val = row[col]
             if (typeof val === "undefined") {
                 val = ''
             }
-            s += "<td>" + val
+            s += "<td>" + esc(val)
         });
     });
 
