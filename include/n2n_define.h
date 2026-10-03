@@ -28,6 +28,7 @@
 #define REG_SUPER_ACK_PAYLOAD_ENTRY_SIZE (sizeof(n2n_REGISTER_SUPER_ACK_payload_t))
 
 #define BOOTSTRAP_TIMEOUT                 3
+#define BOOTSTRAP_PING_ROUNDS             3   /* PINGs to the supernodes before carrying on without an answer */
 #define PURGE_REGISTRATION_FREQUENCY     30
 #define RE_REG_AND_PURGE_FREQUENCY       10
 #define REGISTRATION_TIMEOUT             60
