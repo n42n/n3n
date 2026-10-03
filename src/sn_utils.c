@@ -398,25 +398,22 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
                         HASH_ADD(hh, last_added_comm->allowed_users, public_key, sizeof(n2n_private_public_key_t), user);
                         traceEvent(TRACE_INFO, "added user '%s' with public key '%s' to community '%s'",
                                    user->name, ascii_public_key, last_added_comm->community);
-                        // enable header encryption
+                        // enable header encryption, its keys are set up
+                        // with the community already
                         last_added_comm->header_encryption = HEADER_ENCRYPTION_ENABLED;
-                        packet_header_setup_key(last_added_comm->community,
-                                                &(last_added_comm->header_encryption_ctx_static),
-                                                &(last_added_comm->header_encryption_ctx_dynamic),
-                                                &(last_added_comm->header_iv_ctx_static),
-                                                &(last_added_comm->header_iv_ctx_dynamic));
                         // dynamic key setup follows at a later point in code
                     }
-                    continue;
                 }
             }
+            // a user line is never a community or regular expression
+            continue;
         }
 
         // --- community name or regular expression
 
         // cut off any IP sub-network upfront
         cmn_str = (char*)calloc(len + 1, sizeof(char));
-        has_net = (sscanf(line, "%s %s", cmn_str, net_str) == 2);
+        has_net = (sscanf(line, "%s %19s", cmn_str, net_str) == 2);
 
         // if it contains typical characters...
         if(NULL != strpbrk(cmn_str, ".*+?[]\\")) {
