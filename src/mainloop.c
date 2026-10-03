@@ -16,6 +16,8 @@
 #include <n3n/pktbuf.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>             // for strstr, strncmp
+#include <strings.h>            // for strncasecmp
 
 #ifndef _WIN32
 #include <sys/select.h>         // for select, FD_ZERO,
@@ -94,6 +96,7 @@ struct fd_info {
     int stats_reads;            // The number of ready to read events
     enum fd_info_proto proto;   // What protocol to use on a read event
     int8_t connnr;              // which connlist[] is being used as buffer
+    bool close_after;           // http: close once the reply is sent
 };
 
 // A static array of known file descriptors will not scale once full TCP
@@ -258,6 +261,7 @@ static void fdlist_zero () {
         fdlist[slot].connnr = -1;
         fdlist[slot].fd = -1;
         fdlist[slot].proto = fd_info_proto_unknown;
+        fdlist[slot].close_after = false;
         slot++;
     }
     fdlist_next_search = 0;
@@ -272,6 +276,7 @@ static int fdlist_allocslot (int fd, enum fd_info_proto proto) {
             fdlist[slot].fd = fd;
             fdlist[slot].proto = proto;
             fdlist[slot].stats_reads = 0;
+            fdlist[slot].close_after = false;
 
             if(proto == fd_info_proto_v3tcp) {
                 int connnr = connlist_alloc(CONN_PROTO_BE16LEN);
@@ -294,6 +299,48 @@ static int fdlist_allocslot (int fd, enum fd_info_proto proto) {
     // implementation of the fdlist table
     assert(slot != -1);
     return -1;
+}
+
+// Whether an http client wants the connection closed after the reply:
+// HTTP/1.0 does unless it asks to keep it alive (lynx reads to the end of
+// the connection), and any with "Connection: close"
+static bool http_close_after (const char *req) {
+
+    const char *eol = strstr(req, "\r\n");
+    const char *end = strstr(req, "\r\n\r\n");
+    bool close = eol && (eol - req >= 8) && !strncmp(eol - 8, "HTTP/1.0", 8);
+
+    if(!strncmp(req, "GET /events/", 12)) {
+        // a subscription stays, see event_subscribe()
+        return false;
+    }
+    for(const char *p = eol; p && end && (p < end); p = strstr(p + 2, "\r\n")) {
+        if(strncasecmp(p + 2, "Connection:", 11)) {
+            continue;
+        }
+        const char *v = p + 13;
+        while(*v == ' ') {
+            v++;
+        }
+        if(!strncasecmp(v, "close", 5)) {
+            close = true;
+        } else if(!strncasecmp(v, "keep-alive", 10)) {
+            close = false;
+        }
+    }
+    return close;
+}
+
+static void fdlist_freefd (int fd);
+
+// Remember to close the connection of fd once its reply is sent
+static void fdlist_close_after (int fd, bool close_after) {
+    for(int slot = 0; slot < MAX_HANDLES; slot++) {
+        if(fdlist[slot].fd == fd) {
+            fdlist[slot].close_after = close_after;
+            return;
+        }
+    }
 }
 
 static void fdlist_freefd (int fd) {
@@ -502,13 +549,21 @@ static void handle_fd (const time_t now, const struct fd_info info, struct n3n_r
                     // - handle reading/sending simultaneous?
                     return;
 
-                case CONN_READY:
+                case CONN_READY: {
+                    bool close_after = http_close_after(conn->request->str);
                     mgmt_api_handler(eee, conn);
                     if(conn->reply_sendpos == 0) {
                         // Looks like we have finished a write, so we can clean up
                         sb_zero(conn->request);
                     }
+                    if(close_after && !conn_iswriter(conn)) {
+                        conn_close(conn, info.fd);
+                        fdlist_freefd(info.fd);
+                    } else {
+                        fdlist_close_after(info.fd, close_after);
+                    }
                     return;
+                }
 
                 case CONN_ERROR:
                 case CONN_CLOSED:
@@ -575,6 +630,12 @@ static void fdlist_check_ready (fd_set *rd, fd_set *wr, const time_t now, struct
             if(conn->reply_sendpos == 0) {
                 // Looks like we have finished a write, so we can clean up
                 sb_zero(conn->request);
+            }
+            if(fdlist[slot].close_after && !conn_iswriter(conn)) {
+                conn_close(conn, fd);
+                fdlist_freefd(fd);
+                slot++;
+                continue;
             }
         }
 
