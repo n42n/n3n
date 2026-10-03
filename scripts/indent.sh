@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) Hamish Coleman
+# SPDX-FileCopyrightText: Copyright Hamish Coleman
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # Given one or more input source files, run a re-indenter on them.
@@ -73,6 +73,14 @@ indentDir() {
 }
 
 RESULT=0
+
+VERSION=$(uncrustify --version)
+if [ "$VERSION" != "Uncrustify-0.78.1_f" ]; then
+    echo ERROR: must use a uncrustify version that supports this ruleset
+    echo "(This is running $VERSION, but we need Uncrustify-0.78.1_f)"
+    RESULT=1
+fi
+
 while [ -n "$1" ]; do
     if [ -d "$1" ]; then
         indentDir "$1"

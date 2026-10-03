@@ -4,7 +4,7 @@
  * and no expectation for seamlessly working with complex data input.
  *
  *
- * Copyright (C) Hamish Coleman
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  * SPDX-License-Identifier: LGPL-2.1-only
  */
 

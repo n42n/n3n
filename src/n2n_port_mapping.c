@@ -321,7 +321,7 @@ static int n2n_natpmp_initialization (natpmp_t *natpmp, char *lanaddr, char *ext
         select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
         ret = readnatpmpresponseorretry(natpmp, &response);
         traceEvent(TRACE_INFO, "NAT-PMP read response returned %d (%s)", ret, ret == 0 ? "OK" : (ret == NATPMP_TRYAGAIN ? "TRY AGAIN" : "FAILED"));
-    } while (ret == NATPMP_TRYAGAIN);
+    } while(ret == NATPMP_TRYAGAIN);
 
     if(response.type != NATPMP_RESPTYPE_PUBLICADDRESS) {
         traceEvent(TRACE_WARNING, "NAT-PMP invalid response type %u", response.type);
@@ -372,7 +372,7 @@ static int n2n_natpmp_port_mapping_request (natpmp_t *natpmp,
         select(FD_SETSIZE, &fds, NULL, NULL, &timeout);
         ret = readnatpmpresponseorretry(natpmp, &response);
         traceEvent(TRACE_INFO, "NAT-PMP read response returned %d (%s)", ret, ret == 0 ? "OK" : (ret == NATPMP_TRYAGAIN ? "TRY AGAIN" : "FAILED"));
-    } while (ret == NATPMP_TRYAGAIN);
+    } while(ret == NATPMP_TRYAGAIN);
 
     if(!((response.type == NATPMP_RESPTYPE_TCPPORTMAPPING) || (response.type == NATPMP_RESPTYPE_UDPPORTMAPPING))) {
         traceEvent(TRACE_WARNING, "NAT-PMP invalid response type %u", response.type);

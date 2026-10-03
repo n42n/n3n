@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# Copyright (C) Hamish Coleman
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-FileCopyrightText: Copyright Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # Run with the name of a test list file.
 #
