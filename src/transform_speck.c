@@ -82,8 +82,8 @@ static int transop_encode_speck (n2n_trans_op_t *arg,
             traceEvent(TRACE_DEBUG, "encode_speck %lu bytes", in_len);
 
             // generate and encode the iv
-            *(uint64_t *)(&outbuf[0]) = n3n_rand();
-            *(uint64_t *)(&outbuf[8]) = n3n_rand();
+            n3n_rand_le64(&outbuf[0]);
+            n3n_rand_le64(&outbuf[8]);
 
             // encrypt the payload and write the ciphertext after the iv
             // len is set to the length of the cipher plain text to be encrpyted
@@ -193,7 +193,10 @@ static void *bench_setup (void *const _ctx) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
 
     const char *key = "just_a_test_key_for_benchmarks";
-    const ssize_t key_len = sizeof(key);
+    // the first 8 bytes of it: sizeof() of the pointer on the 64 bit hosts
+    // the expected outputs were made on, and 4 bytes on 32 bit hosts, which
+    // then failed the tests
+    const ssize_t key_len = 8;
     setup_speck_key(&ctx->priv, (unsigned char *)key, key_len);
 
     // Set one constant IV to use for all benchmark testing

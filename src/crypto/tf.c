@@ -52,6 +52,23 @@
 #include <string.h>  // for memcpy
 
 
+// One 32 bit word from or to a buffer that need not be aligned for it, as
+// packet buffers are not: memcpy() of a constant 4 bytes is a single load
+// or store where the CPU allows unaligned ones, and safe where it does not
+static inline uint32_t tf_load32 (const uint8_t *src) {
+
+    uint32_t v;
+
+    memcpy(&v, src, sizeof(v));
+    return v;
+}
+
+static inline void tf_store32 (uint8_t *dst, uint32_t v) {
+
+    memcpy(dst, &v, sizeof(v));
+}
+
+
 const uint8_t RS[4][8] = { { 0x01, 0xA4, 0x55, 0x87, 0x5A, 0x58, 0xDB, 0x9E, },
                            { 0xA4, 0x56, 0x82, 0xF3, 0x1E, 0xC6, 0x68, 0xE5, },
                            { 0x02, 0xA1, 0xFC, 0xC1, 0x47, 0xAE, 0x3D, 0x19, },
@@ -311,10 +328,10 @@ void twofish_internal_encrypt (uint8_t PT[16], tf_context_t *ctx) {
     uint32_t T0, T1;
 
     // load/byteswap/whiten input
-    R3 = ctx->K[3] ^ le32toh(((uint32_t*)PT)[3]);
-    R2 = ctx->K[2] ^ le32toh(((uint32_t*)PT)[2]);
-    R1 = ctx->K[1] ^ le32toh(((uint32_t*)PT)[1]);
-    R0 = ctx->K[0] ^ le32toh(((uint32_t*)PT)[0]);
+    R3 = ctx->K[3] ^ le32toh(tf_load32(&PT[4 * 3]));
+    R2 = ctx->K[2] ^ le32toh(tf_load32(&PT[4 * 2]));
+    R1 = ctx->K[1] ^ le32toh(tf_load32(&PT[4 * 1]));
+    R0 = ctx->K[0] ^ le32toh(tf_load32(&PT[4 * 0]));
 
     ENC_ROUND(R0, R1, R2, R3,  0);
     ENC_ROUND(R2, R3, R0, R1,  1);
@@ -334,10 +351,10 @@ void twofish_internal_encrypt (uint8_t PT[16], tf_context_t *ctx) {
     ENC_ROUND(R2, R3, R0, R1, 15);
 
     // whiten/byteswap/store output
-    ((uint32_t*)PT)[3] = htole32(R1 ^ ctx->K[7]);
-    ((uint32_t*)PT)[2] = htole32(R0 ^ ctx->K[6]);
-    ((uint32_t*)PT)[1] = htole32(R3 ^ ctx->K[5]);
-    ((uint32_t*)PT)[0] = htole32(R2 ^ ctx->K[4]);
+    tf_store32(&PT[4 * 3], htole32(R1 ^ ctx->K[7]));
+    tf_store32(&PT[4 * 2], htole32(R0 ^ ctx->K[6]));
+    tf_store32(&PT[4 * 1], htole32(R3 ^ ctx->K[5]));
+    tf_store32(&PT[4 * 0], htole32(R2 ^ ctx->K[4]));
 }
 
 
@@ -358,10 +375,10 @@ void twofish_internal_decrypt (uint8_t PT[16], const uint8_t CT[16], tf_context_
     uint32_t R0, R1, R2, R3;
 
     // load/byteswap/whiten input
-    R3 = ctx->K[7] ^ le32toh(((uint32_t*)CT)[3]);
-    R2 = ctx->K[6] ^ le32toh(((uint32_t*)CT)[2]);
-    R1 = ctx->K[5] ^ le32toh(((uint32_t*)CT)[1]);
-    R0 = ctx->K[4] ^ le32toh(((uint32_t*)CT)[0]);
+    R3 = ctx->K[7] ^ le32toh(tf_load32(&CT[4 * 3]));
+    R2 = ctx->K[6] ^ le32toh(tf_load32(&CT[4 * 2]));
+    R1 = ctx->K[5] ^ le32toh(tf_load32(&CT[4 * 1]));
+    R0 = ctx->K[4] ^ le32toh(tf_load32(&CT[4 * 0]));
 
     DEC_ROUND(R0, R1, R2, R3, 15);
     DEC_ROUND(R2, R3, R0, R1, 14);
@@ -381,10 +398,10 @@ void twofish_internal_decrypt (uint8_t PT[16], const uint8_t CT[16], tf_context_
     DEC_ROUND(R2, R3, R0, R1,  0);
 
     // whiten/byteswap/store output
-    ((uint32_t*)PT)[3] = htole32(R1 ^ ctx->K[3]);
-    ((uint32_t*)PT)[2] = htole32(R0 ^ ctx->K[2]);
-    ((uint32_t*)PT)[1] = htole32(R3 ^ ctx->K[1]);
-    ((uint32_t*)PT)[0] = htole32(R2 ^ ctx->K[0]);
+    tf_store32(&PT[4 * 3], htole32(R1 ^ ctx->K[3]));
+    tf_store32(&PT[4 * 2], htole32(R0 ^ ctx->K[2]));
+    tf_store32(&PT[4 * 1], htole32(R3 ^ ctx->K[1]));
+    tf_store32(&PT[4 * 0], htole32(R2 ^ ctx->K[0]));
 }
 
 
@@ -403,8 +420,8 @@ void keySched (const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
     *S = (uint32_t*)malloc(sizeof(uint32_t) * (*k));
 
     for(i = 0; i < *k; i++) {
-        Me[i] = le32toh(((uint32_t*)M)[2*i]);
-        Mo[i] = le32toh(((uint32_t*)M)[2*i+1]);
+        Me[i] = le32toh(tf_load32(&M[4 * (2*i)]));
+        Mo[i] = le32toh(tf_load32(&M[4 * (2*i+1)]));
     }
 
     for(i = 0; i < *k; i++) {
@@ -427,8 +444,13 @@ void keySched (const uint8_t M[], int N, uint32_t **S, uint32_t K[40], int *k) {
 // ----------------------------------------------------------------------------------------------------------------
 
 
-#define fix_xor(target, source) *(uint32_t*)&(target)[0] = *(uint32_t*)&(target)[0] ^ *(uint32_t*)&(source)[0]; *(uint32_t*)&(target)[4] = *(uint32_t*)&(target)[4] ^ *(uint32_t*)&(source)[4]; \
-    *(uint32_t*)&(target)[8] = *(uint32_t*)&(target)[8] ^ *(uint32_t*)&(source)[8]; *(uint32_t*)&(target)[12] = *(uint32_t*)&(target)[12] ^ *(uint32_t*)&(source)[12];
+// target ^= source, 16 bytes, neither of them necessarily aligned
+static inline void fix_xor (uint8_t *target, const uint8_t *source) {
+
+    for(int i = 0; i < TF_BLOCK_SIZE; i += 4) {
+        tf_store32(&target[i], tf_load32(&target[i]) ^ tf_load32(&source[i]));
+    }
+}
 
 // ----------------------------------------------------------------------------------------------------------------
 
@@ -474,6 +496,8 @@ int tf_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
 }
 
 
+// The chaining values (in, ivec) are XORed in as they are, in wire order,
+// after the byte swap of the decrypted words: XOR commutes with it.
 int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
                     const unsigned char *iv, tf_context_t *ctx) {
 
@@ -493,20 +517,20 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         uint32_t Q0, Q1, Q2, Q3, R0, R1, R2, R3, S0, S1, S2, S3;
 
         // load/byteswap/whiten input/iv
-        Q3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[3]);
-        Q2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[2]);
-        Q1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[1]);
-        Q0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[0]);
+        Q3 = ctx->K[7] ^ le32toh(tf_load32(&in[4 * 3]));
+        Q2 = ctx->K[6] ^ le32toh(tf_load32(&in[4 * 2]));
+        Q1 = ctx->K[5] ^ le32toh(tf_load32(&in[4 * 1]));
+        Q0 = ctx->K[4] ^ le32toh(tf_load32(&in[4 * 0]));
 
-        R3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[7]);
-        R2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[6]);
-        R1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[5]);
-        R0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[4]);
+        R3 = ctx->K[7] ^ le32toh(tf_load32(&in[4 * 7]));
+        R2 = ctx->K[6] ^ le32toh(tf_load32(&in[4 * 6]));
+        R1 = ctx->K[5] ^ le32toh(tf_load32(&in[4 * 5]));
+        R0 = ctx->K[4] ^ le32toh(tf_load32(&in[4 * 4]));
 
-        S3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[11]);
-        S2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[10]);
-        S1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[9]);
-        S0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[8]);
+        S3 = ctx->K[7] ^ le32toh(tf_load32(&in[4 * 11]));
+        S2 = ctx->K[6] ^ le32toh(tf_load32(&in[4 * 10]));
+        S1 = ctx->K[5] ^ le32toh(tf_load32(&in[4 * 9]));
+        S0 = ctx->K[4] ^ le32toh(tf_load32(&in[4 * 8]));
 
         DEC_ROUND(Q0, Q1, Q2, Q3, 15); DEC_ROUND(R0, R1, R2, R3, 15); DEC_ROUND(S0, S1, S2, S3, 15);
         DEC_ROUND(Q2, Q3, Q0, Q1, 14); DEC_ROUND(R2, R3, R0, R1, 14); DEC_ROUND(S2, S3, S0, S1, 14);
@@ -526,20 +550,20 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         DEC_ROUND(Q2, Q3, Q0, Q1,  0); DEC_ROUND(R2, R3, R0, R1,  0); DEC_ROUND(S2, S3, S0, S1,  0);
 
         // whiten/byteswap/store output/iv
-        ((uint32_t*)out)[11] = htole32(S1 ^ ctx->K[3] ^ ((uint32_t*)in)[7]);
-        ((uint32_t*)out)[10] = htole32(S0 ^ ctx->K[2] ^ ((uint32_t*)in)[6]);
-        ((uint32_t*)out)[9]  = htole32(S3 ^ ctx->K[1] ^ ((uint32_t*)in)[5]);
-        ((uint32_t*)out)[8]  = htole32(S2 ^ ctx->K[0] ^ ((uint32_t*)in)[4]);
+        tf_store32(&out[4 * 11], htole32(S1 ^ ctx->K[3]) ^ tf_load32(&in[4 * 7]));
+        tf_store32(&out[4 * 10], htole32(S0 ^ ctx->K[2]) ^ tf_load32(&in[4 * 6]));
+        tf_store32(&out[4 * 9],  htole32(S3 ^ ctx->K[1]) ^ tf_load32(&in[4 * 5]));
+        tf_store32(&out[4 * 8],  htole32(S2 ^ ctx->K[0]) ^ tf_load32(&in[4 * 4]));
 
-        ((uint32_t*)out)[7]  = htole32(R1 ^ ctx->K[3] ^ ((uint32_t*)in)[3]);
-        ((uint32_t*)out)[6]  = htole32(R0 ^ ctx->K[2] ^ ((uint32_t*)in)[2]);
-        ((uint32_t*)out)[5]  = htole32(R3 ^ ctx->K[1] ^ ((uint32_t*)in)[1]);
-        ((uint32_t*)out)[4]  = htole32(R2 ^ ctx->K[0] ^ ((uint32_t*)in)[0]);
+        tf_store32(&out[4 * 7],  htole32(R1 ^ ctx->K[3]) ^ tf_load32(&in[4 * 3]));
+        tf_store32(&out[4 * 6],  htole32(R0 ^ ctx->K[2]) ^ tf_load32(&in[4 * 2]));
+        tf_store32(&out[4 * 5],  htole32(R3 ^ ctx->K[1]) ^ tf_load32(&in[4 * 1]));
+        tf_store32(&out[4 * 4],  htole32(R2 ^ ctx->K[0]) ^ tf_load32(&in[4 * 0]));
 
-        ((uint32_t*)out)[3]  = htole32(Q1 ^ ctx->K[3] ^ ((uint32_t*)ivec)[3]);
-        ((uint32_t*)out)[2]  = htole32(Q0 ^ ctx->K[2] ^ ((uint32_t*)ivec)[2]);
-        ((uint32_t*)out)[1]  = htole32(Q3 ^ ctx->K[1] ^ ((uint32_t*)ivec)[1]);
-        ((uint32_t*)out)[0]  = htole32(Q2 ^ ctx->K[0] ^ ((uint32_t*)ivec)[0]);
+        tf_store32(&out[4 * 3],  htole32(Q1 ^ ctx->K[3]) ^ tf_load32(&ivec[4 * 3]));
+        tf_store32(&out[4 * 2],  htole32(Q0 ^ ctx->K[2]) ^ tf_load32(&ivec[4 * 2]));
+        tf_store32(&out[4 * 1],  htole32(Q3 ^ ctx->K[1]) ^ tf_load32(&ivec[4 * 1]));
+        tf_store32(&out[4 * 0],  htole32(Q2 ^ ctx->K[0]) ^ tf_load32(&ivec[4 * 0]));
 
         in += 3 * TF_BLOCK_SIZE; out += 3 * TF_BLOCK_SIZE;
 
@@ -554,10 +578,10 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         memcpy(old, in, TF_BLOCK_SIZE);
 
         // load/byteswap/whiten input
-        Q3 = ctx->K[7] ^ le32toh(((uint32_t*)in)[3]);
-        Q2 = ctx->K[6] ^ le32toh(((uint32_t*)in)[2]);
-        Q1 = ctx->K[5] ^ le32toh(((uint32_t*)in)[1]);
-        Q0 = ctx->K[4] ^ le32toh(((uint32_t*)in)[0]);
+        Q3 = ctx->K[7] ^ le32toh(tf_load32(&in[4 * 3]));
+        Q2 = ctx->K[6] ^ le32toh(tf_load32(&in[4 * 2]));
+        Q1 = ctx->K[5] ^ le32toh(tf_load32(&in[4 * 1]));
+        Q0 = ctx->K[4] ^ le32toh(tf_load32(&in[4 * 0]));
 
         DEC_ROUND(Q0, Q1, Q2, Q3, 15);
         DEC_ROUND(Q2, Q3, Q0, Q1, 14);
@@ -577,10 +601,10 @@ int tf_cbc_decrypt (unsigned char *out, const unsigned char *in, size_t in_len,
         DEC_ROUND(Q2, Q3, Q0, Q1,  0);
 
         // load/byteswap/whiten output/iv
-        ((uint32_t*)out)[3] = htole32(Q1 ^ ctx->K[3] ^ ((uint32_t*)ivec)[3]);
-        ((uint32_t*)out)[2] = htole32(Q0 ^ ctx->K[2] ^ ((uint32_t*)ivec)[2]);
-        ((uint32_t*)out)[1] = htole32(Q3 ^ ctx->K[1] ^ ((uint32_t*)ivec)[1]);
-        ((uint32_t*)out)[0] = htole32(Q2 ^ ctx->K[0] ^ ((uint32_t*)ivec)[0]);
+        tf_store32(&out[4 * 3], htole32(Q1 ^ ctx->K[3]) ^ tf_load32(&ivec[4 * 3]));
+        tf_store32(&out[4 * 2], htole32(Q0 ^ ctx->K[2]) ^ tf_load32(&ivec[4 * 2]));
+        tf_store32(&out[4 * 1], htole32(Q3 ^ ctx->K[1]) ^ tf_load32(&ivec[4 * 1]));
+        tf_store32(&out[4 * 0], htole32(Q2 ^ ctx->K[0]) ^ tf_load32(&ivec[4 * 0]));
 
         in += TF_BLOCK_SIZE; out+= TF_BLOCK_SIZE;
 
