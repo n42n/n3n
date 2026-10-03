@@ -392,8 +392,20 @@ static const uint32_t rcon[] = {
 };
 
 
-#define GETU32(p) (be32toh((*((uint32_t*)(p)))))
-#define PUTU32(ct, st) { *((uint32_t*)(ct)) = htobe32((st)); }
+// the blocks may be unaligned, as they are within packets
+static inline uint32_t getu32 (const uint8_t *p) {
+    uint32_t v;
+    memcpy(&v, p, sizeof(v));
+    return be32toh(v);
+}
+
+static inline void putu32 (uint8_t *p, uint32_t v) {
+    v = htobe32(v);
+    memcpy(p, &v, sizeof(v));
+}
+
+#define GETU32(p) getu32((const uint8_t *)(p))
+#define PUTU32(ct, st) putu32((uint8_t *)(ct), (st))
 
 #define b0(x) ((uint8_t)(x))
 #define b1(x) ((uint8_t)((x) >> 8))
@@ -642,8 +654,8 @@ int aes_ecb_encrypt (unsigned char *out, const unsigned char *in, aes_context_t 
 }
 
 
-#define fix_xor(target, source) *(uint32_t*)&(target)[0] = *(uint32_t*)&(target)[0] ^ *(uint32_t*)&(source)[0]; *(uint32_t*)&(target)[4] = *(uint32_t*)&(target)[4] ^ *(uint32_t*)&(source)[4]; \
-    *(uint32_t*)&(target)[8] = *(uint32_t*)&(target)[8] ^ *(uint32_t*)&(source)[8]; *(uint32_t*)&(target)[12] = *(uint32_t*)&(target)[12] ^ *(uint32_t*)&(source)[12];
+// XOR a block into another, either of them may be unaligned
+#define fix_xor(target, source) do { for(int fx_ = 0; fx_ < AES_BLOCK_SIZE; fx_++) { (target)[fx_] ^= (source)[fx_]; } } while(0)
 
 
 int aes_cbc_encrypt (unsigned char *out, const unsigned char *in, size_t in_len,
