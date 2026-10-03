@@ -16,9 +16,11 @@ tests-auth
 tests-compress
 tests-elliptic
 tests-transform
+tests-regex
 tests-wire
 tests-auth.exe
 tests-compress.exe
 tests-elliptic.exe
 tests-transform.exe
+tests-regex.exe
 tests-wire.exe
