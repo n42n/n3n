@@ -2,6 +2,8 @@
 # The unit tests
 
 tests-auth
+tests-aes
+tests-cc20
 tests-compress
 tests-elliptic
 tests-transform

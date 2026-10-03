@@ -1,0 +1,2 @@
+ChaCha20: RFC 8439 vector: ok
+ChaCha20: lengths 0 to 1100, unaligned, in place: ok
