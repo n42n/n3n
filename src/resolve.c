@@ -360,6 +360,25 @@ int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn
 }
 
 
+// After a fork() - the edge becoming a daemon - the child has none of the
+// parent's threads: start the resolver anew there.  The lock is made anew
+// too, the thread could have held it just when the fork happened.
+void resolve_forked (n3n_resolve_parameter_t *param) {
+    int ret;
+
+    if(!param) {
+        return;
+    }
+
+    pthread_mutex_init(&param->access, NULL);
+
+    ret = pthread_create(&param->id, NULL, resolve_thread, (void *)param);
+    if(ret) {
+        traceEvent(TRACE_WARNING, "resolve_forked failed to create resolver thread with error number %d", ret);
+    }
+}
+
+
 void resolve_cancel_thread (n3n_resolve_parameter_t *param) {
     pthread_cancel(param->id);
     free(param);
@@ -428,6 +447,9 @@ int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn) {
 
 int resolve_create_thread (n3n_resolve_parameter_t **param, struct peer_info *sn_list) {
     return -1;
+}
+
+void resolve_forked (n3n_resolve_parameter_t *param) {
 }
 
 void resolve_cancel_thread (n3n_resolve_parameter_t *param) {

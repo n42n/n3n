@@ -4,5 +4,6 @@
 tests-auth
 tests-compress
 tests-elliptic
+tests-peers
 tests-transform
 tests-wire

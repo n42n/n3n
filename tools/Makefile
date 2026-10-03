@@ -15,6 +15,7 @@ TOOLS+=crypto_helper
 
 TESTS=tests-compress
 TESTS+=tests-elliptic
+TESTS+=tests-peers
 TESTS+=tests-transform
 TESTS+=tests-wire
 TESTS+=tests-auth

@@ -15,10 +15,12 @@ n3n-route.exe
 tests-auth
 tests-compress
 tests-elliptic
+tests-peers
 tests-transform
 tests-wire
 tests-auth.exe
 tests-compress.exe
 tests-elliptic.exe
+tests-peers.exe
 tests-transform.exe
 tests-wire.exe
