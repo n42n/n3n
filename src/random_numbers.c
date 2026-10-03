@@ -26,6 +26,9 @@
 #include <time.h>    // for clock, time
 #include <unistd.h>  // for syscall
 #include <stdint.h>
+#include <string.h>  // for memcpy
+
+#include "portable_endian.h"  // for htole32, htole64
 
 // syscall and inquiring random number from hardware generators might fail, so
 // we will retry
@@ -364,11 +367,21 @@ uint32_t n3n_rand_sqr (uint32_t max_n) {
     return ret;
 }
 
+void n3n_rand_le64 (uint8_t *out) {
+
+    uint64_t r = htole64(n3n_rand());
+
+    memcpy(out, &r, sizeof(r));
+}
+
+
 // fills a specified memory area with random numbers
 int memrnd (uint8_t *address, size_t len) {
 
     for(; len >= 4; len -= 4) {
-        *(uint32_t*)address = n3n_rand();
+        // the address need not be aligned
+        uint32_t r = htole32((uint32_t)n3n_rand());
+        memcpy(address, &r, sizeof(r));
         address += 4;
     }
 
