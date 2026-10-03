@@ -55,7 +55,7 @@ endif
 # CFLAGS+=-DDEBUG_MALLOC
 
 CFLAGS+=-Wall
-CFLAGS+=-MMD
+CFLAGS+=-MMD -MP
 
 # Quick sanity check on our build environment
 UNAME_S := $(shell uname -s)

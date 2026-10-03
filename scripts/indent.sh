@@ -54,6 +54,14 @@ indentOne() {
         OFILE="$1"
         CLEAN=false
     fi
+    if [ "$INPLACE" -eq 1 ]; then
+        # without leaving a .unc-backup~ file next to it
+        if ! uncrustify -c uncrustify.cfg --replace --no-backup "$IFILE"; then
+            echo "Error while formatting \"$1\""
+            RESULT=1
+        fi
+        return
+    fi
     if ! uncrustify -c uncrustify.cfg -f "$IFILE" -o "$OFILE"; then
         echo "Error while formatting \"$1\""
         RESULT=1
