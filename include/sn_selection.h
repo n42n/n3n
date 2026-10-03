@@ -47,7 +47,7 @@ int sn_selection_criterion_common_data_default (struct n3n_runtime_data *eee);
 int sn_selection_sort (peer_info_t **peer_list);
 
 /* gathering data function */
-uint64_t sn_selection_criterion_gather_data (struct n3n_runtime_data *sss);
+uint32_t sn_selection_criterion_gather_data (struct n3n_runtime_data *sss);
 
 /* management port output function */
 extern char * sn_selection_criterion_str (struct n3n_runtime_data *eee, selection_criterion_str_t out, peer_info_t *peer);
