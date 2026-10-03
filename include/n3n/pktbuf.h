@@ -1,5 +1,5 @@
 /**
- * SPDX-License-Identifier: GPL-3.0-only
+ * SPDX-License-Identifier: GPL-2.0-only
  * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
  * Management of packet-sized buffers
