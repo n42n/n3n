@@ -63,42 +63,49 @@ static void render_error (conn_t *conn, const char *message) {
     generate_http_headers(conn, "text/plain", 404);
 }
 
+// Whether the request carries the management password, as HTTP basic
+// authentication (any user name).  Reads the request, does not change it.
 static bool auth_check (struct n3n_runtime_data *eee, conn_t *conn) {
-    char *p = strstr(conn->request->str, "Authorization:");
-    if(!p) {
-        // No auth header
-        return false;
-    }
-    strtok(p, " "); // Skip the Authorization: header
-    p = strtok(NULL, " ");
-    if(strcmp(p, "Basic")) {
-        // They sent something other than basic
-        return false;
-    }
+    char header[256];
+    const char *h = strstr(conn->request->str, "Authorization:");
 
-    p = strtok(NULL, " \r\n");
+    if(!h) {
+        return false;
+    }
+    h += strlen("Authorization:");
+    size_t len = strcspn(h, "\r\n");
+    if(len >= sizeof(header)) {
+        return false;
+    }
+    memcpy(header, h, len);
+    header[len] = 0;
+
+    char *p = header;
+    while(*p == ' ') {
+        p++;
+    }
+    if(strncmp(p, "Basic ", 6)) {
+        return false;
+    }
+    p += 6;
+    while(*p == ' ') {
+        p++;
+    }
+    p[strcspn(p, " ")] = 0;
+    if(!*p) {
+        return false;
+    }
 
     char *decoded = base64decode(p);
     if(!decoded) {
-        // they didnt send us valid base64
         return false;
     }
-
-    p = strtok(decoded,":"); // Skip the username
-    p = strtok(NULL,":");
-    if(!p) {
-        // they didnt send us a complete auth header
-        return false;
-    }
-
-    if(strcmp(eee->conf.mgmt_password, p)) {
-        // They didnt send the right password
-        free(decoded);
-        return false;
-    }
+    // the password is all after the first ':', and may have ':' in it
+    char *password = strchr(decoded, ':');
+    bool ok = password && eee->conf.mgmt_password && !strcmp(eee->conf.mgmt_password, password + 1);
 
     free(decoded);
-    return true;
+    return ok;
 }
 
 static void auth_request (conn_t *conn) {
@@ -377,6 +384,66 @@ static void jsonrpc_error (char *id, conn_t *conn, int code, char *message, int 
     jsonrpc_result_tail(conn, code);
 }
 
+// Room for json_str() of up to n bytes
+#define JSON_STR_SIZE(n) (6 * (n) + 1)
+
+// s, up to its end or max bytes, as the inside of a JSON string, into buf
+// (JSON_STR_SIZE(max) bytes): quotes, backslashes and control characters
+// escaped, bytes that are no UTF-8 replaced by U+FFFD.  Names, descriptions
+// and versions come from other peers, and must neither end the string nor
+// make the JSON invalid.
+static const char *json_str (char *buf, const void *s, size_t max) {
+
+    const uint8_t *p = s;
+    char *o = buf;
+    size_t i = 0;
+
+    while((i < max) && p[i]) {
+        uint8_t c = p[i];
+        int n = 0;
+
+        if((c == '"') || (c == '\\')) {
+            *o++ = '\\';
+            *o++ = c;
+            i++;
+            continue;
+        }
+        if((c < 0x20) || (c == 0x7f)) {
+            o += sprintf(o, "\\u%04x", c);
+            i++;
+            continue;
+        }
+        if(c < 0x80) {
+            *o++ = c;
+            i++;
+            continue;
+        }
+        // the bytes after the first one of a UTF-8 sequence
+        if((c >= 0xc2) && (c <= 0xdf)) {
+            n = 1;
+        } else if((c & 0xf0) == 0xe0) {
+            n = 2;
+        } else if((c >= 0xf0) && (c <= 0xf4)) {
+            n = 3;
+        }
+        bool ok = (n > 0) && (i + n < max);
+        for(int k = 1; ok && (k <= n); k++) {
+            ok = (p[i + k] & 0xc0) == 0x80;
+        }
+        if(!ok) {
+            o += sprintf(o, "\\ufffd");
+            i++;
+            continue;
+        }
+        memcpy(o, &p[i], n + 1);
+        o += n + 1;
+        i += n + 1;
+    }
+    *o = 0;
+    return buf;
+}
+
+
 static void jsonrpc_result_head (char *id, conn_t *conn) {
     // Reuse the request buffer
     sb_zero(conn->request);
@@ -490,6 +557,7 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
             index++;
 
             char buf[50];
+            char name[JSON_STR_SIZE(N2N_COMMUNITY_SIZE)];
             macstr_t mac_buf;
             sb_reprintf(&conn->request,
                         "{"
@@ -499,7 +567,7 @@ static void jsonrpc_get_mac (char *id, struct n3n_runtime_data *eee, conn_t *con
                         "\"dest\":\"%s\","
                         "\"last_seen\":%u},",
                         macaddr_str(mac_buf, assoc->mac),
-                        (community->is_federation) ? "-/-" : community->community,
+                        (community->is_federation) ? "-/-" : json_str(name, community->community, N2N_COMMUNITY_SIZE),
                         sockaddr_to_str(buf, sizeof(buf), &assoc->sock),
                         (uint32_t)assoc->last_seen
             );
@@ -526,11 +594,12 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
             return;
         }
 
+        char name[JSON_STR_SIZE(N2N_COMMUNITY_SIZE)];
         jsonrpc_result_head(id, conn);
         sb_reprintf(
             &conn->request,
             "[{\"community\":\"%s\"}]",
-            eee->conf.community_name
+            json_str(name, eee->conf.community_name, N2N_COMMUNITY_SIZE)
         );
         jsonrpc_result_tail(conn, 200);
         return;
@@ -556,13 +625,14 @@ static void jsonrpc_get_communities (char *id, struct n3n_runtime_data *eee, con
         }
         index++;
 
+        char name[JSON_STR_SIZE(N2N_COMMUNITY_SIZE)];
         sb_reprintf(&conn->request,
                     "{"
                     "\"community\":\"%s\","
                     "\"purgeable\":%i,"
                     "\"is_federation\":%i,"
                     "\"ip4addr\":\"%s\"},",
-                    (community->is_federation) ? "-/-" : community->community,
+                    (community->is_federation) ? "-/-" : json_str(name, community->community, N2N_COMMUNITY_SIZE),
                     community->purgeable,
                     community->is_federation,
                     (community->auto_ip_net.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &community->auto_ip_net));
@@ -585,6 +655,9 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
     n3n_sock_str_t sockbuf;
     n3n_sock_str_t sockbuf2;
     dec_ip_bit_str_t ip_bit_str = {'\0'};
+    char name[JSON_STR_SIZE(N2N_COMMUNITY_SIZE)];
+    char desc[JSON_STR_SIZE(N2N_DESC_SIZE)];
+    char version[JSON_STR_SIZE(N2N_VERSION_STRING_SIZE)];
 
     sb_reprintf(reply,
                 "{"
@@ -596,8 +669,8 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 "\"macaddr\":\"%s\","
                 "\"sockaddr\":\"%s\","
                 "\"prefered_sockaddr\":\"%s\","
-                "\"desc\":\"%.20s\","
-                "\"version\":\"%.20s\","
+                "\"desc\":\"%s\","
+                "\"version\":\"%s\","
                 "\"timeout\":%i,"
                 "\"uptime\":%u,"
                 "\"time_alloc\":%u,"
@@ -605,15 +678,15 @@ static void jsonrpc_get_edges_row (strbuf_t **reply, struct peer_info *peer, con
                 "\"last_sent_query\":%u,"
                 "\"last_seen\":%u},",
                 mode,
-                community,
+                json_str(name, community, N2N_COMMUNITY_SIZE),
                 (peer->dev_addr.net_addr == 0) ? "" : ip_subnet_to_str(ip_bit_str, &peer->dev_addr),
                 peer->purgeable,
                 peer->local,
                 (is_null_mac(peer->mac_addr)) ? "" : macaddr_str(mac_buf, peer->mac_addr),
                 sock_to_cstr(sockbuf, &(peer->sock)),
                 sock_to_cstr(sockbuf2, &(peer->preferred_sock)),
-                peer->dev_desc,
-                peer->version,
+                json_str(desc, peer->dev_desc, N2N_DESC_SIZE),
+                json_str(version, peer->version, N2N_VERSION_STRING_SIZE),
                 peer->timeout,
                 (uint32_t)peer->uptime,
                 (uint32_t)peer->time_alloc,
@@ -753,6 +826,7 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
     struct peer_info *peer, *tmpPeer;
     macstr_t mac_buf;
     n3n_sock_str_t sockbuf;
+    char version[JSON_STR_SIZE(N2N_VERSION_STRING_SIZE)];
     selection_criterion_str_t sel_buf;
 
     jsonrpc_result_head(id, conn);
@@ -777,7 +851,7 @@ static void jsonrpc_get_supernodes (char *id, struct n3n_runtime_data *eee, conn
                     "\"selection\":\"%s\","
                     "\"last_seen\":%u,"
                     "\"uptime\":%u},",
-                    peer->version,
+                    json_str(version, peer->version, N2N_VERSION_STRING_SIZE),
                     peer->purgeable,
                     (peer == eee->curr_sn) ? (eee->sn_wait ? 2 : 1 ) : 0,
                     is_null_mac(peer->mac_addr) ? "" : macaddr_str(mac_buf, peer->mac_addr),
