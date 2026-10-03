@@ -1,0 +1,12 @@
+REGISTER             len= 61  rejected= 61/61  valid=ok  overread=0
+REGISTER (sock)      len= 69  rejected= 69/69  valid=ok  overread=0
+REGISTER_ACK         len= 40  rejected= 40/40  valid=ok  overread=0
+REGISTER_ACK (sock)  len= 48  rejected= 48/48  valid=ok  overread=0
+PACKET               len= 38  rejected= 38/38  valid=ok  overread=0
+PEER_INFO            len= 74  rejected= 74/74  valid=ok  overread=0
+QUERY_PEER           len= 38  rejected= 38/38  valid=ok  overread=0
+REGISTER_SUPER       len= 87  rejected= 87/87  valid=ok  overread=0
+UNREGISTER_SUPER     len= 50  rejected= 50/50  valid=ok  overread=0
+REGISTER_SUPER_NAK   len= 54  rejected= 54/54  valid=ok  overread=0
+
+559 truncations across 10 message types: all rejected, no overread

@@ -24,7 +24,11 @@
  *  amount written and returns the amount written. In this way complex sequences
  *  of encodings can be represented cleanly. See encode_register() for an
  *  example.
- */
+ *  The decode return value gives the number of expected bytes which must not be
+ *  the same number of actually read bytes. Summing it up we can later see
+ *  if buffer was too short (comparing against actually read bytes idx - idx0).
+ *  rem will tell us if the buffer was too long.
+ * */
 
 
 #include <stdint.h>      // for uint8_t, uint16_t, uint32_t, uint64_t
@@ -59,14 +63,11 @@ static int decode_uint8 (uint8_t * out,
                          size_t * rem,
                          size_t * idx) {
 
-    if(*rem < 1) {
-        return 0;
+    if(*rem >= 1) {
+        *out = ( base[*idx] & 0xff );
+        ++(*idx);
+        --(*rem);
     }
-
-    *out = ( base[*idx] & 0xff );
-    ++(*idx);
-    --(*rem);
-
     return 1;
 }
 
@@ -86,15 +87,12 @@ static int decode_uint16 (uint16_t * out,
                           size_t * rem,
                           size_t * idx) {
 
-    if(*rem < 2) {
-        return 0;
+    if(*rem >= 2) {
+        *out  = ( base[*idx] & 0xff ) << 8;
+        *out |= ( base[1 + *idx] & 0xff );
+        *idx += 2;
+        *rem -= 2;
     }
-
-    *out  = ( base[*idx] & 0xff ) << 8;
-    *out |= ( base[1 + *idx] & 0xff );
-    *idx += 2;
-    *rem -= 2;
-
     return 2;
 }
 
@@ -116,17 +114,14 @@ static int decode_uint32 (uint32_t * out,
                           size_t * rem,
                           size_t * idx) {
 
-    if(*rem < 4) {
-        return 0;
+    if(*rem >= 4) {
+        *out  = ( base[0 + *idx] & 0xff ) << 24;
+        *out |= ( base[1 + *idx] & 0xff ) << 16;
+        *out |= ( base[2 + *idx] & 0xff ) << 8;
+        *out |= ( base[3 + *idx] & 0xff );
+        *idx += 4;
+        *rem -= 4;
     }
-
-    *out  = ( base[0 + *idx] & 0xff ) << 24;
-    *out |= ( base[1 + *idx] & 0xff ) << 16;
-    *out |= ( base[2 + *idx] & 0xff ) << 8;
-    *out |= ( base[3 + *idx] & 0xff );
-    *idx += 4;
-    *rem -= 4;
-
     return 4;
 }
 
@@ -147,14 +142,11 @@ static int decode_uint64 (uint64_t * out,
                           size_t * rem,
                           size_t * idx) {
 
-    if(*rem < 8) {
-        return 0;
+    if(*rem >= 8) {
+        *out  = be64toh(*(uint64_t*)(base + *idx));
+        *idx += 8;
+        *rem -= 8;
     }
-
-    *out  = be64toh(*(uint64_t*)base + *idx);
-    *idx += 8;
-    *rem -= 8;
-
     return 8;
 }
 #endif
@@ -177,14 +169,11 @@ int decode_buf (uint8_t * out,
                 size_t * rem,
                 size_t * idx) {
 
-    if(*rem < bufsize) {
-        return 0;
+    if(*rem >= bufsize) {
+        memcpy(out, (base + *idx), bufsize);
+        *idx += bufsize;
+        *rem -= bufsize;
     }
-
-    memcpy(out, (base + *idx), bufsize);
-    *idx += bufsize;
-    *rem -= bufsize;
-
     return bufsize;
 }
 
@@ -225,18 +214,20 @@ int encode_common (uint8_t * base,
                    const n2n_common_t * common) {
 
     uint16_t flags = 0;
+    int retval = 0;
 
-    encode_uint8(base, idx, N2N_PKT_VERSION);
-    encode_uint8(base, idx, common->ttl);
+    retval += encode_uint8(base, idx, N2N_PKT_VERSION);
+    retval += encode_uint8(base, idx, common->ttl);
 
     flags  = common->pc & N2N_FLAGS_TYPE_MASK;
     flags |= common->flags & N2N_FLAGS_BITS_MASK;
 
-    encode_uint16(base, idx, flags);
-    encode_buf(base, idx, common->community, N2N_COMMUNITY_SIZE);
+    retval += encode_uint16(base, idx, flags);
+    retval += encode_buf(base, idx, common->community, N2N_COMMUNITY_SIZE);
 
-    return -1;
+    return retval;
 }
+
 
 int decode_common (n2n_common_t * out,
                    const uint8_t * base,
@@ -244,22 +235,27 @@ int decode_common (n2n_common_t * out,
                    size_t * idx) {
 
     size_t idx0 = *idx;
-    uint8_t dummy = 0;
+    uint8_t version = 0;
+    int retval = 0;
 
-    decode_uint8(&dummy, base, rem, idx);
+    retval += decode_uint8(&version, base, rem, idx);
 
-    if(N2N_PKT_VERSION != dummy) {
+    if(N2N_PKT_VERSION != version) {
         return -1;
     }
 
-    decode_uint8(&(out->ttl), base, rem, idx);
-    decode_uint16(&(out->flags), base, rem, idx);
+    retval += decode_uint8(&(out->ttl), base, rem, idx);
+    retval += decode_uint16(&(out->flags), base, rem, idx);
     out->pc = (out->flags & N2N_FLAGS_TYPE_MASK);
     out->flags &= N2N_FLAGS_BITS_MASK;
 
-    decode_buf((uint8_t *)out->community, N2N_COMMUNITY_SIZE, base, rem, idx);
+    retval += decode_buf((uint8_t *)out->community, N2N_COMMUNITY_SIZE, base, rem, idx);
 
-    return (*idx - idx0);
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -306,21 +302,22 @@ static int decode_sock (n3n_sock_t * sock,
                         size_t * rem,
                         size_t * idx) {
 
-    size_t * idx0 = idx;
+    size_t idx0 = *idx;
     uint16_t f = 0;
+    int retval = 0;
 
-    decode_uint16(&f, base, rem, idx);
-    decode_uint16(&(sock->port), base, rem, idx);
+    retval += decode_uint16(&f, base, rem, idx);
+    retval += decode_uint16(&(sock->port), base, rem, idx);
 
     if(f & 0x8000) {
         // IPv6
         sock->family = AF_INET6;
-        decode_buf(sock->addr.v6, IPV6_SIZE, base, rem, idx);
+        retval += decode_buf(sock->addr.v6, IPV6_SIZE, base, rem, idx);
     } else {
         // IPv4
         sock->family = AF_INET;
         memset(sock->addr.v6, 0, IPV6_SIZE); /* so memcmp() works for equality. */
-        decode_buf(sock->addr.v4, IPV4_SIZE, base, rem, idx);
+        retval += decode_buf(sock->addr.v4, IPV4_SIZE, base, rem, idx);
     }
 
     if(f & 0x4000) {
@@ -331,7 +328,11 @@ static int decode_sock (n3n_sock_t * sock,
         sock->type = SOCK_DGRAM;
     }
 
-    return (idx - idx0);
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -361,22 +362,26 @@ int decode_sock_payload (n3n_sock_t * sock,
                          size_t * rem,
                          size_t * idx) {
 
+    size_t idx0 = *idx;
     int retval = 0;
     uint8_t port_low = 0;
     uint8_t port_high = 0;
+    uint8_t dummy = 0;
 
     memset(sock, 0, sizeof(*sock));
     retval += decode_uint8(&(sock->family), base, rem, idx);
-    ++(*idx); // skip blank
-    --(*rem);
-    ++retval;
+    retval += decode_uint8(&dummy, base, rem, idx); // skip blank
     retval += decode_uint8(&port_low, base, rem, idx);
     retval += decode_uint8(&port_high, base, rem, idx);
     sock->port = ((uint16_t)port_high << 8) + port_low;
     // copy full address field length
     retval += decode_buf(sock->addr.v6, IPV6_SIZE, base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -408,20 +413,32 @@ int decode_REGISTER (n2n_REGISTER_t *reg,
                      size_t *rem,
                      size_t *idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+    int retsock = 0;
+
     memset(reg, 0, sizeof(n2n_REGISTER_t));
 
     retval += decode_cookie(&reg->cookie, base, rem, idx);
     retval += decode_mac(reg->srcMac, base, rem, idx);
     retval += decode_mac(reg->dstMac, base, rem, idx);
     if(cmn->flags & N2N_FLAGS_SOCKET) {
-        retval += decode_sock(&(reg->sock), base, rem, idx);
+        // decode_sock can return -1 which can mess up the hole sum
+        retsock = decode_sock(&(reg->sock), base, rem, idx);
+        if(retsock < 0) {
+            return -1;
+        }
+        retval += retsock;
     }
     retval += decode_uint32(&(reg->dev_addr.net_addr), base, rem, idx);
     retval += decode_uint8(&(reg->dev_addr.net_bitlen), base, rem, idx);
     retval += decode_buf(reg->dev_desc, N2N_DESC_SIZE, base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -456,13 +473,21 @@ int decode_REGISTER_SUPER (n2n_REGISTER_SUPER_t *reg,
                            size_t *rem,
                            size_t *idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+    int retsock = 0;
+
     memset(reg, 0, sizeof(n2n_REGISTER_SUPER_t));
 
     retval += decode_cookie(&reg->cookie, base, rem, idx);
     retval += decode_mac(reg->edgeMac, base, rem, idx);
     if(cmn->flags & N2N_FLAGS_SOCKET) {
-        retval += decode_sock(&(reg->sock), base, rem, idx);
+        // decode_sock can return -1 which can mess up the hole sum
+        retsock = decode_sock(&(reg->sock), base, rem, idx);
+        if(retsock < 0) {
+            return -1;
+        }
+        retval += retsock;
     }
     retval += decode_uint32(&(reg->dev_addr.net_addr), base, rem, idx);
     retval += decode_uint8(&(reg->dev_addr.net_bitlen), base, rem, idx);
@@ -477,7 +502,11 @@ int decode_REGISTER_SUPER (n2n_REGISTER_SUPER_t *reg,
     retval += decode_buf(reg->auth.token, reg->auth.token_size, base, rem, idx);
     retval += decode_uint32(&(reg->key_time), base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -485,6 +514,7 @@ int encode_UNREGISTER_SUPER (uint8_t *base,
                              size_t *idx,
                              const n2n_common_t *common,
                              const n2n_UNREGISTER_SUPER_t *unreg) {
+
 
     int retval = 0;
 
@@ -504,7 +534,9 @@ int decode_UNREGISTER_SUPER (n2n_UNREGISTER_SUPER_t *unreg,
                              size_t *rem,
                              size_t *idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+
     memset(unreg, 0, sizeof(n2n_UNREGISTER_SUPER_t));
 
     retval += decode_uint16(&(unreg->auth.scheme), base, rem, idx);
@@ -517,7 +549,11 @@ int decode_UNREGISTER_SUPER (n2n_UNREGISTER_SUPER_t *unreg,
     retval += decode_buf(unreg->auth.token, unreg->auth.token_size, base, rem, idx);
     retval += decode_mac(unreg->srcMac, base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -550,7 +586,10 @@ int decode_REGISTER_ACK (n2n_REGISTER_ACK_t *reg,
                          size_t *rem,
                          size_t *idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+    int retsock = 0;
+
     memset(reg, 0, sizeof(n2n_REGISTER_ACK_t));
 
     retval += decode_cookie(&reg->cookie, base, rem, idx);
@@ -561,10 +600,18 @@ int decode_REGISTER_ACK (n2n_REGISTER_ACK_t *reg,
      * arrived. This is sent back to the sender so it knows what its public
      * socket is. */
     if(cmn->flags & N2N_FLAGS_SOCKET) {
-        retval += decode_sock(&(reg->sock), base, rem, idx);
+        // decode_sock can return -1 which can mess up the hole sum
+        retsock = decode_sock(&(reg->sock), base, rem, idx);
+        if(retsock < 0) {
+            return -1;
+        }
+        retval += retsock;
     }
-
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -605,7 +652,10 @@ int decode_REGISTER_SUPER_ACK (n2n_REGISTER_SUPER_ACK_t *reg,
                                size_t *idx,
                                uint8_t *tmpbuf) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+    int retsock = 0;
+
     memset(reg, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
 
     retval += decode_cookie(&reg->cookie, base, rem, idx);
@@ -615,7 +665,12 @@ int decode_REGISTER_SUPER_ACK (n2n_REGISTER_SUPER_ACK_t *reg,
     retval += decode_uint16(&(reg->lifetime), base, rem, idx);
 
     /* Socket is mandatory in this message type */
-    retval += decode_sock(&(reg->sock), base, rem, idx);
+    // decode_sock can return -1 which can mess up the hole sum
+    retsock = decode_sock(&(reg->sock), base, rem, idx);
+    if(retsock < 0) {
+        return -1;
+    }
+    retval += retsock;
 
     retval += decode_uint16(&(reg->auth.scheme), base, rem, idx);
     retval += decode_uint16(&(reg->auth.token_size), base, rem, idx);
@@ -637,7 +692,11 @@ int decode_REGISTER_SUPER_ACK (n2n_REGISTER_SUPER_ACK_t *reg,
 
     retval += decode_uint32(&(reg->key_time), base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -666,7 +725,9 @@ int decode_REGISTER_SUPER_NAK (n2n_REGISTER_SUPER_NAK_t *nak,
                                size_t *rem,
                                size_t *idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+
     memset(nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
 
     retval += decode_cookie(&nak->cookie, base, rem, idx);
@@ -681,7 +742,11 @@ int decode_REGISTER_SUPER_NAK (n2n_REGISTER_SUPER_NAK_t *nak,
     }
     retval += decode_buf(nak->auth.token, nak->auth.token_size, base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -780,20 +845,32 @@ int decode_PACKET (n2n_PACKET_t * pkt,
                    size_t * rem,
                    size_t * idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+    int retsock = 0;
+
     memset(pkt, 0, sizeof(n2n_PACKET_t));
 
     retval += decode_mac(pkt->srcMac, base, rem, idx);
     retval += decode_mac(pkt->dstMac, base, rem, idx);
 
     if(cmn->flags & N2N_FLAGS_SOCKET) {
-        retval += decode_sock(&(pkt->sock), base, rem, idx);
+        // decode_sock can return -1 which can mess up the hole sum
+        retsock = decode_sock(&(pkt->sock), base, rem, idx);
+        if(retsock < 0) {
+            return -1;
+        }
+        retval += retsock;
     }
 
     retval += decode_uint8(&(pkt->compression), base, rem, idx);
     retval += decode_uint8(&(pkt->transform), base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -826,21 +903,38 @@ int decode_PEER_INFO (n2n_PEER_INFO_t *pkt,
                       size_t *rem,
                       size_t *idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+    int retsock = 0;
+
     memset(pkt, 0, sizeof(n2n_PEER_INFO_t));
 
     retval += decode_uint16(&(pkt->aflags), base, rem, idx);
     retval += decode_mac(pkt->srcMac, base, rem, idx);
     retval += decode_mac(pkt->mac, base, rem, idx);
-    retval += decode_sock(&pkt->sock, base, rem, idx);
+    // decode_sock can return -1 which can mess up the hole sum
+    retsock = decode_sock(&(pkt->sock), base, rem, idx);
+    if(retsock < 0) {
+        return -1;
+    }
+    retval += retsock;
     if(cmn->flags & N2N_FLAGS_SOCKET) {
-        retval += decode_sock(&pkt->preferred_sock, base, rem, idx);
+        // decode_sock can return -1 which can mess up the hole sum
+        retsock = decode_sock(&(pkt->preferred_sock), base, rem, idx);
+        if(retsock < 0) {
+            return -1;
+        }
+        retval += retsock;
     }
     retval += decode_uint32(&pkt->load, base, rem, idx);
     retval += decode_uint32((uint32_t*)&pkt->uptime, base, rem, idx);
     retval += decode_buf((uint8_t*)pkt->version, sizeof(n2n_version_t), base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }
 
 
@@ -865,12 +959,18 @@ int decode_QUERY_PEER (n2n_QUERY_PEER_t * pkt,
                        size_t * rem,
                        size_t * idx) {
 
-    size_t retval = 0;
+    size_t idx0 = *idx;
+    int retval = 0;
+
     memset(pkt, 0, sizeof(n2n_QUERY_PEER_t));
 
     retval += decode_mac(pkt->srcMac, base, rem, idx);
     retval += decode_mac(pkt->targetMac, base, rem, idx);
     retval += decode_uint16(&(pkt->aflags), base, rem, idx);
 
-    return retval;
+    if((*idx - idx0) != retval) {
+        return -1;
+    } else {
+        return retval;
+    }
 }

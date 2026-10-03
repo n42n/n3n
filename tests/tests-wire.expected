@@ -10,7 +10,7 @@ REGISTER: reg.dev_addr.net_addr = 0x20212223
 REGISTER: reg.dev_addr.net_bitlen = 25
 REGISTER: reg.dev_desc = "Dummy_Dev_Desc"
 
-REGISTER: output retval = 0x24
+REGISTER: output retval = 0x3d
 REGISTER: output idx = 0x3d
 000: 03 02 00 01 61 62 63 31  32 33 64 65 66 34 35 36   |    abc123def456|
 010: 7a 00 00 00 00 00 00 00  00 00 00 00 00 01 02 03   |z               |
@@ -28,7 +28,7 @@ REGISTER_SUPER: reg.auth.token_size = 16
 REGISTER_SUPER: reg.auth.token[0] = 0xfe
 REGISTER_SUPER: reg.key_time = 600
 
-REGISTER_SUPER: output retval = 0x36
+REGISTER_SUPER: output retval = 0x4f
 REGISTER_SUPER: output idx = 0x4f
 000: 03 02 00 05 61 62 63 31  32 33 64 65 66 34 35 36   |    abc123def456|
 010: 7a 00 00 00 00 00 00 00  00 00 00 00 20 21 22 23   |z            !"#|
@@ -42,7 +42,7 @@ UNREGISTER_SUPER: unreg.auth.token_size = 16
 UNREGISTER_SUPER: unreg.auth.token[0] = 0xfe
 UNREGISTER_SUPER: unreg.srcMac[] = 30:31:32:33:34:35
 
-UNREGISTER_SUPER: output retval = 0x19
+UNREGISTER_SUPER: output retval = 0x32
 UNREGISTER_SUPER: output idx = 0x32
 000: 03 02 00 06 61 62 63 31  32 33 64 65 66 34 35 36   |    abc123def456|
 010: 7a 00 00 00 00 00 00 00  00 01 00 10 fe 00 00 00   |z               |

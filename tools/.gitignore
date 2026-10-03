@@ -17,8 +17,12 @@ tests-compress
 tests-elliptic
 tests-transform
 tests-wire
+tests-wire-fuzz
+tests-wire-numsn
 tests-auth.exe
 tests-compress.exe
 tests-elliptic.exe
 tests-transform.exe
 tests-wire.exe
+tests-wire-fuzz.exe
+tests-wire-numsn.exe
