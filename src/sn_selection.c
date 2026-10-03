@@ -69,7 +69,9 @@ int sn_selection_criterion_calculate (struct n3n_runtime_data *eee, peer_info_t 
     switch(eee->conf.sn_selection_strategy) {
 
         case SN_SELECTION_STRATEGY_LOAD: {
-            peer->selection_criterion = (uint64_t)(be32toh(data) + common_data);
+            // the load as the supernode reported it, in host order already
+            // (decode_uint32)
+            peer->selection_criterion = (uint64_t)((uint32_t)data + common_data);
 
             /* Mitigation of the real supernode load in order to see less oscillations.
              * Edges jump from a supernode to another back and forth due to purging.
@@ -186,7 +188,9 @@ int sn_selection_sort (peer_info_t **peer_list) {
 /* Function that gathers requested data on a supernode.
  * it remains unaffected by selection strategy because it refers to edge behaviour only
  */
-uint64_t sn_selection_criterion_gather_data (struct n3n_runtime_data *sss) {
+// The load the supernode reports in PEER_INFO, in host order: encode_uint32()
+// puts it on the wire in network order, as a 32 bit number, as n2n does
+uint32_t sn_selection_criterion_gather_data (struct n3n_runtime_data *sss) {
 
     uint64_t data = 0, tmp = 0;
     struct sn_community *comm, *tmp_comm;
@@ -201,7 +205,7 @@ uint64_t sn_selection_criterion_gather_data (struct n3n_runtime_data *sss) {
         data += tmp;
     }
 
-    return htobe64(data);
+    return (data > UINT32_MAX) ? UINT32_MAX : (uint32_t)data;
 }
 
 
