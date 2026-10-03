@@ -2,7 +2,7 @@
  * A memory buffer abstraction that stores counted bytestrings and allows
  * automatic resizing.
  *
- * Copyright (C) Hamish Coleman
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  * SPDX-License-Identifier: LGPL-2.1-only
  */
 

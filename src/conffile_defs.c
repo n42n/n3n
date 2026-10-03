@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023-25 Hamish Coleman
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * Internal monolithic configuration definitions

@@ -1,7 +1,7 @@
 /*
  * Tests for the connection/slots abstraction
  *
- * Copyright (C) Hamish Coleman
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  * SPDX-License-Identifier: GPL-2.0-only
  */
 

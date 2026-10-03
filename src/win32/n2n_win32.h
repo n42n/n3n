@@ -1,7 +1,7 @@
 /*
-
-        (C) 2007-22 - Luca Deri <deri@ntop.org>
- * Copyright (C) 2024-25 Hamish Coleman
+ *
+ * SPDX-FileCopyrightText: (C) 2007-22 - Luca Deri <deri@ntop.org>
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  * SPDX-License-Identifier: GPL-3.0-only
 
  */

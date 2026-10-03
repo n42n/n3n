@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Hamish Coleman
+ * SPDX-FileCopyrightText: Copyright Hamish Coleman
  * SPDX-License-Identifier: GPL-2.0-only
  *
  * Internal interface definitions for the management interfaces

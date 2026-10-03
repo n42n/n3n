@@ -1,5 +1,7 @@
 #
-# Copyright (C) 2021 - ntop.org and contributors
+# SPDX-FileCopyrightText: 2021 - ntop.org and contributors
+# SPDX-FileCopyrightText: Copyright Hamish Coleman
+# SPDX-License-Identifier: GPL-3.0-only
 #
 
 include $(TOPDIR)/rules.mk

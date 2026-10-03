@@ -1,5 +1,6 @@
 #
-# Copyright (C) Hamish Coleman
+# SPDX-FileCopyrightText: Copyright Hamish Coleman
+# SPDX-License-Identifier: GPL-2.0-only
 #
 # This makefile shows how to build applications using the libn3n library.
 #

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (C) Hamish Coleman
+# SPDX-FileCopyrightText: Copyright Hamish Coleman
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # Specifically for windows, where installing autoconf looks suspiciously
