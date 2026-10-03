@@ -120,6 +120,24 @@ AS_IF([test "x$enable_pthread" != xno],
     )],
 )
 
+# The 64 bit counters of src/counter.h are __atomic operations, which some 32
+# bit platforms (MIPS32, 32 bit PowerPC, ...) only have in libatomic
+AC_DEFUN([N3N_ATOMIC64_PROGRAM], [AC_LANG_PROGRAM([[
+#include <stdint.h>
+uint64_t n3n_counter;
+]], [[
+__atomic_store_n(&n3n_counter, __atomic_load_n(&n3n_counter, __ATOMIC_RELAXED) + 1, __ATOMIC_RELAXED);
+return (int)__atomic_load_n(&n3n_counter, __ATOMIC_RELAXED);
+]])])
+AC_MSG_CHECKING([whether 64 bit atomics need libatomic])
+AC_LINK_IFELSE([N3N_ATOMIC64_PROGRAM],
+    [AC_MSG_RESULT([no])],
+    [LIBS="-latomic $LIBS"
+     AC_LINK_IFELSE([N3N_ATOMIC64_PROGRAM],
+        [AC_MSG_RESULT([yes])],
+        [AC_MSG_ERROR([no 64 bit atomics, not even with libatomic])])]
+)
+
 # The prefix var has no default at this point, so we cannot eval it without
 # this hack
 AS_IF([test "x$prefix" = "xNONE" ],
