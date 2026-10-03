@@ -1,0 +1,5 @@
+full packet = 152 bytes, entry = 26 bytes
+offered     = 100 bytes (claims 3 supernodes, carries 1)
+decode      = -1, num_sn = 3
+
+REJECTED - the caller never reaches the num_sn loop

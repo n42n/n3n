@@ -17,6 +17,8 @@ TESTS=tests-compress
 TESTS+=tests-elliptic
 TESTS+=tests-transform
 TESTS+=tests-wire
+TESTS+=tests-wire-fuzz
+TESTS+=tests-wire-numsn
 TESTS+=tests-auth
 
 .PHONY: all clean install
