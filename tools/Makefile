@@ -24,6 +24,10 @@ all: $(TOOLS) $(TESTS)
 
 optional: $(TOOLS_OPTIONAL)
 
+# TODO: a better path for this lib, as it would need to change to use this
+# makefile outside the build environment
+$(TOOLS) $(TOOLS_OPTIONAL) $(TESTS): ../src/libn3n.a
+
 %: %.c
 	@echo "  CC      $@"
 	@$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
