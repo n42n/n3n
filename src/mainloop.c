@@ -2,6 +2,8 @@
  * SPDX-FileCopyrightText: Copyright Hamish Coleman
  * SPDX-License-Identifier: LGPL-2.1-only
  *
+ * Collect all the connection activity handling into one place.
+ * No protocol processing other than packet framing occurs in this file.
  */
 
 #include <assert.h>
