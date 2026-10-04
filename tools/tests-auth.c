@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright Hamish Coleman
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: GPL-3.0-only
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
