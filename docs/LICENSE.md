@@ -5,12 +5,14 @@ code is always freely available, to avoid concentrating the rights into any
 one person or corporation and to clearly recognise the origin of any included
 source code.
 
-- Any new self-contained tools or modules are licensed GPL-2.0-only, as
+- Any new self-contained tools or modules are simply licensed GPL-2.0-only, as
   provided in LICENSES/preferred/GPL-2.0
-- This licence is also the expected one for any new contributions.  If you do
-  not want your contribution to be licensed as GPL-2.0-only, be sure to
-  mention that during the PR process.  This may result in some discussion
-  before the contribution can be merged.
+- Any new contributions to the core n3n library are assumed to be licensed as
+  LGPL-2.1-only which allows linking with the other GPL-3.0-only files that
+  exist within the n3n project
+  If you do not want your contribution to be licensed as LGPL-2.1-only, be
+  sure to mention that during the PR process.  This may result in some
+  discussion before the contribution can be merged.
 - Much of the core n3n code was inherited from the n2n project and is licenced
   as GPL-3-only.
 - There are multiple distinct copyright holders throughout the codebase.

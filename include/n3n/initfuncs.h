@@ -1,6 +1,6 @@
 /*
  * SPDX-FileCopyrightText: Copyright Hamish Coleman
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: LGPL-2.1-only
  *
  * Public API to the initfuncs wrapper
  */

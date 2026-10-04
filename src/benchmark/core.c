@@ -1,5 +1,5 @@
 /*
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: LGPL-2.1-only
  * SPDX-FileCopyrightText: Copyright Hamish Coleman
  *
  */
@@ -444,6 +444,8 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
 void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
+    fprintf(stderr,"WARNING: fakebench produces fake benchmark results\n");
+    fprintf(stderr,"it is not suitable for benchmark evidence\n");
     printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
 
     for(p = registered_items; p; p = p->next) {

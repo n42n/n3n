@@ -2,7 +2,7 @@
  * Tests for the connection/slots abstraction
  *
  * SPDX-FileCopyrightText: Copyright Hamish Coleman
- * SPDX-License-Identifier: GPL-2.0-only
+ * SPDX-License-Identifier: LGPL-2.1-only
  */
 
 #include <assert.h>
