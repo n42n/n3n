@@ -28,9 +28,22 @@ optional: $(TOOLS_OPTIONAL)
 # makefile outside the build environment
 $(TOOLS) $(TOOLS_OPTIONAL) $(TESTS): ../src/libn3n.a
 
+# Compiled to an object, then linked: the coverage notes of x.c are x.gcno
+# then, which "gcov x" looks for (compiled and linked in one step, gcc
+# names them x-x.gcno).  Make's own rule from x.c to x is cancelled, so
+# that this one is taken.
 %: %.c
+
+%.o: %.c
 	@echo "  CC      $@"
-	@$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	@$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+%: %.o
+	@echo "  LINK    $@"
+	@$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+
+# kept, not removed as intermediate files: "make clean" does that
+.SECONDARY: $(addsuffix .o,$(TOOLS) $(TOOLS_OPTIONAL) $(TESTS))
 
 # See comments in the topdir Makefile about how to generate coverage
 # data.
