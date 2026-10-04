@@ -444,6 +444,8 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
 void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
 
+    fprintf(stderr,"WARNING: fakebench produces fake benchmark results\n");
+    fprintf(stderr,"it is not suitable for benchmark evidence\n");
     printf("name,variant,ptrace_seconds,ptrace_loops,ptrace_instr\n");
 
     for(p = registered_items; p; p = p->next) {
