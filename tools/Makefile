@@ -28,8 +28,17 @@ optional: $(TOOLS_OPTIONAL)
 # makefile outside the build environment
 $(TOOLS) $(TOOLS_OPTIONAL) $(TESTS): ../src/libn3n.a
 
-# make's default rules then compile to x.o and link it
+# Deletes the default rule, forcing tools to be built with CC and then LD
 %: %.c
+
+%.o: %.c
+	@echo "  CC      $@ $(CFLAGS_$<)"
+	@$(CC) $(CFLAGS) $(CFLAGS_$<) $(CPPFLAGS) -c -o $@ $< -MT$@ -MT$(<:.c=.d)
+
+# TODO:
+# make the output quieter
+# - add in a matching LD ruleset for %: %.o
+# - remember the pattern established in root Makefile to echo what "LD" means
 
 # See comments in the topdir Makefile about how to generate coverage
 # data.
