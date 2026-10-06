@@ -70,7 +70,7 @@ jobs:
             --enable-pcap \
             --with-openssl \
             --with-zstd \
-            CFLAGS="-O3 -fprofile-arcs -ftest-coverage"
+            CFLAGS="-O3 -fprofile-arcs -ftest-coverage" \
             LDFLAGS="--coverage"
           make build-dep
           make -j4 all examples

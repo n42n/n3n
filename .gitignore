@@ -5,7 +5,7 @@
 *.exe
 
 # Files created by autogen
-configure
+/configure
 include/config.h.in
 scripts/config.guess
 scripts/config.sub
