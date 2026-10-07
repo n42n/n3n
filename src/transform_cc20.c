@@ -123,7 +123,7 @@ static int transop_decode_cc20 (n2n_trans_op_t *arg,
 
         cc20_crypt(outbuf,
                    inbuf + CC20_PREAMBLE_SIZE,
-                   in_len,
+                   len, /* the cipher text, without the iv before it */
                    inbuf, /* iv */
                    priv->ctx);
     } else
