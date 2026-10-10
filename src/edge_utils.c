@@ -2103,17 +2103,19 @@ static int handle_PACKET (struct n3n_runtime_data * eee,
 
         if((ntohs(eh->type) == 0x0800) && (eth_size >= ETH_FRAMESIZE + IP4_MIN_SIZE)) {
 
-            uint32_t *dst = (uint32_t*)&eth_payload[ETH_FRAMESIZE + IP4_DSTOFFSET];
+            // the address is not aligned within the frame
+            uint32_t dst;
+            memcpy(&dst, &eth_payload[ETH_FRAMESIZE + IP4_DSTOFFSET], sizeof(dst));
             uint8_t *dst_mac = (uint8_t*)eth_payload;
 
             /* Note: all elements of the_ip are in network order */
             if(!memcmp(dst_mac, broadcast_mac, N2N_MAC_SIZE))
                 traceEvent(TRACE_DEBUG, "RX broadcast packet destined to [%s]",
-                           intoa(ntohl(*dst), ip_buf, sizeof(ip_buf)));
-            else if((*dst != eee->device.ip_addr)) {
+                           intoa(ntohl(dst), ip_buf, sizeof(ip_buf)));
+            else if((dst != eee->device.ip_addr)) {
                 /* This is a packet that needs to be routed */
                 traceEvent(TRACE_INFO, "discarding routed packet destined to [%s]",
-                           intoa(ntohl(*dst), ip_buf, sizeof(ip_buf)));
+                           intoa(ntohl(dst), ip_buf, sizeof(ip_buf)));
                 return(-1);
             }
 
@@ -2366,13 +2368,15 @@ size_t edge_encode_packet (struct n3n_runtime_data *eee,
     if(!(eee->conf.allow_routing)) {
         if(ntohs(eh.type) == 0x0800) {
             /* This is an IP packet from the local source address - not forwarded. */
-            uint32_t *src = (uint32_t*)&tap_pkt[ETH_FRAMESIZE + IP4_SRCOFFSET];
+            // the address is not aligned within the frame
+            uint32_t src;
+            memcpy(&src, &tap_pkt[ETH_FRAMESIZE + IP4_SRCOFFSET], sizeof(src));
 
             /* Note: all elements of the_ip are in network order */
-            if(*src != eee->device.ip_addr) {
+            if(src != eee->device.ip_addr) {
                 /* This is a packet that needs to be routed */
                 traceEvent(TRACE_INFO, "discarding routed packet destined to [%s]",
-                           intoa(ntohl(*src), ip_buf, sizeof(ip_buf)));
+                           intoa(ntohl(src), ip_buf, sizeof(ip_buf)));
                 return 0;
             } else {
                 /* This packet is originated by us */

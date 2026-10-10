@@ -93,6 +93,52 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  cross_qemu:
+    name: Tests on ${{ matrix.host }} under qemu
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # big endian, 64 bit
+          - host: s390x-linux-gnu
+            arch: s390x
+            qemu: qemu-s390x
+          # big endian, 32 bit, no 64 bit atomics without libatomic, and
+          # strict about alignment - as many routers
+          - host: mips-linux-gnu
+            arch: mips
+            qemu: qemu-mips
+          - host: aarch64-linux-gnu
+            arch: arm64
+            qemu: qemu-aarch64
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Fix Checkout
+        run: |
+          git fetch --force --tags
+
+      - name: Install the cross compiler and qemu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-${{ matrix.host }} \
+            libc6-dev-${{ matrix.arch }}-cross \
+            qemu-user
+
+      - name: Build
+        run: |
+          ./autogen.sh
+          ./configure --host=${{ matrix.host }}
+          make -j4 apps tools
+
+      - name: Run the unit and builtin tests
+        run: |
+          scripts/test_qemu.sh ${{ matrix.qemu }} -L /usr/${{ matrix.host }}
+
   lint:
     name: Code syntax
     runs-on: ubuntu-24.04
