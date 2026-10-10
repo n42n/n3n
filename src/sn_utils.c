@@ -743,6 +743,11 @@ static void try_broadcast (struct n3n_runtime_data * sss,
 
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
+                if(data_sent_len == -1) {
+                    // TODO: metrics
+                    return;
+                }
+
                 if(data_sent_len != pktsize) {
                     ++(sss->stats.sn_errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to supernode [%s] %s failed %s",
@@ -770,6 +775,11 @@ static void try_broadcast (struct n3n_runtime_data * sss,
                 int data_sent_len;
 
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
+
+                if(data_sent_len == -1) {
+                    // TODO: metrics
+                    return;
+                }
 
                 if(data_sent_len != pktsize) {
                     ++(sss->stats.sn_errors);
@@ -814,6 +824,11 @@ static void try_forward (struct n3n_runtime_data * sss,
 
         int data_sent_len;
         data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
+
+        if(data_sent_len == -1) {
+            // TODO: metrics
+            return;
+        }
 
         if(data_sent_len == pktsize) {
             ++(sss->stats.sn_fwd);
