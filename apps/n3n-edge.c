@@ -58,7 +58,7 @@
 // FIXME, including private headers
 #include "../src/crypto/speck.h"     // for speck_init, speck_context_t
 #include "../src/peer_info.h"        // for peer_info, peer_info_t
-#include "../src/resolve.h"          // for resolve_check
+#include "../src/resolve.h"          // for resolve_check, resolve_forked
 
 #ifdef HAVE_LIBCRYPTO
 #include <openssl/crypto.h>          // for OpenSSL_version
@@ -896,6 +896,7 @@ int main (int argc, char* argv[]) {
     n2n_edge_conf_t conf;         /* generic N2N edge config */
     uint8_t runlevel = 0;         /* bootstrap: runlevel */
     uint8_t seek_answer = 1;      /*            expecting answer from supernode */
+    int ping_rounds = 0;          /*            PINGs without an answer */
     time_t now, last_action = 0;  /*            timeout */
     macstr_t mac_buf;             /*            output mac address */
     peer_info_t *scan, *scan_tmp; /*            supernode iteration */
@@ -1074,7 +1075,15 @@ int main (int argc, char* argv[]) {
                 runlevel++;
             } else if(last_action <= (now - BOOTSTRAP_TIMEOUT)) {
                 // timeout
-                runlevel--;
+                if(++ping_rounds < BOOTSTRAP_PING_ROUNDS) {
+                    runlevel--;
+                } else {
+                    // no answer: carry on with the first supernode, the
+                    // main loop keeps trying them (and other transports)
+                    traceEvent(TRACE_NORMAL, "no supernode answers PING, carrying on");
+                    supernode_connect(eee);
+                    runlevel++;
+                }
                 // skip waiting for answer to direcly go to send PING again
                 seek_answer = 0;
                 traceEvent(TRACE_DEBUG, "PONG timeout");
@@ -1186,6 +1195,8 @@ int main (int argc, char* argv[]) {
     if(conf.background) {
         setUseSyslog(1); /* traceEvent output now goes to syslog. */
         daemonize();
+        // the resolver thread stayed with the parent
+        resolve_forked(eee->resolve_parameter);
     }
 
 #ifdef HAVE_LIBCAP
