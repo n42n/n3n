@@ -156,9 +156,6 @@ OBJS=\
 	src/tuntap_osx.o \
 	src/wire.o \
 
-# TODO: add performance testing and then try to avoid ignoring this warning
-CFLAGS_src/crypto/speck_sse2.c := -Wno-maybe-uninitialized
-
 ifneq (,$(findstring mingw,$(CONFIG_HOST_OS)))
 OBJS+=src/win32/edge_rc.o
 OBJS+=src/win32/edge_utils_win32.o
