@@ -75,37 +75,6 @@
 
 #define HASH_FIND_COMMUNITY(head, name, out) HASH_FIND_STR(head, name, out)
 
-static ssize_t sendto_peer (struct n3n_runtime_data *sss,
-                            const struct peer_info *peer,
-                            const uint8_t *pktbuf,
-                            size_t pktsize);
-
-static uint16_t reg_lifetime (struct n3n_runtime_data *sss);
-
-static int update_edge (struct n3n_runtime_data *sss,
-                        const n2n_common_t* cmn,
-                        const n2n_REGISTER_SUPER_t* reg,
-                        struct sn_community *comm,
-                        const n3n_sock_t *sender_sock,
-                        const SOCKET socket_fd,
-                        n2n_auth_t *answer_auth,
-                        int skip_add,
-                        time_t now);
-
-static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss,
-                                             struct sn_community *comm,
-                                             time_t *p_last_re_reg_and_purge,
-                                             time_t now,
-                                             uint8_t forced);
-
-static int purge_expired_communities (struct n3n_runtime_data *sss,
-                                      time_t* p_last_purge,
-                                      time_t now);
-
-static int sort_communities (struct n3n_runtime_data *sss,
-                             time_t* p_last_sort,
-                             time_t now);
-
 /* ************************************** */
 
 
@@ -211,6 +180,147 @@ void calculate_dynamic_keys (struct n3n_runtime_data *sss) {
 }
 
 
+/** Send a datagram to a file descriptor socket.
+ *
+ *    @return -1 on error otherwise number of bytes sent
+ */
+static ssize_t sendto_fd (struct n3n_runtime_data *sss,
+                          SOCKET socket_fd,
+                          const struct sockaddr *socket, socklen_t socket_len,
+                          const uint8_t *pktbuf,
+                          size_t pktsize) {
+
+    ssize_t sent = 0;
+    n2n_tcp_connection_t *conn;
+
+    sent = sendto(socket_fd, (void *)pktbuf, pktsize, 0 /* flags */,
+                  socket, socket_len);
+
+    if((sent <= 0) && (errno)) {
+        char * c = strerror(errno);
+        traceEvent(TRACE_ERROR, "sendto failed (%d) %s", errno, c);
+#ifdef _WIN32
+        traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
+#endif
+        // if the erroneous connection is tcp, i.e. not the regular sock...
+        if((socket_fd >= 0) && (socket_fd != sss->sock)) {
+            // ...forget about the corresponding peer and the connection
+            HASH_FIND_INT(sss->tcp_connections, &socket_fd, conn);
+            close_tcp_connection(sss, conn);
+            return -1;
+        }
+    } else {
+        traceEvent(TRACE_DEBUG, "sendto_fd sent=%d", (signed int)sent);
+    }
+
+    return sent;
+}
+
+
+/** Send a datagram to a network order socket of type struct sockaddr.
+ *
+ *    @return -1 on error otherwise number of bytes sent
+ */
+static ssize_t sendto_sock (struct n3n_runtime_data *sss,
+                            SOCKET socket_fd,
+                            const struct sockaddr *socket,
+                            const uint8_t *pktbuf,
+                            size_t pktsize) {
+
+    ssize_t sent = 0;
+#ifdef _WIN32
+    char value = 0;
+#else
+    int value = 0;
+#endif
+
+    // TODO: do we really have to check this every time?
+    //       maye try a struct containing the socket and its length
+    //       would require broader changes
+    socklen_t socket_len;
+    struct sockaddr_storage dest_addr = {0};
+
+    // this assumes we operate on a IPv6 dual stock socket
+    socket_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, socket);
+    if(socket_len == 0) {
+        // unknown or unsupported family we cannot send
+        traceEvent(TRACE_ERROR, "found unknown address family %d", socket->sa_family);
+        return -1;
+    }
+
+    // if the connection is tcp, i.e. not the regular sock...
+    if((socket_fd >= 0) && (socket_fd != sss->sock)) {
+
+        setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value));
+        value = 1;
+#ifdef __linux__
+        setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
+#endif
+
+        // prepend packet length...
+        uint16_t pktsize16 = htobe16(pktsize);
+        sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, (uint8_t*)&pktsize16, sizeof(pktsize16));
+
+        if(sent <= 0)
+            return -1;
+        // ...before sending the actual data
+    }
+
+    sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, pktbuf, pktsize);
+
+    // if the connection is tcp, i.e. not the regular sock...
+    if((socket_fd >= 0) && (socket_fd != sss->sock)) {
+        value = 1; /* value should still be set to 1 */
+        setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&value, sizeof(value));
+#ifdef __linux__
+        value = 0;
+        setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
+#endif
+    }
+
+    return sent;
+}
+
+
+/** Send a datagram to a peer whose destination socket is embodied in its sock field of type n3n_sock_t.
+ *  It calls sendto_sock to do the final send.
+ *
+ *    @return -1 on error otherwise number of bytes sent
+ */
+static ssize_t sendto_peer (struct n3n_runtime_data *sss,
+                            const struct peer_info *peer,
+                            const uint8_t *pktbuf,
+                            size_t pktsize) {
+
+    struct sockaddr_storage socket_storage;
+    socklen_t socket_len;
+    n3n_sock_str_t sockbuf;
+
+    // TODO: we do not work on the return value, do not even pass it on
+    //       and even worse, do another length check further down the chain in sendto_sock/fd
+    //       the n3n_sock_t definitely needs a makeover (to hold the original sockaddr
+    //       for immediate use and its length in memory) or, if we want to keep n3n_sock_t
+    //       for compatibility reasons as it is used in network protocol, an internal sister.
+    //       can't pull the length check up here easily because of other callers of sendto_sock
+    socket_len = fill_sockaddr((struct sockaddr *)&socket_storage,
+                               sizeof(socket_storage), &(peer->sock));
+
+    if(socket_len == 0) {
+        // fill_sockaddr failed, e.g., unsupported family
+        errno = EAFNOSUPPORT;
+        return -1;
+    }
+
+    traceEvent(TRACE_DEBUG, "sent %lu bytes to [%s]",
+               pktsize,
+               sock_to_cstr(sockbuf, &(peer->sock)));
+
+    return sendto_sock(sss,
+                       (peer->socket_fd >= 0) ? peer->socket_fd : sss->sock,
+                       (const struct sockaddr*)&socket_storage, pktbuf, pktsize);
+}
+
+
 // send RE_REGISTER_SUPER to all edges from user/pw auth'ed communites
 void send_re_register_super (struct n3n_runtime_data *sss) {
 
@@ -251,6 +361,87 @@ void send_re_register_super (struct n3n_runtime_data *sss) {
             }
         }
     }
+}
+
+
+// provides the current / a new local auth token
+// REVISIT: behavior should depend on some local auth scheme setting (to be implemented)
+static int get_local_auth (struct n3n_runtime_data *sss, n2n_auth_t *auth) {
+
+    // n2n_auth_simple_id scheme
+    memcpy(auth, &(sss->conf.auth), sizeof(n2n_auth_t));
+
+    return 0;
+}
+
+
+static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
+
+    time_t time;
+    struct peer_info *peer, *tmp;
+
+    if(!forced) {
+        if((now - (*p_last_re_reg_and_purge)) < RE_REG_AND_PURGE_FREQUENCY) {
+            return 0;
+        }
+
+        // purge long-time-not-seen supernodes
+        if(comm) {
+            purge_expired_nodes(&(comm->edges), sss->sock, &sss->tcp_connections, p_last_re_reg_and_purge,
+                                RE_REG_AND_PURGE_FREQUENCY, LAST_SEEN_SN_INACTIVE);
+        }
+    }
+
+    if(comm != NULL) {
+        HASH_ITER(hh,comm->edges,peer,tmp) {
+
+            time = now - peer->last_seen;
+
+            if(!forced) {
+                if(time <= LAST_SEEN_SN_ACTIVE) {
+                    continue;
+                }
+            }
+
+            /* re-register (send REGISTER_SUPER) */
+            uint8_t pktbuf[N2N_PKT_BUF_SIZE] = {0};
+            size_t idx;
+            /* ssize_t sent; */
+            n2n_common_t cmn;
+            n2n_REGISTER_SUPER_t reg;
+            n3n_sock_str_t sockbuf;
+
+            cmn.ttl = N2N_DEFAULT_TTL;
+            cmn.pc = MSG_TYPE_REGISTER_SUPER;
+            cmn.flags = N2N_FLAGS_FROM_SUPERNODE;
+            memcpy(cmn.community, comm->community, N2N_COMMUNITY_SIZE);
+
+            reg.cookie = n3n_rand();
+            peer->last_cookie = reg.cookie;
+
+            reg.dev_addr.net_addr = ntohl(peer->dev_addr.net_addr);
+            reg.dev_addr.net_bitlen = mask2bitlen(ntohl(peer->dev_addr.net_bitlen));
+            get_local_auth(sss, &(reg.auth));
+
+            reg.key_time = sss->dynamic_key_time;
+
+            memcpy(reg.edgeMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t));
+
+            idx = 0;
+            encode_REGISTER_SUPER(pktbuf, &idx, &cmn, &reg);
+
+            traceEvent(TRACE_DEBUG, "send REGISTER_SUPER to %s",
+                       sock_to_cstr(sockbuf, &(peer->sock)));
+
+            packet_header_encrypt(pktbuf, idx, idx,
+                                  comm->header_encryption_ctx_static, comm->header_iv_ctx_static,
+                                  time_stamp());
+
+            /* sent = */ sendto_peer(sss, peer, pktbuf, idx);
+        }
+    }
+
+    return 0; /* OK */
 }
 
 
@@ -516,147 +707,6 @@ int load_allowed_sn_community (struct n3n_runtime_data *sss) {
 /* *************************************************** */
 
 
-/** Send a datagram to a file descriptor socket.
- *
- *    @return -1 on error otherwise number of bytes sent
- */
-static ssize_t sendto_fd (struct n3n_runtime_data *sss,
-                          SOCKET socket_fd,
-                          const struct sockaddr *socket, socklen_t socket_len,
-                          const uint8_t *pktbuf,
-                          size_t pktsize) {
-
-    ssize_t sent = 0;
-    n2n_tcp_connection_t *conn;
-
-    sent = sendto(socket_fd, (void *)pktbuf, pktsize, 0 /* flags */,
-                  socket, socket_len);
-
-    if((sent <= 0) && (errno)) {
-        char * c = strerror(errno);
-        traceEvent(TRACE_ERROR, "sendto failed (%d) %s", errno, c);
-#ifdef _WIN32
-        traceEvent(TRACE_ERROR, "WSAGetLastError(): %u", WSAGetLastError());
-#endif
-        // if the erroneous connection is tcp, i.e. not the regular sock...
-        if((socket_fd >= 0) && (socket_fd != sss->sock)) {
-            // ...forget about the corresponding peer and the connection
-            HASH_FIND_INT(sss->tcp_connections, &socket_fd, conn);
-            close_tcp_connection(sss, conn);
-            return -1;
-        }
-    } else {
-        traceEvent(TRACE_DEBUG, "sendto_fd sent=%d", (signed int)sent);
-    }
-
-    return sent;
-}
-
-
-/** Send a datagram to a network order socket of type struct sockaddr.
- *
- *    @return -1 on error otherwise number of bytes sent
- */
-static ssize_t sendto_sock (struct n3n_runtime_data *sss,
-                            SOCKET socket_fd,
-                            const struct sockaddr *socket,
-                            const uint8_t *pktbuf,
-                            size_t pktsize) {
-
-    ssize_t sent = 0;
-#ifdef _WIN32
-    char value = 0;
-#else
-    int value = 0;
-#endif
-
-    // TODO: do we really have to check this every time?
-    //       maye try a struct containing the socket and its length
-    //       would require broader changes
-    socklen_t socket_len;
-    struct sockaddr_storage dest_addr = {0};
-
-    // this assumes we operate on a IPv6 dual stock socket
-    socket_len = prepare_sockaddr_for_send(&dest_addr, AF_INET6, socket);
-    if(socket_len == 0) {
-        // unknown or unsupported family we cannot send
-        traceEvent(TRACE_ERROR, "found unknown address family %d", socket->sa_family);
-        return -1;
-    }
-
-    // if the connection is tcp, i.e. not the regular sock...
-    if((socket_fd >= 0) && (socket_fd != sss->sock)) {
-
-        setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value));
-        value = 1;
-#ifdef __linux__
-        setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
-#endif
-
-        // prepend packet length...
-        uint16_t pktsize16 = htobe16(pktsize);
-        sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, (uint8_t*)&pktsize16, sizeof(pktsize16));
-
-        if(sent <= 0)
-            return -1;
-        // ...before sending the actual data
-    }
-
-    sent = sendto_fd(sss, socket_fd, (const struct sockaddr *)&dest_addr, socket_len, pktbuf, pktsize);
-
-    // if the connection is tcp, i.e. not the regular sock...
-    if((socket_fd >= 0) && (socket_fd != sss->sock)) {
-        value = 1; /* value should still be set to 1 */
-        setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, (void *)&value, sizeof(value));
-#ifdef __linux__
-        value = 0;
-        setsockopt(socket_fd, IPPROTO_TCP, TCP_CORK, &value, sizeof(value));
-#endif
-    }
-
-    return sent;
-}
-
-
-/** Send a datagram to a peer whose destination socket is embodied in its sock field of type n3n_sock_t.
- *  It calls sendto_sock to do the final send.
- *
- *    @return -1 on error otherwise number of bytes sent
- */
-static ssize_t sendto_peer (struct n3n_runtime_data *sss,
-                            const struct peer_info *peer,
-                            const uint8_t *pktbuf,
-                            size_t pktsize) {
-
-    struct sockaddr_storage socket_storage;
-    socklen_t socket_len;
-    n3n_sock_str_t sockbuf;
-
-    // TODO: we do not work on the return value, do not even pass it on
-    //       and even worse, do another length check further down the chain in sendto_sock/fd
-    //       the n3n_sock_t definitely needs a makeover (to hold the original sockaddr
-    //       for immediate use and its length in memory) or, if we want to keep n3n_sock_t
-    //       for compatibility reasons as it is used in network protocol, an internal sister.
-    //       can't pull the length check up here easily because of other callers of sendto_sock
-    socket_len = fill_sockaddr((struct sockaddr *)&socket_storage,
-                               sizeof(socket_storage), &(peer->sock));
-
-    if(socket_len == 0) {
-        // fill_sockaddr failed, e.g., unsupported family
-        errno = EAFNOSUPPORT;
-        return -1;
-    }
-
-    traceEvent(TRACE_DEBUG, "sent %lu bytes to [%s]",
-               pktsize,
-               sock_to_cstr(sockbuf, &(peer->sock)));
-
-    return sendto_sock(sss,
-                       (peer->socket_fd >= 0) ? peer->socket_fd : sss->sock,
-                       (const struct sockaddr*)&socket_storage, pktbuf, pktsize);
-}
-
-
 /** Try and broadcast a message to all edges in the community.
  *
  *    This will send the exact same datagram to zero or more edges registered to
@@ -693,6 +743,11 @@ static void try_broadcast (struct n3n_runtime_data * sss,
 
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
 
+                if(data_sent_len == -1) {
+                    // TODO: metrics
+                    return;
+                }
+
                 if(data_sent_len != pktsize) {
                     ++(sss->stats.sn_errors);
                     traceEvent(TRACE_WARNING, "multicast %lu to supernode [%s] %s failed %s",
@@ -720,6 +775,11 @@ static void try_broadcast (struct n3n_runtime_data * sss,
                 int data_sent_len;
 
                 data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
+
+                if(data_sent_len == -1) {
+                    // TODO: metrics
+                    return;
+                }
 
                 if(data_sent_len != pktsize) {
                     ++(sss->stats.sn_errors);
@@ -764,6 +824,11 @@ static void try_forward (struct n3n_runtime_data * sss,
 
         int data_sent_len;
         data_sent_len = sendto_peer(sss, scan, pktbuf, pktsize);
+
+        if(data_sent_len == -1) {
+            // TODO: metrics
+            return;
+        }
 
         if(data_sent_len == pktsize) {
             ++(sss->stats.sn_fwd);
@@ -1166,17 +1231,6 @@ static int auth_edge (const n2n_auth_t *present, const n2n_auth_t *presented, n2
 }
 
 
-// provides the current / a new local auth token
-// REVISIT: behavior should depend on some local auth scheme setting (to be implemented)
-static int get_local_auth (struct n3n_runtime_data *sss, n2n_auth_t *auth) {
-
-    // n2n_auth_simple_id scheme
-    memcpy(auth, &(sss->conf.auth), sizeof(n2n_auth_t));
-
-    return 0;
-}
-
-
 // handles an incoming (remote) auth token from a so far unknown edge,
 // takes action as required by auth scheme, and
 // could provide an answer auth token for use in REGISTER_SUPER_ACK
@@ -1526,76 +1580,6 @@ int assign_one_ip_subnet (struct n3n_runtime_data *sss,
                    comm->community);
         return -1;
     }
-}
-
-
-static int re_register_and_purge_supernodes (struct n3n_runtime_data *sss, struct sn_community *comm, time_t *p_last_re_reg_and_purge, time_t now, uint8_t forced) {
-
-    time_t time;
-    struct peer_info *peer, *tmp;
-
-    if(!forced) {
-        if((now - (*p_last_re_reg_and_purge)) < RE_REG_AND_PURGE_FREQUENCY) {
-            return 0;
-        }
-
-        // purge long-time-not-seen supernodes
-        if(comm) {
-            purge_expired_nodes(&(comm->edges), sss->sock, &sss->tcp_connections, p_last_re_reg_and_purge,
-                                RE_REG_AND_PURGE_FREQUENCY, LAST_SEEN_SN_INACTIVE);
-        }
-    }
-
-    if(comm != NULL) {
-        HASH_ITER(hh,comm->edges,peer,tmp) {
-
-            time = now - peer->last_seen;
-
-            if(!forced) {
-                if(time <= LAST_SEEN_SN_ACTIVE) {
-                    continue;
-                }
-            }
-
-            /* re-register (send REGISTER_SUPER) */
-            uint8_t pktbuf[N2N_PKT_BUF_SIZE] = {0};
-            size_t idx;
-            /* ssize_t sent; */
-            n2n_common_t cmn;
-            n2n_REGISTER_SUPER_t reg;
-            n3n_sock_str_t sockbuf;
-
-            cmn.ttl = N2N_DEFAULT_TTL;
-            cmn.pc = MSG_TYPE_REGISTER_SUPER;
-            cmn.flags = N2N_FLAGS_FROM_SUPERNODE;
-            memcpy(cmn.community, comm->community, N2N_COMMUNITY_SIZE);
-
-            reg.cookie = n3n_rand();
-            peer->last_cookie = reg.cookie;
-
-            reg.dev_addr.net_addr = ntohl(peer->dev_addr.net_addr);
-            reg.dev_addr.net_bitlen = mask2bitlen(ntohl(peer->dev_addr.net_bitlen));
-            get_local_auth(sss, &(reg.auth));
-
-            reg.key_time = sss->dynamic_key_time;
-
-            memcpy(reg.edgeMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t));
-
-            idx = 0;
-            encode_REGISTER_SUPER(pktbuf, &idx, &cmn, &reg);
-
-            traceEvent(TRACE_DEBUG, "send REGISTER_SUPER to %s",
-                       sock_to_cstr(sockbuf, &(peer->sock)));
-
-            packet_header_encrypt(pktbuf, idx, idx,
-                                  comm->header_encryption_ctx_static, comm->header_iv_ctx_static,
-                                  time_stamp());
-
-            /* sent = */ sendto_peer(sss, peer, pktbuf, idx);
-        }
-    }
-
-    return 0; /* OK */
 }
 
 
