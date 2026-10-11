@@ -1251,10 +1251,6 @@ int main (int argc, char* argv[]) {
     tuntap_close(&eee->device);
     edge_term(eee);
 
-    // the addresses of connection.bind, which the config loading allocated
-    // and edge_init() only took a copy of the pointer to
-    free(conf.bind_address);
-
     return(rc);
 }
 

@@ -3379,6 +3379,9 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
     // Ignore errors in the unlink/rmdir as they could simply be that the
     // paths were chown/chmod by the administrator
 
+    // the addresses of connection.bind, which the config loading allocated
+    // and edge_init() only took a copy of the pointer to
+    free(conf->bind_address);
 
     speck_deinit((speck_context_t*)conf->header_encryption_ctx_dynamic);
     speck_deinit((speck_context_t*)conf->header_encryption_ctx_static);
