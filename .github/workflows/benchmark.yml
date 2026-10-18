@@ -33,6 +33,10 @@ jobs:
           jq < ./cache/benchmark-data.json
           ls -al /home/runner/work/n3n/n3n/cache/benchmark-data.json
 
+      - name: Move the benchmark data to a usable place
+        run: |
+          cp ./cache/benchmark-data.json /tmp
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -57,7 +61,7 @@ jobs:
         with:
           tool: customSmallerIsBetter
           output-file-path: benchmark.json
-          external-data-json-path: ./cache/benchmark-data.json
+          external-data-json-path: /tmp/benchmark-data.json
           # Workflow will fail when an alert happens
           fail-on-alert: true
 
@@ -67,13 +71,17 @@ jobs:
         with:
           tool: customSmallerIsBetter
           output-file-path: benchmark.json
-          external-data-json-path: ./cache/benchmark-data.json
+          external-data-json-path: /tmp/benchmark-data.json
           # Workflow will fail when an alert happens
           fail-on-alert: true
           # GitHub API token to make a commit comment
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-on-alert: true
           summary-always: true
+
+      - name: Move the benchmark data back into its cache
+        run: |
+          cp /tmp/benchmark-data.json ./cache/benchmark-data.json
 
       - name: Show the benchmark-data (post)
         run: |
