@@ -31,7 +31,7 @@
 #include <n3n/initfuncs.h>           // for n3n_deinitfuncs
 #include <n3n/logging.h>             // for traceEvent
 #include <n3n/mainloop.h>            // for mainloop_runonce, mainloop_regis...
-#include <n3n/metrics.h>
+#include <n3n/metrics.h>             // for n3n_metrics_set_session, ...
 #include <n3n/network_traffic_filter.h>  // for create_network_traffic_filte...
 #include <n3n/pktbuf.h>              // for n3n_pktbuf_initialise, n3n_pktbu...
 #include <n3n/random.h>              // for n3n_rand, n3n_rand_sqr, memrnd
@@ -3480,6 +3480,9 @@ void edge_term_conf (n2n_edge_conf_t *conf) {
     // Ignore errors in the unlink/rmdir as they could simply be that the
     // paths were chown/chmod by the administrator
 
+    // the addresses of connection.bind, which the config loading allocated
+    // and edge_init() only took a copy of the pointer to
+    free(conf->bind_address);
 
     speck_deinit((speck_context_t*)conf->header_encryption_ctx_dynamic);
     speck_deinit((speck_context_t*)conf->header_encryption_ctx_static);

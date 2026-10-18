@@ -24,6 +24,7 @@
 #include <n3n/ethernet.h>       // for is_null_mac
 #include <n3n/initfuncs.h>      // for n3n_deinitfuncs
 #include <n3n/logging.h>        // for traceEvent
+#include <n3n/metrics.h>        // for n3n_metrics_set_session, ...
 #include <n3n/random.h>         // for n3n_rand, n3n_rand_sqr, memrnd
 #include <n3n/resolve.h>        // for RESOLVE_LIST_*
 #include <n3n/strings.h>        // for ip_subnet_to_str, sock_to_cstr
@@ -916,6 +917,7 @@ void sn_init_conf_defaults (struct n3n_runtime_data *sss, char *sessionname) {
     } else {
         conf->sessionname = "NULL";
     }
+    n3n_metrics_set_session(conf->sessionname);
 
     conf->is_supernode = true;
     conf->spoofing_protection = true;

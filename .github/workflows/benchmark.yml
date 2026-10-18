@@ -18,6 +18,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Download previous benchmark data
+        uses: actions/cache@v6
+        with:
+          path: /tmp/cache
+          key: benchmark-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            benchmark-${{ runner.os }}
+
+      - name: Create benchmark-data files
+        run: |
+          mkdir -p benchmark-data
+          echo "${{ github.event.pull_request.number }}" > benchmark-data/pr.txt
+          cp /tmp/cache/benchmark-data.json benchmark-data/benchmark-data.orig.json
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -36,21 +50,48 @@ jobs:
           sudo ./apps/n3n-edge test fakebench | tee benchmark.csv
           ./scripts/benchmark2graphdata.py <benchmark.csv >benchmark.json
 
-      - name: Download previous benchmark data
-        uses: actions/cache@v6
-        with:
-          path: ./cache
-          key: ${{ runner.os }}-benchmark
-
-      - name: Store benchmark result
+      - name: Calculate benchmark result (no token required)
+        if: github.event.pull_request.head.repo.full_name != github.repository
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: customSmallerIsBetter
           output-file-path: benchmark.json
-          external-data-json-path: ./cache/benchmark-data.json
+          external-data-json-path: /tmp/cache/benchmark-data.json
+          # Workflow will fail when an alert happens
+          fail-on-alert: true
+
+      - name: Store benchmark result (read-write token required)
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: customSmallerIsBetter
+          output-file-path: benchmark.json
+          external-data-json-path: /tmp/cache/benchmark-data.json
           # Workflow will fail when an alert happens
           fail-on-alert: true
           # GitHub API token to make a commit comment
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-on-alert: true
           summary-always: true
+
+      - name: Show the benchmark-data (post)
+        run: |
+          find /tmp/cache -type f -ls
+          jq < /tmp/cache/benchmark-data.json
+
+      - name: Add benchmark-data files
+        run: |
+          mkdir -p benchmark-data
+          cp benchmark.json benchmark-data
+          cp /tmp/cache/benchmark-data.json benchmark-data
+
+      - name: Create benchmark-data Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: benchmark-data
+          path: benchmark-data
+
+      # TODO:
+      # - add step to delete older benchmark caches
+      # - should be smart enough not to delete still relevant caches
+      # - not urgent, as the caches are small
