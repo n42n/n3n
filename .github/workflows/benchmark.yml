@@ -73,18 +73,18 @@ jobs:
           find /tmp/cache -type f -ls
           jq < /tmp/cache/benchmark-data.json
 
-      - name: Save PR Number for Artifact
+      - name: Create benchmark-data files
         run: |
-          echo "${{ github.event.pull_request.number }}" > pr.txt
+          mkdir -p benchmark-data
+          echo "${{ github.event.pull_request.number }}" > benchmark-data/pr.txt
+          cp benchmark.json benchmark-data
+          cp /tmp/cache/benchmark-data.json benchmark-data
 
       - name: Create benchmark-data Artifact
         uses: actions/upload-artifact@v6
         with:
           name: benchmark-data
-          path: |
-            ./pr.txt
-            ./benchmark.json
-            /tmp/cache/benchmark-data.json
+          path: benchmark-data
 
       # TODO:
       # - add step to delete older benchmark caches
