@@ -26,6 +26,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-benchmark
 
+      - name: Show the benchmark-data (pre)
+        run: |
+          pwd
+          find cache -type f -ls
+          jq < ./cache/benchmark-data.json
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -68,10 +74,11 @@ jobs:
           comment-on-alert: true
           summary-always: true
 
-      - name: Show the benchmark-data
+      - name: Show the benchmark-data (post)
         run: |
-          jq < ./cache/benchmark-data.json
+          pwd
           find cache -type f -ls
+          jq < ./cache/benchmark-data.json
 
       # TODO:
       # - add step to delete older benchmark caches
