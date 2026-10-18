@@ -26,6 +26,12 @@ jobs:
           restore-keys: |
             benchmark-${{ runner.os }}
 
+      - name: Create benchmark-data files
+        run: |
+          mkdir -p benchmark-data
+          echo "${{ github.event.pull_request.number }}" > benchmark-data/pr.txt
+          cp /tmp/cache/benchmark-data.json benchmark-data/benchmark-data.orig.json
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -73,10 +79,9 @@ jobs:
           find /tmp/cache -type f -ls
           jq < /tmp/cache/benchmark-data.json
 
-      - name: Create benchmark-data files
+      - name: Add benchmark-data files
         run: |
           mkdir -p benchmark-data
-          echo "${{ github.event.pull_request.number }}" > benchmark-data/pr.txt
           cp benchmark.json benchmark-data
           cp /tmp/cache/benchmark-data.json benchmark-data
 
