@@ -71,6 +71,7 @@ jobs:
       - name: Show the benchmark-data
         run: |
           jq < ./cache/benchmark-data.json
+          find cache -type f -ls
 
       # TODO:
       # - add step to delete older benchmark caches
