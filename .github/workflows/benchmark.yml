@@ -19,10 +19,12 @@ jobs:
 
     steps:
       - name: Download previous benchmark data
-        uses: actions/cache/restore@v6
+        uses: actions/cache@v6
         with:
           path: ./cache
-          key: ${{ runner.os }}-benchmark
+          key: ${{ runner.os }}-benchmark-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-benchmark
 
       - uses: actions/checkout@v7
         with:
@@ -70,8 +72,6 @@ jobs:
         run: |
           jq < ./cache/benchmark-data.json
 
-      - name: Always save benchmark data
-        uses: actions/cache/save@v6
-        with:
-          path: ./cache
-          key: ${{ runner.os }}-benchmark
+      # TODO:
+      # - add step to delete older benchmark caches
+      # - should be smart enough not to delete still relevant caches
