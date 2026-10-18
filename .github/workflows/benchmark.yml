@@ -21,21 +21,11 @@ jobs:
       - name: Download previous benchmark data
         uses: actions/cache@v6
         with:
-          path: ./cache
-          key: ${{ runner.os }}-benchmark-${{ github.run_id }}
+          path: /tmp/cache
+          key: benchmark-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             ${{ runner.os }}-benchmark
-
-      - name: Show the benchmark-data (pre)
-        run: |
-          pwd
-          find cache -type f -ls
-          jq < ./cache/benchmark-data.json
-          ls -al /home/runner/work/n3n/n3n/cache/benchmark-data.json
-
-      - name: Move the benchmark data to a usable place
-        run: |
-          cp ./cache/benchmark-data.json /tmp
+            benchmark-${{ runner.os }}
 
       - uses: actions/checkout@v7
         with:
@@ -55,13 +45,13 @@ jobs:
           sudo ./apps/n3n-edge test fakebench | tee benchmark.csv
           ./scripts/benchmark2graphdata.py <benchmark.csv >benchmark.json
 
-      - name: Store benchmark result (no token required)
+      - name: Calculate benchmark result (no token required)
         if: github.event.pull_request.head.repo.full_name != github.repository
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: customSmallerIsBetter
           output-file-path: benchmark.json
-          external-data-json-path: /tmp/benchmark-data.json
+          external-data-json-path: /tmp/cache/benchmark-data.json
           # Workflow will fail when an alert happens
           fail-on-alert: true
 
@@ -71,7 +61,7 @@ jobs:
         with:
           tool: customSmallerIsBetter
           output-file-path: benchmark.json
-          external-data-json-path: /tmp/benchmark-data.json
+          external-data-json-path: /tmp/cache/benchmark-data.json
           # Workflow will fail when an alert happens
           fail-on-alert: true
           # GitHub API token to make a commit comment
@@ -79,17 +69,13 @@ jobs:
           comment-on-alert: true
           summary-always: true
 
-      - name: Move the benchmark data back into its cache
-        run: |
-          mkdir -p ./cache
-          cp /tmp/benchmark-data.json ./cache/benchmark-data.json
-
       - name: Show the benchmark-data (post)
         run: |
-          pwd
-          find cache -type f -ls
-          jq < ./cache/benchmark-data.json
+          find /tmp/cache -type f -ls
+          jq < /tmp/cache/benchmark-data.json
+
 
       # TODO:
       # - add step to delete older benchmark caches
       # - should be smart enough not to delete still relevant caches
+      # - not urgent, as the caches are small
