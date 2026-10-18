@@ -24,6 +24,10 @@ supernode=supernode.n3n.dev:7654
 `community.name` option) and a secret encryption key (the `community.key`
 option) in order to prevent unexpected users from connecting to your computer.
 
-The n3n project runs the public supernode in the above config for testing
-purposes - is it suggested that you setup your own
-[supernode](../configure/Supernode.md) for longer term use.
+The n3n project runs the public supernode at `supernode.n3n.dev:7654` for
+use by people to quickly build and test n3n setups.  Though is it suggested
+that you setup your own [supernode](../configure/Supernode.md) for longer
+term use.
+
+The `supernode.n3n.dev:7654` is not to be used for fuzz testing or attack
+surface testing and any detected attempts will result in banning.
