@@ -18,6 +18,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Download previous benchmark data
+        uses: actions/cache/restore@v6
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-benchmark
+
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -36,13 +42,17 @@ jobs:
           sudo ./apps/n3n-edge test fakebench | tee benchmark.csv
           ./scripts/benchmark2graphdata.py <benchmark.csv >benchmark.json
 
-      - name: Download previous benchmark data
-        uses: actions/cache@v6
+      - name: Store benchmark result (no token required)
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        uses: benchmark-action/github-action-benchmark@v1
         with:
-          path: ./cache
-          key: ${{ runner.os }}-benchmark
+          tool: customSmallerIsBetter
+          output-file-path: benchmark.json
+          external-data-json-path: ./cache/benchmark-data.json
+          # Workflow will fail when an alert happens
+          fail-on-alert: true
 
-      - name: Store benchmark result
+      - name: Store benchmark result (read-write token required)
         if: github.event.pull_request.head.repo.full_name == github.repository
         uses: benchmark-action/github-action-benchmark@v1
         with:
@@ -55,3 +65,13 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-on-alert: true
           summary-always: true
+
+      - name: Show the benchmark-data
+        run: |
+          jq < ./cache/benchmark-data.json
+
+      - name: Always save benchmark data
+        uses: actions/cache/save@v6
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-benchmark
