@@ -46,10 +46,20 @@ there is still a question as to if this feature should be retained.
 
 ## Stable patch release notes
 
-- Semver
-- Any release is supposed to be a 0 patchlevel release (eg: 4.1.0) - though any
-  issues found during the release process may cause a higher patchlevel to
-  be used for the release
+- Software version release names are similar to Semver.
+  (We are using a process that is significantly simplified from the fill
+  semver standard)
+  The software version number is in the format of "Major.Minor.Point".
+  This is usually intended to mean that increasing the "Point" should cause no
+  issues to users, increasing the Minor should provide new features but not
+  break/change old features and increasing the Major should indicate a
+  potential backwards incompatibility.
+- Note that the "software version" is disconnected from the "protocol version"
+  and that changing the protocol version should not be done as part of any
+  usual software release (Thus there could be a version 4.0.0 of the n3n
+  software that still uses the current version 3 of the network protocol)
+- Any release of a new Major or Minor should have a 0 in the lower parts of
+  the formal version number - these fields are not omitted.
 - New features or code can immediately start being committed to the main
   branch after a release.  (Any dev code compiled after this will have a
   version number like 4.1.0-n-gZZZZ, clearly marking it as part of a non
