@@ -540,8 +540,7 @@ jobs:
       - name: Configure and Build
         shell: bash
         run: |
-          # this is a hack! it assumes the default SDK is the 'right' one
-          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
           ./autogen.sh
           export CFLAGS="-target ${{ matrix.arch }}"
           export LDFLAGS="-target ${{ matrix.arch }}"
@@ -588,8 +587,7 @@ jobs:
       - name: Configure and Build
         shell: bash
         run: |
-          # this is a hack! it assumes the default SDK is the 'right' one
-          export SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
           ./autogen.sh
           export CFLAGS="-arch x86_64 -arch arm64"
           export LDFLAGS="-arch x86_64 -arch arm64"
