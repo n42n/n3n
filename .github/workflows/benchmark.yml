@@ -81,6 +81,7 @@ jobs:
 
       - name: Move the benchmark data back into its cache
         run: |
+          mkdir -p ./cache
           cp /tmp/benchmark-data.json ./cache/benchmark-data.json
 
       - name: Show the benchmark-data (post)
