@@ -23,7 +23,7 @@ jobs:
         os:
           - name: freebsd
             architecture: x86-64
-            version: '13.2'
+            version: '14.2'
 
     steps:
       - uses: actions/checkout@v7
