@@ -6,6 +6,9 @@
 # Specifically for windows, where installing autoconf looks suspiciously
 # like boiling the ocean.
 
+echo WARNING WARNING WARNING
+echo This is a hack. The mingw tools should be used to compile on windows
+
 cat <<EOF >include/config.h.in
 // Created by hack fake autoconf for windows
 // not actually a config input
