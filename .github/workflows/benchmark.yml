@@ -31,6 +31,7 @@ jobs:
           pwd
           find cache -type f -ls
           jq < ./cache/benchmark-data.json
+          ls -al /home/runner/work/n3n/n3n/cache/benchmark-data.json
 
       - uses: actions/checkout@v7
         with:
