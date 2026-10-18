@@ -30,7 +30,9 @@ jobs:
         run: |
           mkdir -p benchmark-data
           echo "${{ github.event.pull_request.number }}" > benchmark-data/pr.txt
-          cp /tmp/cache/benchmark-data.json benchmark-data/benchmark-data.orig.json
+          if [ -e "/tmp/cache/benchmark-data.json" ]; then
+            cp /tmp/cache/benchmark-data.json benchmark-data/benchmark-data.orig.json
+          fi
 
       - uses: actions/checkout@v7
         with:
