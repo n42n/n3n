@@ -24,7 +24,6 @@ jobs:
           path: /tmp/cache
           key: benchmark-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-benchmark
             benchmark-${{ runner.os }}
 
       - uses: actions/checkout@v7
@@ -74,6 +73,18 @@ jobs:
           find /tmp/cache -type f -ls
           jq < /tmp/cache/benchmark-data.json
 
+      - name: Save PR Number for Artifact
+        run: |
+          echo "${{ github.event.pull_request.number }}" > pr.txt
+
+      - name: Create benchmark-data Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: benchmark-data
+          path: |
+            ./pr.txt
+            ./benchmark.json
+            /tmp/cache/benchmark-data.json
 
       # TODO:
       # - add step to delete older benchmark caches
