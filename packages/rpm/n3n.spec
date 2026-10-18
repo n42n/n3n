@@ -39,13 +39,13 @@ chmod u+w $RPM_BUILD_ROOT/usr/sbin/*
 #find $RPM_BUILD_ROOT -name "*~"   | xargs /bin/rm -f
 
 cd $RPM_BUILD_ROOT
-find -type f | sed -e 's#^\.##' >$RPM_BUILD_ROOT/../n3n.files.list
+find -type f | sed -e 's#^\.##' >/tmp/n3n.files.list
 
 %clean
 # Clean out our build directory
 rm -fr $RPM_BUILD_ROOT
 
-%files -f n3n.files.list
+%files -f /tmp/n3n.files.list
 
 # Set the default attributes of all of the files specified to have an
 # owner and group of root and to inherit the permissions of the file
