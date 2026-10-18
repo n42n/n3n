@@ -9,6 +9,8 @@ SPDX-FileCopyrightText: Copyright Hamish Coleman
 
 n3n is a lightweight Peer-to-Peer VPN that creates virtual networks.
 
+(See [Why use n3n](why_use_n3n.md) for the pros and cons of this VPN solution)
+
 In order to start using n3n, two elements are required:
 
 - A _supernode_: it allows edge nodes to announce and discover other nodes. It
