@@ -153,12 +153,6 @@ size_t purge_peer_list (struct peer_info **peer_list,
     n2n_tcp_connection_t *conn;
     size_t retval = 0;
 
-    // If our table is small, dont bother purging it
-    // TODO: should the table size be a config param?
-    if(HASH_COUNT(*peer_list) < 16) {
-        return retval;
-    }
-
     HASH_ITER(hh, *peer_list, scan, tmp) {
         // TODO: untangle the tcp_connections usage and use
         // peer_info_validate() as the core of this loop
