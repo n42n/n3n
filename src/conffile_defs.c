@@ -464,6 +464,15 @@ static struct n3n_conf_option section_tuntap[] = {
                 "expected to set it.",
     },
     {
+        .name = "clamp_mss",
+        .type = n3n_conf_bool,
+        .offset = offsetof(n2n_edge_conf_t, clamp_mss),
+        .desc = "Clamp TCP MSS to MTU",
+        .help = "When enabled, the MSS value in TCP SYN packets is adjusted "
+                "to prevent fragmentation issues when the underlying MTU is "
+                "smaller than the standard 1500 bytes.",
+    },
+    {
         .name = "macaddr",
         .type = n3n_conf_strncpy,
         .length = N2N_MACNAMSIZ,

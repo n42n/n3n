@@ -1,0 +1,33 @@
+PASS: incremental matches full recalculation
+PASS: carry wrapping correct
+PASS: MSS clamped 1500 -> 1460
+PASS: new checksum valid (0x02d8)
+PASS: non-SYN packet unchanged
+PASS: MSS=1000 not clamped (<= 1460)
+PASS: clamp_mss=0 ignored by function (check at caller level)
+PASS: IPv6 MSS clamped 1500 -> 1440
+PASS: VLAN-tagged MSS clamped 1500 -> 1456
+PASS: QinQ-tagged MSS clamped 1500 -> 1452
+PASS: IP-in-IP MSS clamped 1500 -> 1440
+PASS: fragmented packets skipped
+PASS: IPv6 fragment extension header skips clamp
+PASS: TAP-style MSS 1500->1460, checksum valid
+PASS: UDP-edge-style MSS 1500->1460, checksum valid
+PASS: mtu=0 skips clamping
+PASS: custom MTU=1400, MSS clamped to 1360
+PASS: SYN-ACK also clamped 1500 -> 1460
+PASS: short packet unchanged (safe early return)
+PASS: non-IP ethertype (ARP) skipped
+PASS: IHL=6 IP options, MSS clamped to 1456
+PASS: TCP with no options handled without crash
+PASS: 0x9100 VLAN MSS clamped 1500 -> 1456
+PASS: IPv6 Hop-by-Hop ext, MSS clamped to 1432
+PASS: IPv6 Auth Header (51) skips clamp
+PASS: IPv6 Routing ext, MSS clamped to 1432
+PASS: IPv6 Destination Options ext, MSS clamped to 1432
+PASS: first MSS option processed, packet valid
+PASS: MSS=1460 (== max_mss) not modified
+PASS: csum_update identity (same value) returns original
+PASS: malformed TCP options handled without crash
+PASS: MSS=0 left unchanged (not > max_mss)
+=== All MSS tests complete ===
