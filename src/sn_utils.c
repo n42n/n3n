@@ -1681,7 +1681,7 @@ static int sort_communities (struct n3n_runtime_data *sss,
 /** Examine a datagram and determine what to do with it.
  *
  */
-static int process_pdu (struct n3n_runtime_data * sss,
+static void process_pdu (struct n3n_runtime_data * sss,
                         const struct sockaddr *sender_sock, socklen_t sock_size,
                         const SOCKET socket_fd,
                         uint8_t * udp_buf,
@@ -1719,7 +1719,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
      * changes to wire.c:encode/decode_common need to go together with this code */
     if(udp_size < 24) {
         traceEvent(TRACE_DEBUG, "dropped a packet too short to be valid");
-        return -1;
+        return;
     }
     // FIXME: if this is using be16toh then it is doing wire processing and
     // should be located in wire.c with the rest of the wire processing.
@@ -1737,7 +1737,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 traceEvent(TRACE_DEBUG, "dropped a packet with unencrypted header "
                            "addressed to community '%s' which uses encrypted headers",
                            comm->community);
-                return -1;
+                return;
             }
             if(comm->header_encryption == HEADER_ENCRYPTION_UNKNOWN) {
                 traceEvent(TRACE_INFO, "locked community '%s' to "
@@ -1795,7 +1795,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
             // no matching key/community
             traceEvent(TRACE_DEBUG, "dropped a packet with seemingly encrypted header "
                        "for which no matching community which uses encrypted headers was found");
-            return -1;
+            return;
         }
     }
 
@@ -1813,7 +1813,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
     if(decode_common(&cmn, udp_buf, &rem, &idx) < 0) {
         traceEvent(TRACE_ERROR, "failed to decode common section");
-        return -1; /* failed to decode packet */
+        return; /* failed to decode packet */
     }
 
     msg_type = cmn.pc; /* packet code */
@@ -1827,7 +1827,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
            && (msg_type != MSG_TYPE_REGISTER_SUPER_NAK)) {
             if(header_enc != 2) {
                 traceEvent(TRACE_WARNING, "dropped packet encrypted with static key where expecting dynamic key");
-                return -1;
+                return;
             }
         }
     }
@@ -1839,13 +1839,13 @@ static int process_pdu (struct n3n_runtime_data * sss,
         // only REGISTER_SUPER allowed from unknown supernodes
         if((!sn) && (msg_type != MSG_TYPE_REGISTER_SUPER)) {
             traceEvent(TRACE_DEBUG, "dropped incoming data from unknown supernode");
-            return -1;
+            return;
         }
     }
 
     if(cmn.ttl < 1) {
         traceEvent(TRACE_WARNING, "expired TTL");
-        return 0; /* Don't process further */
+        return; /* Don't process further */
     }
 
     --(cmn.ttl); /* The value copied into all forwarded packets. */
@@ -1865,7 +1865,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "PACKET with unknown community %s", cmn.community);
-                return -1;
+                return;
             }
 
             sss->last_sn_fwd = now;
@@ -1881,7 +1881,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                        stamp,
                        TIME_STAMP_ALLOW_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped PACKET due to time stamp error");
-                    return -1;
+                    return;
                 }
             }
 
@@ -1939,7 +1939,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
             } else {
                 try_broadcast(sss, comm, &cmn, pkt.srcMac, from_supernode, rec_buf, encx, now);
             }
-            return 0;
+            return;
         }
 
         case MSG_TYPE_REGISTER: {
@@ -1954,7 +1954,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "REGISTER from unknown community %s", cmn.community);
-                return -1;
+                return;
             }
 
             sss->last_sn_fwd = now;
@@ -1970,7 +1970,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                        stamp,
                        TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped REGISTER due to time stamp error");
-                    return -1;
+                    return;
                 }
             }
 
@@ -2011,12 +2011,12 @@ static int process_pdu (struct n3n_runtime_data * sss,
             } else {
                 traceEvent(TRACE_ERROR, "Rx REGISTER with multicast destination");
             }
-            return 0;
+            return;
         }
 
         case MSG_TYPE_REGISTER_ACK: {
             traceEvent(TRACE_DEBUG, "Rx REGISTER_ACK (not implemented) should not be via supernode");
-            return 0;
+            return;
         }
 
         case MSG_TYPE_REGISTER_SUPER: {
@@ -2062,7 +2062,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                            stamp,
                            TIME_STAMP_NO_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER due to time stamp error");
-                        return -1;
+                        return;
                     }
                 }
             }
@@ -2088,7 +2088,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 if(match != 1) {
                     traceEvent(TRACE_INFO, "discarded registration with unallowed community '%s'",
                                (char*)cmn.community);
-                    return -1;
+                    return;
                 }
             }
 
@@ -2116,7 +2116,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
             if(!comm) {
                 traceEvent(TRACE_INFO, "discarded registration with unallowed community '%s'",
                            (char*)cmn.community);
-                return -1;
+                return;
             }
 
             // hash check (user/pw auth only)
@@ -2127,7 +2127,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                     speck_128_encrypt(hash_buf, (speck_context_t*)user->shared_secret_ctx);
                     if(memcmp(hash_buf, udp_buf + udp_size - N2N_REG_SUP_HASH_CHECK_LEN /* length has already been checked */, N2N_REG_SUP_HASH_CHECK_LEN)) {
                         traceEvent(TRACE_INFO, "Rx REGISTER_SUPER with wrong hash");
-                        return -1;
+                        return;
                     }
                 } else {
                     traceEvent(TRACE_INFO, "Rx REGISTER_SUPER from unknown user");
@@ -2137,7 +2137,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
             if(!memcmp(reg.edgeMac, sss->conf.sn_mac_addr, sizeof(n2n_mac_t))) {
                 traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER from self, ignoring");
-                return -1;
+                return;
             }
 
             cmn2.ttl = N2N_DEFAULT_TTL;
@@ -2243,7 +2243,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 traceEvent(TRACE_DEBUG, "Tx REGISTER_SUPER_NAK for %s",
                            macaddr_str(mac_buf, reg.edgeMac));
 
-                return 0;
+                return;
             }
 
             // if this is not already from a supernode ...
@@ -2335,7 +2335,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 }
             }
 
-            return 0;
+            return;
         }
 
         case MSG_TYPE_UNREGISTER_SUPER: {
@@ -2346,12 +2346,12 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER with unknown community %s", cmn.community);
-                return -1;
+                return;
             }
 
             if((from_supernode) || (comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER: should not come from a supernode or federation.");
-                return -1;
+                return;
             }
 
             decode_UNREGISTER_SUPER(&unreg, &cmn, udp_buf, &rem, &idx);
@@ -2365,7 +2365,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                        stamp,
                        TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped UNREGISTER_SUPER due to time stamp error");
-                    return -1;
+                    return;
                 }
             }
 
@@ -2385,7 +2385,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                     }
                 }
             }
-            return 0;
+            return;
         }
 
         case MSG_TYPE_REGISTER_SUPER_ACK: {
@@ -2401,12 +2401,12 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "REGISTER_SUPER_ACK with unknown community %s", cmn.community);
-                return -1;
+                return;
             }
 
             if((!from_supernode) || (!comm->is_federation)) {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK, should not come from an edge or regular community");
-                return -1;
+                return;
             }
 
             decode_REGISTER_SUPER_ACK(&ack, &cmn, udp_buf, &rem, &idx, dec_tmpbuf);
@@ -2421,7 +2421,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                        stamp,
                        TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK due to time stamp error");
-                    return -1;
+                    return;
                 }
             }
 
@@ -2436,7 +2436,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 scan->last_seen = now;
             } else {
                 traceEvent(TRACE_DEBUG, "dropped REGISTER_SUPER_ACK due to an unknown supernode");
-                return 0;
+                return;
             }
 
             if(ack.cookie == scan->last_cookie) {
@@ -2486,7 +2486,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                     scan->last_cookie
                 );
             }
-            return 0;
+            return;
         }
 
         case MSG_TYPE_REGISTER_SUPER_NAK: {
@@ -2501,7 +2501,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "REGISTER_SUPER_NAK with unknown community %s", cmn.community);
-                return -1;
+                return;
             }
 
             decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
@@ -2515,7 +2515,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                        stamp,
                        TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "process_pdu dropped REGISTER_SUPER_NAK due to time stamp error");
-                    return -1;
+                    return;
                 }
             }
 
@@ -2556,7 +2556,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                     }
                 }
             }
-            return 0;
+            return;
         }
 
         case MSG_TYPE_QUERY_PEER: {
@@ -2583,13 +2583,13 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 }
                 if(match != 1) {
                     traceEvent(TRACE_DEBUG, "QUERY_PEER from unknown community %s", cmn.community);
-                    return -1;
+                    return;
                 }
             }
 
             if(!comm && sss->lock_communities && (match == 0)) {
                 traceEvent(TRACE_DEBUG, "QUERY_PEER from not allowed community %s", cmn.community);
-                return -1;
+                return;
             }
 
             decode_QUERY_PEER( &query, &cmn, udp_buf, &rem, &idx );
@@ -2607,7 +2607,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                            stamp,
                            TIME_STAMP_ALLOW_JITTER)) {
                         traceEvent(TRACE_DEBUG, "dropped QUERY_PEER due to time stamp error");
-                        return -1;
+                        return;
                     }
                 }
             }
@@ -2657,7 +2657,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                 // as opposed to the special case 'PING', proper QUERY_PEER processing requires a locally actually present community entry
                 if(!comm) {
                     traceEvent(TRACE_DEBUG, "QUERY_PEER with unknown community %s", cmn.community);
-                    return -1;
+                    return;
                 }
 
                 HASH_FIND_PEER(comm->edges, query.targetMac, scan);
@@ -2717,7 +2717,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                     }
                 }
             }
-            return 0;
+            return;
         }
 
         case MSG_TYPE_PEER_INFO: {
@@ -2728,7 +2728,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
 
             if(!comm) {
                 traceEvent(TRACE_DEBUG, "PEER_INFO with unknown community %s", cmn.community);
-                return -1;
+                return;
             }
 
             decode_PEER_INFO(&pi, &cmn, udp_buf, &rem, &idx);
@@ -2742,7 +2742,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                        stamp,
                        TIME_STAMP_NO_JITTER)) {
                     traceEvent(TRACE_DEBUG, "dropped PEER_INFO due to time stamp error");
-                    return -1;
+                    return;
                 }
             }
 
@@ -2773,7 +2773,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
                     sendto_peer(sss, peer, encbuf, encx);
                 }
             }
-            return 0;
+            return;
         }
 
         default:
@@ -2781,7 +2781,7 @@ static int process_pdu (struct n3n_runtime_data * sss,
             traceEvent(TRACE_WARNING, "unable to handle packet type %d: ignored", (signed int)msg_type);
     } /* switch(msg_type) */
 
-    return 0;
+    return;
 }
 
 
