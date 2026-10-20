@@ -2050,7 +2050,9 @@ static void process_pdu (struct n3n_runtime_data * sss,
             /* Edge/supernode requesting registration with us.    */
             sss->last_sn_reg=now;
             ++(sss->stats.sn_reg);
-            decode_REGISTER_SUPER(&reg, &cmn, udp_buf, &rem, &idx);
+            if(decode_REGISTER_SUPER(&reg, &cmn, udp_buf, &rem, &idx)==-1) {
+                return;
+            }
 
             if(comm) {
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2354,7 +2356,9 @@ static void process_pdu (struct n3n_runtime_data * sss,
                 return;
             }
 
-            decode_UNREGISTER_SUPER(&unreg, &cmn, udp_buf, &rem, &idx);
+            if(decode_UNREGISTER_SUPER(&unreg, &cmn, udp_buf, &rem, &idx)==-1) {
+                return;
+            }
 
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                 if(!find_peer_time_stamp_and_verify(
@@ -2409,7 +2413,9 @@ static void process_pdu (struct n3n_runtime_data * sss,
                 return;
             }
 
-            decode_REGISTER_SUPER_ACK(&ack, &cmn, udp_buf, &rem, &idx, dec_tmpbuf);
+            if(decode_REGISTER_SUPER_ACK(&ack, &cmn, udp_buf, &rem, &idx, dec_tmpbuf)==-1) {
+                return;
+            }
             orig_sender = &(ack.sock);
 
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2504,7 +2510,9 @@ static void process_pdu (struct n3n_runtime_data * sss,
                 return;
             }
 
-            decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx);
+            if(decode_REGISTER_SUPER_NAK(&nak, &cmn, udp_buf, &rem, &idx)==-1) {
+                return;
+            }
 
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                 if(!find_peer_time_stamp_and_verify(
