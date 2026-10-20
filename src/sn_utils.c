@@ -2953,13 +2953,20 @@ int run_sn_loop (struct n3n_runtime_data *sss) {
                     if(conn->position == conn->expected) {
                         if(conn->position == sizeof(uint16_t)) {
                             // the prepended length has been read, preparing for the packet
-                            conn->expected += be16toh(*(uint16_t*)(conn->buffer));
-                            if(conn->expected > N2N_SN_PKTBUF_SIZE) {
-                                traceEvent(TRACE_INFO, "closing tcp connection to [%s]", sock_to_cstr(sockbuf, (n3n_sock_t*)sender_sock));
-                                traceEvent(TRACE_DEBUG, "too many bytes in tcp packet expected");
+                            int expected = conn->expected;
+                            expected += be16toh(*(uint16_t*)(conn->buffer));
+                            if(expected < 24+2 || expected > N2N_SN_PKTBUF_SIZE) {
+                                traceEvent(
+                                    TRACE_INFO,
+                                    "closing tcp connection to [%s]",
+                                    sock_to_cstr(sockbuf, (n3n_sock_t*)sender_sock)
+                                );
+                                traceEvent(TRACE_DEBUG, "bad TCP packet len %i", expected);
                                 close_tcp_connection(sss, conn);
                                 continue;
                             }
+
+                            conn->expected = expected;
                         } else {
                             // full packet read, handle it
                             process_pdu(
