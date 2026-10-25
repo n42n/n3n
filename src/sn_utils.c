@@ -1903,12 +1903,26 @@ static void process_pdu (struct n3n_runtime_data * sss,
 
                 rec_buf = encbuf;
                 /* Re-encode the header. */
-                encode_PACKET(encbuf, &encx, &cmn2, &pkt);
+                ssize_t headsize = encode_PACKET(encbuf, &encx, &cmn2, &pkt);
 
                 uint16_t oldEncx = encx;
 
+                ssize_t pktsize = (udp_size - idx);
+
+                if(headsize + pktsize > N2N_SN_PKTBUF_SIZE) {
+                    // Packet would be too big to fit in our buffers.
+                    // Ethernet switches dont normally provide any
+                    // notification to the sender that there was a MTU
+                    // overflow, so we dont try to do anything like that here.
+                    //
+                    // TODO:
+                    // - metrics
+                    // - something else to help with understanding MTU issues
+                    return;
+                }
+
                 /* Copy the original payload unchanged */
-                encode_buf(encbuf, &encx, (udp_buf + idx), (udp_size - idx));
+                encode_buf(encbuf, &encx, (udp_buf + idx), pktsize);
 
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                     // in case of user-password auth, also encrypt the iv of payload assuming ChaCha20 and SPECK having the same iv size
