@@ -2053,6 +2053,9 @@ static void process_pdu (struct n3n_runtime_data * sss,
             if(decode_REGISTER_SUPER(&reg, &cmn, udp_buf, &rem, &idx)==-1) {
                 return;
             }
+            // TODO:
+            // - once planned wire encoding refactor is complete, ensure that
+            //   we drop packets with the wrong sizes.
 
             if(comm) {
                 if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
