@@ -2736,7 +2736,10 @@ void process_pdu (struct n3n_runtime_data *eee,
 
             if(!eee->last_sup) {
                 // drop packets received before first registration with supernode
-                traceEvent(TRACE_DEBUG, "dropped PACKET recevied before first registration with supernode");
+                traceEvent(
+                    TRACE_DEBUG,
+                    "dropped PACKET received before first registration with supernode"
+                );
                 return;
             }
 

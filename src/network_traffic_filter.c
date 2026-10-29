@@ -790,7 +790,12 @@ uint8_t process_traffic_filter_rule_str (const char *rule_str, filter_rule_t *ru
                         ++cur_pos;
                     }
                 } else {
-                    traceEvent(TRACE_WARNING, "Internal Error: ',' should skiped", *cur_pos, cur_pos - rule_str);
+                    traceEvent(
+                        TRACE_WARNING,
+                        "Internal Error: ',' should skipped",
+                        *cur_pos,
+                        cur_pos - rule_str
+                    );
                     return 0;
                 }
                 break;

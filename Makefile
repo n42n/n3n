@@ -82,6 +82,7 @@ CONFIG_RUNDIR?=$(DESTDIR)/run
 CONFIG_BINDIR?=$(PREFIX)/bin
 CONFIG_SBINDIR?=$(PREFIX)/sbin
 CONFIG_MANDIR?=$(PREFIX)/share/man
+MAN1DIR=$(CONFIG_MANDIR)/man1
 MAN7DIR=$(CONFIG_MANDIR)/man7
 MAN8DIR=$(CONFIG_MANDIR)/man8
 CONFIG_DOCDIR?=$(PREFIX)/share/doc/n3n
@@ -245,6 +246,7 @@ LINT_EXCLUDE=include/uthash.h
 MANS+=docs/n3n-edge.8.gz
 MANS+=docs/n3n-supernode.8.gz
 MANS+=docs/n3n.7.gz
+# MANS+=docs/n3nctl.1.gz
 
 # This is the list of Debian/Ubuntu packages that are needed during the build.
 # Mostly of use in automated build systems.
@@ -433,6 +435,7 @@ install.systemd:
 .PHONY: install.doc
 install: $(MANS)
 	$(INSTALL) -d $(MAN7DIR) $(MAN8DIR) $(CONFIG_DOCDIR)
+	# $(INSTALL_DOC) docs/n3nctl.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) docs/n3n-edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) docs/n3n-supernode.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) docs/n3n.7.gz $(MAN7DIR)/
