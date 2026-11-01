@@ -1682,11 +1682,12 @@ static int sort_communities (struct n3n_runtime_data *sss,
  *
  */
 static void process_pdu (struct n3n_runtime_data * sss,
-                        const struct sockaddr *sender_sock, socklen_t sock_size,
-                        const SOCKET socket_fd,
-                        uint8_t * udp_buf,
-                        size_t udp_size,
-                        time_t now
+                         const struct sockaddr *sender_sock,
+                         socklen_t sock_size,
+                         const SOCKET socket_fd,
+                         uint8_t * udp_buf,
+                         size_t udp_size,
+                         time_t now
 ) {
 
     n2n_common_t cmn;        /* common fields in the packet header */
