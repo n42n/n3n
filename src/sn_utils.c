@@ -1872,6 +1872,14 @@ static void process_pdu (struct n3n_runtime_data * sss,
             sss->last_sn_fwd = now;
             decode_PACKET(&pkt, &cmn, udp_buf, &rem, &idx);
 
+            if(idx > udp_size) {
+                // The incoming packet was too small to decode.
+                // TODO:
+                // - should this use rem instead of udp_size?
+                // - metrics
+                return;
+            }
+
             // already checked for valid comm
             if(comm->header_encryption == HEADER_ENCRYPTION_ENABLED) {
                 if(!find_peer_time_stamp_and_verify(
@@ -1904,23 +1912,39 @@ static void process_pdu (struct n3n_runtime_data * sss,
 
                 rec_buf = encbuf;
                 /* Re-encode the header. */
-                ssize_t headsize = encode_PACKET(encbuf, &encx, &cmn2, &pkt);
+                encode_PACKET(encbuf, &encx, &cmn2, &pkt);
+                // encode_PACKET() has a return value but it is insufficiently
+                // unique to use it as an indicator
+                // This is another reason to refactor how wire.c works.
 
-                uint16_t oldEncx = encx;
+                if(encx > N2N_SN_PKTBUF_SIZE) {
+                    // Encode was unexpectedly long
+                    // TODO:
+                    // - This hardcodes MTU
+                    // - metrics
+                    return;
+                }
 
+                // The transported ethernet packet is the size of the PDU
+                // minus the size of the header
                 ssize_t pktsize = (udp_size - idx);
 
-                if(headsize + pktsize > N2N_SN_PKTBUF_SIZE) {
+                // Can we fit this transported ethernet packet in the space
+                // remaining after the new header has been inserted?
+                if((pktsize > (ssize_t)(N2N_SN_PKTBUF_SIZE - encx))) {
                     // Packet would be too big to fit in our buffers.
                     // Ethernet switches dont normally provide any
                     // notification to the sender that there was a MTU
                     // overflow, so we dont try to do anything like that here.
                     //
                     // TODO:
+                    // - This hardcodes MTU
                     // - metrics
                     // - something else to help with understanding MTU issues
                     return;
                 }
+
+                uint16_t oldEncx = encx;
 
                 /* Copy the original payload unchanged */
                 encode_buf(encbuf, &encx, (udp_buf + idx), pktsize);
