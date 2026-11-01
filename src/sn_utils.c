@@ -2061,6 +2061,8 @@ static void process_pdu (struct n3n_runtime_data * sss,
              */
             // TODO: refactor code to avoid needing memset
             memset(&ack, 0, sizeof(n2n_REGISTER_SUPER_ACK_t));
+            memset(&nak, 0, sizeof(n2n_REGISTER_SUPER_NAK_t));
+
 
             /* Edge/supernode requesting registration with us.    */
             sss->last_sn_reg=now;
