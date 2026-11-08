@@ -892,7 +892,7 @@ void n3n_config_debug_addr (void *conf, FILE *f) {
     struct n3n_conf_section *section = registered_sections;
     const struct n3n_conf_option *option;
 
-    fprintf(f, "# Internal Address consistancy checks\n");
+    fprintf(f, "# Internal Address consistency checks\n");
     while(section) {
         option = section->options;
         int i = 0;

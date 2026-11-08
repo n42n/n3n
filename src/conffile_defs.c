@@ -366,7 +366,8 @@ static struct n3n_conf_option section_supernode[] = {
         .offset = offsetof(n2n_edge_conf_t, sn_mac_addr),
         .desc = "fixed MAC address for the supernode",
         .help = "This is used as an identifier for the supernode in protocol "
-                "packets.  If not configed, a random value will be selected.",
+                "packets.  If not configured, a random value will be "
+                "selected.",
     },
     {
         .name = "peer",
