@@ -609,7 +609,7 @@ jobs:
     name: Binaries for linux
     needs:
       - test_linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: true
       matrix:
