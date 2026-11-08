@@ -474,6 +474,9 @@ int decode_REGISTER_SUPER (n2n_REGISTER_SUPER_t *reg,
     if(reg->auth.token_size > N2N_AUTH_MAX_TOKEN_SIZE) {
         return -1;
     }
+    if(*rem < reg->auth.token_size) {
+        return -1;
+    }
     retval += decode_buf(reg->auth.token, reg->auth.token_size, base, rem, idx);
     retval += decode_uint32(&(reg->key_time), base, rem, idx);
 
@@ -512,6 +515,9 @@ int decode_UNREGISTER_SUPER (n2n_UNREGISTER_SUPER_t *unreg,
     /* token_size is read from the wire; bound it to the fixed-size
      * destination field auth.token before copying. */
     if(unreg->auth.token_size > N2N_AUTH_MAX_TOKEN_SIZE) {
+        return -1;
+    }
+    if(*rem < unreg->auth.token_size) {
         return -1;
     }
     retval += decode_buf(unreg->auth.token, unreg->auth.token_size, base, rem, idx);
@@ -624,6 +630,9 @@ int decode_REGISTER_SUPER_ACK (n2n_REGISTER_SUPER_ACK_t *reg,
     if(reg->auth.token_size > N2N_AUTH_MAX_TOKEN_SIZE) {
         return -1;
     }
+    if(*rem < reg->auth.token_size) {
+        return -1;
+    }
     retval += decode_buf(reg->auth.token, reg->auth.token_size, base, rem, idx);
 
     /* Following the edge socket are an array of backup supernodes. */
@@ -677,6 +686,9 @@ int decode_REGISTER_SUPER_NAK (n2n_REGISTER_SUPER_NAK_t *nak,
     /* token_size is read from the wire; bound it to the fixed-size
      * destination field auth.token before copying. */
     if(nak->auth.token_size > N2N_AUTH_MAX_TOKEN_SIZE) {
+        return -1;
+    }
+    if(*rem < nak->auth.token_size) {
         return -1;
     }
     retval += decode_buf(nak->auth.token, nak->auth.token_size, base, rem, idx);
