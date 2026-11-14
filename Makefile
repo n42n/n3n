@@ -434,7 +434,7 @@ install.systemd:
 
 .PHONY: install.doc
 install: $(MANS)
-	$(INSTALL) -d $(MAN7DIR) $(MAN8DIR) $(CONFIG_DOCDIR)
+	$(INSTALL) -d $(MAN1DIR) $(MAN7DIR) $(MAN8DIR) $(CONFIG_DOCDIR)
 	$(INSTALL_DOC) docs/n3nctl.1.gz $(MAN1DIR)/
 	$(INSTALL_DOC) docs/n3n-edge.8.gz $(MAN8DIR)/
 	$(INSTALL_DOC) docs/n3n-supernode.8.gz $(MAN8DIR)/
