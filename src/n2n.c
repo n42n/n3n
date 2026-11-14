@@ -52,16 +52,30 @@ SOCKET open_socket (struct sockaddr *local_address, socklen_t addrlen, int type 
     SOCKET sock_fd;
     int sockopt;
     int family;
-
+    int socktype = (type == 0) ? SOCK_DGRAM : SOCK_STREAM;
 
     if(local_address) {
         family = local_address->sa_family;
     } else {
-        // If no bind details provided, assume IPv4.
-        family = AF_INET;
+        // If no bind details provided, prefer an IPv6 socket. It is made
+        // dual-stack below (IPV6_V6ONLY=0), so both IPv4 and IPv6 peers and
+        // supernodes are reachable.
+        family = AF_INET6;
     }
 
-    if((int)(sock_fd = socket(family, ((type == 0) ? SOCK_DGRAM : SOCK_STREAM), 0)) < 0) {
+    sock_fd = socket(family, socktype, 0);
+    if((int)sock_fd < 0 && !local_address && family == AF_INET6) {
+        // No IPv6 support on this host: fall back to IPv4
+        traceEvent(
+            TRACE_INFO,
+            "IPv6 socket unavailable [%s], falling back to IPv4",
+            strerror(errno)
+        );
+        family = AF_INET;
+        sock_fd = socket(family, socktype, 0);
+    }
+
+    if((int)sock_fd < 0) {
         traceEvent(TRACE_ERROR, "Unable to create socket for family %d [%s][%d]\n",
                    family, strerror(errno), sock_fd);
         return -1;
