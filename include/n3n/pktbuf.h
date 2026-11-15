@@ -30,7 +30,7 @@ struct n3n_pktbuf {
 
 void n3n_pktbuf_initialise (ssize_t mtu, int count);
 
-struct n3n_pktbuf *n3n_pktbuf_alloc(ssize_t);
+struct n3n_pktbuf *n3n_pktbuf_alloc (ssize_t);
 void n3n_pktbuf_free (struct n3n_pktbuf *);
 
 void n3n_pktbuf_zero (struct n3n_pktbuf *);
@@ -39,7 +39,11 @@ ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf);
 ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf);
 void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf);
 
-int n3n_pktbuf_prepend(struct n3n_pktbuf *, ssize_t);
-int n3n_pktbuf_append(struct n3n_pktbuf *, ssize_t, void *);
+int n3n_pktbuf_prepend_space (struct n3n_pktbuf *, ssize_t);
+int n3n_pktbuf_append_space (struct n3n_pktbuf *, ssize_t);
+
+int n3n_pktbuf_append_memcpy (struct n3n_pktbuf *, void *, ssize_t);
+
+int n3n_pktbuf_read (struct n3n_pktbuf *, int);
 
 #endif
