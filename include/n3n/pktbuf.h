@@ -39,6 +39,8 @@ ssize_t n3n_pktbuf_getbufsize (const struct n3n_pktbuf);
 ssize_t n3n_pktbuf_getbufavail (const struct n3n_pktbuf);
 void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf);
 
+void n3n_pktbuf_memset (struct n3n_pktbuf *, unsigned char);
+
 int n3n_pktbuf_prepend_space(struct n3n_pktbuf *, ssize_t);
 int n3n_pktbuf_append_space(struct n3n_pktbuf *, ssize_t);
 

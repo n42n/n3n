@@ -176,7 +176,11 @@ int generic_check (
     const ssize_t got_size = n3n_pktbuf_getbufsize(*outbuf);
     const void *const got = n3n_pktbuf_getbufptr(*outbuf);
 
-    if(got_size != n3n_pktbuf_getbufsize(benchmark_test_data[p->data_out])) {
+    const ssize_t expect_size = n3n_pktbuf_getbufsize(
+        benchmark_test_data[p->data_out]
+    );
+
+    if(got_size != expect_size) {
         // unexpected size results in an error
         return 1;
     }
@@ -368,6 +372,7 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
         ssize_t count_in;
         shm->sentinal = 1;
         do {
+            n3n_pktbuf_zero(outbuf);
             item->run(
                 ctx,
                 &benchmark_test_data[item->data_in],
@@ -512,6 +517,7 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
     perf_measure_start(info);
 
     do {
+        n3n_pktbuf_zero(outbuf);
         ssize_t count_in;
 
         ssize_t count_out = item->run(
@@ -640,6 +646,10 @@ int benchmark_run_check (int level, int filterc, char **filterv) {
 
         void *ctx = item_setup(p);
         struct n3n_pktbuf *outbuf = n3n_pktbuf_alloc(N2N_PKT_BUF_SIZE);
+
+        // Ensure that no uninitialised memory could accidentally cause a
+        // false positive check result
+        n3n_pktbuf_memset(outbuf, 0);
 
         ssize_t count_in;
 

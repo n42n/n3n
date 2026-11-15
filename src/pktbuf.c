@@ -152,6 +152,10 @@ void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf meta) {
     return &meta.buf[meta.offset_start];
 }
 
+void n3n_pktbuf_memset (struct n3n_pktbuf *p, unsigned char ch) {
+    memset(n3n_pktbuf_getbufptr(*p), ch, n3n_pktbuf_getbufavail(*p));
+}
+
 /*
  * Adjusts the starting position used for any data.
  * This does not change the end position or clear the data.
