@@ -26,6 +26,11 @@
 #include <sys/wait.h>           // for wait, WIFSTOPPED
 #endif
 
+#ifdef _WIN32
+// TODO: avoid relative include paths
+#include "../win32/defs.h"      // for timersub
+#endif
+
 #ifdef __linux__
 #include <linux/perf_event.h>
 #include <sys/ioctl.h>
@@ -546,14 +551,7 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
     item_teardown(item, ctx);
     n3n_pktbuf_free(outbuf);
 
-#ifdef _WIN32
-    // Just do a half-arsed job on windows, which matches their ability to
-    // support POSIX
-    tv1.tv_sec = tv2.tv_sec - tv1.tv_sec;
-    tv1.tv_usec = tv2.tv_usec - tv1.tv_usec;
-#else
     timersub(&tv2, &tv1, &tv1);
-#endif
 
     info->loops = loops;
     info->sec = tv1.tv_sec;
