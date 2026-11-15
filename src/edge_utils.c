@@ -360,6 +360,20 @@ static int detect_local_ip_address (n3n_sock_t* out_sock, const struct n3n_runti
 }
 
 
+// always closes the socket
+void supernode_disconnect (struct n3n_runtime_data *eee) {
+    if(!eee) {
+        return;
+    }
+    if(eee->sock >= 0) {
+        closesocket(eee->sock);
+        mainloop_unregister_fd(eee->sock);
+        eee->sock = -1;
+        traceEvent(TRACE_DEBUG, "closed");
+    }
+}
+
+
 // open socket, close it before if TCP
 // in case of TCP, 'connect()' is required
 void supernode_connect (struct n3n_runtime_data *eee) {
@@ -371,11 +385,9 @@ void supernode_connect (struct n3n_runtime_data *eee) {
     n3n_sock_str_t sockbuf;
 
     if(eee->conf.connect_tcp) {
-        // It might be already closed, but we can simply ignore errors and
-        // carry on
-        mainloop_unregister_fd(eee->sock);
-        closesocket(eee->sock);
-        eee->sock = -1;
+        // It might be already closed, but that doesnt matter so we just close
+        // again
+        supernode_disconnect(eee);
     }
 
     if(eee->sock >= 0) {
@@ -588,20 +600,6 @@ hack_retry:
     memcpy(&eee->conf.preferred_sock, &local_sock, sizeof(n3n_sock_t));
     traceEvent(TRACE_INFO, "determined local socket [%s]",
                sock_to_cstr(sockbuf, &local_sock));
-}
-
-
-// always closes the socket
-void supernode_disconnect (struct n3n_runtime_data *eee) {
-    if(!eee) {
-        return;
-    }
-    if(eee->sock >= 0) {
-        closesocket(eee->sock);
-        mainloop_unregister_fd(eee->sock);
-        eee->sock = -1;
-        traceEvent(TRACE_DEBUG, "closed");
-    }
 }
 
 

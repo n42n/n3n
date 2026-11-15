@@ -243,11 +243,7 @@ int n2n_transop_tf_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
 struct bench_ctx {
     transop_tf_t priv;
-    // for encryption, want to be able to test the largest expected MTU + IV
-    // for decryption, just need to worry about the MTU
     uint8_t iv[TF_PREAMBLE_SIZE];
-    uint8_t outbuf[2048 + TF_PREAMBLE_SIZE];
-    ssize_t outbuf_size;
 };
 
 static void *bench_setup (void *const _ctx) {
@@ -275,11 +271,13 @@ static void bench_teardown (void *_ctx) {
 static const ssize_t bench_encr_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
     // TODO: refactor to call transop_encode_cc20() directly
 
@@ -304,7 +302,7 @@ static const ssize_t bench_encr_run (
     memset(&assembly[idx], 0, TF_BLOCK_SIZE);
 
     tf_cbc_encrypt(
-        (unsigned char *)&ctx->outbuf,
+        outbuf_ptr,
         assembly,
         padded_len,
         tf_null_iv,
@@ -315,39 +313,40 @@ static const ssize_t bench_encr_run (
         // exchange last two cipher blocks
         memcpy(
             buf,
-            &ctx->outbuf[padded_len - TF_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - TF_BLOCK_SIZE],
             TF_BLOCK_SIZE
         );
         memcpy(
-            &ctx->outbuf[padded_len - TF_BLOCK_SIZE],
-            &ctx->outbuf[padded_len - 2 * TF_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - TF_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - 2 * TF_BLOCK_SIZE],
             TF_BLOCK_SIZE
         );
         memcpy(
-            &ctx->outbuf[padded_len - 2 * TF_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - 2 * TF_BLOCK_SIZE],
             buf,
             TF_BLOCK_SIZE
         );
     }
 
     *bytes_in = data_in_size;
-    ctx->outbuf_size = padded_len;
-    return ctx->outbuf_size;
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, padded_len);
+    return padded_len;
 }
 
 static const ssize_t bench_decr_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
     // TODO: refactor to call transop_decode_cc20() directly
 
     uint8_t assembly[N2N_PKT_BUF_SIZE];
-    const unsigned char *bytes = (unsigned char *)data_in;
 
     uint8_t rest = data_in_size % TF_BLOCK_SIZE;
     if(rest) { /* cipher text stealing */
@@ -356,16 +355,16 @@ static const ssize_t bench_decr_run (
             ((data_in_size / TF_BLOCK_SIZE) - 1) * TF_BLOCK_SIZE;
 
         // everything normal up to penultimate block
-        memcpy(assembly, bytes, penultimate_block);
+        memcpy(assembly, data_in, penultimate_block);
 
         // prepare new penultimate block in buf
-        tf_ecb_decrypt(buf, &bytes[penultimate_block], ctx->priv.ctx);
-        memcpy(buf, &bytes[data_in_size - rest], rest);
+        tf_ecb_decrypt(buf, &data_in[penultimate_block], ctx->priv.ctx);
+        memcpy(buf, &data_in[data_in_size - rest], rest);
 
         // former penultimate block becomes new ultimate block
         memcpy(
             &assembly[penultimate_block + TF_BLOCK_SIZE],
-            &bytes[penultimate_block],
+            &data_in[penultimate_block],
             TF_BLOCK_SIZE
         );
 
@@ -396,16 +395,11 @@ static const ssize_t bench_decr_run (
             ctx->priv.ctx
         );
     }
-    ctx->outbuf_size = data_in_size - TF_PREAMBLE_SIZE;
-    memcpy(ctx->outbuf, &assembly[TF_PREAMBLE_SIZE], ctx->outbuf_size);
-
     *bytes_in = data_in_size;
-    return ctx->outbuf_size;
-}
-
-static const void *const bench_get_output (void *const _ctx) {
-    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
-    return &ctx->outbuf;
+    const int outbuf_size = data_in_size - TF_PREAMBLE_SIZE;
+    memcpy(outbuf_ptr, &assembly[TF_PREAMBLE_SIZE], outbuf_size);
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, outbuf_size);
+    return outbuf_size;
 }
 
 static struct bench_item bench_encr = {
@@ -413,7 +407,6 @@ static struct bench_item bench_encr = {
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_encr_run,
-    .get_output = bench_get_output,
     .teardown = bench_teardown,
     .data_in = test_data_32x16,
     .data_out = test_data_tf,
@@ -424,7 +417,6 @@ static struct bench_item bench_decr = {
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_decr_run,
-    .get_output = bench_get_output,
     .teardown = bench_teardown,
     .data_in = test_data_tf,
     .data_out = test_data_32x16,

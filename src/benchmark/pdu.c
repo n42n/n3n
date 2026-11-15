@@ -25,8 +25,6 @@
 struct bench_ctx {
     struct n3n_runtime_data eee;
     int sv[2];
-    uint8_t outbuf[N2N_PKT_BUF_SIZE];
-    ssize_t outbuf_size;
 };
 
 static void *bench_setup (void *const _ctx) {
@@ -48,6 +46,7 @@ static void *bench_setup (void *const _ctx) {
     ctx->eee.device.mac_addr[0] = 0x02;
 
 #ifndef _WIN32
+    // TODO: refactor process_pdu to not require a socketpair
     if(socketpair(AF_UNIX, SOCK_DGRAM, 0, ctx->sv) == -1) {
         perror("socketpair");
         exit(EXIT_FAILURE);
@@ -68,13 +67,6 @@ static void bench_teardown (void *_ctx) {
     peer_info_free(ctx->eee.curr_sn);
     edge_term_conf(&ctx->eee.conf);
 }
-
-#ifndef _WIN32
-static const void *const bench_get_output (void *const _ctx) {
-    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
-    return &ctx->outbuf;
-}
-#endif
 
 #ifdef _WIN32
 static int const bench_check_fake (void *const _ctx, const int level) {
@@ -99,6 +91,7 @@ void process_pdu (struct n3n_runtime_data *eee,
 static const ssize_t bench_pdu2tun_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
@@ -124,14 +117,13 @@ static const ssize_t bench_pdu2tun_run (
     );
 
     // If we could not create the socketpair, we cannot read the buffer
+    // (This is a hack until the core is reworked to use in and out bufs and
+    // the result can be read without resorting to a pipe)
     if(ctx->sv[1] != -1) {
-        ctx->outbuf_size = read(ctx->sv[1], &ctx->outbuf, sizeof(ctx->outbuf));
-    } else {
-        ctx->outbuf_size = 0;
-        ctx->outbuf[0] = 0;
+        n3n_pktbuf_read((struct n3n_pktbuf *)outbuf, ctx->sv[1]);
     }
     *in = data_in_size;
-    return ctx->outbuf_size;
+    return n3n_pktbuf_getbufsize(*outbuf);
 }
 
 static struct bench_item bench_pdu2tun = {
@@ -139,9 +131,7 @@ static struct bench_item bench_pdu2tun = {
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_pdu2tun_run,
-#ifndef _WIN32
-    .get_output = bench_get_output,
-#else
+#ifdef _WIN32
     .check = bench_check_fake,
 #endif
     .teardown = bench_teardown,
@@ -152,22 +142,25 @@ static struct bench_item bench_pdu2tun = {
 static const ssize_t bench_tun2pdu_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
     n2n_mac_t destMac;
 
-    ctx->outbuf_size = edge_encode_packet(
+    const ssize_t outbuf_size_read = edge_encode_packet(
         &ctx->eee,
         n3n_pktbuf_getbufptr(*inbuf),
         data_in_size,
-        ctx->outbuf, sizeof(ctx->outbuf),
+        n3n_pktbuf_getbufptr(*outbuf),
+        n3n_pktbuf_getbufavail(*outbuf),
         destMac
     );
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, outbuf_size_read);
 
     *in = data_in_size;
-    return ctx->outbuf_size;
+    return n3n_pktbuf_getbufsize(*outbuf);
 }
 
 static struct bench_item bench_tun2pdu = {
@@ -175,9 +168,7 @@ static struct bench_item bench_tun2pdu = {
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_tun2pdu_run,
-#ifndef _WIN32
-    .get_output = bench_get_output,
-#else
+#ifdef _WIN32
     .check = bench_check_fake,
 #endif
     .teardown = bench_teardown,

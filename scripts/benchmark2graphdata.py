@@ -39,8 +39,8 @@ def main():
         db[k] = ipl
 
     reporton = [
-        "aes_decr,",
-        "aes_encr,",
+        "transform_aes_decr,",
+        "transform_aes_encr,",
         "pdu2tun,",
         "tun2pdu,",
         "NOP,",

@@ -9,6 +9,7 @@
 #include <n3n/pktbuf.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>         // for read
 
 
 static struct metrics {
@@ -151,6 +152,17 @@ void *n3n_pktbuf_getbufptr (const struct n3n_pktbuf meta) {
     return &meta.buf[meta.offset_start];
 }
 
+void n3n_pktbuf_memset (struct n3n_pktbuf *p, unsigned char ch) {
+    memset(n3n_pktbuf_getbufptr(*p), ch, n3n_pktbuf_getbufavail(*p));
+}
+
+/*
+ * Adjusts the starting position used for any data.
+ * This does not change the end position or clear the data.
+ *
+ * Mainly intended for use with external packet framing that contains a
+ * byte counter.
+ */
 int n3n_pktbuf_prepend_space (struct n3n_pktbuf *p, ssize_t prepend) {
     if(prepend < 0) {
         return -1;
@@ -163,14 +175,47 @@ int n3n_pktbuf_prepend_space (struct n3n_pktbuf *p, ssize_t prepend) {
     return 1;
 }
 
-int n3n_pktbuf_append_memcpy (struct n3n_pktbuf *p, ssize_t size, void *buf) {
-    int new_end = p->offset_end + size;
+/*
+ * Adjusts the ending position of the data.
+ * This does not change the start position or clear the data.
+ *
+ * This is used when something else has grabbed a bufptr and updated the data
+ * in place.
+ */
+int n3n_pktbuf_append_space (struct n3n_pktbuf *p, ssize_t append) {
+    int new_end = p->offset_end + append;
     if(new_end > p->capacity) {
         return -1;
     }
     p->offset_end = new_end;
-    memcpy((void *)&p->buf[p->offset_end], buf, size);
     return 1;
+}
+
+/*
+ * Copies the new data to the end of the current data, and ajusts the end
+ * pointer to match.
+ */
+int n3n_pktbuf_append_memcpy (struct n3n_pktbuf *p, void *buf, ssize_t size) {
+    int new_end = p->offset_end + size;
+    if(new_end > p->capacity) {
+        return -1;
+    }
+    memcpy((void *)&p->buf[p->offset_end], buf, size);
+    p->offset_end = new_end;
+    return 1;
+}
+
+int n3n_pktbuf_read (struct n3n_pktbuf *p, int fd) {
+    const ssize_t avail = n3n_pktbuf_getbufavail(*p);
+    void *bufptr = n3n_pktbuf_getbufptr(*p);
+
+    ssize_t size_read = read(fd, bufptr, avail);
+
+    if(size_read == -1) {
+        return -1;
+    }
+
+    return n3n_pktbuf_append_space(p, size_read);
 }
 
 void n3n_initfuncs_pktbuf () {

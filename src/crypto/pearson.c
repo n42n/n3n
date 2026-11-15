@@ -234,6 +234,7 @@ static const uint64_t expected_pearson_hash_64 = 0xb2d98fa82ea108be;
 static const ssize_t bench_16_run (
     void *ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     uint16_t *result = (uint16_t *)ctx;
@@ -273,6 +274,7 @@ static int bench_16_check (void *ctx, int level) {
 static const ssize_t bench_32_run (
     void *ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     uint32_t *result = (uint32_t *)ctx;
@@ -312,6 +314,7 @@ static int bench_32_check (void *ctx, int level) {
 static const ssize_t bench_64_run (
     void *ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     uint64_t *result = (uint64_t *)ctx;
@@ -351,41 +354,43 @@ static int bench_64_check (void *ctx, int level) {
 static const ssize_t bench_128_run (
     void *ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
-    uint8_t *bytes = (uint8_t *)ctx;
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
     pearson_hash_128(
-        ctx,
+        outbuf_ptr,
         n3n_pktbuf_getbufptr(*inbuf),
         data_in_size
     );
     *bytes_in = data_in_size;
-    bytes[32] = 16;
-    return bytes[32];
+    const int data_out_size = 16;
+
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, data_out_size);
+    return data_out_size;
 }
 
 static const ssize_t bench_256_run (
     void *ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
-    uint8_t *bytes = (uint8_t *)ctx;
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
     pearson_hash_256(
-        ctx,
+        outbuf_ptr,
         n3n_pktbuf_getbufptr(*inbuf),
         data_in_size
     );
     *bytes_in = data_in_size;
-    bytes[32] = 32;
-    return bytes[32];
-}
+    const int data_out_size = 32;
 
-static const void *const bench_get_output (void *const ctx) {
-    return ctx;
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, data_out_size);
+    return data_out_size;
 }
 
 static struct bench_item bench_16 = {
@@ -420,10 +425,8 @@ static struct bench_item bench_64 = {
 static struct bench_item bench_128 = {
     .name = "pearson_hash_128",
     .flags = BENCH_SKIP_BENCH,
-    // largest result size plus one for the length
-    .ctx_size = 32 + 1,
+    .ctx_size = 0,
     .run = bench_128_run,
-    .get_output = bench_get_output,
     .data_in = test_data_32x16,
     .data_out = test_data_pearson_128,
 };
@@ -431,10 +434,8 @@ static struct bench_item bench_128 = {
 static struct bench_item bench_256 = {
     .name = "pearson_hash_256",
     .flags = BENCH_SKIP_BENCH,
-    // largest result size plus one for the length
-    .ctx_size = 32 + 1,
+    .ctx_size = 0,
     .run = bench_256_run,
-    .get_output = bench_get_output,
     .data_in = test_data_32x16,
     .data_out = test_data_pearson_256,
 };

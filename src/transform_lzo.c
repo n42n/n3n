@@ -84,6 +84,8 @@ static int transop_encode_lzo (n2n_trans_op_t *arg,
         traceEvent(TRACE_ERROR, "encode_lzo compression error");
         compression_len = 0;
     }
+    // TODO:
+    // - guard against compression output buffer overflow
 
     return compression_len;
 }
@@ -154,56 +156,56 @@ int n2n_transop_lzo_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
 struct bench_ctx {
     transop_lzo_t priv;
-    // for compression, want a outbuf (0x200 * 2) / 16 + 64 + 3 bytes
-    // for uncompression, want to be able to test the largest expected MTU
-    uint8_t outbuf[2048];
-    lzo_uint outbuf_size;
 };
 
 static const ssize_t bench_lzo_comp_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
-    ctx->outbuf_size = 0;
+    lzo_uint outbuf_size = 0;
 
     int result = lzo1x_1_compress(
         data_in,
         data_in_size,
-        ctx->outbuf,
-        &ctx->outbuf_size,
+        outbuf_ptr,
+        &outbuf_size,
         ctx->priv.wrkmem
     );
 
     if(result != LZO_E_OK) {
         traceEvent(TRACE_ERROR, "encode_lzo compression error");
-        ctx->outbuf_size = 0;
+        outbuf_size = 0;
     }
 
     *bytes_in = data_in_size;
-    return ctx->outbuf_size;
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, outbuf_size);
+    return outbuf_size;
 }
 
 static const ssize_t bench_lzo_uncomp_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
-    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
-    ctx->outbuf_size = sizeof(ctx->outbuf);
+    lzo_uint outbuf_size = n3n_pktbuf_getbufavail(*outbuf);
 
     lzo1x_decompress_safe(
         data_in,
         data_in_size,
-        ctx->outbuf,
-        &ctx->outbuf_size,
+        outbuf_ptr,
+        &outbuf_size,
         NULL
     );
 
@@ -211,12 +213,8 @@ static const ssize_t bench_lzo_uncomp_run (
     // assuming that the benchmark is handed valid compressed data
 
     *bytes_in = data_in_size;
-    return ctx->outbuf_size;
-}
-
-static const void *const bench_lzo_get_output (void *const _ctx) {
-    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
-    return &ctx->outbuf;
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, outbuf_size);
+    return outbuf_size;
 }
 
 static struct n3n_transform transform = {
@@ -226,19 +224,17 @@ static struct n3n_transform transform = {
 };
 
 static struct bench_item bench_lzo_comp = {
-    .name = "lzo_comp",
+    .name = "transform_lzo_comp",
     .ctx_size = sizeof(struct bench_ctx),
     .run = bench_lzo_comp_run,
-    .get_output = bench_lzo_get_output,
     .data_in = test_data_32x16,
     .data_out = test_data_lzo,
 };
 
 static struct bench_item bench_lzo_uncomp = {
-    .name = "lzo_uncomp",
-    .ctx_size = sizeof(struct bench_ctx),
+    .name = "transform_lzo_uncomp",
+    .ctx_size = 0,
     .run = bench_lzo_uncomp_run,
-    .get_output = bench_lzo_get_output,
     .data_in = test_data_lzo,
     .data_out = test_data_32x16,
 };

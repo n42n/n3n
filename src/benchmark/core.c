@@ -5,6 +5,7 @@
  */
 
 #include <inttypes.h>
+#include <n2n_define.h>         // for N2N_PKT_BUF_SIZE
 #include <n3n/benchmark.h>
 #include <n3n/hexdump.h>  // for fhexdump
 #include <n3n/pktbuf.h>
@@ -23,6 +24,11 @@
 #include <sys/ptrace.h>         // for ptrace
 #include <sys/types.h>          // for PTRACE_*
 #include <sys/wait.h>           // for wait, WIFSTOPPED
+#endif
+
+#ifdef _WIN32
+// TODO: avoid relative include paths
+#include "../win32/defs.h"      // for timersub
 #endif
 
 #ifdef __linux__
@@ -169,11 +175,17 @@ void n3n_benchmark_register (struct bench_item *item) {
 
 int generic_check (
     const struct bench_item *const p,
-    const void *const got,
-    const ssize_t got_size,
+    const struct n3n_pktbuf *outbuf,
     const int level
 ) {
-    if(got_size != n3n_pktbuf_getbufsize(benchmark_test_data[p->data_out])) {
+    const ssize_t got_size = n3n_pktbuf_getbufsize(*outbuf);
+    const void *const got = n3n_pktbuf_getbufptr(*outbuf);
+
+    const ssize_t expect_size = n3n_pktbuf_getbufsize(
+        benchmark_test_data[p->data_out]
+    );
+
+    if(got_size != expect_size) {
         // unexpected size results in an error
         return 1;
     }
@@ -319,6 +331,7 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
     struct timeval tv2;
 
     void *ctx = item_setup(item);
+    struct n3n_pktbuf *outbuf = n3n_pktbuf_alloc(N2N_PKT_BUF_SIZE);
 
     struct pthread_shared *shm = mmap(
         NULL,
@@ -364,9 +377,11 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
         ssize_t count_in;
         shm->sentinal = 1;
         do {
+            n3n_pktbuf_zero(outbuf);
             item->run(
                 ctx,
                 &benchmark_test_data[item->data_in],
+                outbuf,
                 &count_in
             );
             shm->loops++;
@@ -431,6 +446,7 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
     gettimeofday(&tv2, NULL);
 
     item_teardown(item, ctx);
+    n3n_pktbuf_free(outbuf);
 
     timersub(&tv2, &tv1, &tv1);
 
@@ -443,6 +459,7 @@ static void run_one_item_ptrace (const int seconds, struct info *info, const str
 // many instructions are
 void benchmark_run_ptrace (const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
+    n3n_pktbuf_initialise(N2N_PKT_BUF_SIZE, 4);
 
     fprintf(stderr,"WARNING: fakebench produces fake benchmark results\n");
     fprintf(stderr,"it is not suitable for benchmark evidence\n");
@@ -483,6 +500,7 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
     perf_setup(info);
 
     void *ctx = item_setup(item);
+    struct n3n_pktbuf *outbuf = n3n_pktbuf_alloc(N2N_PKT_BUF_SIZE);
 
     int loops = 0;
     alarm_fired = false;
@@ -504,11 +522,13 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
     perf_measure_start(info);
 
     do {
+        n3n_pktbuf_zero(outbuf);
         ssize_t count_in;
 
         ssize_t count_out = item->run(
             ctx,
             &benchmark_test_data[item->data_in],
+            outbuf,
             &count_in
         );
         loops++;
@@ -529,15 +549,9 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
     gettimeofday(&tv2, NULL);
 
     item_teardown(item, ctx);
+    n3n_pktbuf_free(outbuf);
 
-#ifdef _WIN32
-    // Just do a half-arsed job on windows, which matches their ability to
-    // support POSIX
-    tv1.tv_sec = tv2.tv_sec - tv1.tv_sec;
-    tv1.tv_usec = tv2.tv_usec - tv1.tv_usec;
-#else
     timersub(&tv2, &tv1, &tv1);
-#endif
 
     info->loops = loops;
     info->sec = tv1.tv_sec;
@@ -546,6 +560,7 @@ static void run_one_item (const int seconds, struct info *info, const struct ben
 
 void benchmark_run_bench (const int level, const int seconds, int filterc, char **filterv) {
     struct bench_item *p;
+    n3n_pktbuf_initialise(N2N_PKT_BUF_SIZE, 4);
 
     if(level==0) {
         printf("Each benchmark test runs for %i seconds\n\n", seconds);
@@ -616,6 +631,7 @@ void benchmark_run_bench (const int level, const int seconds, int filterc, char 
 
 int benchmark_run_check (int level, int filterc, char **filterv) {
     int result = 0;
+    n3n_pktbuf_initialise(N2N_PKT_BUF_SIZE, 4);
 
     for(struct bench_item *p = registered_items; p; p = p->next) {
         if(!item_allowrun(p, ACTION_CHECK, filterc, filterv)) {
@@ -627,12 +643,18 @@ int benchmark_run_check (int level, int filterc, char **filterv) {
         fprintf(stderr, "%s: ", name);
 
         void *ctx = item_setup(p);
+        struct n3n_pktbuf *outbuf = n3n_pktbuf_alloc(N2N_PKT_BUF_SIZE);
+
+        // Ensure that no uninitialised memory could accidentally cause a
+        // false positive check result
+        n3n_pktbuf_memset(outbuf, 0);
 
         ssize_t count_in;
 
         ssize_t count_out = p->run(
             ctx,
             &benchmark_test_data[p->data_in],
+            outbuf,
             &count_in
         );
 
@@ -645,22 +667,26 @@ int benchmark_run_check (int level, int filterc, char **filterv) {
         int this_result = 0;
         bool checked = false;
 
+        // TODO:
+        // - confirm the expected count_in and count_out
+
         if(p->check) {
             this_result += p->check(ctx, level);
             checked = true;
-        }
-
-        if(p->get_output) {
-            const void *out_data = p->get_output(ctx);
-
+        } else {
             if(p->data_out != test_data_none) {
-                this_result += generic_check(p, out_data, count_out, level);
+                this_result += generic_check(p, outbuf, level);
                 checked = true;
             }
 
             if(level) {
                 printf("%s: data_out:\n", p->name);
-                fhexdump(0, out_data, count_out, stdout);
+                fhexdump(
+                    0,
+                    n3n_pktbuf_getbufptr(*outbuf),
+                    n3n_pktbuf_getbufsize(*outbuf),
+                    stdout
+                );
             }
         }
 
@@ -679,6 +705,7 @@ int benchmark_run_check (int level, int filterc, char **filterv) {
             printf("\n");
         }
         item_teardown(p, ctx);
+        n3n_pktbuf_free(outbuf);
     }
 
     return result;

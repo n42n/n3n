@@ -66,7 +66,7 @@ jobs:
         os:
           - name: openbsd
             architecture: x86-64
-            version: '7.5'
+            version: '7.6'
 
     steps:
       - uses: actions/checkout@v7
@@ -90,14 +90,14 @@ jobs:
         shell: cpa.sh {0}
         run: |
           sudo pkg_add \
-            autoconf-2.71 \
+            autoconf-2.72p0 \
             automake-1.16.5 \
             git \
             gmake \
-            python3 \
+            python-3.11.10p0 \
             jq \
             bash
-          AUTOCONF_VERSION=2.71 AUTOMAKE_VERSION=1.16 ./autogen.sh
+          AUTOCONF_VERSION=2.72 AUTOMAKE_VERSION=1.16 ./autogen.sh
           ./configure CC=clang
           gmake all
 
