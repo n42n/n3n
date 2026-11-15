@@ -260,8 +260,6 @@ struct bench_ctx {
     // for encryption, want to be able to test the largest expected MTU + IV
     // for decryption, just need to worry about the MTU
     uint8_t iv[AES_PREAMBLE_SIZE];
-    uint8_t outbuf[2048 + AES_PREAMBLE_SIZE];
-    ssize_t outbuf_size;
 };
 
 static void *bench_setup (void *const _ctx) {
@@ -289,10 +287,16 @@ static void bench_teardown (void *_ctx) {
 static const ssize_t bench_encr_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+
+    if((data_in_size + AES_PREAMBLE_SIZE) > n3n_pktbuf_getbufavail(*outbuf)) {
+        // Avoid overflows
+        return 0;
+    }
 
     // TODO: refactor to call transop_encode_aes() directly
 
@@ -319,8 +323,10 @@ static const ssize_t bench_encr_run (
     // TODO - confirm that outbuf is large enough for all possible input sizes
     memset(&assembly[idx], 0, AES_BLOCK_SIZE);
 
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
+
     aes_cbc_encrypt(
-        (unsigned char *)&ctx->outbuf,
+        outbuf_ptr,
         assembly,
         padded_len,
         aes_null_iv,
@@ -333,36 +339,39 @@ static const ssize_t bench_encr_run (
         // exchange last two cipher blocks
         memcpy(
             buf,
-            &ctx->outbuf[padded_len - AES_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - AES_BLOCK_SIZE],
             AES_BLOCK_SIZE
         );
         memcpy(
-            &ctx->outbuf[padded_len - AES_BLOCK_SIZE],
-            &ctx->outbuf[padded_len - 2 * AES_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - AES_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - 2 * AES_BLOCK_SIZE],
             AES_BLOCK_SIZE
         );
         memcpy(
-            &ctx->outbuf[padded_len - 2 * AES_BLOCK_SIZE],
+            &outbuf_ptr[padded_len - 2 * AES_BLOCK_SIZE],
             buf,
             AES_BLOCK_SIZE
         );
     }
 
     *bytes_in = data_in_size;
-    ctx->outbuf_size = data_in_size + AES_PREAMBLE_SIZE;
-    return ctx->outbuf_size;
+    ssize_t outbuf_size = data_in_size + AES_PREAMBLE_SIZE;
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, outbuf_size);
+
+    return outbuf_size;
 }
 
 static const ssize_t bench_decr_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
 
     uint8_t assembly[N2N_PKT_BUF_SIZE];
-    const unsigned char *bytes = n3n_pktbuf_getbufptr(*inbuf);
 
     // TODO: refactor to call transop_decode_cc20() directly
 
@@ -373,16 +382,16 @@ static const ssize_t bench_decr_run (
             ((data_in_size / AES_BLOCK_SIZE) - 1) * AES_BLOCK_SIZE;
 
         // everything normal up to penultimate block
-        memcpy(assembly, bytes, penultimate_block);
+        memcpy(assembly, data_in, penultimate_block);
 
         // prepare new penultimate block in buf
-        aes_ecb_decrypt(buf, &bytes[penultimate_block], ctx->priv.ctx);
-        memcpy(buf, &bytes[data_in_size - rest], rest);
+        aes_ecb_decrypt(buf, &data_in[penultimate_block], ctx->priv.ctx);
+        memcpy(buf, &data_in[data_in_size - rest], rest);
 
         // former penultimate block becomes new ultimate block
         memcpy(
             &assembly[penultimate_block + AES_BLOCK_SIZE],
-            &bytes[penultimate_block],
+            &data_in[penultimate_block],
             AES_BLOCK_SIZE
         );
 
@@ -407,41 +416,38 @@ static const ssize_t bench_decr_run (
         // regular cbc decryption on multiple block-sized payload
         aes_cbc_decrypt(
             assembly,
-            bytes,
+            data_in,
             data_in_size,
             aes_null_iv,
             ctx->priv.ctx
         );
     }
-    ctx->outbuf_size = data_in_size - AES_PREAMBLE_SIZE;
-    memcpy(ctx->outbuf, &assembly[AES_PREAMBLE_SIZE], ctx->outbuf_size);
+    ssize_t outbuf_size = data_in_size - AES_PREAMBLE_SIZE;
+    n3n_pktbuf_append_memcpy(
+        (struct n3n_pktbuf *)outbuf,
+        &assembly[AES_PREAMBLE_SIZE],
+        outbuf_size
+    );
 
     *bytes_in = data_in_size;
-    return ctx->outbuf_size;
-}
-
-static const void *const bench_get_output (void *const _ctx) {
-    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
-    return &ctx->outbuf;
+    return outbuf_size;
 }
 
 static struct bench_item bench_encr = {
-    .name = "aes_encr",
+    .name = "transform_aes_encr",
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_encr_run,
-    .get_output = bench_get_output,
     .teardown = bench_teardown,
     .data_in = test_data_32x16,
     .data_out = test_data_aes,
 };
 
 static struct bench_item bench_decr = {
-    .name = "aes_decr",
+    .name = "transform_aes_decr",
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_decr_run,
-    .get_output = bench_get_output,
     .teardown = bench_teardown,
     .data_in = test_data_aes,
     .data_out = test_data_32x16,

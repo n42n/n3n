@@ -371,6 +371,7 @@ static const uint8_t test_data_k[] = {
 static const ssize_t bench_curve25519_run (
     void *ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     uint8_t q[32];

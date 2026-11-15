@@ -182,11 +182,7 @@ int n2n_transop_speck_init (const n2n_edge_conf_t *conf, n2n_trans_op_t *ttt) {
 
 struct bench_ctx {
     transop_speck_t priv;
-    // for encryption, want to be able to test the largest expected MTU + IV
-    // for decryption, just need to worry about the MTU
     uint8_t iv[TRANSOP_SPECK_PREAMBLE_SIZE];
-    uint8_t outbuf[2048 + TRANSOP_SPECK_PREAMBLE_SIZE];
-    ssize_t outbuf_size;
 };
 
 static void *bench_setup (void *const _ctx) {
@@ -214,61 +210,60 @@ static void bench_teardown (void *_ctx) {
 static const ssize_t bench_encr_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
     // TODO: refactor to call transop_encode_speck() directly
 
     // First, populate our static test IV
-    *(uint64_t *)(&ctx->outbuf[0]) = *(uint64_t *)&ctx->iv[0];
-    *(uint64_t *)(&ctx->outbuf[8]) = *(uint64_t *)&ctx->iv[8];
+    *(uint64_t *)(&outbuf_ptr[0]) = *(uint64_t *)&ctx->iv[0];
+    *(uint64_t *)(&outbuf_ptr[8]) = *(uint64_t *)&ctx->iv[8];
 
     speck_ctr(
-        &ctx->outbuf[TRANSOP_SPECK_PREAMBLE_SIZE],
+        &outbuf_ptr[TRANSOP_SPECK_PREAMBLE_SIZE],
         data_in,
         data_in_size,
-        (unsigned char *)&ctx->outbuf,   // IV
+        outbuf_ptr,   // IV
         ctx->priv.ctx
     );
 
     *bytes_in = data_in_size;
-    ctx->outbuf_size = data_in_size + TRANSOP_SPECK_PREAMBLE_SIZE;
-    return ctx->outbuf_size;
+    const int outbuf_size = data_in_size + TRANSOP_SPECK_PREAMBLE_SIZE;
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, outbuf_size);
+    return outbuf_size;
 }
 
 static const ssize_t bench_decr_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *bytes_in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
     const unsigned char *data_in = n3n_pktbuf_getbufptr(*inbuf);
     const ssize_t data_in_size = n3n_pktbuf_getbufsize(*inbuf);
+    unsigned char *outbuf_ptr = n3n_pktbuf_getbufptr(*outbuf);
 
     // TODO: refactor to call transop_decode_speck() directly
 
-    ctx->outbuf_size = data_in_size - TRANSOP_SPECK_PREAMBLE_SIZE; // skip IV
-
-    const unsigned char *bytes = (unsigned char *)data_in;
+    const int outbuf_size = data_in_size - TRANSOP_SPECK_PREAMBLE_SIZE; // skip IV
 
     speck_ctr(
-        ctx->outbuf,
-        &bytes[TRANSOP_SPECK_PREAMBLE_SIZE], // skip IV
-        ctx->outbuf_size,
-        bytes,   // IV
+        outbuf_ptr,
+        &data_in[TRANSOP_SPECK_PREAMBLE_SIZE], // skip IV
+        outbuf_size,
+        data_in,   // IV
         ctx->priv.ctx
     );
 
     *bytes_in = data_in_size;
-    return ctx->outbuf_size;
-}
-
-static const void *const bench_get_output (void *const _ctx) {
-    struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
-    return &ctx->outbuf;
+    n3n_pktbuf_append_space((struct n3n_pktbuf *)outbuf, outbuf_size);
+    return outbuf_size;
 }
 
 static struct bench_item bench_encr = {
@@ -276,7 +271,6 @@ static struct bench_item bench_encr = {
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_encr_run,
-    .get_output = bench_get_output,
     .teardown = bench_teardown,
     .data_in = test_data_32x16,
     .data_out = test_data_speck,
@@ -287,7 +281,6 @@ static struct bench_item bench_decr = {
     .ctx_size = sizeof(struct bench_ctx),
     .setup = bench_setup,
     .run = bench_decr_run,
-    .get_output = bench_get_output,
     .teardown = bench_teardown,
     .data_in = test_data_speck,
     .data_out = test_data_32x16,

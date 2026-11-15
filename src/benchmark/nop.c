@@ -11,6 +11,7 @@
 static const ssize_t bench_nop_run (
     void *ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *in
 ) {
     *in = 0;

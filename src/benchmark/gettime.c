@@ -26,6 +26,7 @@ static void *bench_setup (void *const _ctx) {
 static const ssize_t bench_time_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
@@ -38,6 +39,7 @@ static const ssize_t bench_time_run (
 static const ssize_t bench_gettimeofday_run (
     void *_ctx,
     const struct n3n_pktbuf *inbuf,
+    const struct n3n_pktbuf *outbuf,
     ssize_t *in
 ) {
     struct bench_ctx *ctx = (struct bench_ctx *)_ctx;
