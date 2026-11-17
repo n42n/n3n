@@ -51,7 +51,8 @@ void resolve_cancel_thread (n3n_resolve_parameter_t *param);
 int supernode2sock (n3n_sock_t * sn, const char *addrIn);
 
 // called from edge_utils, runs supernode2sock only ifndef HAVE_LIBPTHREAD
-int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn);
+// returns non-zero if there is no peer (eg: no current supernode)
+int maybe_supernode2sock (struct peer_info *peer);
 
 const char *resolve_hostnames_str_get (int, int);
 void resolve_log_hostnames (int);

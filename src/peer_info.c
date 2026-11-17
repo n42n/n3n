@@ -135,9 +135,11 @@ struct peer_info* peer_info_validate (struct peer_info **list, struct peer_info 
     return NULL;
 }
 
-inline char *peer_info_get_hostname (struct peer_info *p) {
-    if(!p) {
-        return NULL;
+// Always returns a printable string.  Use p->hostname if it matters that there
+// is no hostname.
+inline const char *peer_info_get_hostname (struct peer_info *p) {
+    if(!p || !p->hostname) {
+        return "none";
     }
     return p->hostname;
 }

@@ -420,7 +420,10 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
 }
 
 
-int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn) {
+int maybe_supernode2sock (struct peer_info *peer) {
+    if(!peer) {
+        return -1;
+    }
     return 0;
 }
 
@@ -439,8 +442,11 @@ bool resolve_check (n3n_resolve_parameter_t *param, bool requires_resolution, ti
     return requires_resolution;
 }
 
-int maybe_supernode2sock (n3n_sock_t * sn, const char *addrIn) {
-    return supernode2sock(sn, addrIn);
+int maybe_supernode2sock (struct peer_info *peer) {
+    if(!peer) {
+        return -1;
+    }
+    return supernode2sock(&peer->sock, peer->hostname);
 }
 #endif
 
@@ -547,7 +553,7 @@ static int resolve_hostnames_str_to_peer_info_one (
         return 1;
     }
 
-    if(!peer_info_get_hostname(peer)) {
+    if(!peer->hostname) {
         // We dup the string here because the peer_info_free() thinks it owns
         // the hostname and wants to free() it
         // TODO: refactor
