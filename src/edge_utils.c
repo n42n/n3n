@@ -308,17 +308,17 @@ static int detect_local_ip_address (n3n_sock_t* out_sock, const struct n3n_runti
     // remember the port number
     out_sock->port = ntohs(local_sock.sin_port);
 
-    // probe for local IP address
-    probe_sock = socket(PF_INET, SOCK_DGRAM, 0);
-    if(probe_sock < 0) {
-        return -2;
-    }
-
     if(!eee->curr_sn) {
         // We dont have a current supernode, so we cannot use it to find our
         // local address
         // TODO: fall back to a different sample dest address?
         return -5;
+    }
+
+    // probe for local IP address
+    probe_sock = socket(PF_INET, SOCK_DGRAM, 0);
+    if(probe_sock < 0) {
+        return -2;
     }
 
     // connecting the UDP socket makes getsockname read the local address it
