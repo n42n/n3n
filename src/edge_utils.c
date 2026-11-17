@@ -1512,14 +1512,10 @@ static void check_join_multicast_group (struct n3n_runtime_data *eee) {
         if(!eee->multicast_joined_v4) {
             struct ip_mreq mreq;
             mreq.imr_multiaddr.s_addr = inet_addr(N2N_MULTICAST_GROUP);
-#ifdef _WIN32
-            uint32_t raw_addr = *(uint32_t *)&eee->curr_sn->sock.addr.v4;
-            dec_ip_str_t ip_addr;
-            get_best_interface_ip(raw_addr, &ip_addr);
-            mreq.imr_interface.s_addr = inet_addr(ip_addr);
-#else
+            // TODO: allow a user with advanced requirements to provide a list
+            // of interfaces to use for multicast, probably using an ip_mreqn
+            // instead of the ip_mreq
             mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-#endif
             if(setsockopt(eee->udp_multicast_sock_v4, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq)) < 0) {
                 traceEvent(TRACE_WARNING, "failed to bind to local multicast group %s:%u [errno %u]",
                            N2N_MULTICAST_GROUP, N2N_MULTICAST_PORT, errno);
