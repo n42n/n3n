@@ -382,6 +382,14 @@ void supernode_connect (struct n3n_runtime_data *eee) {
         return;
     }
 
+    if(eee->conf.connect_tcp && !eee->curr_sn) {
+        // TCP needs a supernode to connect to. Do this check before opening
+        // the socket, otherwise the early return above would stop us ever
+        // connecting. We are called again when a supernode becomes available.
+        traceEvent(TRACE_DEBUG, "no supernode available, not connecting");
+        return;
+    }
+
     // determine the correct address length
     socklen_t bind_addr_len = 0;
     if(eee->conf.bind_address) {
@@ -1203,7 +1211,9 @@ static void register_with_new_peer (struct n3n_runtime_data *eee,
                 /* Normal STUN */
                 send_register(eee, &(scan->sock), mac, N2N_REGULAR_REG_COOKIE);
             }
-            send_register(eee, &(eee->curr_sn->sock), mac, N2N_FORWARDED_REG_COOKIE);
+            if(eee->curr_sn) {
+                send_register(eee, &(eee->curr_sn->sock), mac, N2N_FORWARDED_REG_COOKIE);
+            }
         } else {
             /* P2P register, send directly */
             send_register(eee, &(scan->sock), mac, N2N_REGULAR_REG_COOKIE);
@@ -1587,6 +1597,10 @@ void send_query_peer (struct n3n_runtime_data * eee,
                                   time_stamp());
         }
 
+        if(!eee->curr_sn) {
+            traceEvent(TRACE_DEBUG, "no supernode available, not sending QUERY_PEER");
+            return;
+        }
         sendto_sock(eee, pktbuf, idx, &(eee->curr_sn->sock));
 
     } else {
@@ -1643,6 +1657,11 @@ void send_register_super (struct n3n_runtime_data *eee) {
     n2n_common_t cmn;
     n2n_REGISTER_SUPER_t reg;
     n3n_sock_str_t sockbuf;
+
+    if(!eee->curr_sn) {
+        traceEvent(TRACE_DEBUG, "no supernode available, not sending REGISTER_SUPER");
+        return;
+    }
 
     /* reg.key_time is not set by this caller; zero it so encode_REGISTER_SUPER
      * does not emit garbage for that field */
@@ -1952,7 +1971,7 @@ void update_supernode_reg (struct n3n_runtime_data * eee, time_t now) {
         --(eee->sup_attempts);
     }
 
-    if(maybe_supernode2sock(&(eee->curr_sn->sock), peer_info_get_hostname(eee->curr_sn)) == 0) {
+    if(maybe_supernode2sock(eee->curr_sn) == 0) {
         traceEvent(
             TRACE_INFO,
             "registering with supernode [%s][number of supernodes %d][attempts left %u]",
@@ -2221,7 +2240,9 @@ static int check_query_peer_info (struct n3n_runtime_data *eee, time_t now, n2n_
         HASH_ADD_PEER(eee->pending_peers, scan);
     }
 
-    if(now - scan->last_sent_query > eee->conf.register_interval) {
+    // without a supernode there is nobody to forward the query, retry later
+    if(eee->curr_sn &&
+       (now - scan->last_sent_query > eee->conf.register_interval)) {
         send_register(eee, &(eee->curr_sn->sock), mac, N2N_FORWARDED_REG_COOKIE);
         send_query_peer(eee, scan->mac_addr);
         scan->last_sent_query = now;
@@ -2233,7 +2254,8 @@ static int check_query_peer_info (struct n3n_runtime_data *eee, time_t now, n2n_
 
 /* ************************************** */
 
-/* @return 1 if destination is a peer, 0 if destination is supernode */
+/* @return 1 if destination is a peer, 0 if destination is supernode, -1 if
+ *         there is no destination available (no current supernode) */
 static int find_peer_destination (struct n3n_runtime_data * eee,
                                   n2n_mac_t mac_address,
                                   n3n_sock_t * destination) {
@@ -2245,6 +2267,10 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
     time_t now = time(NULL);
 
     if(is_multi_broadcast(mac_address)) {
+        if(!eee->curr_sn) {
+            traceEvent(TRACE_DEBUG, "multicast or broadcast destination peer, but no supernode");
+            return(-1);
+        }
         traceEvent(TRACE_DEBUG, "multicast or broadcast destination peer, using supernode");
         memcpy(destination, &(eee->curr_sn->sock), sizeof(n3n_sock_t));
         return(0);
@@ -2272,6 +2298,11 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
     }
 
     if(retval == 0) {
+        if(!eee->curr_sn) {
+            traceEvent(TRACE_DEBUG, "p2p peer %s not found and no supernode available",
+                       macaddr_str(mac_buf, mac_address));
+            return(-1);
+        }
         memcpy(destination, &(eee->curr_sn->sock), sizeof(n3n_sock_t));
         traceEvent(TRACE_DEBUG, "p2p peer %s not found, using supernode",
                    macaddr_str(mac_buf, mac_address));
@@ -2288,6 +2319,18 @@ static int find_peer_destination (struct n3n_runtime_data * eee,
 
 /* ***************************************************** */
 
+/** Forward a packet to all the known peers.  Used for broadcasts when there is
+ *  no supernode to do it for us. */
+static void send_to_known_peers (struct n3n_runtime_data * eee,
+                                 const uint8_t * pktbuf,
+                                 size_t pktlen) {
+    struct peer_info *peer, *tmp_peer;
+
+    HASH_ITER(hh, eee->known_peers, peer, tmp_peer) {
+        sendto_sock(eee, pktbuf, pktlen, &peer->sock);
+    }
+}
+
 /** Send an ecapsulated ethernet PACKET to a destination edge or broadcast MAC
  *    address. */
 static int send_packet (struct n3n_runtime_data * eee,
@@ -2300,9 +2343,19 @@ static int send_packet (struct n3n_runtime_data * eee,
     n3n_sock_str_t sockbuf;
     n3n_sock_t destination;
     macstr_t mac_buf;
-    struct peer_info *peer, *tmp_peer;
 
     is_p2p = find_peer_destination(eee, dstMac, &destination);
+
+    if(is_p2p < 0) {
+        // No supernode to send via, so all we can do is the same as when
+        // waiting for one: broadcasts go to the peers we already know,
+        // anything else is dropped
+        if(is_multi_broadcast(dstMac)) {
+            ++(eee->stats.tx_sup_broadcast);
+            send_to_known_peers(eee, pktbuf, pktlen);
+        }
+        return 0;
+    }
 
     traceEvent(TRACE_INFO, "Tx PACKET of %u bytes to %s [%s]",
                pktlen, macaddr_str(mac_buf, dstMac),
@@ -2318,9 +2371,7 @@ static int send_packet (struct n3n_runtime_data * eee,
 
         // if no supernode around, foward the broadcast to all known peers
         if(eee->sn_wait) {
-            HASH_ITER(hh, eee->known_peers, peer, tmp_peer) {
-                sendto_sock(eee, pktbuf, pktlen, &peer->sock);
-            }
+            send_to_known_peers(eee, pktbuf, pktlen);
             return 0;
         }
         // fall through otherwise
@@ -2875,6 +2926,11 @@ void process_pdu (struct n3n_runtime_data *eee,
                 return;
             }
 
+            if(!eee->curr_sn) {
+                traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_ACK with no current supernode");
+                return;
+            }
+
             decode_REGISTER_SUPER_ACK(&ra, &cmn, udp_buf, &rem, &idx, tmpbuf);
 
             if(eee->conf.header_encryption == HEADER_ENCRYPTION_ENABLED) {
@@ -2992,6 +3048,11 @@ void process_pdu (struct n3n_runtime_data *eee,
 
             if(!(eee->sn_wait)) {
                 traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_NAK with no outstanding REGISTER_SUPER");
+                return;
+            }
+
+            if(!eee->curr_sn) {
+                traceEvent(TRACE_DEBUG, "Rx REGISTER_SUPER_NAK with no current supernode");
                 return;
             }
 
