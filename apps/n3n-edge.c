@@ -1118,6 +1118,19 @@ int main (int argc, char* argv[]) {
                 // it should be from curr_sn, but we can't determine definitely here, so no details to output
             } else if(last_action <= (now - BOOTSTRAP_TIMEOUT)) {
                 // timeout, so try next supernode
+                if(!eee->supernodes) {
+                    // Nothing has been resolved yet (eg: DNS failure at
+                    // startup). The main loop is not running yet, so retry
+                    // the resolution here
+                    if(resolve_hostnames_str_to_peer_info(
+                           RESOLVE_LIST_SUPERNODE,
+                           &eee->supernodes)) {
+                        traceEvent(
+                            TRACE_WARNING,
+                            "resolve_hostnames_str_to_peer_info returned errors"
+                        );
+                    }
+                }
                 if(eee->curr_sn && eee->curr_sn->hh.next)
                     eee->curr_sn = eee->curr_sn->hh.next;
                 else
